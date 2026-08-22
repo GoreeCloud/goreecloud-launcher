@@ -51,16 +51,14 @@ class ActivatedHomeLifecycleRuntimeTest {
             dockKeys = emptyList(),
         )
 
-        val scenario = instrumentation.runOnMainSyncWithResult {
-            ActivityScenario.launch(MainActivity::class.java)
-        }
+        val scenario = ActivityScenario.launch(MainActivity::class.java)
         try {
             withTimeout(15_000) {
                 repository.state.first { it.authority == WorkspaceAuthority.ROOM }
             }
             waitForDisplayedLabel(firstApp.label.toString())
 
-            instrumentation.runOnMainSync { scenario.recreate() }
+            scenario.recreate()
 
             withTimeout(15_000) {
                 repository.state.first { it.authority == WorkspaceAuthority.ROOM }
@@ -79,7 +77,7 @@ class ActivatedHomeLifecycleRuntimeTest {
 
             waitForDisplayedLabel(secondApp.label.toString())
         } finally {
-            instrumentation.runOnMainSync { scenario.close() }
+            scenario.close()
         }
     }
 
@@ -90,11 +88,5 @@ class ActivatedHomeLifecycleRuntimeTest {
                 .isNotEmpty()
         }
         composeRule.onNodeWithText(label, useUnmergedTree = true).assertIsDisplayed()
-    }
-
-    private fun <T> android.app.Instrumentation.runOnMainSyncWithResult(block: () -> T): T {
-        var result: Result<T>? = null
-        runOnMainSync { result = runCatching(block) }
-        return checkNotNull(result).getOrThrow()
     }
 }
