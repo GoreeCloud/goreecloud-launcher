@@ -3,6 +3,7 @@
 README.md
 app/build.gradle.kts
 app/proguard-rules.pro
+app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json
 app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
