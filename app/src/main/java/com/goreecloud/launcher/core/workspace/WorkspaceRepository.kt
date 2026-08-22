@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val Context.workspaceDataStore by preferencesDataStore(name = "launcher_workspace")
+const val MAX_DOCK_ITEMS = 5
 
 data class WorkspaceState(
     val initialized: Boolean = false,
@@ -28,7 +29,6 @@ fun LauncherActivityInfo.workspaceKey(): String =
 
 internal object WorkspaceCodec {
     private const val ENTRY_SEPARATOR = "\u001F"
-    const val MAX_DOCK_ITEMS = 5
 
     fun encode(values: List<String>): String = values.joinToString(ENTRY_SEPARATOR)
 
@@ -78,7 +78,7 @@ class WorkspaceRepository(private val context: Context) {
             if (preferences[Keys.initialized] == true) return@edit
             preferences[Keys.favorites] = WorkspaceCodec.encode(favoriteKeys.distinct())
             preferences[Keys.dock] = WorkspaceCodec.encode(
-                dockKeys.distinct().take(WorkspaceCodec.MAX_DOCK_ITEMS)
+                dockKeys.distinct().take(MAX_DOCK_ITEMS)
             )
             preferences[Keys.initialized] = true
         }
@@ -96,7 +96,7 @@ class WorkspaceRepository(private val context: Context) {
         context.workspaceDataStore.edit { preferences ->
             val current = WorkspaceCodec.decode(preferences[Keys.dock])
             preferences[Keys.dock] = WorkspaceCodec.encode(
-                WorkspaceCodec.toggled(current, key, WorkspaceCodec.MAX_DOCK_ITEMS)
+                WorkspaceCodec.toggled(current, key, MAX_DOCK_ITEMS)
             )
             preferences[Keys.initialized] = true
         }
