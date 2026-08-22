@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION_ROOT = ROOT / "app" / "src" / "main" / "java"
 AUTHORITY_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "WorkspaceRepository.kt"
+PROMOTION_COORDINATOR = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceProductionPromotionCoordinator.kt"
 PLACEMENT_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceRoomPlacementRepository.kt"
 
 NON_EXECUTABLE_KOTLIN = re.compile(
@@ -28,9 +29,26 @@ for path in PRODUCTION_ROOT.rglob("*.kt"):
             errors.append(
                 "WorkspaceRepository.kt must contain exactly the guarded promotion primitive definition."
             )
+    elif path == PROMOTION_COORDINATOR:
+        if promotion_calls != 1:
+            errors.append(
+                "WorkspaceProductionPromotionCoordinator.kt must contain exactly one guarded promotion call."
+            )
     elif promotion_calls:
         errors.append(
-            f"Production Room promotion call is not accepted yet: {path.relative_to(ROOT)}"
+            f"Production Room promotion call is outside the reviewed coordinator: {path.relative_to(ROOT)}"
+        )
+
+    coordinator_references = text.count("WorkspaceProductionPromotionCoordinator(")
+    if path == PROMOTION_COORDINATOR:
+        if coordinator_references != 1:
+            errors.append(
+                "WorkspaceProductionPromotionCoordinator.kt must contain exactly its class declaration."
+            )
+    elif coordinator_references:
+        errors.append(
+            "Production activation of WorkspaceProductionPromotionCoordinator is not accepted yet: "
+            f"{path.relative_to(ROOT)}"
         )
 
     placement_references = text.count("WorkspaceRoomPlacementRepository(")
@@ -51,4 +69,7 @@ if errors:
         print(f"- {error}")
     raise SystemExit(1)
 
-print("Room cutover guard passed: promotion and ROOM-only placement routing remain uncalled in production.")
+print(
+    "Room cutover guard passed: the reviewed promotion coordinator exists but remains unwired, "
+    "and ROOM-only Home placement routing remains inactive in production."
+)
