@@ -18,6 +18,7 @@ app/src/main/res/xml/data_extraction_rules.xml
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceCodecTest.kt
 build.gradle.kts
 docs/architecture.md
+docs/glaze-ui-adoption.md
 docs/security-privacy.md
 gradle.properties
 gradle/wrapper/gradle-wrapper.properties
