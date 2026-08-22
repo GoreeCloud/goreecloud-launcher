@@ -1,5 +1,7 @@
 package com.goreecloud.launcher
 
+import android.app.role.RoleManager
+import android.os.ParcelFileDescriptor
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -14,6 +16,8 @@ import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativeWriteResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
+import java.io.FileInputStream
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -31,53 +35,76 @@ class ActivatedHomeLifecycleRuntimeTest {
     fun recreatedMainActivityRecollectsRoomPlacementAndRemainsReactive() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
-        val apps = withTimeout(10_000) {
-            LauncherAppsRepository(context).apps.first { candidates ->
-                candidates.count { it.componentName.packageName != context.packageName } >= 2
+        val roleManager = context.getSystemService(RoleManager::class.java)
+        val alreadyDefaultHome =
+            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+
+        if (!alreadyDefaultHome) {
+            runShellCommand(
+                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+            )
+            withTimeout(10_000) {
+                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    delay(100)
+                }
             }
         }
-        val candidates = apps
-            .filter { it.componentName.packageName != context.packageName }
-            .distinctBy { it.label.toString() }
-        check(candidates.size >= 2) { "API 36 lifecycle test requires two distinct launchable app labels." }
 
-        val firstApp = candidates[0]
-        val secondApp = candidates[1]
-        val firstKey = firstApp.workspaceKey()
-        val secondKey = secondApp.workspaceKey()
-        val repository = WorkspaceRepository(context)
-        repository.ensureDefaults(
-            favoriteKeys = listOf(firstKey),
-            dockKeys = emptyList(),
-        )
-
-        val scenario = ActivityScenario.launch(MainActivity::class.java)
         try {
-            withTimeout(15_000) {
-                repository.state.first { it.authority == WorkspaceAuthority.ROOM }
+            val apps = withTimeout(10_000) {
+                LauncherAppsRepository(context).apps.first { candidates ->
+                    candidates.count { it.componentName.packageName != context.packageName } >= 2
+                }
             }
-            waitForDisplayedLabel(firstApp.label.toString())
+            val candidates = apps
+                .filter { it.componentName.packageName != context.packageName }
+                .distinctBy { it.label.toString() }
+            check(candidates.size >= 2) { "API 36 lifecycle test requires two distinct launchable app labels." }
 
-            scenario.recreate()
-
-            withTimeout(15_000) {
-                repository.state.first { it.authority == WorkspaceAuthority.ROOM }
-            }
-            waitForDisplayedLabel(firstApp.label.toString())
-
-            val runtime = WorkspaceProductionRuntimeCoordinator(
-                authorityRepository = repository,
-                workspaceDaoProvider = {
-                    LauncherDatabaseProvider.get(context).workspaceDao()
-                },
+            val firstApp = candidates[0]
+            val secondApp = candidates[1]
+            val firstKey = firstApp.workspaceKey()
+            val secondKey = secondApp.workspaceKey()
+            val repository = WorkspaceRepository(context)
+            repository.ensureDefaults(
+                favoriteKeys = listOf(firstKey),
+                dockKeys = emptyList(),
             )
-            val write = runtime.toggleFavorite(secondKey)
-            check(write is WorkspaceAuthoritativeWriteResult.Written)
-            assertEquals(WorkspaceAuthority.ROOM, repository.state.first().authority)
 
-            waitForDisplayedLabel(secondApp.label.toString())
+            val scenario = ActivityScenario.launch(MainActivity::class.java)
+            try {
+                withTimeout(15_000) {
+                    repository.state.first { it.authority == WorkspaceAuthority.ROOM }
+                }
+                waitForDisplayedLabel(firstApp.label.toString())
+
+                scenario.recreate()
+
+                withTimeout(15_000) {
+                    repository.state.first { it.authority == WorkspaceAuthority.ROOM }
+                }
+                waitForDisplayedLabel(firstApp.label.toString())
+
+                val runtime = WorkspaceProductionRuntimeCoordinator(
+                    authorityRepository = repository,
+                    workspaceDaoProvider = {
+                        LauncherDatabaseProvider.get(context).workspaceDao()
+                    },
+                )
+                val write = runtime.toggleFavorite(secondKey)
+                check(write is WorkspaceAuthoritativeWriteResult.Written)
+                assertEquals(WorkspaceAuthority.ROOM, repository.state.first().authority)
+
+                waitForDisplayedLabel(secondApp.label.toString())
+            } finally {
+                scenario.close()
+            }
         } finally {
-            scenario.close()
+            if (!alreadyDefaultHome) {
+                runShellCommand(
+                    "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+                )
+            }
         }
     }
 
@@ -88,5 +115,14 @@ class ActivatedHomeLifecycleRuntimeTest {
                 .isNotEmpty()
         }
         composeRule.onNodeWithText(label, useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    private fun runShellCommand(command: String) {
+        val descriptor: ParcelFileDescriptor =
+            InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)
+        FileInputStream(descriptor.fileDescriptor).use { input ->
+            input.readBytes()
+        }
+        descriptor.close()
     }
 }
