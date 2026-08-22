@@ -5,6 +5,8 @@ import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.graphics.Rect
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.UserHandle
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.conflate
 
 class LauncherAppsRepository(context: Context) {
     private val launcherApps = context.getSystemService(LauncherApps::class.java)
+    private val callbackHandler = Handler(Looper.getMainLooper())
 
     val apps: Flow<List<LauncherActivityInfo>> = callbackFlow {
         fun publish() { trySend(loadApps()) }
@@ -23,7 +26,7 @@ class LauncherAppsRepository(context: Context) {
             override fun onPackagesAvailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) = publish()
             override fun onPackagesUnavailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) = publish()
         }
-        launcherApps.registerCallback(callback)
+        launcherApps.registerCallback(callback, callbackHandler)
         publish()
         awaitClose { launcherApps.unregisterCallback(callback) }
     }.conflate()
