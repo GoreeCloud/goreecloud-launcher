@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION_ROOT = ROOT / "app" / "src" / "main" / "java"
 AUTHORITY_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "WorkspaceRepository.kt"
 PROMOTION_COORDINATOR = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceProductionPromotionCoordinator.kt"
+POST_CUTOVER_STARTUP_COORDINATOR = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspacePostCutoverStartupCoordinator.kt"
 PLACEMENT_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceRoomPlacementRepository.kt"
 
 NON_EXECUTABLE_KOTLIN = re.compile(
@@ -51,6 +52,18 @@ for path in PRODUCTION_ROOT.rglob("*.kt"):
             f"{path.relative_to(ROOT)}"
         )
 
+    startup_references = text.count("WorkspacePostCutoverStartupCoordinator(")
+    if path == POST_CUTOVER_STARTUP_COORDINATOR:
+        if startup_references != 1:
+            errors.append(
+                "WorkspacePostCutoverStartupCoordinator.kt must contain exactly its class declaration."
+            )
+    elif startup_references:
+        errors.append(
+            "Production activation of WorkspacePostCutoverStartupCoordinator is not accepted yet: "
+            f"{path.relative_to(ROOT)}"
+        )
+
     placement_references = text.count("WorkspaceRoomPlacementRepository(")
     if path == PLACEMENT_REPOSITORY:
         if placement_references != 1:
@@ -70,6 +83,6 @@ if errors:
     raise SystemExit(1)
 
 print(
-    "Room cutover guard passed: the reviewed promotion coordinator exists but remains unwired, "
-    "and ROOM-only Home placement routing remains inactive in production."
+    "Room cutover guard passed: reviewed promotion and post-cutover recovery coordinators exist "
+    "but remain unwired, and ROOM-only Home placement routing remains inactive in production."
 )
