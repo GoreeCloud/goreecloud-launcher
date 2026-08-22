@@ -43,6 +43,7 @@ app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlaceme
 build.gradle.kts
 docs/architecture.md
 docs/glaze-ui-adoption.md
+docs/room-promotion-rehearsal.md
 docs/security-privacy.md
 docs/workspace-authority.md
 gradle.properties
