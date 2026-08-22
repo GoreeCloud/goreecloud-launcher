@@ -5,6 +5,7 @@ app/build.gradle.kts
 app/proguard-rules.pro
 app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomRuntimeTest.kt
+app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceStartupReconcilerRuntimeTest.kt
 app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
@@ -17,6 +18,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImpor
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalMirror.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalReader.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifier.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceStartupReconciler.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
