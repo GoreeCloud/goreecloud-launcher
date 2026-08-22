@@ -1,6 +1,7 @@
 package com.goreecloud.launcher.core.workspace.db
 
 import com.goreecloud.launcher.core.workspace.WorkspaceState
+import kotlinx.coroutines.CancellationException
 
 sealed interface WorkspaceMirrorResult {
     data object Skipped : WorkspaceMirrorResult
@@ -24,6 +25,8 @@ class WorkspaceRelationalMirror(
                 items = import.items,
             )
             WorkspaceMirrorResult.Synced
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             WorkspaceMirrorResult.Failed(exception::class.java.simpleName)
         }
