@@ -9,6 +9,7 @@ app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuth
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspacePostCutoverStartupRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceProductionPromotionCoordinatorRuntimeTest.kt
+app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceProductionRuntimeCoordinatorRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspacePromotionRehearsalRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlacementRepositoryRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomRuntimeTest.kt
@@ -27,6 +28,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceEntities.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapper.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePostCutoverStartupCoordinator.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceProductionPromotionCoordinator.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceProductionRuntimeCoordinator.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePromotionRehearsal.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalMirror.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalReader.kt
@@ -55,6 +57,7 @@ docs/authoritative-placement-routing.md
 docs/glaze-ui-adoption.md
 docs/post-cutover-startup-recovery.md
 docs/production-promotion-coordinator.md
+docs/production-workspace-activation.md
 docs/room-promotion-rehearsal.md
 docs/security-privacy.md
 docs/workspace-authority.md

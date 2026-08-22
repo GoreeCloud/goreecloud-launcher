@@ -4,11 +4,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION_ROOT = ROOT / "app" / "src" / "main" / "java"
+MAIN_ACTIVITY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "MainActivity.kt"
 AUTHORITY_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "WorkspaceRepository.kt"
 PROMOTION_COORDINATOR = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceProductionPromotionCoordinator.kt"
 POST_CUTOVER_STARTUP_COORDINATOR = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspacePostCutoverStartupCoordinator.kt"
 AUTHORITATIVE_PLACEMENT_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceAuthoritativePlacementRepository.kt"
 AUTHORITATIVE_PLACEMENT_OBSERVER = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceAuthoritativePlacementObserver.kt"
+PRODUCTION_RUNTIME_COORDINATOR = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceProductionRuntimeCoordinator.kt"
 PLACEMENT_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceRoomPlacementRepository.kt"
 
 NON_EXECUTABLE_KOTLIN = re.compile(
@@ -48,9 +50,14 @@ for path in PRODUCTION_ROOT.rglob("*.kt"):
             errors.append(
                 "WorkspaceProductionPromotionCoordinator.kt must contain exactly its class declaration."
             )
+    elif path == PRODUCTION_RUNTIME_COORDINATOR:
+        if coordinator_references != 1:
+            errors.append(
+                "WorkspaceProductionRuntimeCoordinator.kt must instantiate the production promotion coordinator exactly once."
+            )
     elif coordinator_references:
         errors.append(
-            "Production activation of WorkspaceProductionPromotionCoordinator is not accepted yet: "
+            "Production promotion activation is outside WorkspaceProductionRuntimeCoordinator: "
             f"{path.relative_to(ROOT)}"
         )
 
@@ -60,9 +67,14 @@ for path in PRODUCTION_ROOT.rglob("*.kt"):
             errors.append(
                 "WorkspacePostCutoverStartupCoordinator.kt must contain exactly its class declaration."
             )
+    elif path == PRODUCTION_RUNTIME_COORDINATOR:
+        if startup_references != 1:
+            errors.append(
+                "WorkspaceProductionRuntimeCoordinator.kt must instantiate post-cutover startup recovery exactly once."
+            )
     elif startup_references:
         errors.append(
-            "Production activation of WorkspacePostCutoverStartupCoordinator is not accepted yet: "
+            "Post-cutover startup activation is outside WorkspaceProductionRuntimeCoordinator: "
             f"{path.relative_to(ROOT)}"
         )
 
@@ -72,9 +84,14 @@ for path in PRODUCTION_ROOT.rglob("*.kt"):
             errors.append(
                 "WorkspaceAuthoritativePlacementRepository.kt must contain exactly its class declaration."
             )
+    elif path == PRODUCTION_RUNTIME_COORDINATOR:
+        if authoritative_references != 1:
+            errors.append(
+                "WorkspaceProductionRuntimeCoordinator.kt must instantiate the authoritative placement router exactly once."
+            )
     elif authoritative_references:
         errors.append(
-            "Production activation of WorkspaceAuthoritativePlacementRepository is not accepted yet: "
+            "Authoritative placement routing is outside WorkspaceProductionRuntimeCoordinator: "
             f"{path.relative_to(ROOT)}"
         )
 
@@ -84,9 +101,31 @@ for path in PRODUCTION_ROOT.rglob("*.kt"):
             errors.append(
                 "WorkspaceAuthoritativePlacementObserver.kt must contain exactly its class declaration."
             )
+    elif path == PRODUCTION_RUNTIME_COORDINATOR:
+        if observer_references != 1:
+            errors.append(
+                "WorkspaceProductionRuntimeCoordinator.kt must instantiate the authoritative placement observer exactly once."
+            )
     elif observer_references:
         errors.append(
-            "Production activation of WorkspaceAuthoritativePlacementObserver is not accepted yet: "
+            "Authoritative placement observation is outside WorkspaceProductionRuntimeCoordinator: "
+            f"{path.relative_to(ROOT)}"
+        )
+
+    runtime_references = text.count("WorkspaceProductionRuntimeCoordinator(")
+    if path == PRODUCTION_RUNTIME_COORDINATOR:
+        if runtime_references != 1:
+            errors.append(
+                "WorkspaceProductionRuntimeCoordinator.kt must contain exactly its class declaration."
+            )
+    elif path == MAIN_ACTIVITY:
+        if runtime_references != 1:
+            errors.append(
+                "MainActivity.kt must instantiate WorkspaceProductionRuntimeCoordinator exactly once."
+            )
+    elif runtime_references:
+        errors.append(
+            "Production workspace runtime activation is outside MainActivity: "
             f"{path.relative_to(ROOT)}"
         )
 
@@ -114,6 +153,6 @@ if errors:
     raise SystemExit(1)
 
 print(
-    "Room cutover guard passed: reviewed promotion, recovery, routing, and observable placement "
-    "infrastructure exists but remains unwired from Home in production."
+    "Room cutover guard passed: production activation is confined to MainActivity -> "
+    "WorkspaceProductionRuntimeCoordinator -> reviewed promotion, recovery, observation, and routing components."
 )
