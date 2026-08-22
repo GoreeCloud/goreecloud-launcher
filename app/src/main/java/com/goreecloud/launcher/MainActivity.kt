@@ -15,6 +15,8 @@ import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
+import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
+import com.goreecloud.launcher.core.workspace.db.WorkspaceRelationalMirror
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.LauncherRoot
 import com.goreecloud.launcher.ui.theme.GlazeTheme
@@ -26,6 +28,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
+    private lateinit var workspaceRelationalMirror: WorkspaceRelationalMirror
     private val defaultHomeState = MutableStateFlow(false)
 
     private val homeRoleRequest =
@@ -39,6 +42,9 @@ class MainActivity : ComponentActivity() {
         appsRepository = LauncherAppsRepository(this)
         themeRepository = GlazeThemeRepository(this)
         workspaceRepository = WorkspaceRepository(this)
+        workspaceRelationalMirror = WorkspaceRelationalMirror(
+            LauncherDatabaseProvider.get(this).workspaceDao()
+        )
         refreshHomeRoleState()
 
         setContent {
@@ -55,6 +61,14 @@ class MainActivity : ComponentActivity() {
                         dockKeys = defaults.take(4).map { it.workspaceKey() },
                     )
                 }
+            }
+
+            LaunchedEffect(
+                workspace.initialized,
+                workspace.favoriteKeys,
+                workspace.dockKeys,
+            ) {
+                workspaceRelationalMirror.sync(workspace)
             }
 
             GlazeTheme(themeMode) {
