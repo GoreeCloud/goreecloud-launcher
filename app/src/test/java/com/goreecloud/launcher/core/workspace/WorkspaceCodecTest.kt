@@ -26,7 +26,33 @@ class WorkspaceCodecTest {
     fun toggleRespectsDockLimitButStillAllowsRemoval() {
         val fullDock = listOf("one", "two", "three", "four", "five")
 
-        assertEquals(fullDock, WorkspaceCodec.toggled(fullDock, "six", WorkspaceCodec.MAX_DOCK_ITEMS))
-        assertEquals(listOf("one", "two", "four", "five"), WorkspaceCodec.toggled(fullDock, "three", WorkspaceCodec.MAX_DOCK_ITEMS))
+        assertEquals(fullDock, WorkspaceCodec.toggled(fullDock, "six", MAX_DOCK_ITEMS))
+        assertEquals(
+            listOf("one", "two", "four", "five"),
+            WorkspaceCodec.toggled(fullDock, "three", MAX_DOCK_ITEMS),
+        )
+    }
+
+    @Test
+    fun moveEarlierAndLaterPreserveAllEntries() {
+        val initial = listOf("one", "two", "three", "four")
+
+        assertEquals(
+            listOf("one", "three", "two", "four"),
+            WorkspaceCodec.moved(initial, "three", WorkspaceMoveDirection.EARLIER),
+        )
+        assertEquals(
+            listOf("one", "three", "two", "four"),
+            WorkspaceCodec.moved(initial, "two", WorkspaceMoveDirection.LATER),
+        )
+    }
+
+    @Test
+    fun moveStopsAtBoundariesAndIgnoresUnknownKeys() {
+        val initial = listOf("one", "two", "three")
+
+        assertEquals(initial, WorkspaceCodec.moved(initial, "one", WorkspaceMoveDirection.EARLIER))
+        assertEquals(initial, WorkspaceCodec.moved(initial, "three", WorkspaceMoveDirection.LATER))
+        assertEquals(initial, WorkspaceCodec.moved(initial, "missing", WorkspaceMoveDirection.LATER))
     }
 }
