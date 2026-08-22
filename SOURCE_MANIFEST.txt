@@ -4,6 +4,7 @@ README.md
 app/build.gradle.kts
 app/proguard-rules.pro
 app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json
+app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspacePostCutoverStartupRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceProductionPromotionCoordinatorRuntimeTest.kt
@@ -17,6 +18,7 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.k
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthority.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/LauncherDatabase.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessCoordinator.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceEntities.kt
@@ -46,6 +48,7 @@ app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalV
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlacementModelTest.kt
 build.gradle.kts
 docs/architecture.md
+docs/authoritative-placement-routing.md
 docs/glaze-ui-adoption.md
 docs/post-cutover-startup-recovery.md
 docs/production-promotion-coordinator.md
