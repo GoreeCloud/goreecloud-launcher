@@ -41,7 +41,7 @@ Still planned: drag/drop and explicit reordering, multiple workspace pages, fold
 
 Milestone 1 begins with Android Preferences DataStore for small ordered launcher preferences such as Favorites and Dock membership. This keeps the first persistence slice dependency-light and local-only. The richer workspace model described in the project specification can move to Room or another Android-native SQLite abstraction when page placement, folders, widgets, spans, and migrations require relational persistence.
 
-Workspace application keys include the Android user/profile identifier and flattened component name so the same package can be represented independently across supported profiles.
+Workspace application keys combine a `UserHandle` discriminator with the flattened component name so the same package can be represented independently across supported profiles without relying on a hidden Android profile identifier API.
 
 ## Build baseline
 
