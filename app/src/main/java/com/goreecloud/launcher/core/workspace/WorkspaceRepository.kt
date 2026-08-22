@@ -93,6 +93,7 @@ class WorkspaceRepository(
 
     suspend fun ensureDefaults(favoriteKeys: List<String>, dockKeys: List<String>) {
         dataStore.edit { preferences ->
+            if (authorityOf(preferences) == WorkspaceAuthority.ROOM) return@edit
             if (preferences[Keys.initialized] == true) return@edit
             invalidateRoomVerification(preferences)
             preferences[Keys.favorites] = WorkspaceCodec.encode(favoriteKeys.distinct())
@@ -105,6 +106,7 @@ class WorkspaceRepository(
 
     suspend fun toggleFavorite(key: String) {
         dataStore.edit { preferences ->
+            if (authorityOf(preferences) == WorkspaceAuthority.ROOM) return@edit
             invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.favorites])
             preferences[Keys.favorites] = WorkspaceCodec.encode(WorkspaceCodec.toggled(current, key))
@@ -114,6 +116,7 @@ class WorkspaceRepository(
 
     suspend fun toggleDock(key: String) {
         dataStore.edit { preferences ->
+            if (authorityOf(preferences) == WorkspaceAuthority.ROOM) return@edit
             invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.dock])
             preferences[Keys.dock] = WorkspaceCodec.encode(
@@ -125,6 +128,7 @@ class WorkspaceRepository(
 
     suspend fun moveFavorite(key: String, direction: WorkspaceMoveDirection) {
         dataStore.edit { preferences ->
+            if (authorityOf(preferences) == WorkspaceAuthority.ROOM) return@edit
             invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.favorites])
             preferences[Keys.favorites] = WorkspaceCodec.encode(
@@ -136,6 +140,7 @@ class WorkspaceRepository(
 
     suspend fun moveDock(key: String, direction: WorkspaceMoveDirection) {
         dataStore.edit { preferences ->
+            if (authorityOf(preferences) == WorkspaceAuthority.ROOM) return@edit
             invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.dock])
             preferences[Keys.dock] = WorkspaceCodec.encode(
@@ -147,6 +152,7 @@ class WorkspaceRepository(
 
     suspend fun moveFavoriteToTarget(key: String, targetKey: String) {
         dataStore.edit { preferences ->
+            if (authorityOf(preferences) == WorkspaceAuthority.ROOM) return@edit
             invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.favorites])
             preferences[Keys.favorites] = WorkspaceCodec.encode(
@@ -158,6 +164,7 @@ class WorkspaceRepository(
 
     suspend fun moveDockToTarget(key: String, targetKey: String) {
         dataStore.edit { preferences ->
+            if (authorityOf(preferences) == WorkspaceAuthority.ROOM) return@edit
             invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.dock])
             preferences[Keys.dock] = WorkspaceCodec.encode(
