@@ -8,6 +8,7 @@ AUTHORITY_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "co
 PROMOTION_COORDINATOR = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceProductionPromotionCoordinator.kt"
 POST_CUTOVER_STARTUP_COORDINATOR = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspacePostCutoverStartupCoordinator.kt"
 AUTHORITATIVE_PLACEMENT_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceAuthoritativePlacementRepository.kt"
+AUTHORITATIVE_PLACEMENT_OBSERVER = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceAuthoritativePlacementObserver.kt"
 PLACEMENT_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceRoomPlacementRepository.kt"
 
 NON_EXECUTABLE_KOTLIN = re.compile(
@@ -77,6 +78,18 @@ for path in PRODUCTION_ROOT.rglob("*.kt"):
             f"{path.relative_to(ROOT)}"
         )
 
+    observer_references = text.count("WorkspaceAuthoritativePlacementObserver(")
+    if path == AUTHORITATIVE_PLACEMENT_OBSERVER:
+        if observer_references != 1:
+            errors.append(
+                "WorkspaceAuthoritativePlacementObserver.kt must contain exactly its class declaration."
+            )
+    elif observer_references:
+        errors.append(
+            "Production activation of WorkspaceAuthoritativePlacementObserver is not accepted yet: "
+            f"{path.relative_to(ROOT)}"
+        )
+
     placement_references = text.count("WorkspaceRoomPlacementRepository(")
     if path == PLACEMENT_REPOSITORY:
         if placement_references != 1:
@@ -101,6 +114,6 @@ if errors:
     raise SystemExit(1)
 
 print(
-    "Room cutover guard passed: reviewed promotion, recovery, and authoritative placement "
+    "Room cutover guard passed: reviewed promotion, recovery, routing, and observable placement "
     "infrastructure exists but remains unwired from Home in production."
 )
