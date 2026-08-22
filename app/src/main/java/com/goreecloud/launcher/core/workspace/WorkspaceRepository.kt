@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val Context.workspaceDataStore by preferencesDataStore(name = "launcher_workspace")
+const val MAX_DOCK_ITEMS = 5
 
 data class WorkspaceState(
     val initialized: Boolean = false,
@@ -18,12 +19,16 @@ data class WorkspaceState(
     val dockKeys: List<String> = emptyList(),
 )
 
+enum class WorkspaceMoveDirection(val offset: Int) {
+    EARLIER(-1),
+    LATER(1),
+}
+
 fun LauncherActivityInfo.workspaceKey(): String =
     "${user.hashCode()}:${componentName.flattenToString()}"
 
 internal object WorkspaceCodec {
     private const val ENTRY_SEPARATOR = "\u001F"
-    const val MAX_DOCK_ITEMS = 5
 
     fun encode(values: List<String>): String = values.joinToString(ENTRY_SEPARATOR)
 
@@ -35,6 +40,19 @@ internal object WorkspaceCodec {
         if (current.remove(key)) return current
         if (limit == null || current.size < limit) current.add(key)
         return current
+    }
+
+    fun moved(values: List<String>, key: String, direction: WorkspaceMoveDirection): List<String> {
+        val fromIndex = values.indexOf(key)
+        if (fromIndex == -1 || values.size < 2) return values
+
+        val toIndex = (fromIndex + direction.offset).coerceIn(0, values.lastIndex)
+        if (fromIndex == toIndex) return values
+
+        return values.toMutableList().apply {
+            removeAt(fromIndex)
+            add(toIndex, key)
+        }
     }
 }
 
@@ -60,7 +78,7 @@ class WorkspaceRepository(private val context: Context) {
             if (preferences[Keys.initialized] == true) return@edit
             preferences[Keys.favorites] = WorkspaceCodec.encode(favoriteKeys.distinct())
             preferences[Keys.dock] = WorkspaceCodec.encode(
-                dockKeys.distinct().take(WorkspaceCodec.MAX_DOCK_ITEMS)
+                dockKeys.distinct().take(MAX_DOCK_ITEMS)
             )
             preferences[Keys.initialized] = true
         }
@@ -78,7 +96,27 @@ class WorkspaceRepository(private val context: Context) {
         context.workspaceDataStore.edit { preferences ->
             val current = WorkspaceCodec.decode(preferences[Keys.dock])
             preferences[Keys.dock] = WorkspaceCodec.encode(
-                WorkspaceCodec.toggled(current, key, WorkspaceCodec.MAX_DOCK_ITEMS)
+                WorkspaceCodec.toggled(current, key, MAX_DOCK_ITEMS)
+            )
+            preferences[Keys.initialized] = true
+        }
+    }
+
+    suspend fun moveFavorite(key: String, direction: WorkspaceMoveDirection) {
+        context.workspaceDataStore.edit { preferences ->
+            val current = WorkspaceCodec.decode(preferences[Keys.favorites])
+            preferences[Keys.favorites] = WorkspaceCodec.encode(
+                WorkspaceCodec.moved(current, key, direction)
+            )
+            preferences[Keys.initialized] = true
+        }
+    }
+
+    suspend fun moveDock(key: String, direction: WorkspaceMoveDirection) {
+        context.workspaceDataStore.edit { preferences ->
+            val current = WorkspaceCodec.decode(preferences[Keys.dock])
+            preferences[Keys.dock] = WorkspaceCodec.encode(
+                WorkspaceCodec.moved(current, key, direction)
             )
             preferences[Keys.initialized] = true
         }

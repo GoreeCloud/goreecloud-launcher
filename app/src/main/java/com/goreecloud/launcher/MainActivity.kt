@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
+import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.workspaceKey
@@ -68,6 +69,16 @@ class MainActivity : ComponentActivity() {
                     },
                     onToggleDock = { app ->
                         lifecycleScope.launch { workspaceRepository.toggleDock(app.workspaceKey()) }
+                    },
+                    onMoveFavorite = { app, direction ->
+                        lifecycleScope.launch {
+                            workspaceRepository.moveFavorite(app.workspaceKey(), direction)
+                        }
+                    },
+                    onMoveDock = { app, direction ->
+                        lifecycleScope.launch {
+                            workspaceRepository.moveDock(app.workspaceKey(), direction)
+                        }
                     },
                     themeMode = themeMode,
                     onCycleTheme = themeRepository::cycleMode,
