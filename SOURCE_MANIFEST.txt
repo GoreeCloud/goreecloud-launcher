@@ -8,6 +8,7 @@ app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoom
 app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthority.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/LauncherDatabase.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
@@ -23,6 +24,7 @@ app/src/main/res/values/strings.xml
 app/src/main/res/values/themes.xml
 app/src/main/res/xml/backup_rules.xml
 app/src/main/res/xml/data_extraction_rules.xml
+app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthorityTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceCodecTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapperTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifierTest.kt
@@ -30,6 +32,7 @@ build.gradle.kts
 docs/architecture.md
 docs/glaze-ui-adoption.md
 docs/security-privacy.md
+docs/workspace-authority.md
 gradle.properties
 gradle/wrapper/gradle-wrapper.properties
 scripts/check_glaze_ui.py

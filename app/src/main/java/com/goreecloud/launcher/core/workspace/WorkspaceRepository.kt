@@ -2,6 +2,9 @@ package com.goreecloud.launcher.core.workspace
 
 import android.content.Context
 import android.content.pm.LauncherActivityInfo
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -17,6 +20,8 @@ data class WorkspaceState(
     val initialized: Boolean = false,
     val favoriteKeys: List<String> = emptyList(),
     val dockKeys: List<String> = emptyList(),
+    val authority: WorkspaceAuthority = WorkspaceAuthority.DATASTORE,
+    val verifiedRoomFingerprint: String? = null,
 )
 
 enum class WorkspaceMoveDirection(val offset: Int) {
@@ -69,26 +74,27 @@ internal object WorkspaceCodec {
     }
 }
 
-class WorkspaceRepository(private val context: Context) {
+class WorkspaceRepository(
+    private val dataStore: DataStore<Preferences>,
+) {
+    constructor(context: Context) : this(context.workspaceDataStore)
+
     private object Keys {
         val initialized = booleanPreferencesKey("initialized")
         val favorites = stringPreferencesKey("favorites")
         val dock = stringPreferencesKey("dock")
+        val authority = stringPreferencesKey("workspace_authority")
+        val verifiedRoomFingerprint = stringPreferencesKey("verified_room_fingerprint")
     }
 
-    val state: Flow<WorkspaceState> = context.workspaceDataStore.data
-        .map { preferences ->
-            WorkspaceState(
-                initialized = preferences[Keys.initialized] ?: false,
-                favoriteKeys = WorkspaceCodec.decode(preferences[Keys.favorites]),
-                dockKeys = WorkspaceCodec.decode(preferences[Keys.dock]),
-            )
-        }
+    val state: Flow<WorkspaceState> = dataStore.data
+        .map(::decodeState)
         .distinctUntilChanged()
 
     suspend fun ensureDefaults(favoriteKeys: List<String>, dockKeys: List<String>) {
-        context.workspaceDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             if (preferences[Keys.initialized] == true) return@edit
+            invalidateRoomVerification(preferences)
             preferences[Keys.favorites] = WorkspaceCodec.encode(favoriteKeys.distinct())
             preferences[Keys.dock] = WorkspaceCodec.encode(
                 dockKeys.distinct().take(MAX_DOCK_ITEMS)
@@ -98,7 +104,8 @@ class WorkspaceRepository(private val context: Context) {
     }
 
     suspend fun toggleFavorite(key: String) {
-        context.workspaceDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
+            invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.favorites])
             preferences[Keys.favorites] = WorkspaceCodec.encode(WorkspaceCodec.toggled(current, key))
             preferences[Keys.initialized] = true
@@ -106,7 +113,8 @@ class WorkspaceRepository(private val context: Context) {
     }
 
     suspend fun toggleDock(key: String) {
-        context.workspaceDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
+            invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.dock])
             preferences[Keys.dock] = WorkspaceCodec.encode(
                 WorkspaceCodec.toggled(current, key, MAX_DOCK_ITEMS)
@@ -116,7 +124,8 @@ class WorkspaceRepository(private val context: Context) {
     }
 
     suspend fun moveFavorite(key: String, direction: WorkspaceMoveDirection) {
-        context.workspaceDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
+            invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.favorites])
             preferences[Keys.favorites] = WorkspaceCodec.encode(
                 WorkspaceCodec.moved(current, key, direction)
@@ -126,7 +135,8 @@ class WorkspaceRepository(private val context: Context) {
     }
 
     suspend fun moveDock(key: String, direction: WorkspaceMoveDirection) {
-        context.workspaceDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
+            invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.dock])
             preferences[Keys.dock] = WorkspaceCodec.encode(
                 WorkspaceCodec.moved(current, key, direction)
@@ -136,7 +146,8 @@ class WorkspaceRepository(private val context: Context) {
     }
 
     suspend fun moveFavoriteToTarget(key: String, targetKey: String) {
-        context.workspaceDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
+            invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.favorites])
             preferences[Keys.favorites] = WorkspaceCodec.encode(
                 WorkspaceCodec.movedToTarget(current, key, targetKey)
@@ -146,12 +157,87 @@ class WorkspaceRepository(private val context: Context) {
     }
 
     suspend fun moveDockToTarget(key: String, targetKey: String) {
-        context.workspaceDataStore.edit { preferences ->
+        dataStore.edit { preferences ->
+            invalidateRoomVerification(preferences)
             val current = WorkspaceCodec.decode(preferences[Keys.dock])
             preferences[Keys.dock] = WorkspaceCodec.encode(
                 WorkspaceCodec.movedToTarget(current, key, targetKey)
             )
             preferences[Keys.initialized] = true
         }
+    }
+
+    suspend fun markRoomVerified(expectedState: WorkspaceState): Boolean {
+        if (!expectedState.initialized) return false
+        val expectedFingerprint = WorkspaceSnapshotFingerprint.of(expectedState)
+        var marked = false
+
+        dataStore.edit { preferences ->
+            if (authorityOf(preferences) == WorkspaceAuthority.ROOM) {
+                return@edit
+            }
+
+            if (WorkspaceSnapshotFingerprint.of(decodeState(preferences)) == expectedFingerprint) {
+                preferences[Keys.authority] = WorkspaceAuthorityCodec.encode(WorkspaceAuthority.ROOM_VERIFIED)
+                preferences[Keys.verifiedRoomFingerprint] = expectedFingerprint
+                marked = true
+            } else {
+                invalidateRoomVerification(preferences)
+            }
+        }
+
+        return marked
+    }
+
+    suspend fun markDataStoreAuthoritative() {
+        dataStore.edit { preferences ->
+            invalidateRoomVerification(preferences)
+        }
+    }
+
+    suspend fun promoteRoomAuthority(expectedState: WorkspaceState): Boolean {
+        if (!expectedState.initialized) return false
+        val expectedFingerprint = WorkspaceSnapshotFingerprint.of(expectedState)
+        var promoted = false
+
+        dataStore.edit { preferences ->
+            val currentAuthority = authorityOf(preferences)
+            if (currentAuthority == WorkspaceAuthority.ROOM) {
+                promoted = true
+                return@edit
+            }
+
+            val currentFingerprint = WorkspaceSnapshotFingerprint.of(decodeState(preferences))
+            val verifiedFingerprint = preferences[Keys.verifiedRoomFingerprint]
+            if (
+                currentAuthority == WorkspaceAuthority.ROOM_VERIFIED &&
+                currentFingerprint == expectedFingerprint &&
+                verifiedFingerprint == expectedFingerprint
+            ) {
+                preferences[Keys.authority] = WorkspaceAuthorityCodec.encode(WorkspaceAuthority.ROOM)
+                promoted = true
+            } else {
+                invalidateRoomVerification(preferences)
+            }
+        }
+
+        return promoted
+    }
+
+    private fun decodeState(preferences: Preferences): WorkspaceState = WorkspaceState(
+        initialized = preferences[Keys.initialized] ?: false,
+        favoriteKeys = WorkspaceCodec.decode(preferences[Keys.favorites]),
+        dockKeys = WorkspaceCodec.decode(preferences[Keys.dock]),
+        authority = WorkspaceAuthorityCodec.decode(preferences[Keys.authority]),
+        verifiedRoomFingerprint = preferences[Keys.verifiedRoomFingerprint],
+    )
+
+    private fun authorityOf(preferences: Preferences): WorkspaceAuthority =
+        WorkspaceAuthorityCodec.decode(preferences[Keys.authority])
+
+    private fun invalidateRoomVerification(preferences: MutablePreferences) {
+        if (authorityOf(preferences) == WorkspaceAuthority.ROOM) return
+        preferences[Keys.authority] = WorkspaceAuthorityCodec.encode(WorkspaceAuthority.DATASTORE)
+        preferences.remove(Keys.verifiedRoomFingerprint)
     }
 }
