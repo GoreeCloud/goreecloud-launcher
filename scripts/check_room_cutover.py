@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -6,10 +7,21 @@ PRODUCTION_ROOT = ROOT / "app" / "src" / "main" / "java"
 AUTHORITY_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "WorkspaceRepository.kt"
 PLACEMENT_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceRoomPlacementRepository.kt"
 
+NON_EXECUTABLE_KOTLIN = re.compile(
+    r'""".*?"""|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|/\*.*?\*/|//[^\n]*',
+    re.DOTALL,
+)
+
+
+def executable_kotlin(text: str) -> str:
+    """Remove comments and literals so documentation text cannot satisfy or trip code guards."""
+    return NON_EXECUTABLE_KOTLIN.sub("", text)
+
+
 errors: list[str] = []
 
 for path in PRODUCTION_ROOT.rglob("*.kt"):
-    text = path.read_text(encoding="utf-8")
+    text = executable_kotlin(path.read_text(encoding="utf-8"))
     promotion_calls = text.count("promoteRoomAuthority(")
     if path == AUTHORITY_REPOSITORY:
         if promotion_calls != 1:
