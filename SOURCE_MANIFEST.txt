@@ -8,6 +8,7 @@ app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceRepository.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt
+app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeRepository.kt
 app/src/main/res/values/strings.xml
