@@ -14,6 +14,12 @@ abstract class WorkspaceDao {
     @Query("SELECT * FROM workspace_items ORDER BY pageId, rank")
     abstract fun observeItems(): Flow<List<WorkspaceItemEntity>>
 
+    @Query("SELECT * FROM workspace_pages WHERE pageId IN (:pageIds)")
+    abstract suspend fun readPages(pageIds: List<String>): List<WorkspacePageEntity>
+
+    @Query("SELECT * FROM workspace_items WHERE pageId IN (:pageIds)")
+    abstract suspend fun readItems(pageIds: List<String>): List<WorkspaceItemEntity>
+
     @Query("SELECT COUNT(*) FROM workspace_items")
     abstract suspend fun itemCount(): Int
 
