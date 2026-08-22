@@ -53,6 +53,19 @@ internal object WorkspaceRelationalReadMapper {
     }
 }
 
+internal object WorkspaceCanonicalRoomPlacementReader {
+    suspend fun read(workspaceDao: WorkspaceDao): WorkspaceRelationalSnapshot? {
+        val pageIds = listOf(
+            WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+            WorkspaceLegacyImportMapper.DOCK_PAGE_ID,
+        )
+        return WorkspaceRelationalReadMapper.map(
+            pages = workspaceDao.readPages(pageIds),
+            items = workspaceDao.readItems(pageIds),
+        )
+    }
+}
+
 class WorkspaceRelationalReader(
     private val workspaceDao: WorkspaceDao,
 ) {
@@ -65,14 +78,8 @@ class WorkspaceRelationalReader(
         }
 
         return try {
-            val pageIds = listOf(
-                WorkspaceLegacyImportMapper.HOME_PAGE_ID,
-                WorkspaceLegacyImportMapper.DOCK_PAGE_ID,
-            )
-            val relationalState = WorkspaceRelationalReadMapper.map(
-                pages = workspaceDao.readPages(pageIds),
-                items = workspaceDao.readItems(pageIds),
-            ) ?: return WorkspaceDualReadResult.Mismatch
+            val relationalState = WorkspaceCanonicalRoomPlacementReader.read(workspaceDao)
+                ?: return WorkspaceDualReadResult.Mismatch
 
             if (
                 relationalState.favoriteKeys == authoritativeState.favoriteKeys &&

@@ -49,7 +49,7 @@ class WorkspaceRoomPlacementRepository(
         val workspaceDao = workspaceDaoOrNull() ?: return WorkspaceRoomReadResult.Unavailable
 
         return try {
-            val snapshot = readCanonicalSnapshot(workspaceDao)
+            val snapshot = WorkspaceCanonicalRoomPlacementReader.read(workspaceDao)
                 ?: return WorkspaceRoomReadResult.Mismatch
             WorkspaceRoomReadResult.Loaded(snapshot)
         } catch (exception: CancellationException) {
@@ -76,7 +76,7 @@ class WorkspaceRoomPlacementRepository(
                 pages = expected.pages,
                 items = expected.items,
             )
-            val actual = readCanonicalSnapshot(workspaceDao)
+            val actual = WorkspaceCanonicalRoomPlacementReader.read(workspaceDao)
                 ?: return WorkspaceRoomWriteResult.Mismatch
 
             if (actual == normalized) {
@@ -102,18 +102,5 @@ class WorkspaceRoomPlacementRepository(
         throw exception
     } catch (_: Exception) {
         null
-    }
-
-    private suspend fun readCanonicalSnapshot(
-        workspaceDao: WorkspaceDao,
-    ): WorkspaceRelationalSnapshot? {
-        val pageIds = listOf(
-            WorkspaceLegacyImportMapper.HOME_PAGE_ID,
-            WorkspaceLegacyImportMapper.DOCK_PAGE_ID,
-        )
-        return WorkspaceRelationalReadMapper.map(
-            pages = workspaceDao.readPages(pageIds),
-            items = workspaceDao.readItems(pageIds),
-        )
     }
 }
