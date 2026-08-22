@@ -13,6 +13,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceEntities.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapper.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalMirror.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifier.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
@@ -23,6 +24,7 @@ app/src/main/res/xml/backup_rules.xml
 app/src/main/res/xml/data_extraction_rules.xml
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceCodecTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapperTest.kt
+app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifierTest.kt
 build.gradle.kts
 docs/architecture.md
 docs/glaze-ui-adoption.md
