@@ -54,7 +54,7 @@ internal object WorkspaceSnapshotFingerprint {
     }
 
     private fun ByteArray.toHex(): String = buildString(size * 2) {
-        forEach { byte ->
+        this@toHex.forEach { byte ->
             val value = byte.toInt() and 0xff
             append(hex[value ushr 4])
             append(hex[value and 0x0f])
