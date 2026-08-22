@@ -3,6 +3,7 @@ package com.goreecloud.launcher.core.workspace.db
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -37,6 +38,7 @@ class WorkspaceAuthoritativePlacementObserver(
     private val authorityRepository: WorkspaceRepository,
     private val workspaceDaoProvider: () -> WorkspaceDao?,
 ) {
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observe(): Flow<WorkspaceAuthoritativePlacementState> = authorityRepository.state
         .flatMapLatest { state ->
             if (!state.initialized) {
