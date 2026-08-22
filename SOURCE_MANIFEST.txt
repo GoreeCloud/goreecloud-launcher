@@ -4,6 +4,7 @@ README.md
 app/build.gradle.kts
 app/proguard-rules.pro
 app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json
+app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlacementRepositoryRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceStartupReconcilerRuntimeTest.kt
@@ -13,6 +14,7 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.k
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthority.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/LauncherDatabase.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessCoordinator.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceEntities.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapper.kt
@@ -31,6 +33,7 @@ app/src/main/res/xml/backup_rules.xml
 app/src/main/res/xml/data_extraction_rules.xml
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthorityTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceCodecTest.kt
+app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessGuardTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapperTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalReadMapperTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifierTest.kt
@@ -45,5 +48,6 @@ gradle/wrapper/gradle-wrapper.properties
 scripts/check_glaze_ui.py
 scripts/check_manifest.py
 scripts/check_privacy.py
+scripts/check_room_cutover.py
 scripts/check_room_schema.py
 settings.gradle.kts
