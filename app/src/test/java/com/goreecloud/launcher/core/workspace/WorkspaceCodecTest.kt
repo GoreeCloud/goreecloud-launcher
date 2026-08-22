@@ -1,0 +1,32 @@
+package com.goreecloud.launcher.core.workspace
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class WorkspaceCodecTest {
+    @Test
+    fun encodeDecodePreservesOrder() {
+        val values = listOf("0:com.example/.One", "10:com.example/.Two", "0:com.example/.Three")
+
+        assertEquals(values, WorkspaceCodec.decode(WorkspaceCodec.encode(values)))
+    }
+
+    @Test
+    fun toggleAddsAndRemovesWithoutReorderingExistingEntries() {
+        val initial = listOf("one", "two")
+
+        val added = WorkspaceCodec.toggled(initial, "three")
+        assertEquals(listOf("one", "two", "three"), added)
+
+        val removed = WorkspaceCodec.toggled(added, "two")
+        assertEquals(listOf("one", "three"), removed)
+    }
+
+    @Test
+    fun toggleRespectsDockLimitButStillAllowsRemoval() {
+        val fullDock = listOf("one", "two", "three", "four", "five")
+
+        assertEquals(fullDock, WorkspaceCodec.toggled(fullDock, "six", WorkspaceCodec.MAX_DOCK_ITEMS))
+        assertEquals(listOf("one", "two", "four", "five"), WorkspaceCodec.toggled(fullDock, "three", WorkspaceCodec.MAX_DOCK_ITEMS))
+    }
+}

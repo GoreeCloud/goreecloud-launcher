@@ -6,18 +6,25 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
+import com.goreecloud.launcher.core.workspace.WorkspaceRepository
+import com.goreecloud.launcher.core.workspace.WorkspaceState
+import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.LauncherRoot
 import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var themeRepository: GlazeThemeRepository
+    private lateinit var workspaceRepository: WorkspaceRepository
     private val defaultHomeState = MutableStateFlow(false)
 
     private val homeRoleRequest =
@@ -30,18 +37,38 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         appsRepository = LauncherAppsRepository(this)
         themeRepository = GlazeThemeRepository(this)
+        workspaceRepository = WorkspaceRepository(this)
         refreshHomeRoleState()
 
         setContent {
             val apps by appsRepository.apps.collectAsStateWithLifecycle(initialValue = emptyList())
             val themeMode by themeRepository.themeMode.collectAsState(initial = themeRepository.defaultMode)
+            val workspace by workspaceRepository.state.collectAsStateWithLifecycle(initialValue = WorkspaceState())
             val isDefaultHome by defaultHomeState.collectAsStateWithLifecycle()
+
+            LaunchedEffect(apps, workspace.initialized) {
+                if (!workspace.initialized && apps.isNotEmpty()) {
+                    val defaults = apps.filterNot { it.componentName.packageName == packageName }
+                    workspaceRepository.ensureDefaults(
+                        favoriteKeys = defaults.take(12).map { it.workspaceKey() },
+                        dockKeys = defaults.take(4).map { it.workspaceKey() },
+                    )
+                }
+            }
+
             GlazeTheme(themeMode) {
                 LauncherRoot(
                     apps = apps,
+                    workspace = workspace,
                     isDefaultHome = isDefaultHome,
                     onRequestHomeRole = ::requestHomeRole,
                     onLaunchApp = appsRepository::launch,
+                    onToggleFavorite = { app ->
+                        lifecycleScope.launch { workspaceRepository.toggleFavorite(app.workspaceKey()) }
+                    },
+                    onToggleDock = { app ->
+                        lifecycleScope.launch { workspaceRepository.toggleDock(app.workspaceKey()) }
+                    },
                     themeMode = themeMode,
                     onCycleTheme = themeRepository::cycleMode,
                 )

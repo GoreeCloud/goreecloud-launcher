@@ -17,20 +17,31 @@ GoreeCloud Launcher is an original GoreeCloud implementation inspired by mature 
 
 ## Current implementation
 
-The repository contains the Milestone 0 native Android foundation plus the first Milestone 1 usability work:
+The repository contains the Milestone 0 native Android foundation and the first Milestone 1 daily-launcher capabilities:
 
 - Android HOME activity declaration.
 - User-controlled `ROLE_HOME` onboarding and lifecycle-aware default-HOME status.
 - `LauncherApps` discovery across available profiles.
 - Package lifecycle callbacks.
-- Basic Glaze home/favorites surface.
+- Glaze home surface driven by persisted workspace state.
+- Ordered, locally persisted Favorites.
+- Ordered, locally persisted Dock with a five-item limit.
+- First-run Favorites and Dock seeding from installed launchable apps.
+- Long-press app management for adding/removing Favorites and Dock items.
 - All-apps drawer with local name/package search.
 - App launching.
 - Persisted System / Light / Dark Glaze appearance foundation.
+- Unit-tested workspace ordering and Dock-limit logic.
 - No `INTERNET` permission.
 - CI privacy and manifest guards.
 
-Still planned: persistent workspace and dock, drag/drop, folders, icon/label customization, gesture bindings, shortcuts, `AppWidgetHost`, richer profile UI, the full Glaze Theme Engine, versioned backup/restore, and physical-device acceptance.
+Still planned: drag/drop and explicit reordering, multiple workspace pages, folders, icon/label customization, gesture bindings, shortcuts, `AppWidgetHost`, richer profile UI, the full Glaze Theme Engine, versioned backup/restore, and physical-device acceptance.
+
+## Persistence model
+
+Milestone 1 begins with Android Preferences DataStore for small ordered launcher preferences such as Favorites and Dock membership. This keeps the first persistence slice dependency-light and local-only. The richer workspace model described in the project specification can move to Room or another Android-native SQLite abstraction when page placement, folders, widgets, spans, and migrations require relational persistence.
+
+Workspace application keys combine a `UserHandle` discriminator with the flattened component name so the same package can be represented independently across supported profiles without relying on a hidden Android profile identifier API.
 
 ## Build baseline
 
@@ -54,7 +65,7 @@ gradle --no-daemon lintDebug testDebugUnitTest assembleDebug
 
 ## Validation boundary
 
-Source-level XML, privacy, and manifest guards have been validated. A successful Gradle build, emulator run, signed APK, and physical-device launcher acceptance are not claimed until CI/device testing proves them.
+Automated CI covers the Privacy Shield dependency/permission guard, HOME-manifest contract guard, Android lint, unit tests, and debug APK assembly. Emulator behavior, signed release packaging, and physical-device default-HOME acceptance remain separate gates and must not be inferred from a successful CI build.
 
 ## License
 
