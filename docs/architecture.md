@@ -10,103 +10,136 @@ The first-party Glaze Theme Engine begins with local semantic colors and persist
 
 Milestone 0 establishes the Android HOME contract, app/profile discovery, Glaze UI shell, local appearance persistence, and privacy/manifest guards.
 
-Milestone 1 currently adds seven daily-launcher foundations:
+Milestone 1 currently includes these daily-launcher and persistence foundations:
 
 1. Local application search by installed-app label or package name.
-2. Durable workspace preferences for ordered Favorites and Dock membership.
-3. Explicit, accessible Favorite and Dock ordering controls with deterministic move-earlier/move-later operations.
-4. An explicit Home Reorder mode that supports direct drag/drop ordering for Favorites and Dock while preserving the non-drag controls as a permanent accessibility path.
-5. A staged Room 3 relational workspace foundation that mirrors the accepted DataStore state into a versioned page/item schema without prematurely replacing the live launcher source of truth.
-6. Relational mirror write/readback verification that validates the persisted compatibility rows against the deterministic DataStore-derived snapshot before reporting a successful mirror.
-7. A focused Android-emulator runtime gate that exercises the real Room/AndroidSQLiteDriver path before relational authority can advance.
+2. Durable Preferences DataStore state for ordered Favorites and Dock membership.
+3. Explicit accessible Favorite/Dock movement plus direct Reorder-mode drag/drop using one ordering source of truth.
+4. A staged Room 3 relational workspace schema with deterministic DataStore import mapping.
+5. Transactional Room mirror write/readback verification and strict canonical comparison.
+6. Durable `DATASTORE`, `ROOM_VERIFIED`, and guarded terminal `ROOM` authority phases bound to an order-sensitive local fingerprint.
+7. Independent Room dual-read reconstruction that fails verified compatibility back to DataStore on mismatch or read failure.
+8. `WorkspaceStartupReconciler`, which centralizes pre-cutover startup/recovery behavior and retries Room acquisition without making Room mandatory for current Home use.
+9. `WorkspaceRoomPlacementRepository`, a reserved Room-backed placement read/write primitive that refuses access until persisted authority is already `ROOM`.
+10. Android API 36 instrumentation plus CI schema/history gates for the relational transition.
+
+Preferences DataStore remains the live workspace authority. Production does not invoke guarded `ROOM` promotion and Home does not consume `WorkspaceRoomPlacementRepository` yet.
 
 ## Current DataStore workspace authority
 
-Android Preferences DataStore remains authoritative for the live Home Favorites and Dock during the relational-transition stage. Each stored application key combines a public `UserHandle` discriminator with the flattened component name. This avoids treating identical package names across profiles as one launcher item without depending on a hidden Android profile-identifier API.
+Android Preferences DataStore remains authoritative for live Home Favorites and Dock during the relational-transition stage. Each stored application key combines a public `UserHandle` discriminator with the flattened component name so identical package names across supported profiles do not collapse into one item without depending on hidden Android APIs.
 
-The first successful app inventory initializes up to twelve Favorites and four Dock items, excluding the launcher itself. After initialization, user choices are authoritative: removing every Favorite or Dock entry does not cause the defaults to be silently re-created.
+The first successful application inventory initializes up to twelve Favorites and four Dock items, excluding the launcher itself. After initialization, user choices are authoritative; empty Favorites or Dock containers are not silently reseeded.
 
-Favorites and Dock items resolve against the live `LauncherApps` inventory at render time. Missing or uninstalled components therefore disappear safely from the rendered workspace without requiring a launch attempt. A later relational cleanup/cutover layer can prune stale keys after runtime migration acceptance exists.
+Favorites and Dock items resolve against live `LauncherApps` inventory at render time. Missing or uninstalled components therefore disappear safely from rendered Home without requiring a launch attempt. The relational cleanup/cutover layer can later prune stale placement records after runtime migration acceptance exists.
 
-The Dock is currently capped at five items. `WorkspaceCodec.moved` repositions one existing key by one logical step, clamps movement at collection boundaries, and leaves unknown keys unchanged. `WorkspaceCodec.movedToTarget` is the direct-drag primitive: it moves an existing key toward the live target key while ignoring self-drops and unknown keys. Both paths are covered by local JVM unit tests.
-
-App management is available by long-press from All apps, Favorites, and Dock. The management dialog exposes membership state plus Move earlier / Move later controls. Home also provides an explicit Reorder mode. Entering Reorder mode disables ordinary launch/long-press interactions on Home and Dock tiles, enables direct pointer dragging, visually lifts the dragged tile, highlights the current valid drop target, and commits a drop through the same `WorkspaceRepository` ordering source of truth. Leaving Reorder mode restores ordinary launcher interaction.
-
-This separation is intentional. Normal mode prioritizes reliable app launching and management; Reorder mode makes movement explicit so minor pointer motion cannot accidentally rearrange the Home screen. Move earlier / Move later remains the keyboard-, switch-, and non-drag-friendly alternative rather than being replaced by gesture-only behavior.
+The Dock is capped at five items. `WorkspaceCodec.moved` implements deterministic one-step accessible ordering. `WorkspaceCodec.movedToTarget` implements direct target-based Reorder-mode movement. Both paths persist through the same `WorkspaceRepository` contract.
 
 ## Room 3 relational workspace transition
 
-The relational foundation uses AndroidX Room 3.0.1 with Kotlin Symbol Processing and AndroidX SQLite 2.7.0 through `AndroidSQLiteDriver`. Room 3 gives the launcher compile-time SQL verification plus explicit schema-version evolution for the richer workspace model.
+The relational foundation uses AndroidX Room 3.0.1 with Kotlin Symbol Processing and AndroidX SQLite 2.7.0 through `AndroidSQLiteDriver`.
 
-`LauncherDatabase` starts at schema version 1 and contains:
+`LauncherDatabase` version 1 contains:
 
-- `workspace_pages` — stable page identity, container type, and page rank. The initial compatibility mirror creates `home:0` and `dock:0`; the model is intentionally capable of representing later multiple Home and Dock pages.
-- `workspace_items` — stable item identity, parent page, item type, app key when applicable, deterministic rank, optional cell coordinates, and spans. The item type vocabulary reserves APP, SHORTCUT, FOLDER, and WIDGET without claiming that shortcut/folder/widget behavior is implemented yet.
+- `workspace_pages` — stable page identity, container type, and rank. The compatibility model currently uses `home:0` and `dock:0`.
+- `workspace_items` — stable item identity, parent page, item type, application key when applicable, deterministic rank, optional cell coordinates, and spans. Item types reserve APP, SHORTCUT, FOLDER, and WIDGET without claiming the later behaviors are implemented.
 
-`WorkspaceLegacyImportMapper` deterministically maps the current ordered Favorite and Dock keys into the two version-1 pages. The same app may legitimately appear in both Home and Dock as two distinct placement records. Duplicate keys within one legacy container are collapsed defensively while rank order is preserved.
+`WorkspaceLegacyImportMapper` converts ordered DataStore Favorites/Dock into deterministic relational rows. Duplicate keys inside one legacy container are collapsed defensively while order is retained; the same application may legitimately appear independently on Home and Dock.
 
-`WorkspaceDao.replaceLegacySnapshot` transactionally replaces only the two compatibility pages and their cascading item rows. After the write completes, `WorkspaceRelationalMirror` reads those same page IDs and item rows back through DAO queries. `WorkspaceRelationalVerifier` canonicalizes query ordering and compares full data-class content against the deterministic expected snapshot. Missing/extra rows, changed rank, item identity, app key, type, cell coordinates, or spans produce `WorkspaceMirrorResult.Mismatch`; an equivalent snapshot produces `WorkspaceMirrorResult.Verified`.
+`WorkspaceDao.replaceLegacySnapshot` transactionally replaces the current compatibility pages and cascading item rows. `WorkspaceRelationalMirror` then reads the written rows back. `WorkspaceRelationalVerifier` compares full canonical content while ignoring SQL return-list order itself; persisted `rank` remains semantic order, so a changed rank is a mismatch.
 
-This verifier is deliberately content-strict but order-insensitive at the SQL-return level. The authoritative semantic order is still represented by each row's persisted `rank`, so a rank change is a mismatch even when the returned list happens to be reordered by the database.
+Ordinary database failures return typed failures instead of replacing the accepted DataStore launcher path, and coroutine cancellation is rethrown. Diagnostic result types do not include installed-application keys.
 
-The mirror is fail-safe during this transition: ordinary database exceptions return a typed failure instead of replacing or corrupting the accepted DataStore launcher path. Coroutine cancellation is rethrown and never swallowed. Mismatch/failure results do not include application keys or installed-app inventory, reducing the chance that diagnostics become a secondary data-exposure surface.
+## Durable authority and dual-read state
 
-This dual-store period is temporary. It exists to preserve user-selected Favorites and Dock ordering while the richer relational path is built and tested. The final migration must remove ambiguous dual authority: Room becomes authoritative for workspace placement only after runtime migration acceptance, while DataStore remains appropriate for independent small preferences such as appearance and accessibility settings.
+`WorkspaceAuthority` has three persisted phases:
 
-## Android emulator runtime gate
+- `DATASTORE` — current live authority.
+- `ROOM_VERIFIED` — exact current DataStore-shaped snapshot was mirrored, read back, fingerprint-bound, and is eligible for independent dual-read reconciliation.
+- `ROOM` — terminal marker reserved for an accepted future cutover.
 
-`WorkspaceRoomRuntimeTest` is the first runtime relational acceptance layer. It uses AndroidX Test with the production `LauncherDatabase` class, `AndroidSQLiteDriver`, and a real file-backed database on an API 36 Android emulator rather than an in-memory database or a JVM substitute.
+`WorkspaceRepository.markRoomVerified` writes verification only when the DataStore snapshot still matches the expected fingerprint in the same edit. Any pre-cutover Favorite/Dock mutation invalidates stale verification back to `DATASTORE`.
 
-The focused test proves, for its controlled compatibility scenario:
+`WorkspaceRelationalReader` independently reconstructs Favorites/Dock from canonical Room rows while `ROOM_VERIFIED`. Equivalent state returns `Match`; canonical divergence returns `Mismatch`; ordinary read problems return a sanitized `Failed`. Mismatch or failure returns pre-cutover authority to DataStore without clearing user choices.
 
-- The generated Room implementation can create and open the version-1 database on Android.
-- `WorkspaceRelationalMirror` can write a populated DataStore-shaped snapshot and report `Verified` only after DAO readback matches it.
-- Closing Room and reopening the same database file preserves the mirrored rows.
-- A changed snapshot replaces the prior Home/Dock compatibility rows rather than accumulating stale placement records.
-- Rows removed from the new Favorite/Dock snapshot disappear through page replacement and cascading deletion.
-- Mirroring initialized empty Home/Dock containers preserves the compatibility pages while clearing all compatibility items.
+`WorkspaceRepository.promoteRoomAuthority` is a guarded one-way primitive. It requires initialized `ROOM_VERIFIED` state plus matching current and verified fingerprints. Production runtime does not call it. Once `ROOM` exists, ordinary compatibility fallback helpers do not silently demote it; post-cutover rollback must be an explicit recovery migration.
 
-CI runs this focused instrumentation class on an API 36 `x86_64` emulator. The Android Emulator Runner action is pinned to immutable commit `a421e43855164a8197daf9d8d40fe71c6996bb0d` rather than a mutable version tag.
+## Deterministic startup/recovery coordinator
 
-This gate remains narrower than full runtime acceptance. Closing and reopening one database instance is not Android process-death testing. The gate also does not establish schema-version upgrade migration, representative phone/tablet performance, physical-device storage behavior, or authority-cutover safety.
+`WorkspaceStartupReconciler` is the single pre-cutover reconciliation coordinator used by `MainActivity`.
+
+Its behavior is deliberately bounded:
+
+- Uninitialized -> wait.
+- `DATASTORE` with unavailable Room -> keep DataStore-only operation.
+- `DATASTORE` with available Room -> mirror, verify, and independently dual-read.
+- `ROOM_VERIFIED` with matching canonical Room -> retain verified compatibility.
+- `ROOM_VERIFIED` with unavailable/mismatched/failing Room -> return to DataStore without workspace loss.
+- `ROOM` -> reserve the terminal state and do not run legacy mirroring.
+
+After a dual-read Match, the coordinator re-reads current DataStore state so stale verification success is not treated as current readiness evidence after a concurrent local mutation. The Room DAO provider is evaluated on each attempt, allowing a later retry after transient pre-cutover open failure.
+
+## Reserved Room-backed placement repository
+
+`WorkspaceRoomPlacementRepository` establishes the first post-cutover-style read/write contract while remaining disconnected from production Home.
+
+Before every operation it reads persisted authority from `WorkspaceRepository`. Uninitialized, `DATASTORE`, and `ROOM_VERIFIED` states return `Reserved`, so merely constructing the repository cannot bypass the migration state machine. A missing DAO returns `Unavailable`; ordinary exceptions return only their type; cancellation is rethrown.
+
+When authority is already `ROOM`:
+
+- `read()` reconstructs the canonical current `home:0` / `dock:0` snapshot from Room.
+- `replace()` normalizes ordered Favorite/Dock input, deduplicates each container, preserves the five-item Dock limit, transactionally replaces Room rows, reads them back, and returns `Written` only if canonical readback equals the normalized request.
+
+This is not the final workspace repository. It currently covers only application placements in the compatibility containers. Multi-page placement, folder membership, shortcuts, widgets, cell/span editing, and richer transactional operations still require later schema/domain work.
+
+The key architecture boundary is now explicit: DataStore APIs own legacy pre-cutover placement; Room placement APIs refuse access until the durable authority marker is already `ROOM`. Production routing between those stores remains a future cutover-coordinator responsibility.
+
+## Android emulator runtime suite
+
+Runtime instrumentation uses production Room classes, `AndroidSQLiteDriver`, and real file-backed databases on Android 16 / API 36.
+
+`WorkspaceRoomRuntimeTest` covers database creation, mirror/readback verification, Room close/reopen durability, replacement and stale-row removal, empty-container recovery, durable authority metadata, guarded test-only promotion, independent dual-read Match/Mismatch, and sanitized read failure.
+
+`WorkspaceStartupReconcilerRuntimeTest` covers repeated DataStore/Room client close/reopen, verified-state persistence, pre-cutover Room failure fallback, workspace preservation, and later Room recovery.
+
+`WorkspaceRoomPlacementRepositoryRuntimeTest` covers pre-cutover access denial, guarded test-only promotion, canonical Room reads after `ROOM`, normalized Room writes, five-item Dock enforcement, preservation of legacy DataStore values after a Room write, and unavailable-DAO results.
+
+### CI coverage correction
+
+A validation gap was discovered while adding the Room placement repository. The previous emulator command passed a class filter for `WorkspaceRoomRuntimeTest`, so the separate `WorkspaceStartupReconcilerRuntimeTest` added in the preceding source slice was present but was not executed by that exact CI command.
+
+The workflow is corrected here to run `gradle --no-daemon connectedDebugAndroidTest` without a single-class filter. That causes the complete Android instrumentation suite to run and prevents future runtime test classes from being silently excluded. The immutable Android Emulator Runner pin remains `a421e43855164a8197daf9d8d40fe71c6996bb0d`.
+
+The correction is fail-closed governance: historical evidence is not retroactively upgraded. The repeated-reopen test becomes CI-accepted only when an exact head using the corrected complete-suite command passes.
 
 ## Schema and migration governance
 
-The Room Gradle plugin exports schema history under `app/schemas`, and that generated history is source-controlled migration evidence. The exact generated version-1 schema is committed at `app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json`; its Room identity hash is `2fa5d8fba0010dd896c671aadaa5dafb`.
+The Room Gradle plugin exports schema history under `app/schemas`. Version-1 schema history is source-controlled at `app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json` with identity hash `2fa5d8fba0010dd896c671aadaa5dafb`.
 
-CI first validates that a version-1 export contains both workspace tables, then checks `git status --porcelain -- app/schemas` after Room/KSP generation. Any modified or newly generated schema file fails the build. This prevents a schema-changing source edit from passing until the exact generated schema history is reviewed and committed.
+CI parses the schema, requires both workspace tables, and checks `git status --porcelain -- app/schemas` after Room/KSP generation. Any changed or newly generated schema file fails until exact generated history is reviewed and committed.
 
-Schema-version changes must not use destructive fallback for ordinary upgrades; they require an explicit migration or accepted auto-migration path plus migration tests before release acceptance.
+Future schema-version changes require explicit migrations or accepted auto-migrations with tests. Destructive fallback is not the normal upgrade strategy.
 
-The current version-1 Room schema is a new local database and therefore has no prior Room schema to migrate from. The relevant compatibility transition in this stage is from the existing DataStore Favorite/Dock representation into the Room version-1 relational representation. Write/readback and emulator runtime verification strengthen this compatibility evidence but are not equivalent to declaring the Room cutover complete.
+## Remaining cutover architecture
 
-## Controlled authority-cutover requirements
+Before production Home may use Room as authoritative placement storage, a later slice must:
 
-Room must not become Home's authoritative workspace source merely because the emulator test passes. A later cutover slice must establish an explicit one-way migration state so DataStore and Room cannot silently compete for authority. At minimum, that stage must define:
+- Define a production cutover coordinator and exact promotion transaction.
+- Route Home reads/writes to the Room placement repository only after persisted `ROOM` authority.
+- Define explicit post-cutover recovery if Room cannot open or a schema migration fails.
+- Add Android process-death/cold-start acceptance beyond persistence-client reopen tests.
+- Add multi-page and cell/span placement and evolve the repository beyond the two compatibility containers.
+- Add folders, shortcuts, widgets, and their relational transactions.
+- Validate schema-version upgrades and representative physical-device storage behavior.
 
-- How an existing initialized DataStore workspace is imported exactly once.
-- How successful import is recorded without exposing application inventory.
-- How incomplete or mismatched migration fails safely back to the existing DataStore path.
-- How restart/reopen behavior distinguishes “not migrated”, “migration verified”, and “Room authoritative”.
-- How rollback or recovery works if the relational database cannot be opened after authority changes.
-- How future Room schema migrations are tested independently from the initial DataStore compatibility import.
-
-Until those conditions are implemented and accepted, DataStore remains the live Favorites/Dock source consumed by Home.
+Until those gates pass, Preferences DataStore remains the live Favorites/Dock source consumed by Home.
 
 ## Glaze UI native mapping
 
-The launcher intentionally targets **Glaze UI 1.4 Stable** as its current design-system baseline. The canonical `GoreeCloud/glaze-ui` repository was reviewed before this slice. Its adoption guidance requires semantic mapping before visuals, native platform controls when they provide stronger behavior, practical touch targets, local presentation, and application-specific acceptance rather than assuming design-system stability equals application conformance.
+The launcher targets **Glaze UI 1.4 Stable** as the current canonical design-system baseline. `GlazeMetrics.kt` maps the subset currently consumed by Launcher: canonical spacing steps, semantic radii, 44 dp minimum targets, and 48 dp comfortable targets. Current HOME, Dock, drawer, placement-management, and Reorder controls consume these metrics selectively.
 
-`GlazeMetrics.kt` begins the Android-native mapping with the subset currently consumed by Launcher: canonical spacing steps, semantic radii, 44 dp minimum targets, and 48 dp comfortable targets. Current HOME, Dock, drawer, placement-management, and Reorder controls consume these metrics selectively. This is an intentional partial adoption record, not a claim of complete Glaze UI conformance.
-
-Ordinary content remains Solid/Raised in accordance with the Glaze material hierarchy. Functional Glass is not being added merely for decoration; launcher chrome can adopt it later where rendering, reduced-transparency fallback, performance, and device acceptance are proven.
-
-## Validation boundary
-
-JVM tests validate deterministic ordering, DataStore-to-Room mapping, and strict relational snapshot comparison semantics. The normal Android CI job compiles KSP-generated Room code and schemas, proves committed schema history matches generated output, lints the exact pull-request head, runs JVM tests, and assembles the debug APK.
-
-The separate emulator job adds real Android SQLite creation/readback and close/reopen compatibility evidence. Even after it passes, process-death recovery, schema-version upgrade behavior, Room authority cutover, physical drag interaction, rotation behavior, TalkBack behavior, representative-device performance, and physical-device HOME use remain separate acceptance gates.
+Ordinary content remains Solid/Raised in accordance with the Glaze material hierarchy. Functional Glass is not added merely for decoration. Full phone/tablet rendered/native acceptance remains application-specific work.
 
 ## Privacy boundary
 
-Search, Favorites, Dock state, ordering state, drag/drop state, Room workspace data, and appearance settings are all local. The relational database, verifier, and focused emulator test add no Android permission, network permission, remote recommendation service, analytics SDK, advertising SDK, sponsorship system, or cloud-account dependency. Verification outcomes are intentionally categorical rather than carrying application-key details.
+Search, Favorites, Dock state, ordering state, drag state, Room workspace data, authority metadata, verification fingerprints, and appearance settings remain local. The relational database, startup reconciler, reserved Room placement repository, and emulator tests add no Android permission, network permission, remote recommendation service, analytics SDK, advertising SDK, sponsorship system, or cloud-account dependency.
