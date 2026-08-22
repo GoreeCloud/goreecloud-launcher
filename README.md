@@ -27,21 +27,27 @@ The repository contains the Milestone 0 native Android foundation and the first 
 - Ordered, locally persisted Favorites.
 - Ordered, locally persisted Dock with a five-item limit.
 - First-run Favorites and Dock seeding from installed launchable apps.
-- Long-press app management for adding/removing Favorites and Dock items.
+- Long-press app management from All apps, Favorites, and Dock.
+- Explicit move-earlier/move-later controls for accessible Favorite and Dock ordering.
 - All-apps drawer with local name/package search.
 - App launching.
 - Persisted System / Light / Dark Glaze appearance foundation.
-- Unit-tested workspace ordering and Dock-limit logic.
+- Initial native metric mapping for the canonical Glaze UI 1.4 Stable spacing, radius, and touch-target tokens.
+- Unit-tested workspace ordering, movement boundaries, and Dock-limit logic.
 - No `INTERNET` permission.
 - CI privacy and manifest guards.
 
-Still planned: drag/drop and explicit reordering, multiple workspace pages, folders, icon/label customization, gesture bindings, shortcuts, `AppWidgetHost`, richer profile UI, the full Glaze Theme Engine, versioned backup/restore, and physical-device acceptance.
+Still planned: direct drag/drop reordering, multiple workspace pages, folders, icon/label customization, gesture bindings, shortcuts, `AppWidgetHost`, richer profile UI, the full Glaze Theme Engine, versioned backup/restore, and physical-device acceptance.
 
 ## Persistence model
 
 Milestone 1 begins with Android Preferences DataStore for small ordered launcher preferences such as Favorites and Dock membership. This keeps the first persistence slice dependency-light and local-only. The richer workspace model described in the project specification can move to Room or another Android-native SQLite abstraction when page placement, folders, widgets, spans, and migrations require relational persistence.
 
 Workspace application keys combine a `UserHandle` discriminator with the flattened component name so the same package can be represented independently across supported profiles without relying on a hidden Android profile identifier API.
+
+## Glaze UI adoption boundary
+
+The current launcher explicitly targets **Glaze UI 1.4 Stable** as the canonical design-system baseline. The Android client maps only the Glaze semantics it currently consumes into native Compose controls: comfortable/minimum touch targets, spacing, control/content radii, local material hierarchy, and accessible native interactions. This mapping does not claim full Glaze UI conformance; phone/tablet visual acceptance and the remaining semantic mappings are still product-specific acceptance work.
 
 ## Build baseline
 
@@ -65,7 +71,7 @@ gradle --no-daemon lintDebug testDebugUnitTest assembleDebug
 
 ## Validation boundary
 
-Automated CI covers the Privacy Shield dependency/permission guard, HOME-manifest contract guard, Android lint, unit tests, and debug APK assembly. Emulator behavior, signed release packaging, and physical-device default-HOME acceptance remain separate gates and must not be inferred from a successful CI build.
+Automated CI covers the Privacy Shield dependency/permission guard, HOME-manifest contract guard, Android lint, unit tests, and debug APK assembly. Emulator behavior, signed release packaging, direct drag/drop behavior, Glaze UI visual acceptance, and physical-device default-HOME acceptance remain separate gates and must not be inferred from a successful CI build.
 
 ## License
 
