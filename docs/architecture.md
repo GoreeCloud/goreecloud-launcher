@@ -15,7 +15,7 @@ Milestone 1 currently adds two daily-launcher foundations:
 1. Local application search by installed-app label or package name.
 2. Durable workspace preferences for ordered Favorites and Dock membership.
 
-The workspace slice uses Android Preferences DataStore because Favorites and Dock membership are currently small ordered preference sets rather than relational placement data. Each stored application key combines the Android user/profile identifier with the flattened component name. This avoids treating identical package names across profiles as one launcher item.
+The workspace slice uses Android Preferences DataStore because Favorites and Dock membership are currently small ordered preference sets rather than relational placement data. Each stored application key combines a public `UserHandle` discriminator with the flattened component name. This avoids treating identical package names across profiles as one launcher item without depending on a hidden Android profile-identifier API.
 
 The first successful app inventory initializes up to twelve Favorites and four Dock items, excluding the launcher itself. After initialization, user choices are authoritative: removing every Favorite or Dock entry does not cause the defaults to be silently re-created.
 
