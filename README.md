@@ -31,16 +31,17 @@ The repository contains the Milestone 0 native Android foundation and the first 
 - Explicit move-earlier/move-later controls for accessible Favorite and Dock ordering.
 - Explicit Reorder mode with direct Favorite and Dock drag/drop target ordering while normal launch behavior is temporarily disabled.
 - Visual drag lift and valid-drop-target highlighting during Reorder mode.
+- Staged Room 3 relational workspace database with page/item entities, deterministic DataStore import mapping, and a fail-safe compatibility mirror.
 - All-apps drawer with local name/package search.
 - App launching.
 - Persisted System / Light / Dark Glaze appearance foundation.
 - Native metric mapping for the canonical Glaze UI 1.4 Stable spacing, radius, and touch-target tokens currently consumed by Launcher.
 - Fail-closed Glaze UI 1.4 contract validation in CI for the mapped token subset and adoption evidence.
-- Unit-tested workspace ordering, direct-drop target semantics, movement boundaries, and Dock-limit logic.
+- Unit-tested workspace ordering, direct-drop target semantics, movement boundaries, Dock-limit logic, and legacy-to-relational mapping.
 - No `INTERNET` permission.
 - CI privacy, HOME-manifest, and Glaze UI contract guards.
 
-Still planned: multiple workspace pages, relational cell/span placement, folders, icon/label customization, gesture bindings, shortcuts, `AppWidgetHost`, richer profile UI, the full Glaze Theme Engine, versioned backup/restore, complete Gradle wrapper publication, and physical-device acceptance.
+Still planned: relational workspace authority/cutover, multiple workspace pages and live cell/span placement, folders, icon/label customization, gesture bindings, shortcuts, `AppWidgetHost`, richer profile UI, the full Glaze Theme Engine, versioned backup/restore, complete Gradle wrapper publication, and physical-device acceptance.
 
 ## Workspace interaction model
 
@@ -52,11 +53,25 @@ Source/CI validation of this path does not equal emulator or physical-device tou
 
 ## Persistence model
 
-Milestone 1 begins with Android Preferences DataStore for small ordered launcher preferences such as Favorites and Dock membership. This keeps the first persistence slice dependency-light and local-only. The richer workspace model described in the project specification can move to Room or another Android-native SQLite abstraction when page placement, folders, widgets, spans, and migrations require relational persistence.
+Preferences DataStore remains the **live workspace authority** during the current transition. It stores the accepted ordered Favorite and Dock state and remains the source consumed by Home. Workspace application keys combine a `UserHandle` discriminator with the flattened component name so the same package can be represented independently across supported profiles without relying on a hidden Android profile identifier API.
 
-Workspace application keys combine a `UserHandle` discriminator with the flattened component name so the same package can be represented independently across supported profiles without relying on a hidden Android profile identifier API.
+`WorkspaceCodec.moved` supports deterministic one-step accessible movement. `WorkspaceCodec.movedToTarget` supports direct drag/drop by moving a live entry toward another live target key while failing safely for self-drops or unknown keys. Both operations use one repository ordering contract.
 
-`WorkspaceCodec.moved` supports deterministic one-step accessible movement. `WorkspaceCodec.movedToTarget` supports direct drag/drop by moving a live entry toward another live target key while failing safely for self-drops or unknown keys. Both operations are persisted through one repository so future Room migration has one ordering contract to preserve.
+The next persistence layer is now present as a staged compatibility mirror:
+
+- AndroidX Room **3.0.1**.
+- Kotlin Symbol Processing for Room code generation.
+- AndroidX SQLite **2.7.0** with `AndroidSQLiteDriver`.
+- Version-1 `LauncherDatabase`.
+- `workspace_pages` for stable Home/Dock page identity and rank.
+- `workspace_items` for item identity, item type, application key, deterministic rank, optional cell coordinates, and spans.
+- Reserved item-type vocabulary for apps, shortcuts, folders, and widgets without claiming those later features are implemented.
+- `WorkspaceLegacyImportMapper` converts current Favorite/Dock lists into `home:0` and `dock:0` relational pages.
+- `WorkspaceRelationalMirror` transactionally refreshes the relational compatibility snapshot after initialized DataStore state changes.
+
+The mirror is deliberately **not** the live source of truth yet. It is idempotent and fail-safe so a database exception does not replace the accepted DataStore launcher path; coroutine cancellation is never swallowed. A later cutover must prove Room creation, reading, writing, migration/recovery, and device behavior before the launcher UI reads relational placement as authoritative state.
+
+The Room Gradle plugin is configured to export schema history to `app/schemas`. Future Room schema upgrades must preserve committed schema evidence and use explicit migration or accepted auto-migration paths; destructive fallback is not the normal upgrade strategy.
 
 ## Glaze UI adoption boundary
 
@@ -69,6 +84,9 @@ The current launcher explicitly targets **Glaze UI 1.4 Stable** as the canonical
 - Kotlin + Jetpack Compose
 - Android Gradle Plugin 8.10.1
 - Kotlin 2.1.21
+- KSP 2.1.21-2.0.2
+- AndroidX Room 3.0.1
+- AndroidX SQLite 2.7.0
 - Gradle 8.11.1
 - `compileSdk 36`
 - `targetSdk 36`
@@ -89,7 +107,7 @@ gradle --no-daemon lintDebug testDebugUnitTest assembleDebug
 
 ## Validation boundary
 
-Automated CI covers the Privacy Shield dependency/permission guard, HOME-manifest contract guard, Glaze UI mapped-subset contract, Android lint, unit tests, and debug APK assembly. Direct drag/drop source behavior is included in this build/test boundary, but emulator behavior, physical touch interaction, signed release packaging, full Glaze UI visual acceptance, and physical-device default-HOME acceptance remain separate gates and must not be inferred from a successful CI build.
+Automated CI covers the Privacy Shield dependency/permission guard, HOME-manifest contract guard, Glaze UI mapped-subset contract, KSP/Room compilation and schema generation, Android lint, unit tests, and debug APK assembly. The relational compatibility mirror is included in the source/build boundary, but successful CI does not prove on-device database creation, process-death recovery, upgrade migration, Room-authority cutover, physical drag interaction, signed release packaging, full Glaze UI visual acceptance, or physical-device default-HOME acceptance.
 
 ## License
 

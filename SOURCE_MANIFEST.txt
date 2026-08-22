@@ -3,10 +3,16 @@
 README.md
 app/build.gradle.kts
 app/proguard-rules.pro
+app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json
 app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/LauncherDatabase.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceEntities.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapper.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalMirror.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
@@ -16,6 +22,7 @@ app/src/main/res/values/themes.xml
 app/src/main/res/xml/backup_rules.xml
 app/src/main/res/xml/data_extraction_rules.xml
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceCodecTest.kt
+app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapperTest.kt
 build.gradle.kts
 docs/architecture.md
 docs/glaze-ui-adoption.md
@@ -25,4 +32,5 @@ gradle/wrapper/gradle-wrapper.properties
 scripts/check_glaze_ui.py
 scripts/check_manifest.py
 scripts/check_privacy.py
+scripts/check_room_schema.py
 settings.gradle.kts
