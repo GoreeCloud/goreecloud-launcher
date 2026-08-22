@@ -12,11 +12,13 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
-import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
+import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
-import com.goreecloud.launcher.core.workspace.db.WorkspaceStartupReconciler
+import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
+import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
+import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.LauncherRoot
 import com.goreecloud.launcher.ui.theme.GlazeTheme
@@ -28,7 +30,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
-    private lateinit var workspaceStartupReconciler: WorkspaceStartupReconciler
+    private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
     private val defaultHomeState = MutableStateFlow(false)
 
     private val homeRoleRequest =
@@ -42,8 +44,8 @@ class MainActivity : ComponentActivity() {
         appsRepository = LauncherAppsRepository(this)
         themeRepository = GlazeThemeRepository(this)
         workspaceRepository = WorkspaceRepository(this)
-        workspaceStartupReconciler = WorkspaceStartupReconciler(
-            repository = workspaceRepository,
+        workspaceRuntimeCoordinator = WorkspaceProductionRuntimeCoordinator(
+            authorityRepository = workspaceRepository,
             workspaceDaoProvider = {
                 LauncherDatabaseProvider.get(this).workspaceDao()
             },
@@ -53,8 +55,28 @@ class MainActivity : ComponentActivity() {
         setContent {
             val apps by appsRepository.apps.collectAsStateWithLifecycle(initialValue = emptyList())
             val themeMode by themeRepository.themeMode.collectAsState(initial = themeRepository.defaultMode)
-            val workspace by workspaceRepository.state.collectAsStateWithLifecycle(initialValue = WorkspaceState())
+            val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
+                initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
+            )
             val isDefaultHome by defaultHomeState.collectAsStateWithLifecycle()
+
+            val workspaceAvailable = placement is WorkspaceAuthoritativePlacementState.Ready
+            val workspace = when (val current = placement) {
+                WorkspaceAuthoritativePlacementState.WaitingForInitialization -> WorkspaceState()
+                is WorkspaceAuthoritativePlacementState.RecoveryRequired -> WorkspaceState(
+                    initialized = true,
+                    authority = WorkspaceAuthority.ROOM,
+                )
+                is WorkspaceAuthoritativePlacementState.Ready -> WorkspaceState(
+                    initialized = true,
+                    favoriteKeys = current.snapshot.favoriteKeys,
+                    dockKeys = current.snapshot.dockKeys,
+                    authority = when (current.snapshot.source) {
+                        WorkspacePlacementSource.DATASTORE -> WorkspaceAuthority.DATASTORE
+                        WorkspacePlacementSource.ROOM -> WorkspaceAuthority.ROOM
+                    },
+                )
+            }
 
             LaunchedEffect(apps, workspace.initialized) {
                 if (!workspace.initialized && apps.isNotEmpty()) {
@@ -67,46 +89,58 @@ class MainActivity : ComponentActivity() {
             }
 
             LaunchedEffect(
-                workspace.authority,
                 workspace.initialized,
+                workspace.authority,
                 workspace.favoriteKeys,
                 workspace.dockKeys,
-                workspace.verifiedRoomFingerprint,
             ) {
-                workspaceStartupReconciler.reconcile()
+                if (workspace.initialized) {
+                    workspaceRuntimeCoordinator.reconcileAndActivate()
+                }
             }
 
             GlazeTheme(themeMode) {
                 LauncherRoot(
                     apps = apps,
                     workspace = workspace,
+                    workspaceAvailable = workspaceAvailable,
                     isDefaultHome = isDefaultHome,
                     onRequestHomeRole = ::requestHomeRole,
                     onLaunchApp = appsRepository::launch,
                     onToggleFavorite = { app ->
-                        lifecycleScope.launch { workspaceRepository.toggleFavorite(app.workspaceKey()) }
+                        lifecycleScope.launch {
+                            workspaceRuntimeCoordinator.toggleFavorite(app.workspaceKey())
+                        }
                     },
                     onToggleDock = { app ->
-                        lifecycleScope.launch { workspaceRepository.toggleDock(app.workspaceKey()) }
+                        lifecycleScope.launch {
+                            workspaceRuntimeCoordinator.toggleDock(app.workspaceKey())
+                        }
                     },
                     onMoveFavorite = { app, direction ->
                         lifecycleScope.launch {
-                            workspaceRepository.moveFavorite(app.workspaceKey(), direction)
+                            workspaceRuntimeCoordinator.moveFavorite(app.workspaceKey(), direction)
                         }
                     },
                     onMoveDock = { app, direction ->
                         lifecycleScope.launch {
-                            workspaceRepository.moveDock(app.workspaceKey(), direction)
+                            workspaceRuntimeCoordinator.moveDock(app.workspaceKey(), direction)
                         }
                     },
                     onMoveFavoriteToTarget = { app, targetKey ->
                         lifecycleScope.launch {
-                            workspaceRepository.moveFavoriteToTarget(app.workspaceKey(), targetKey)
+                            workspaceRuntimeCoordinator.moveFavoriteToTarget(
+                                app.workspaceKey(),
+                                targetKey,
+                            )
                         }
                     },
                     onMoveDockToTarget = { app, targetKey ->
                         lifecycleScope.launch {
-                            workspaceRepository.moveDockToTarget(app.workspaceKey(), targetKey)
+                            workspaceRuntimeCoordinator.moveDockToTarget(
+                                app.workspaceKey(),
+                                targetKey,
+                            )
                         }
                     },
                     themeMode = themeMode,
@@ -119,6 +153,11 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshHomeRoleState()
+        if (::workspaceRuntimeCoordinator.isInitialized) {
+            lifecycleScope.launch {
+                workspaceRuntimeCoordinator.reconcileAndActivate()
+            }
+        }
     }
 
     private fun refreshHomeRoleState() {
