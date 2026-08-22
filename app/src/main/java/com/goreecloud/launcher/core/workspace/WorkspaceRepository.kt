@@ -18,6 +18,11 @@ data class WorkspaceState(
     val dockKeys: List<String> = emptyList(),
 )
 
+enum class WorkspaceMoveDirection(val offset: Int) {
+    EARLIER(-1),
+    LATER(1),
+}
+
 fun LauncherActivityInfo.workspaceKey(): String =
     "${user.hashCode()}:${componentName.flattenToString()}"
 
@@ -35,6 +40,19 @@ internal object WorkspaceCodec {
         if (current.remove(key)) return current
         if (limit == null || current.size < limit) current.add(key)
         return current
+    }
+
+    fun moved(values: List<String>, key: String, direction: WorkspaceMoveDirection): List<String> {
+        val fromIndex = values.indexOf(key)
+        if (fromIndex == -1 || values.size < 2) return values
+
+        val toIndex = (fromIndex + direction.offset).coerceIn(0, values.lastIndex)
+        if (fromIndex == toIndex) return values
+
+        return values.toMutableList().apply {
+            removeAt(fromIndex)
+            add(toIndex, key)
+        }
     }
 }
 
@@ -79,6 +97,26 @@ class WorkspaceRepository(private val context: Context) {
             val current = WorkspaceCodec.decode(preferences[Keys.dock])
             preferences[Keys.dock] = WorkspaceCodec.encode(
                 WorkspaceCodec.toggled(current, key, WorkspaceCodec.MAX_DOCK_ITEMS)
+            )
+            preferences[Keys.initialized] = true
+        }
+    }
+
+    suspend fun moveFavorite(key: String, direction: WorkspaceMoveDirection) {
+        context.workspaceDataStore.edit { preferences ->
+            val current = WorkspaceCodec.decode(preferences[Keys.favorites])
+            preferences[Keys.favorites] = WorkspaceCodec.encode(
+                WorkspaceCodec.moved(current, key, direction)
+            )
+            preferences[Keys.initialized] = true
+        }
+    }
+
+    suspend fun moveDock(key: String, direction: WorkspaceMoveDirection) {
+        context.workspaceDataStore.edit { preferences ->
+            val current = WorkspaceCodec.decode(preferences[Keys.dock])
+            preferences[Keys.dock] = WorkspaceCodec.encode(
+                WorkspaceCodec.moved(current, key, direction)
             )
             preferences[Keys.initialized] = true
         }
