@@ -32,14 +32,15 @@ The repository contains the Milestone 0 native Android foundation and the first 
 - Explicit Reorder mode with direct Favorite and Dock drag/drop target ordering while normal launch behavior is temporarily disabled.
 - Visual drag lift and valid-drop-target highlighting during Reorder mode.
 - Staged Room 3 relational workspace database with page/item entities, deterministic DataStore import mapping, and a fail-safe compatibility mirror.
+- Room mirror write/readback verification that compares the persisted compatibility snapshot against the deterministic expected mapping before returning a verified result.
 - All-apps drawer with local name/package search.
 - App launching.
 - Persisted System / Light / Dark Glaze appearance foundation.
 - Native metric mapping for the canonical Glaze UI 1.4 Stable spacing, radius, and touch-target tokens currently consumed by Launcher.
 - Fail-closed Glaze UI 1.4 contract validation in CI for the mapped token subset and adoption evidence.
-- Unit-tested workspace ordering, direct-drop target semantics, movement boundaries, Dock-limit logic, and legacy-to-relational mapping.
+- Unit-tested workspace ordering, direct-drop target semantics, movement boundaries, Dock-limit logic, legacy-to-relational mapping, and relational snapshot comparison.
 - No `INTERNET` permission.
-- CI privacy, HOME-manifest, and Glaze UI contract guards.
+- CI privacy, HOME-manifest, Glaze UI, and Room schema-history guards.
 
 Still planned: relational workspace authority/cutover, multiple workspace pages and live cell/span placement, folders, icon/label customization, gesture bindings, shortcuts, `AppWidgetHost`, richer profile UI, the full Glaze Theme Engine, versioned backup/restore, complete Gradle wrapper publication, and physical-device acceptance.
 
@@ -57,7 +58,7 @@ Preferences DataStore remains the **live workspace authority** during the curren
 
 `WorkspaceCodec.moved` supports deterministic one-step accessible movement. `WorkspaceCodec.movedToTarget` supports direct drag/drop by moving a live entry toward another live target key while failing safely for self-drops or unknown keys. Both operations use one repository ordering contract.
 
-The next persistence layer is now present as a staged compatibility mirror:
+The next persistence layer is present as a staged compatibility mirror:
 
 - AndroidX Room **3.0.1**.
 - Kotlin Symbol Processing for Room code generation.
@@ -68,10 +69,11 @@ The next persistence layer is now present as a staged compatibility mirror:
 - Reserved item-type vocabulary for apps, shortcuts, folders, and widgets without claiming those later features are implemented.
 - `WorkspaceLegacyImportMapper` converts current Favorite/Dock lists into `home:0` and `dock:0` relational pages.
 - `WorkspaceRelationalMirror` transactionally refreshes the relational compatibility snapshot after initialized DataStore state changes.
+- After each mirror write, DAO readback retrieves the same compatibility pages/items and `WorkspaceRelationalVerifier` compares them against the deterministic expected snapshot. Equivalent row sets are accepted regardless of query order; missing, extra, reordered, retagged, or placement-altered records return a typed mismatch.
 
-The mirror is deliberately **not** the live source of truth yet. It is idempotent and fail-safe so a database exception does not replace the accepted DataStore launcher path; coroutine cancellation is never swallowed. A later cutover must prove Room creation, reading, writing, migration/recovery, and device behavior before the launcher UI reads relational placement as authoritative state.
+The mirror is deliberately **not** the live source of truth yet. It is fail-safe so a database exception or verification mismatch does not replace the accepted DataStore launcher path; coroutine cancellation is never swallowed. Verification results do not expose application keys or installed-app inventory. A later cutover must prove Room creation, reading, writing, migration/recovery, and device behavior before the launcher UI reads relational placement as authoritative state.
 
-The Room Gradle plugin is configured to export schema history to `app/schemas`. Future Room schema upgrades must preserve committed schema evidence and use explicit migration or accepted auto-migration paths; destructive fallback is not the normal upgrade strategy.
+The Room Gradle plugin exports schema history to `app/schemas`. The exact generated version-1 schema is committed, and CI fails if regeneration modifies or creates uncommitted schema history. Future Room schema upgrades must preserve committed schema evidence and use explicit migration or accepted auto-migration paths; destructive fallback is not the normal upgrade strategy.
 
 ## Glaze UI adoption boundary
 
@@ -103,11 +105,12 @@ python3 scripts/check_privacy.py
 python3 scripts/check_manifest.py
 python3 scripts/check_glaze_ui.py
 gradle --no-daemon lintDebug testDebugUnitTest assembleDebug
+python3 scripts/check_room_schema.py
 ```
 
 ## Validation boundary
 
-Automated CI covers the Privacy Shield dependency/permission guard, HOME-manifest contract guard, Glaze UI mapped-subset contract, KSP/Room compilation and schema generation, Android lint, unit tests, and debug APK assembly. The relational compatibility mirror is included in the source/build boundary, but successful CI does not prove on-device database creation, process-death recovery, upgrade migration, Room-authority cutover, physical drag interaction, signed release packaging, full Glaze UI visual acceptance, or physical-device default-HOME acceptance.
+Automated CI covers the Privacy Shield dependency/permission guard, HOME-manifest contract guard, Glaze UI mapped-subset contract, KSP/Room compilation and schema generation, Room schema-history drift detection, Android lint, JVM unit tests, and debug APK assembly. JVM tests also cover deterministic relational readback comparison semantics. These checks do not prove on-device database creation/readback, process-death recovery, upgrade migration, Room-authority cutover, physical drag interaction, signed release packaging, full Glaze UI visual acceptance, or physical-device default-HOME acceptance.
 
 ## License
 
