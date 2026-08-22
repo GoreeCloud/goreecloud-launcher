@@ -4,6 +4,7 @@ README.md
 app/build.gradle.kts
 app/proguard-rules.pro
 app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json
+app/src/androidTest/java/com/goreecloud/launcher/ActivatedHomeLifecycleRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementObserverRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessRuntimeTest.kt
@@ -51,6 +52,7 @@ app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalR
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifierTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlacementModelTest.kt
 build.gradle.kts
+docs/activated-home-lifecycle-recreation.md
 docs/architecture.md
 docs/authoritative-placement-observation.md
 docs/authoritative-placement-routing.md
