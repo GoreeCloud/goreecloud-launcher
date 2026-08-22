@@ -12,10 +12,12 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
+import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
+import com.goreecloud.launcher.core.workspace.db.WorkspaceMirrorResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRelationalMirror
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.LauncherRoot
@@ -68,7 +70,14 @@ class MainActivity : ComponentActivity() {
                 workspace.favoriteKeys,
                 workspace.dockKeys,
             ) {
-                workspaceRelationalMirror.sync(workspace)
+                if (workspace.authority == WorkspaceAuthority.ROOM) return@LaunchedEffect
+
+                when (workspaceRelationalMirror.sync(workspace)) {
+                    WorkspaceMirrorResult.Verified -> workspaceRepository.markRoomVerified(workspace)
+                    WorkspaceMirrorResult.Mismatch,
+                    is WorkspaceMirrorResult.Failed -> workspaceRepository.markDataStoreAuthoritative()
+                    WorkspaceMirrorResult.Skipped -> Unit
+                }
             }
 
             GlazeTheme(themeMode) {

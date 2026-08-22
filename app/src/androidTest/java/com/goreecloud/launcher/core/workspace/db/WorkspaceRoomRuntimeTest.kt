@@ -1,36 +1,56 @@
 package com.goreecloud.launcher.core.workspace.db
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
+import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class WorkspaceRoomRuntimeTest {
     private lateinit var context: Context
     private lateinit var database: LauncherDatabase
+    private lateinit var workspaceDataStoreFile: File
+    private var workspaceDataStoreScope: CoroutineScope? = null
 
     @Before
     fun setUp() {
         context = InstrumentationRegistry.getInstrumentation().targetContext
         context.deleteDatabase(DATABASE_NAME)
         database = openDatabase()
+        workspaceDataStoreFile = File(context.cacheDir, WORKSPACE_DATASTORE_FILE)
+        workspaceDataStoreFile.delete()
     }
 
     @After
-    fun tearDown() {
+    fun tearDown() = runBlocking {
+        closeWorkspaceDataStore()
         database.close()
         context.deleteDatabase(DATABASE_NAME)
+        workspaceDataStoreFile.delete()
     }
 
     @Test
@@ -87,6 +107,61 @@ class WorkspaceRoomRuntimeTest {
         assertSnapshot(expectedFavorites = emptyList(), expectedDock = emptyList())
     }
 
+    @Test
+    fun authorityStatePersistsInvalidatesAndPromotesOneWay() = runBlocking {
+        var repository = WorkspaceRepository(openWorkspaceDataStore())
+        repository.ensureDefaults(
+            favoriteKeys = listOf(FAVORITE_ALPHA, FAVORITE_BETA),
+            dockKeys = listOf(DOCK_ALPHA),
+        )
+        var state = repository.state.first { it.initialized }
+        assertEquals(WorkspaceAuthority.DATASTORE, state.authority)
+        assertNull(state.verifiedRoomFingerprint)
+
+        assertEquals(
+            WorkspaceMirrorResult.Verified,
+            WorkspaceRelationalMirror(database.workspaceDao()).sync(state),
+        )
+        assertTrue(repository.markRoomVerified(state))
+        val verifiedBeforeRestart = repository.state.first {
+            it.authority == WorkspaceAuthority.ROOM_VERIFIED
+        }
+        assertNotNull(verifiedBeforeRestart.verifiedRoomFingerprint)
+
+        closeWorkspaceDataStore()
+        repository = WorkspaceRepository(openWorkspaceDataStore())
+        state = repository.state.first()
+        assertEquals(WorkspaceAuthority.ROOM_VERIFIED, state.authority)
+        assertEquals(
+            verifiedBeforeRestart.verifiedRoomFingerprint,
+            state.verifiedRoomFingerprint,
+        )
+
+        repository.toggleFavorite(FAVORITE_GAMMA)
+        state = repository.state.first {
+            it.authority == WorkspaceAuthority.DATASTORE &&
+                FAVORITE_GAMMA in it.favoriteKeys
+        }
+        assertNull(state.verifiedRoomFingerprint)
+        assertFalse(repository.promoteRoomAuthority(verifiedBeforeRestart))
+
+        assertEquals(
+            WorkspaceMirrorResult.Verified,
+            WorkspaceRelationalMirror(database.workspaceDao()).sync(state),
+        )
+        assertTrue(repository.markRoomVerified(state))
+        val verifiedCurrent = repository.state.first {
+            it.authority == WorkspaceAuthority.ROOM_VERIFIED
+        }
+        assertTrue(repository.promoteRoomAuthority(verifiedCurrent))
+        state = repository.state.first { it.authority == WorkspaceAuthority.ROOM }
+
+        repository.markDataStoreAuthoritative()
+        val afterFallbackAttempt = repository.state.first()
+        assertEquals(WorkspaceAuthority.ROOM, afterFallbackAttempt.authority)
+        assertEquals(state.verifiedRoomFingerprint, afterFallbackAttempt.verifiedRoomFingerprint)
+    }
+
     private suspend fun assertSnapshot(
         expectedFavorites: List<String>,
         expectedDock: List<String>,
@@ -120,8 +195,25 @@ class WorkspaceRoomRuntimeTest {
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()
 
+    private fun openWorkspaceDataStore(): DataStore<Preferences> {
+        check(workspaceDataStoreScope == null)
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        workspaceDataStoreScope = scope
+        return PreferenceDataStoreFactory.create(
+            scope = scope,
+            produceFile = { workspaceDataStoreFile },
+        )
+    }
+
+    private suspend fun closeWorkspaceDataStore() {
+        val scope = workspaceDataStoreScope ?: return
+        workspaceDataStoreScope = null
+        scope.coroutineContext[Job]?.cancelAndJoin()
+    }
+
     private companion object {
         const val DATABASE_NAME = "launcher-workspace-runtime-test.db"
+        const val WORKSPACE_DATASTORE_FILE = "launcher-workspace-authority-runtime.preferences_pb"
         const val HOME_PAGE_ID = "home:0"
         const val DOCK_PAGE_ID = "dock:0"
         val COMPATIBILITY_PAGE_IDS = listOf(HOME_PAGE_ID, DOCK_PAGE_ID)
