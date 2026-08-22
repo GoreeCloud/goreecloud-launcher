@@ -24,8 +24,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
+import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.workspaceKey
+import com.goreecloud.launcher.ui.theme.GlazeMetrics
 import com.goreecloud.launcher.ui.theme.GlazeThemeMode
 
 @Composable
@@ -37,19 +40,21 @@ fun LauncherRoot(
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onToggleFavorite: (LauncherActivityInfo) -> Unit,
     onToggleDock: (LauncherActivityInfo) -> Unit,
+    onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
+    onMoveDock: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     themeMode: GlazeThemeMode,
     onCycleTheme: (GlazeThemeMode) -> Unit,
 ) {
     var drawerOpen by remember { mutableStateOf(false) }
+    var selectedApp by remember { mutableStateOf<LauncherActivityInfo?>(null) }
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         AnimatedContent(drawerOpen, label = "launcher_surface") { drawer ->
             if (drawer) {
                 AppDrawer(
                     apps = apps,
-                    workspace = workspace,
                     onLaunchApp = onLaunchApp,
-                    onToggleFavorite = onToggleFavorite,
-                    onToggleDock = onToggleDock,
+                    onManageApp = { selectedApp = it },
                     onClose = { drawerOpen = false },
                 )
             } else {
@@ -60,11 +65,24 @@ fun LauncherRoot(
                     onRequestHomeRole = onRequestHomeRole,
                     onOpenDrawer = { drawerOpen = true },
                     onLaunchApp = onLaunchApp,
+                    onManageApp = { selectedApp = it },
                     themeMode = themeMode,
                     onCycleTheme = onCycleTheme,
                 )
             }
         }
+    }
+
+    selectedApp?.let { app ->
+        AppPlacementDialog(
+            app = app,
+            workspace = workspace,
+            onToggleFavorite = { onToggleFavorite(app) },
+            onToggleDock = { onToggleDock(app) },
+            onMoveFavorite = { onMoveFavorite(app, it) },
+            onMoveDock = { onMoveDock(app, it) },
+            onClose = { selectedApp = null },
+        )
     }
 }
 
@@ -76,6 +94,7 @@ private fun HomeSurface(
     onRequestHomeRole: () -> Unit,
     onOpenDrawer: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo) -> Unit,
     themeMode: GlazeThemeMode,
     onCycleTheme: (GlazeThemeMode) -> Unit,
 ) {
@@ -89,7 +108,7 @@ private fun HomeSurface(
 
     Column(
         Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = GlazeMetrics.space5, vertical = GlazeMetrics.space4)
     ) {
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
             Column {
@@ -98,31 +117,42 @@ private fun HomeSurface(
             }
             Text(
                 themeMode.name.lowercase().replaceFirstChar { it.uppercase() },
-                Modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(18.dp))
-                    .clickable { onCycleTheme(themeMode) }.padding(horizontal = 14.dp, vertical = 10.dp),
-                style = MaterialTheme.typography.labelLarge
+                Modifier.background(
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    RoundedCornerShape(GlazeMetrics.radiusControl),
+                ).clickable { onCycleTheme(themeMode) }
+                    .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget)
+                    .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+                style = MaterialTheme.typography.labelLarge,
             )
         }
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(GlazeMetrics.space6))
         if (!isDefaultHome) {
             Card(
                 Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
             ) {
-                Column(Modifier.padding(20.dp)) {
+                Column(Modifier.padding(GlazeMetrics.space5)) {
                     Text("Make this your Home app", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(GlazeMetrics.space2))
                     Text("Android keeps this choice under your control. GoreeCloud Launcher does not force itself as the default.")
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(GlazeMetrics.space4))
                     Button(onClick = onRequestHomeRole) { Text("Choose default launcher") }
                 }
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(GlazeMetrics.space5))
         }
 
         Text("Favorites", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(GlazeMetrics.space1))
+        Text(
+            "Long-press a Home or Dock item to manage placement and ordering.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(GlazeMetrics.space3))
+
         if (favoriteApps.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(
@@ -135,29 +165,39 @@ private fun HomeSurface(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space5),
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
             ) {
                 items(favoriteApps, key = { it.workspaceKey() }) { app ->
-                    AppTile(app = app, onClick = { onLaunchApp(app) })
+                    AppTile(
+                        app = app,
+                        onClick = { onLaunchApp(app) },
+                        onLongClick = { onManageApp(app) },
+                    )
                 }
             }
         }
 
         if (dockApps.isNotEmpty()) {
-            DockStrip(apps = dockApps, onLaunchApp = onLaunchApp)
-            Spacer(Modifier.height(12.dp))
+            DockStrip(
+                apps = dockApps,
+                onLaunchApp = onLaunchApp,
+                onManageApp = onManageApp,
+            )
+            Spacer(Modifier.height(GlazeMetrics.space3))
         }
 
         Card(
             Modifier.fillMaxWidth().clickable(onClick = onOpenDrawer),
-            shape = RoundedCornerShape(30.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         ) {
             Text(
                 "Search apps  •  Open app drawer",
-                Modifier.fillMaxWidth().padding(vertical = 18.dp, horizontal = 20.dp),
-                textAlign = TextAlign.Center, style = MaterialTheme.typography.labelLarge
+                Modifier.fillMaxWidth().defaultMinSize(minHeight = GlazeMetrics.comfortableTarget)
+                    .padding(vertical = GlazeMetrics.space4, horizontal = GlazeMetrics.space5),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }
@@ -167,39 +207,55 @@ private fun HomeSurface(
 private fun DockStrip(
     apps: List<LauncherActivityInfo>,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo) -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space3),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            apps.take(5).forEach { app ->
-                DockTile(app = app, onClick = { onLaunchApp(app) })
+            apps.take(MAX_DOCK_ITEMS).forEach { app ->
+                DockTile(
+                    app = app,
+                    onClick = { onLaunchApp(app) },
+                    onLongClick = { onManageApp(app) },
+                )
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DockTile(app: LauncherActivityInfo, onClick: () -> Unit) {
+private fun DockTile(
+    app: LauncherActivityInfo,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
     val icon = rememberAppIcon(app, size = 96)
     Column(
-        modifier = Modifier.width(58.dp).clickable(onClick = onClick).padding(vertical = 3.dp),
+        modifier = Modifier.width(60.dp)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget)
+            .padding(vertical = GlazeMetrics.space1),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            Modifier.size(48.dp).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp)),
+            Modifier.size(48.dp).background(
+                MaterialTheme.colorScheme.surface,
+                RoundedCornerShape(GlazeMetrics.radiusControl),
+            ),
             contentAlignment = Alignment.Center,
         ) {
             if (icon != null) Image(icon, app.label.toString(), Modifier.size(42.dp))
             else Text(app.label.toString().take(1).uppercase(), fontWeight = FontWeight.Bold)
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(GlazeMetrics.space1))
         Text(
             app.label.toString(),
             style = MaterialTheme.typography.labelSmall,
@@ -213,16 +269,11 @@ private fun DockTile(app: LauncherActivityInfo, onClick: () -> Unit) {
 @Composable
 private fun AppDrawer(
     apps: List<LauncherActivityInfo>,
-    workspace: WorkspaceState,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
-    onToggleFavorite: (LauncherActivityInfo) -> Unit,
-    onToggleDock: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo) -> Unit,
     onClose: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    var selectedApp by remember { mutableStateOf<LauncherActivityInfo?>(null) }
-    val favoriteKeys = remember(workspace.favoriteKeys) { workspace.favoriteKeys.toSet() }
-    val dockKeys = remember(workspace.dockKeys) { workspace.dockKeys.toSet() }
     val filteredApps = remember(apps, query) {
         val normalizedQuery = query.trim().lowercase()
         if (normalizedQuery.isEmpty()) apps
@@ -232,42 +283,28 @@ private fun AppDrawer(
         }
     }
 
-    selectedApp?.let { app ->
-        val key = app.workspaceKey()
-        val isFavorite = key in favoriteKeys
-        val isDocked = key in dockKeys
-        AlertDialog(
-            onDismissRequest = { selectedApp = null },
-            title = { Text(app.label.toString()) },
-            text = { Text("Choose where this app appears. These choices are stored locally on this device.") },
-            confirmButton = {
-                TextButton(onClick = { onToggleFavorite(app) }) {
-                    Text(if (isFavorite) "Remove favorite" else "Add favorite")
-                }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = { onToggleDock(app) }) {
-                        Text(if (isDocked) "Remove dock" else "Add to dock")
-                    }
-                    TextButton(onClick = { selectedApp = null }) { Text("Close") }
-                }
-            },
-        )
-    }
-
     Column(
         Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()
-            .padding(horizontal = 18.dp, vertical = 14.dp)
+            .padding(horizontal = GlazeMetrics.space5, vertical = GlazeMetrics.space4)
     ) {
         Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
             Column {
                 Text("All apps", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("Long-press an app to manage Home and Dock", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Long-press an app to manage Home and Dock",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            Text("Home", Modifier.clickable(onClick = onClose).padding(12.dp), color = MaterialTheme.colorScheme.primary)
+            Text(
+                "Home",
+                Modifier.clickable(onClick = onClose)
+                    .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget)
+                    .padding(GlazeMetrics.space3),
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(GlazeMetrics.space3))
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
@@ -275,9 +312,9 @@ private fun AppDrawer(
             singleLine = true,
             label = { Text("Search apps") },
             placeholder = { Text("Name or package") },
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
         )
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(GlazeMetrics.space4))
         if (filteredApps.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("No apps found", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -285,16 +322,153 @@ private fun AppDrawer(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(76.dp),
-                contentPadding = PaddingValues(bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = GlazeMetrics.space5),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space5),
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
             ) {
                 items(filteredApps, key = { it.workspaceKey() }) { app ->
                     AppTile(
                         app = app,
                         onClick = { onLaunchApp(app) },
-                        onLongClick = { selectedApp = app },
+                        onLongClick = { onManageApp(app) },
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppPlacementDialog(
+    app: LauncherActivityInfo,
+    workspace: WorkspaceState,
+    onToggleFavorite: () -> Unit,
+    onToggleDock: () -> Unit,
+    onMoveFavorite: (WorkspaceMoveDirection) -> Unit,
+    onMoveDock: (WorkspaceMoveDirection) -> Unit,
+    onClose: () -> Unit,
+) {
+    val key = app.workspaceKey()
+    val favoriteIndex = workspace.favoriteKeys.indexOf(key)
+    val dockIndex = workspace.dockKeys.indexOf(key)
+    val isFavorite = favoriteIndex >= 0
+    val isDocked = dockIndex >= 0
+    val dockFull = !isDocked && workspace.dockKeys.size >= MAX_DOCK_ITEMS
+
+    AlertDialog(
+        onDismissRequest = onClose,
+        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+        title = { Text(app.label.toString()) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3)) {
+                Text(
+                    "Manage where this app appears and its order. These choices stay local on this device.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                PlacementSection(
+                    title = "Favorites",
+                    isMember = isFavorite,
+                    position = favoriteIndex.takeIf { it >= 0 }?.let {
+                        "Position ${it + 1} of ${workspace.favoriteKeys.size}"
+                    },
+                    addLabel = "Add favorite",
+                    removeLabel = "Remove favorite",
+                    toggleEnabled = true,
+                    canMoveEarlier = favoriteIndex > 0,
+                    canMoveLater = favoriteIndex >= 0 && favoriteIndex < workspace.favoriteKeys.lastIndex,
+                    onToggle = onToggleFavorite,
+                    onMoveEarlier = { onMoveFavorite(WorkspaceMoveDirection.EARLIER) },
+                    onMoveLater = { onMoveFavorite(WorkspaceMoveDirection.LATER) },
+                )
+                PlacementSection(
+                    title = "Dock",
+                    isMember = isDocked,
+                    position = dockIndex.takeIf { it >= 0 }?.let {
+                        "Position ${it + 1} of ${workspace.dockKeys.size}"
+                    },
+                    addLabel = if (dockFull) "Dock full" else "Add to dock",
+                    removeLabel = "Remove from dock",
+                    toggleEnabled = !dockFull,
+                    canMoveEarlier = dockIndex > 0,
+                    canMoveLater = dockIndex >= 0 && dockIndex < workspace.dockKeys.lastIndex,
+                    onToggle = onToggleDock,
+                    onMoveEarlier = { onMoveDock(WorkspaceMoveDirection.EARLIER) },
+                    onMoveLater = { onMoveDock(WorkspaceMoveDirection.LATER) },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onClose,
+                modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
+            ) { Text("Done") }
+        },
+    )
+}
+
+@Composable
+private fun PlacementSection(
+    title: String,
+    isMember: Boolean,
+    position: String?,
+    addLabel: String,
+    removeLabel: String,
+    toggleEnabled: Boolean,
+    canMoveEarlier: Boolean,
+    canMoveLater: Boolean,
+    onToggle: () -> Unit,
+    onMoveEarlier: () -> Unit,
+    onMoveLater: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space4),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    if (position != null) {
+                        Text(
+                            position,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                FilledTonalButton(
+                    onClick = onToggle,
+                    enabled = toggleEnabled,
+                    modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
+                ) {
+                    Text(if (isMember) removeLabel else addLabel)
+                }
+            }
+
+            if (isMember) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    OutlinedButton(
+                        onClick = onMoveEarlier,
+                        enabled = canMoveEarlier,
+                        modifier = Modifier.weight(1f)
+                            .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
+                    ) { Text("Move earlier") }
+                    OutlinedButton(
+                        onClick = onMoveLater,
+                        enabled = canMoveLater,
+                        modifier = Modifier.weight(1f)
+                            .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
+                    ) { Text("Move later") }
                 }
             }
         }
@@ -316,18 +490,26 @@ private fun AppTile(
         Modifier.clickable(onClick = onClick)
     }
     Column(
-        modifier.then(interactionModifier).padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier.then(interactionModifier).padding(GlazeMetrics.space1),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            Modifier.size(62.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp)),
-            contentAlignment = Alignment.Center
+            Modifier.size(62.dp).background(
+                MaterialTheme.colorScheme.surfaceVariant,
+                RoundedCornerShape(GlazeMetrics.space5),
+            ),
+            contentAlignment = Alignment.Center,
         ) {
             if (icon != null) Image(icon, app.label.toString(), Modifier.size(52.dp))
             else Text(app.label.toString().take(1).uppercase(), fontWeight = FontWeight.Bold)
         }
-        Spacer(Modifier.height(7.dp))
-        Text(app.label.toString(), style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 2)
+        Spacer(Modifier.height(GlazeMetrics.space2))
+        Text(
+            app.label.toString(),
+            style = MaterialTheme.typography.labelMedium,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+        )
     }
 }
 
