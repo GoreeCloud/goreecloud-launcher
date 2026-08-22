@@ -51,7 +51,11 @@ This dual-store period is temporary. It exists to preserve user-selected Favorit
 
 ## Schema and migration governance
 
-The Room Gradle plugin is configured with `app/schemas` as the exported schema directory. Schema history is intended to become source-controlled migration evidence as schema versions advance. Schema-version changes must not use destructive fallback for ordinary upgrades; they require an explicit migration or accepted auto-migration path plus migration tests before release acceptance.
+The Room Gradle plugin exports schema history under `app/schemas`, and that generated history is source-controlled migration evidence. The exact generated version-1 schema is committed at `app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json`; its Room identity hash is `2fa5d8fba0010dd896c671aadaa5dafb`.
+
+CI first validates that a version-1 export contains both workspace tables, then checks `git status --porcelain -- app/schemas` after Room/KSP generation. Any modified or newly generated schema file fails the build. This prevents a schema-changing source edit from passing until the exact generated schema history is reviewed and committed.
+
+Schema-version changes must not use destructive fallback for ordinary upgrades; they require an explicit migration or accepted auto-migration path plus migration tests before release acceptance.
 
 The current version-1 Room schema is a new local database and therefore has no prior Room schema to migrate from. The relevant compatibility transition in this stage is from the existing DataStore Favorite/Dock representation into the Room version-1 relational representation. That compatibility mirror is not equivalent to declaring the Room cutover complete.
 
@@ -65,7 +69,7 @@ Ordinary content remains Solid/Raised in accordance with the Glaze material hier
 
 ## Validation boundary
 
-JVM tests validate deterministic ordering and DataStore-to-Room mapping semantics. Android CI must compile KSP-generated Room code and schemas, lint the exact pull-request head, run JVM tests, and assemble the debug APK before this source slice can merge.
+JVM tests validate deterministic ordering and DataStore-to-Room mapping semantics. Android CI must compile KSP-generated Room code and schemas, prove committed schema history matches generated output, lint the exact pull-request head, run JVM tests, and assemble the debug APK before this source slice can merge.
 
 Even successful CI does not prove on-device Room creation/mirroring, process-death recovery, upgrade behavior, physical drag interaction, rotation behavior, TalkBack behavior, or physical-device HOME use. Those remain emulator/device acceptance gates. Room must not become the live workspace authority until the relational runtime path has its own acceptance evidence.
 
