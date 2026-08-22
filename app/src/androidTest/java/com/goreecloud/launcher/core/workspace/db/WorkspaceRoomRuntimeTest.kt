@@ -164,6 +164,56 @@ class WorkspaceRoomRuntimeTest {
         assertEquals(state.verifiedRoomFingerprint, afterFallbackAttempt.verifiedRoomFingerprint)
     }
 
+    @Test
+    fun dualReadMatchesDetectsDivergenceAndFallsBackWhenRoomReadFails() = runBlocking {
+        val repository = WorkspaceRepository(openWorkspaceDataStore())
+        repository.ensureDefaults(
+            favoriteKeys = listOf(FAVORITE_ALPHA, FAVORITE_BETA),
+            dockKeys = listOf(DOCK_ALPHA),
+        )
+        var state = repository.state.first { it.initialized }
+        val mirror = WorkspaceRelationalMirror(database.workspaceDao())
+
+        assertEquals(WorkspaceMirrorResult.Verified, mirror.sync(state))
+        assertTrue(repository.markRoomVerified(state))
+        state = repository.state.first { it.authority == WorkspaceAuthority.ROOM_VERIFIED }
+
+        val reader = WorkspaceRelationalReader(database.workspaceDao())
+        assertEquals(WorkspaceDualReadResult.Match, reader.reconcile(state))
+
+        val divergent = WorkspaceLegacyImportMapper.map(
+            favoriteKeys = listOf(FAVORITE_BETA),
+            dockKeys = listOf(DOCK_ALPHA),
+        )
+        database.workspaceDao().replaceLegacySnapshot(divergent.pages, divergent.items)
+        assertEquals(WorkspaceDualReadResult.Mismatch, reader.reconcile(state))
+
+        repository.markDataStoreAuthoritative()
+        state = repository.state.first { it.authority == WorkspaceAuthority.DATASTORE }
+        assertEquals(listOf(FAVORITE_ALPHA, FAVORITE_BETA), state.favoriteKeys)
+        assertEquals(listOf(DOCK_ALPHA), state.dockKeys)
+
+        assertEquals(WorkspaceMirrorResult.Verified, mirror.sync(state))
+        assertTrue(repository.markRoomVerified(state))
+        state = repository.state.first { it.authority == WorkspaceAuthority.ROOM_VERIFIED }
+
+        val closedDatabaseReader = WorkspaceRelationalReader(database.workspaceDao())
+        database.close()
+        val failed = closedDatabaseReader.reconcile(state)
+        assertTrue(failed is WorkspaceDualReadResult.Failed)
+        failed as WorkspaceDualReadResult.Failed
+        assertFalse(failed.failureType.contains(FAVORITE_ALPHA))
+        assertFalse(failed.failureType.contains(DOCK_ALPHA))
+
+        repository.markDataStoreAuthoritative()
+        assertEquals(
+            WorkspaceAuthority.DATASTORE,
+            repository.state.first().authority,
+        )
+
+        database = openDatabase()
+    }
+
     private suspend fun assertSnapshot(
         expectedFavorites: List<String>,
         expectedDock: List<String>,
