@@ -50,11 +50,77 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Verify Room transition runtime suite on Android 16
+      - name: Verify Room transition and process-death runtime suite on Android 16
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         with:
           api-level: 36
           target: default
           arch: x86_64
           disable-animations: true
-          script: gradle --no-daemon connectedDebugAndroidTest
+          script: |
+            set -euo pipefail
+
+            APP_PACKAGE="com.goreecloud.launcher"
+            TEST_PACKAGE="com.goreecloud.launcher.test"
+            RUNNER="androidx.test.runner.AndroidJUnitRunner"
+            PROCESS_TEST="com.goreecloud.launcher.ActivatedHomeProcessDeathRuntimeTest"
+
+            gradle --no-daemon assembleDebug assembleDebugAndroidTest
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+
+            cleanup_process_test() {
+              adb shell cmd role remove-role-holder --user 0 android.app.role.HOME "$APP_PACKAGE" >/dev/null 2>&1 || true
+              adb shell am force-stop "$APP_PACKAGE" >/dev/null 2>&1 || true
+            }
+            trap cleanup_process_test EXIT
+
+            adb shell cmd role add-role-holder --user 0 android.app.role.HOME "$APP_PACKAGE"
+            holders="$(adb shell cmd role get-role-holders --user 0 android.app.role.HOME | tr -d '\r')"
+            echo "HOME role holders: $holders"
+            echo "$holders" | grep -F "$APP_PACKAGE"
+
+            adb shell am instrument -w -r \
+              -e class "$PROCESS_TEST#seedTerminalRoomPlacement" \
+              "$TEST_PACKAGE/$RUNNER"
+
+            adb shell am start -W \
+              -a android.intent.action.MAIN \
+              -c android.intent.category.HOME
+            sleep 1
+            old_pid="$(adb shell pidof "$APP_PACKAGE" | tr -d '\r')"
+            if [ -z "$old_pid" ]; then
+              echo "Expected a live GoreeCloud Launcher process before force-stop."
+              exit 1
+            fi
+            echo "Launcher PID before process death: $old_pid"
+
+            adb shell am force-stop "$APP_PACKAGE"
+            sleep 1
+            dead_pid="$(adb shell pidof "$APP_PACKAGE" | tr -d '\r')"
+            if [ -n "$dead_pid" ]; then
+              echo "Launcher process survived force-stop unexpectedly: $dead_pid"
+              exit 1
+            fi
+            echo "Launcher process is absent after force-stop."
+
+            adb shell am start -W \
+              -a android.intent.action.MAIN \
+              -c android.intent.category.HOME
+            sleep 1
+            fresh_pid="$(adb shell pidof "$APP_PACKAGE" | tr -d '\r')"
+            if [ -z "$fresh_pid" ]; then
+              echo "Expected GoreeCloud Launcher to cold-start as HOME after process death."
+              exit 1
+            fi
+            echo "Launcher PID after cold start: $fresh_pid"
+
+            adb shell am instrument -w -r \
+              -e class "$PROCESS_TEST#verifyColdStartRoomPlacementAndReactivity" \
+              "$TEST_PACKAGE/$RUNNER"
+
+            adb shell cmd role remove-role-holder --user 0 android.app.role.HOME "$APP_PACKAGE" || true
+            adb shell am force-stop "$APP_PACKAGE" || true
+            adb shell pm clear "$APP_PACKAGE"
+
+            gradle --no-daemon connectedDebugAndroidTest
