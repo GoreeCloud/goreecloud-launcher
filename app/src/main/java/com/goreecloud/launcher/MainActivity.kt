@@ -60,7 +60,6 @@ class MainActivity : ComponentActivity() {
             )
             val isDefaultHome by defaultHomeState.collectAsStateWithLifecycle()
 
-            val workspaceAvailable = placement is WorkspaceAuthoritativePlacementState.Ready
             val workspace = when (val current = placement) {
                 WorkspaceAuthoritativePlacementState.WaitingForInitialization -> WorkspaceState()
                 is WorkspaceAuthoritativePlacementState.RecoveryRequired -> WorkspaceState(
@@ -103,7 +102,6 @@ class MainActivity : ComponentActivity() {
                 LauncherRoot(
                     apps = apps,
                     workspace = workspace,
-                    workspaceAvailable = workspaceAvailable,
                     isDefaultHome = isDefaultHome,
                     onRequestHomeRole = ::requestHomeRole,
                     onLaunchApp = appsRepository::launch,
