@@ -54,6 +54,19 @@ internal object WorkspaceCodec {
             add(toIndex, key)
         }
     }
+
+    fun movedToTarget(values: List<String>, key: String, targetKey: String): List<String> {
+        if (key == targetKey || values.size < 2) return values
+
+        val fromIndex = values.indexOf(key)
+        val targetIndex = values.indexOf(targetKey)
+        if (fromIndex == -1 || targetIndex == -1) return values
+
+        return values.toMutableList().apply {
+            val entry = removeAt(fromIndex)
+            add(targetIndex.coerceIn(0, size), entry)
+        }
+    }
 }
 
 class WorkspaceRepository(private val context: Context) {
@@ -117,6 +130,26 @@ class WorkspaceRepository(private val context: Context) {
             val current = WorkspaceCodec.decode(preferences[Keys.dock])
             preferences[Keys.dock] = WorkspaceCodec.encode(
                 WorkspaceCodec.moved(current, key, direction)
+            )
+            preferences[Keys.initialized] = true
+        }
+    }
+
+    suspend fun moveFavoriteToTarget(key: String, targetKey: String) {
+        context.workspaceDataStore.edit { preferences ->
+            val current = WorkspaceCodec.decode(preferences[Keys.favorites])
+            preferences[Keys.favorites] = WorkspaceCodec.encode(
+                WorkspaceCodec.movedToTarget(current, key, targetKey)
+            )
+            preferences[Keys.initialized] = true
+        }
+    }
+
+    suspend fun moveDockToTarget(key: String, targetKey: String) {
+        context.workspaceDataStore.edit { preferences ->
+            val current = WorkspaceCodec.decode(preferences[Keys.dock])
+            preferences[Keys.dock] = WorkspaceCodec.encode(
+                WorkspaceCodec.movedToTarget(current, key, targetKey)
             )
             preferences[Keys.initialized] = true
         }
