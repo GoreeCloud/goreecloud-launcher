@@ -46,8 +46,10 @@ class WorkspaceRoomRuntimeTest {
     }
 
     @After
-    fun tearDown() = runBlocking {
-        closeWorkspaceDataStore()
+    fun tearDown() {
+        runBlocking {
+            closeWorkspaceDataStore()
+        }
         database.close()
         context.deleteDatabase(DATABASE_NAME)
         workspaceDataStoreFile.delete()
