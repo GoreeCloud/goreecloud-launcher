@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -17,12 +18,19 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.graphics.drawable.toBitmap
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
@@ -42,6 +50,8 @@ fun LauncherRoot(
     onToggleDock: (LauncherActivityInfo) -> Unit,
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveDock: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
+    onMoveFavoriteToTarget: (LauncherActivityInfo, String) -> Unit,
+    onMoveDockToTarget: (LauncherActivityInfo, String) -> Unit,
     themeMode: GlazeThemeMode,
     onCycleTheme: (GlazeThemeMode) -> Unit,
 ) {
@@ -66,6 +76,8 @@ fun LauncherRoot(
                     onOpenDrawer = { drawerOpen = true },
                     onLaunchApp = onLaunchApp,
                     onManageApp = { selectedApp = it },
+                    onMoveFavoriteToTarget = onMoveFavoriteToTarget,
+                    onMoveDockToTarget = onMoveDockToTarget,
                     themeMode = themeMode,
                     onCycleTheme = onCycleTheme,
                 )
@@ -95,6 +107,8 @@ private fun HomeSurface(
     onOpenDrawer: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
+    onMoveFavoriteToTarget: (LauncherActivityInfo, String) -> Unit,
+    onMoveDockToTarget: (LauncherActivityInfo, String) -> Unit,
     themeMode: GlazeThemeMode,
     onCycleTheme: (GlazeThemeMode) -> Unit,
 ) {
@@ -104,6 +118,22 @@ private fun HomeSurface(
     }
     val dockApps = remember(appsByKey, workspace.dockKeys) {
         workspace.dockKeys.mapNotNull(appsByKey::get)
+    }
+
+    var reorderMode by rememberSaveable { mutableStateOf(false) }
+    val favoriteBounds = remember { mutableStateMapOf<String, Rect>() }
+    var favoriteDragKey by remember { mutableStateOf<String?>(null) }
+    var favoriteDragOffset by remember { mutableStateOf(Offset.Zero) }
+    var favoritePointerInRoot by remember { mutableStateOf(Offset.Zero) }
+    var favoriteDropTargetKey by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(reorderMode) {
+        if (!reorderMode) {
+            favoriteDragKey = null
+            favoriteDragOffset = Offset.Zero
+            favoritePointerInRoot = Offset.Zero
+            favoriteDropTargetKey = null
+        }
     }
 
     Column(
@@ -144,10 +174,26 @@ private fun HomeSurface(
             Spacer(Modifier.height(GlazeMetrics.space5))
         }
 
-        Text("Favorites", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Favorites", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            TextButton(
+                onClick = { reorderMode = !reorderMode },
+                modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
+            ) {
+                Text(if (reorderMode) "Done" else "Reorder")
+            }
+        }
         Spacer(Modifier.height(GlazeMetrics.space1))
         Text(
-            "Long-press a Home or Dock item to manage placement and ordering.",
+            if (reorderMode) {
+                "Drag a Favorite or Dock app onto another item to change its order. Move controls remain available outside Reorder mode."
+            } else {
+                "Long-press a Home or Dock item to manage placement and ordering."
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -169,10 +215,76 @@ private fun HomeSurface(
                 horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
             ) {
                 items(favoriteApps, key = { it.workspaceKey() }) { app ->
+                    val key = app.workspaceKey()
+                    val isDragging = favoriteDragKey == key
+                    val reorderModifier = if (reorderMode) {
+                        Modifier
+                            .onGloballyPositioned { coordinates ->
+                                favoriteBounds[key] = coordinates.boundsInRoot()
+                            }
+                            .zIndex(
+                                when {
+                                    isDragging -> 2f
+                                    favoriteDropTargetKey == key -> 1f
+                                    else -> 0f
+                                }
+                            )
+                            .graphicsLayer {
+                                if (isDragging) {
+                                    translationX = favoriteDragOffset.x
+                                    translationY = favoriteDragOffset.y
+                                    alpha = 0.88f
+                                    scaleX = 1.04f
+                                    scaleY = 1.04f
+                                }
+                            }
+                            .pointerInput(key, reorderMode) {
+                                detectDragGestures(
+                                    onDragStart = { localOffset ->
+                                        favoriteDragKey = key
+                                        favoriteDragOffset = Offset.Zero
+                                        favoritePointerInRoot =
+                                            (favoriteBounds[key]?.topLeft ?: Offset.Zero) + localOffset
+                                        favoriteDropTargetKey = null
+                                    },
+                                    onDragCancel = {
+                                        favoriteDragKey = null
+                                        favoriteDragOffset = Offset.Zero
+                                        favoritePointerInRoot = Offset.Zero
+                                        favoriteDropTargetKey = null
+                                    },
+                                    onDragEnd = {
+                                        val targetKey = favoriteDropTargetKey
+                                        if (targetKey != null && targetKey != key) {
+                                            onMoveFavoriteToTarget(app, targetKey)
+                                        }
+                                        favoriteDragKey = null
+                                        favoriteDragOffset = Offset.Zero
+                                        favoritePointerInRoot = Offset.Zero
+                                        favoriteDropTargetKey = null
+                                    },
+                                ) { change, dragAmount ->
+                                    change.consume()
+                                    favoriteDragOffset += dragAmount
+                                    favoritePointerInRoot += dragAmount
+                                    favoriteDropTargetKey = favoriteBounds.entries
+                                        .firstOrNull { (targetKey, bounds) ->
+                                            targetKey != key && bounds.contains(favoritePointerInRoot)
+                                        }
+                                        ?.key
+                                }
+                            }
+                    } else {
+                        Modifier
+                    }
+
                     AppTile(
                         app = app,
                         onClick = { onLaunchApp(app) },
                         onLongClick = { onManageApp(app) },
+                        modifier = reorderModifier,
+                        interactionEnabled = !reorderMode,
+                        highlighted = favoriteDropTargetKey == key,
                     )
                 }
             }
@@ -181,8 +293,10 @@ private fun HomeSurface(
         if (dockApps.isNotEmpty()) {
             DockStrip(
                 apps = dockApps,
+                reorderMode = reorderMode,
                 onLaunchApp = onLaunchApp,
                 onManageApp = onManageApp,
+                onMoveToTarget = onMoveDockToTarget,
             )
             Spacer(Modifier.height(GlazeMetrics.space3))
         }
@@ -206,9 +320,26 @@ private fun HomeSurface(
 @Composable
 private fun DockStrip(
     apps: List<LauncherActivityInfo>,
+    reorderMode: Boolean,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
+    onMoveToTarget: (LauncherActivityInfo, String) -> Unit,
 ) {
+    val dockBounds = remember { mutableStateMapOf<String, Rect>() }
+    var dragKey by remember { mutableStateOf<String?>(null) }
+    var dragOffset by remember { mutableStateOf(Offset.Zero) }
+    var pointerInRoot by remember { mutableStateOf(Offset.Zero) }
+    var dropTargetKey by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(reorderMode) {
+        if (!reorderMode) {
+            dragKey = null
+            dragOffset = Offset.Zero
+            pointerInRoot = Offset.Zero
+            dropTargetKey = null
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
@@ -220,10 +351,75 @@ private fun DockStrip(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             apps.take(MAX_DOCK_ITEMS).forEach { app ->
+                val key = app.workspaceKey()
+                val isDragging = dragKey == key
+                val reorderModifier = if (reorderMode) {
+                    Modifier
+                        .onGloballyPositioned { coordinates ->
+                            dockBounds[key] = coordinates.boundsInRoot()
+                        }
+                        .zIndex(
+                            when {
+                                isDragging -> 2f
+                                dropTargetKey == key -> 1f
+                                else -> 0f
+                            }
+                        )
+                        .graphicsLayer {
+                            if (isDragging) {
+                                translationX = dragOffset.x
+                                translationY = dragOffset.y
+                                alpha = 0.88f
+                                scaleX = 1.04f
+                                scaleY = 1.04f
+                            }
+                        }
+                        .pointerInput(key, reorderMode) {
+                            detectDragGestures(
+                                onDragStart = { localOffset ->
+                                    dragKey = key
+                                    dragOffset = Offset.Zero
+                                    pointerInRoot = (dockBounds[key]?.topLeft ?: Offset.Zero) + localOffset
+                                    dropTargetKey = null
+                                },
+                                onDragCancel = {
+                                    dragKey = null
+                                    dragOffset = Offset.Zero
+                                    pointerInRoot = Offset.Zero
+                                    dropTargetKey = null
+                                },
+                                onDragEnd = {
+                                    val targetKey = dropTargetKey
+                                    if (targetKey != null && targetKey != key) {
+                                        onMoveToTarget(app, targetKey)
+                                    }
+                                    dragKey = null
+                                    dragOffset = Offset.Zero
+                                    pointerInRoot = Offset.Zero
+                                    dropTargetKey = null
+                                },
+                            ) { change, dragAmount ->
+                                change.consume()
+                                dragOffset += dragAmount
+                                pointerInRoot += dragAmount
+                                dropTargetKey = dockBounds.entries
+                                    .firstOrNull { (targetKey, bounds) ->
+                                        targetKey != key && bounds.contains(pointerInRoot)
+                                    }
+                                    ?.key
+                            }
+                        }
+                } else {
+                    Modifier
+                }
+
                 DockTile(
                     app = app,
                     onClick = { onLaunchApp(app) },
                     onLongClick = { onManageApp(app) },
+                    modifier = reorderModifier,
+                    interactionEnabled = !reorderMode,
+                    highlighted = dropTargetKey == key,
                 )
             }
         }
@@ -236,18 +432,27 @@ private fun DockTile(
     app: LauncherActivityInfo,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    interactionEnabled: Boolean = true,
+    highlighted: Boolean = false,
 ) {
     val icon = rememberAppIcon(app, size = 96)
+    val interactionModifier = if (interactionEnabled) {
+        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+    } else {
+        Modifier
+    }
     Column(
-        modifier = Modifier.width(60.dp)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+        modifier = modifier.width(60.dp)
+            .then(interactionModifier)
             .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget)
             .padding(vertical = GlazeMetrics.space1),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             Modifier.size(48.dp).background(
-                MaterialTheme.colorScheme.surface,
+                if (highlighted) MaterialTheme.colorScheme.secondaryContainer
+                else MaterialTheme.colorScheme.surface,
                 RoundedCornerShape(GlazeMetrics.radiusControl),
             ),
             contentAlignment = Alignment.Center,
@@ -482,12 +687,14 @@ private fun AppTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
+    interactionEnabled: Boolean = true,
+    highlighted: Boolean = false,
 ) {
     val icon = rememberAppIcon(app, size = 128)
-    val interactionModifier = if (onLongClick != null) {
-        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
-    } else {
-        Modifier.clickable(onClick = onClick)
+    val interactionModifier = when {
+        !interactionEnabled -> Modifier
+        onLongClick != null -> Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+        else -> Modifier.clickable(onClick = onClick)
     }
     Column(
         modifier.then(interactionModifier).padding(GlazeMetrics.space1),
@@ -495,7 +702,8 @@ private fun AppTile(
     ) {
         Box(
             Modifier.size(62.dp).background(
-                MaterialTheme.colorScheme.surfaceVariant,
+                if (highlighted) MaterialTheme.colorScheme.secondaryContainer
+                else MaterialTheme.colorScheme.surfaceVariant,
                 RoundedCornerShape(GlazeMetrics.space5),
             ),
             contentAlignment = Alignment.Center,

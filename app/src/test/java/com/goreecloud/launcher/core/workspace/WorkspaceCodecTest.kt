@@ -55,4 +55,27 @@ class WorkspaceCodecTest {
         assertEquals(initial, WorkspaceCodec.moved(initial, "three", WorkspaceMoveDirection.LATER))
         assertEquals(initial, WorkspaceCodec.moved(initial, "missing", WorkspaceMoveDirection.LATER))
     }
+
+    @Test
+    fun moveToTargetSupportsForwardAndBackwardDragDrops() {
+        val initial = listOf("one", "two", "three", "four")
+
+        assertEquals(
+            listOf("one", "three", "four", "two"),
+            WorkspaceCodec.movedToTarget(initial, "two", "four"),
+        )
+        assertEquals(
+            listOf("one", "four", "two", "three"),
+            WorkspaceCodec.movedToTarget(initial, "four", "two"),
+        )
+    }
+
+    @Test
+    fun moveToTargetIgnoresSelfAndUnknownKeys() {
+        val initial = listOf("one", "two", "three")
+
+        assertEquals(initial, WorkspaceCodec.movedToTarget(initial, "two", "two"))
+        assertEquals(initial, WorkspaceCodec.movedToTarget(initial, "missing", "two"))
+        assertEquals(initial, WorkspaceCodec.movedToTarget(initial, "two", "missing"))
+    }
 }

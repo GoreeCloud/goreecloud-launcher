@@ -80,6 +80,16 @@ class MainActivity : ComponentActivity() {
                             workspaceRepository.moveDock(app.workspaceKey(), direction)
                         }
                     },
+                    onMoveFavoriteToTarget = { app, targetKey ->
+                        lifecycleScope.launch {
+                            workspaceRepository.moveFavoriteToTarget(app.workspaceKey(), targetKey)
+                        }
+                    },
+                    onMoveDockToTarget = { app, targetKey ->
+                        lifecycleScope.launch {
+                            workspaceRepository.moveDockToTarget(app.workspaceKey(), targetKey)
+                        }
+                    },
                     themeMode = themeMode,
                     onCycleTheme = themeRepository::cycleMode,
                 )
