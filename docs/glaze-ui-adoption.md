@@ -5,7 +5,9 @@
 - Canonical design system: `GoreeCloud/glaze-ui`
 - Target: Glaze UI 1.4 Stable
 - Canonical token version reviewed: 1.4.0
+- Reviewed canonical revision: `883d40ff51d02885650024723c01d229de456285`
 - Adoption mode: native Android semantic mapping
+- Automated contract: `scripts/check_glaze_ui.py`
 
 ## Current mapped semantics
 
@@ -21,6 +23,12 @@ Mapped in the current Milestone 1 slice:
 - local-only presentation with no remote font, icon, analytics, or UI dependency.
 
 The native mapping lives in `ui/theme/GlazeMetrics.kt` and intentionally contains only the subset currently consumed by Launcher.
+
+## Automated contract boundary
+
+`scripts/check_glaze_ui.py` is a fail-closed repository contract for the Glaze subset Launcher currently consumes. It verifies the canonical 1.4 spacing/radius/target values in the native Compose metric map and verifies that this evidence file records the exact reviewed design-system revision and the unresolved application-specific acceptance boundaries.
+
+The contract runs in Android CI before Gradle lint/tests/build. It is intentionally not a rendered visual test and does not convert the current adoption-candidate state into full design-system conformance.
 
 ## Form-factor boundary
 
