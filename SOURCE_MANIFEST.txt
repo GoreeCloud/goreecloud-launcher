@@ -22,6 +22,7 @@ docs/glaze-ui-adoption.md
 docs/security-privacy.md
 gradle.properties
 gradle/wrapper/gradle-wrapper.properties
+scripts/check_glaze_ui.py
 scripts/check_manifest.py
 scripts/check_privacy.py
 settings.gradle.kts

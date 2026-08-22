@@ -32,10 +32,11 @@ The repository contains the Milestone 0 native Android foundation and the first 
 - All-apps drawer with local name/package search.
 - App launching.
 - Persisted System / Light / Dark Glaze appearance foundation.
-- Initial native metric mapping for the canonical Glaze UI 1.4 Stable spacing, radius, and touch-target tokens.
+- Native metric mapping for the canonical Glaze UI 1.4 Stable spacing, radius, and touch-target tokens currently consumed by Launcher.
+- Fail-closed Glaze UI 1.4 contract validation in CI for the mapped token subset and adoption evidence.
 - Unit-tested workspace ordering, movement boundaries, and Dock-limit logic.
 - No `INTERNET` permission.
-- CI privacy and manifest guards.
+- CI privacy, HOME-manifest, and Glaze UI contract guards.
 
 Still planned: direct drag/drop reordering, multiple workspace pages, folders, icon/label customization, gesture bindings, shortcuts, `AppWidgetHost`, richer profile UI, the full Glaze Theme Engine, versioned backup/restore, and physical-device acceptance.
 
@@ -47,7 +48,9 @@ Workspace application keys combine a `UserHandle` discriminator with the flatten
 
 ## Glaze UI adoption boundary
 
-The current launcher explicitly targets **Glaze UI 1.4 Stable** as the canonical design-system baseline. The Android client maps only the Glaze semantics it currently consumes into native Compose controls: comfortable/minimum touch targets, spacing, control/content radii, local material hierarchy, and accessible native interactions. This mapping does not claim full Glaze UI conformance; phone/tablet visual acceptance and the remaining semantic mappings are still product-specific acceptance work.
+The current launcher explicitly targets **Glaze UI 1.4 Stable** as the canonical design-system baseline and records the reviewed canonical revision in `docs/glaze-ui-adoption.md`. The Android client maps only the Glaze semantics it currently consumes into native Compose controls: comfortable/minimum touch targets, spacing, control/content radii, local material hierarchy, and accessible native interactions.
+
+`scripts/check_glaze_ui.py` verifies that the native metric subset still matches the recorded Glaze UI 1.4 values and that the repository keeps its exact design-system reference and unresolved acceptance boundaries explicit. This supports an evidence-backed adoption-candidate state; it does not claim full Glaze UI conformance. Phone/tablet rendered/native acceptance and the remaining semantic mappings are still product-specific acceptance work.
 
 ## Build baseline
 
@@ -66,12 +69,15 @@ CI installs Gradle 8.11.1 explicitly. The repository currently includes `gradle-
 Run with an Android SDK 36 environment:
 
 ```bash
+python3 scripts/check_privacy.py
+python3 scripts/check_manifest.py
+python3 scripts/check_glaze_ui.py
 gradle --no-daemon lintDebug testDebugUnitTest assembleDebug
 ```
 
 ## Validation boundary
 
-Automated CI covers the Privacy Shield dependency/permission guard, HOME-manifest contract guard, Android lint, unit tests, and debug APK assembly. Emulator behavior, signed release packaging, direct drag/drop behavior, Glaze UI visual acceptance, and physical-device default-HOME acceptance remain separate gates and must not be inferred from a successful CI build.
+Automated CI covers the Privacy Shield dependency/permission guard, HOME-manifest contract guard, Glaze UI mapped-subset contract, Android lint, unit tests, and debug APK assembly. Emulator behavior, signed release packaging, direct drag/drop behavior, full Glaze UI visual acceptance, and physical-device default-HOME acceptance remain separate gates and must not be inferred from a successful CI build.
 
 ## License
 
