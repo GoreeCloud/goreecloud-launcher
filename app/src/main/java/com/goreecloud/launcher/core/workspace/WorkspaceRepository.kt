@@ -19,7 +19,7 @@ data class WorkspaceState(
 )
 
 fun LauncherActivityInfo.workspaceKey(): String =
-    "${user.identifier}:${componentName.flattenToString()}"
+    "${user.hashCode()}:${componentName.flattenToString()}"
 
 internal object WorkspaceCodec {
     private const val ENTRY_SEPARATOR = "\u001F"
