@@ -6,6 +6,7 @@ app/proguard-rules.pro
 app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceRepository.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeRepository.kt
@@ -13,6 +14,7 @@ app/src/main/res/values/strings.xml
 app/src/main/res/values/themes.xml
 app/src/main/res/xml/backup_rules.xml
 app/src/main/res/xml/data_extraction_rules.xml
+app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceCodecTest.kt
 build.gradle.kts
 docs/architecture.md
 docs/security-privacy.md
