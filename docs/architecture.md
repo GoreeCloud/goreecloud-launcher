@@ -10,7 +10,7 @@ The first-party Glaze Theme Engine begins with local semantic colors and persist
 
 Milestone 0 establishes the Android HOME contract, app/profile discovery, Glaze UI shell, local appearance persistence, and privacy/manifest guards.
 
-Milestone 1 currently adds six daily-launcher foundations:
+Milestone 1 currently adds seven daily-launcher foundations:
 
 1. Local application search by installed-app label or package name.
 2. Durable workspace preferences for ordered Favorites and Dock membership.
@@ -18,6 +18,7 @@ Milestone 1 currently adds six daily-launcher foundations:
 4. An explicit Home Reorder mode that supports direct drag/drop ordering for Favorites and Dock while preserving the non-drag controls as a permanent accessibility path.
 5. A staged Room 3 relational workspace foundation that mirrors the accepted DataStore state into a versioned page/item schema without prematurely replacing the live launcher source of truth.
 6. Relational mirror write/readback verification that validates the persisted compatibility rows against the deterministic DataStore-derived snapshot before reporting a successful mirror.
+7. A focused Android-emulator runtime gate that exercises the real Room/AndroidSQLiteDriver path before relational authority can advance.
 
 ## Current DataStore workspace authority
 
@@ -35,7 +36,7 @@ This separation is intentional. Normal mode prioritizes reliable app launching a
 
 ## Room 3 relational workspace transition
 
-The relational foundation uses AndroidX Room 3.0.1 with Kotlin Symbol Processing and AndroidX SQLite 2.7.0 through `AndroidSQLiteDriver`. Room 3 is Kotlin/coroutine-first and gives the launcher compile-time SQL verification plus explicit schema-version evolution for the richer workspace model.
+The relational foundation uses AndroidX Room 3.0.1 with Kotlin Symbol Processing and AndroidX SQLite 2.7.0 through `AndroidSQLiteDriver`. Room 3 gives the launcher compile-time SQL verification plus explicit schema-version evolution for the richer workspace model.
 
 `LauncherDatabase` starts at schema version 1 and contains:
 
@@ -52,6 +53,23 @@ The mirror is fail-safe during this transition: ordinary database exceptions ret
 
 This dual-store period is temporary. It exists to preserve user-selected Favorites and Dock ordering while the richer relational path is built and tested. The final migration must remove ambiguous dual authority: Room becomes authoritative for workspace placement only after runtime migration acceptance, while DataStore remains appropriate for independent small preferences such as appearance and accessibility settings.
 
+## Android emulator runtime gate
+
+`WorkspaceRoomRuntimeTest` is the first runtime relational acceptance layer. It uses AndroidX Test with the production `LauncherDatabase` class, `AndroidSQLiteDriver`, and a real file-backed database on an API 36 Android emulator rather than an in-memory database or a JVM substitute.
+
+The focused test proves, for its controlled compatibility scenario:
+
+- The generated Room implementation can create and open the version-1 database on Android.
+- `WorkspaceRelationalMirror` can write a populated DataStore-shaped snapshot and report `Verified` only after DAO readback matches it.
+- Closing Room and reopening the same database file preserves the mirrored rows.
+- A changed snapshot replaces the prior Home/Dock compatibility rows rather than accumulating stale placement records.
+- Rows removed from the new Favorite/Dock snapshot disappear through page replacement and cascading deletion.
+- Mirroring initialized empty Home/Dock containers preserves the compatibility pages while clearing all compatibility items.
+
+CI runs this focused instrumentation class on an API 36 `x86_64` emulator. The Android Emulator Runner action is pinned to immutable commit `a421e43855164a8197daf9d8d40fe71c6996bb0d` rather than a mutable version tag.
+
+This gate remains narrower than full runtime acceptance. Closing and reopening one database instance is not Android process-death testing. The gate also does not establish schema-version upgrade migration, representative phone/tablet performance, physical-device storage behavior, or authority-cutover safety.
+
 ## Schema and migration governance
 
 The Room Gradle plugin exports schema history under `app/schemas`, and that generated history is source-controlled migration evidence. The exact generated version-1 schema is committed at `app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json`; its Room identity hash is `2fa5d8fba0010dd896c671aadaa5dafb`.
@@ -60,7 +78,20 @@ CI first validates that a version-1 export contains both workspace tables, then 
 
 Schema-version changes must not use destructive fallback for ordinary upgrades; they require an explicit migration or accepted auto-migration path plus migration tests before release acceptance.
 
-The current version-1 Room schema is a new local database and therefore has no prior Room schema to migrate from. The relevant compatibility transition in this stage is from the existing DataStore Favorite/Dock representation into the Room version-1 relational representation. Write/readback verification strengthens this compatibility evidence but is not equivalent to declaring the Room cutover complete.
+The current version-1 Room schema is a new local database and therefore has no prior Room schema to migrate from. The relevant compatibility transition in this stage is from the existing DataStore Favorite/Dock representation into the Room version-1 relational representation. Write/readback and emulator runtime verification strengthen this compatibility evidence but are not equivalent to declaring the Room cutover complete.
+
+## Controlled authority-cutover requirements
+
+Room must not become Home's authoritative workspace source merely because the emulator test passes. A later cutover slice must establish an explicit one-way migration state so DataStore and Room cannot silently compete for authority. At minimum, that stage must define:
+
+- How an existing initialized DataStore workspace is imported exactly once.
+- How successful import is recorded without exposing application inventory.
+- How incomplete or mismatched migration fails safely back to the existing DataStore path.
+- How restart/reopen behavior distinguishes “not migrated”, “migration verified”, and “Room authoritative”.
+- How rollback or recovery works if the relational database cannot be opened after authority changes.
+- How future Room schema migrations are tested independently from the initial DataStore compatibility import.
+
+Until those conditions are implemented and accepted, DataStore remains the live Favorites/Dock source consumed by Home.
 
 ## Glaze UI native mapping
 
@@ -72,10 +103,10 @@ Ordinary content remains Solid/Raised in accordance with the Glaze material hier
 
 ## Validation boundary
 
-JVM tests validate deterministic ordering, DataStore-to-Room mapping, and strict relational snapshot comparison semantics. Android CI must compile KSP-generated Room code and schemas, prove committed schema history matches generated output, lint the exact pull-request head, run JVM tests, and assemble the debug APK before this source slice can merge.
+JVM tests validate deterministic ordering, DataStore-to-Room mapping, and strict relational snapshot comparison semantics. The normal Android CI job compiles KSP-generated Room code and schemas, proves committed schema history matches generated output, lints the exact pull-request head, runs JVM tests, and assembles the debug APK.
 
-Even successful CI does not prove that a real Android SQLite file can be created, mirrored, read back, recovered after process death, or upgraded on a supported device. It also does not prove physical drag interaction, rotation behavior, TalkBack behavior, or physical-device HOME use. Those remain emulator/device acceptance gates. Room must not become the live workspace authority until the relational runtime path has its own acceptance evidence.
+The separate emulator job adds real Android SQLite creation/readback and close/reopen compatibility evidence. Even after it passes, process-death recovery, schema-version upgrade behavior, Room authority cutover, physical drag interaction, rotation behavior, TalkBack behavior, representative-device performance, and physical-device HOME use remain separate acceptance gates.
 
 ## Privacy boundary
 
-Search, Favorites, Dock state, ordering state, drag/drop state, Room workspace data, and appearance settings are all local. The relational database and verifier add no Android permission, network permission, remote recommendation service, analytics SDK, advertising SDK, sponsorship system, or cloud-account dependency. Verification outcomes are intentionally categorical rather than carrying application-key details.
+Search, Favorites, Dock state, ordering state, drag/drop state, Room workspace data, and appearance settings are all local. The relational database, verifier, and focused emulator test add no Android permission, network permission, remote recommendation service, analytics SDK, advertising SDK, sponsorship system, or cloud-account dependency. Verification outcomes are intentionally categorical rather than carrying application-key details.
