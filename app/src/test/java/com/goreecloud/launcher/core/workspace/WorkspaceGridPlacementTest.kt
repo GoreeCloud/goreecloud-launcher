@@ -1,7 +1,7 @@
 package com.goreecloud.launcher.core.workspace
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class WorkspaceGridPlacementTest {
     private val grid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5)
