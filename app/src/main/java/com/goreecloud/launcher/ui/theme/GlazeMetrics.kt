@@ -4,10 +4,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Native Android mapping of the Glaze UI 1.4 Stable semantic metrics consumed by
- * GoreeCloud Launcher. These values intentionally cover only the subset used by
- * the current launcher surfaces; broader design-system adoption remains explicit
- * and application-specific.
+ * Native Android mapping of the Glaze UI 1.5 Stable semantic metrics consumed by
+ * GoreeCloud Launcher. The mapped spacing, radius, and target subset is unchanged
+ * from the prior 1.4 adoption, but it is now reviewed against the exact 1.5 Stable
+ * release anchor. Broader design-system adoption remains explicit and
+ * application-specific.
  */
 object GlazeMetrics {
     val space1: Dp = 4.dp
