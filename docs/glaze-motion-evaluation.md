@@ -10,7 +10,7 @@
 - Evaluation mode: native Android semantic mapping, test-only
 - Production dependency: no
 
-This record evaluates whether Glaze Motion 0.4 semantics can map onto Launcher's existing ordering domain. It is downstream development evidence only. It does not activate Experimental Glaze Motion in the production application, certify Launcher, or promote Glaze Motion to Candidate or Stable.
+This record evaluates whether the historical Glaze Motion 0.4 semantics can map onto Launcher's existing ordering domain. It is downstream development evidence only. It does not activate Experimental Glaze Motion in the production application, certify Launcher, or promote Glaze Motion to Candidate or Stable.
 
 ## Real consumer surface
 
@@ -58,6 +58,6 @@ Existing drag transforms, alpha, and scale feedback are therefore treated as app
 
 ## Promotion boundary
 
-This evaluation can support a later Glaze Motion Experimental 0.5 evidence record because it demonstrates a real first-party consumer mapping against Launcher's actual ordering domain. It is insufficient for Candidate promotion by itself.
+This historical evaluation remains evidence that a first-party consumer mapped Experimental motion semantics against Launcher's actual ordering domain. It is insufficient for Candidate promotion by itself and does not establish adoption of the current Glaze Motion Experimental revision.
 
-Glaze UI 1.6 Stable remains the production design-system authority. Motion Studio and Motion Spatial remain Planned and are outside this evaluation.
+Glaze UI 2.0 Stable is the production design-system authority. Glaze Motion remains Experimental and test-only; Motion Studio and Motion Spatial remain outside this historical evaluation.
