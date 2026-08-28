@@ -20,7 +20,7 @@ abstract class WorkspaceDao {
     @Query("SELECT * FROM workspace_pages WHERE containerType = :containerType ORDER BY rank")
     abstract suspend fun readPagesByContainer(containerType: String): List<WorkspacePageEntity>
 
-    @Query("SELECT * FROM workspace_items WHERE pageId IN (:pageIds)")
+    @Query("SELECT * FROM workspace_items WHERE pageId IN (:pageIds) ORDER BY pageId, rank")
     abstract suspend fun readItems(pageIds: List<String>): List<WorkspaceItemEntity>
 
     @Query("SELECT COUNT(*) FROM workspace_items")
@@ -37,6 +37,9 @@ abstract class WorkspaceDao {
 
     @Query("UPDATE workspace_pages SET rank = -(rank + 1) WHERE containerType = :containerType")
     protected abstract suspend fun stagePageRanks(containerType: String)
+
+    @Query("UPDATE workspace_items SET rank = -(rank + 1) WHERE pageId IN (:pageIds)")
+    protected abstract suspend fun stageItemRanks(pageIds: List<String>)
 
     @Transaction
     open suspend fun replaceLegacySnapshot(
@@ -72,6 +75,31 @@ abstract class WorkspaceDao {
                 checkNotNull(byId[pageId]).copy(rank = rank)
             }
         )
+        return true
+    }
+
+    /**
+     * Replaces item placement fields only when the caller's expected HOME snapshot still exactly
+     * matches Room. The transaction preserves item identity/type/application metadata supplied in
+     * the validated replacement and stages ranks first to avoid unique (pageId, rank) conflicts.
+     */
+    @Transaction
+    open suspend fun replaceItemPlacements(
+        pageIds: List<String>,
+        expectedItems: List<WorkspaceItemEntity>,
+        updatedItems: List<WorkspaceItemEntity>,
+    ): Boolean {
+        if (pageIds.isEmpty() || pageIds.size != pageIds.distinct().size) return false
+        if (expectedItems.map { it.itemId }.toSet() != updatedItems.map { it.itemId }.toSet()) return false
+        if (updatedItems.any { it.pageId !in pageIds || it.rank < 0 }) return false
+
+        val existing = readItems(pageIds)
+        if (existing != expectedItems.sortedWith(compareBy<WorkspaceItemEntity> { it.pageId }.thenBy { it.rank })) {
+            return false
+        }
+
+        stageItemRanks(pageIds)
+        if (updatedItems.isNotEmpty()) upsertItems(updatedItems)
         return true
     }
 }
