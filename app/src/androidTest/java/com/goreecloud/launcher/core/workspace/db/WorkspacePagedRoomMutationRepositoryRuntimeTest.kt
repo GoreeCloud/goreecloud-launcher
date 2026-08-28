@@ -9,6 +9,7 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
+import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,7 +57,7 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
     }
 
     @Test
-    fun pageOrderMutationRequiresRoomAuthorityAndPreservesChildItems() = runBlocking {
+    fun pageAndItemMutationsRequireRoomAuthorityAndPreserveStoredIdentity() = runBlocking {
         val authorityRepository = WorkspaceRepository(openDataStore())
         authorityRepository.ensureDefaults(
             favoriteKeys = listOf(APP_ONE),
@@ -70,6 +71,14 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
         assertEquals(
             WorkspacePagedRoomMutationResult.Reserved,
             repository.moveHomePage(WorkspaceLegacyImportMapper.HOME_PAGE_ID, 0),
+        )
+        assertEquals(
+            WorkspacePagedRoomMutationResult.Reserved,
+            repository.moveHomeItem(
+                itemId = "native:item:two",
+                targetPageId = "home:1",
+                targetPlacement = WorkspaceGridPlacement.Placement("native:item:two", 1, 0),
+            ),
         )
 
         var state = authorityRepository.state.first { it.initialized }
@@ -92,8 +101,12 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
                 WorkspacePageEntity("home:2", WorkspaceContainerType.HOME, 2),
             )
         )
+        val legacyHomeItem = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .single()
         database.workspaceDao().upsertItems(
             listOf(
+                legacyHomeItem.copy(cellX = 0, cellY = 0),
                 WorkspaceItemEntity(
                     itemId = "native:item:two",
                     pageId = "home:2",
@@ -102,7 +115,7 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
                     rank = 0,
                     cellX = 0,
                     cellY = 0,
-                )
+                ),
             )
         )
 
@@ -112,23 +125,46 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
             ),
             repository.moveHomePage("home:2", 0),
         )
-
         assertEquals(
             listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1"),
             database.workspaceDao().readPagesByContainer(WorkspaceContainerType.HOME).map { it.pageId },
         )
-        val preserved = database.workspaceDao().readItems(listOf("home:2"))
-        assertEquals(1, preserved.size)
-        assertEquals("native:item:two", preserved.single().itemId)
-        assertEquals(APP_TWO, preserved.single().appKey)
 
         assertEquals(
-            WorkspacePagedRoomMutationResult.TargetRankOutOfRange,
-            repository.moveHomePage("home:2", 3),
+            WorkspacePagedRoomMutationResult.ItemUpdated("native:item:two", "home:1"),
+            repository.moveHomeItem(
+                itemId = "native:item:two",
+                targetPageId = "home:1",
+                targetPlacement = WorkspaceGridPlacement.Placement(
+                    itemId = "native:item:two",
+                    cellX = 1,
+                    cellY = 0,
+                ),
+            ),
+        )
+        val moved = database.workspaceDao().readItems(listOf("home:1")).single()
+        assertEquals("native:item:two", moved.itemId)
+        assertEquals(APP_TWO, moved.appKey)
+        assertEquals(1, moved.cellX)
+        assertEquals(0, moved.cellY)
+        assertEquals(0, moved.rank)
+        assertTrue(database.workspaceDao().readItems(listOf("home:2")).isEmpty())
+
+        assertEquals(
+            WorkspacePagedRoomMutationResult.Rejected("item identity mismatch"),
+            repository.moveHomeItem(
+                itemId = "native:item:two",
+                targetPageId = "home:1",
+                targetPlacement = WorkspaceGridPlacement.Placement("different-item", 2, 0),
+            ),
         )
         assertEquals(
             WorkspacePagedRoomMutationResult.PageNotFound,
-            repository.moveHomePage("missing", 0),
+            repository.moveHomeItem(
+                itemId = "native:item:two",
+                targetPageId = "missing",
+                targetPlacement = WorkspaceGridPlacement.Placement("native:item:two", 2, 0),
+            ),
         )
     }
 
