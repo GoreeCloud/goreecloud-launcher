@@ -28,12 +28,15 @@ def main() -> None:
         f"Reviewed canonical revision: `{REFERENCE_REVISION}`",
         "Evaluation mode: native Android semantic mapping, test-only",
         "Production dependency: no",
-        "Glaze UI 1.5 Stable remains the production design-system authority.",
+        "Glaze UI 1.6 Stable remains the production design-system authority.",
         "insufficient for Candidate promotion by itself",
     ]
     for evidence in required_doc:
         if evidence not in doc_text:
             fail(f"missing lifecycle or evidence boundary `{evidence}`")
+
+    if "Glaze UI 1.5 Stable remains the production design-system authority." in doc_text:
+        fail("stale Glaze UI 1.5 production-authority boundary remains active")
 
     required_test = [
         f'const val REFERENCE_REVISION = "{REFERENCE_REVISION}"',
@@ -72,7 +75,7 @@ def main() -> None:
         )
 
     print(
-        "Glaze Motion 0.4 Launcher test-only evaluation boundary passed: "
+        "Glaze Motion 0.4 Launcher test-only evaluation boundary passed under Glaze UI 1.6 Stable: "
         "real ordering domain mapped, production source remains quarantined."
     )
 
