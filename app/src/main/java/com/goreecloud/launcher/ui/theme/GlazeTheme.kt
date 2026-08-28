@@ -9,31 +9,38 @@ import androidx.compose.ui.graphics.Color
 
 enum class GlazeThemeMode { SYSTEM, LIGHT, DARK }
 
+/**
+ * Glaze UI 2.0 Stable color mapping for the Launcher surfaces currently in use.
+ * Values come from the promoted `tokens/glaze.tokens.json` Light/Dark foundation
+ * and identity roles. Deep Dark remains an explicit application acceptance gap
+ * rather than being approximated with an unreviewed palette.
+ */
 private val light = lightColorScheme(
-    primary = Color(0xFF4259C7),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE0E5FF),
-    onPrimaryContainer = Color(0xFF111A4F),
-    secondary = Color(0xFF69558E),
-    background = Color(0xFFF7F7FB),
-    onBackground = Color(0xFF1B1B20),
-    surface = Color(0xFFFDFBFF),
-    onSurface = Color(0xFF1B1B20),
-    surfaceVariant = Color(0xFFE8E7EE),
-    onSurfaceVariant = Color(0xFF45464E),
+    primary = Color(0xFF366CF6),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0x2E366CF6),
+    onPrimaryContainer = Color(0xFF172033),
+    secondary = Color(0xFF7C5CFF),
+    background = Color(0xFFEEF3F9),
+    onBackground = Color(0xFF172033),
+    surface = Color(0xC2FFFFFF),
+    onSurface = Color(0xFF172033),
+    surfaceVariant = Color(0xDBF4F7FB),
+    onSurfaceVariant = Color(0xFF67748A),
 )
+
 private val dark = darkColorScheme(
-    primary = Color(0xFFBAC3FF),
-    onPrimary = Color(0xFF10226F),
-    primaryContainer = Color(0xFF293D9B),
-    onPrimaryContainer = Color(0xFFE0E5FF),
-    secondary = Color(0xFFD3BDF6),
-    background = Color(0xFF111116),
-    onBackground = Color(0xFFE5E1E9),
-    surface = Color(0xFF17171D),
-    onSurface = Color(0xFFE5E1E9),
-    surfaceVariant = Color(0xFF45464F),
-    onSurfaceVariant = Color(0xFFC6C5CF),
+    primary = Color(0xFF7AA2FF),
+    onPrimary = Color(0xFF0B1020),
+    primaryContainer = Color(0x3D7AA2FF),
+    onPrimaryContainer = Color(0xFFF3F6FB),
+    secondary = Color(0xFFA594FF),
+    background = Color(0xFF0D1119),
+    onBackground = Color(0xFFF3F6FB),
+    surface = Color(0xC719202D),
+    onSurface = Color(0xFFF3F6FB),
+    surfaceVariant = Color(0xDB1F2736),
+    onSurfaceVariant = Color(0xFFA1AEC0),
 )
 
 @Composable
