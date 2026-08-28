@@ -60,4 +60,4 @@ Existing drag transforms, alpha, and scale feedback are therefore treated as app
 
 This evaluation can support a later Glaze Motion Experimental 0.5 evidence record because it demonstrates a real first-party consumer mapping against Launcher's actual ordering domain. It is insufficient for Candidate promotion by itself.
 
-Glaze UI 1.5 Stable remains the production design-system authority. Motion Studio and Motion Spatial remain Planned and are outside this evaluation.
+Glaze UI 1.6 Stable remains the production design-system authority. Motion Studio and Motion Spatial remain Planned and are outside this evaluation.
