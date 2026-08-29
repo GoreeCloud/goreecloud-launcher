@@ -208,6 +208,17 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             },
+                            onDeletePage = { pageId ->
+                                lifecycleScope.launch {
+                                    val result = workspaceRuntimeCoordinator.deleteEmptyHomePage(pageId)
+                                    if (
+                                        result is WorkspacePagedRoomMutationResult.DeletedPage &&
+                                        selectedHomePageId == result.pageId
+                                    ) {
+                                        selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                                    }
+                                }
+                            },
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
                                 .statusBarsPadding()

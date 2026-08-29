@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
@@ -43,10 +44,17 @@ fun HomePageSwitcher(
     onSelectPage: (String) -> Unit,
     onMovePage: (String, Int) -> Unit,
     onCreatePage: () -> Unit,
+    onDeletePage: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (pages.isEmpty()) return
     val selectedIndex = pages.indexOfFirst { it.pageId == selectedPageId }
+    val selectedPage = pages.getOrNull(selectedIndex)
+    val canDeleteSelectedPage = pages.size > 1 &&
+        selectedPage != null &&
+        selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
+        selectedPage.appKeys.isEmpty() &&
+        selectedPage.unsupportedItemCount == 0
 
     Surface(
         modifier = modifier,
@@ -112,6 +120,11 @@ fun HomePageSwitcher(
                     ) {
                         Text("Move later")
                     }
+                    if (canDeleteSelectedPage) {
+                        TextButton(onClick = { onDeletePage(selectedPageId) }) {
+                            Text("Delete empty page")
+                        }
+                    }
                 }
             }
         }
@@ -149,7 +162,7 @@ fun ReadOnlyPagedHomeSurface(
             )
             Spacer(Modifier.height(GlazeMetrics.space2))
             Text(
-                "This secondary page is rendered from terminal Room authority. Launching is enabled; placement editing remains read-only until the paged mutation path is wired into Home.",
+                "This secondary page is rendered from terminal Room authority. Launching is enabled; placement editing remains read-only. Empty non-primary pages can be removed through the page switcher only after Room revalidates their emptiness.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -176,7 +189,7 @@ fun ReadOnlyPagedHomeSurface(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        "This authoritative Home page is empty. Item placement editing remains a separate milestone.",
+                        "This authoritative Home page is empty. It can be removed from the page switcher; item placement editing remains a separate milestone.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )

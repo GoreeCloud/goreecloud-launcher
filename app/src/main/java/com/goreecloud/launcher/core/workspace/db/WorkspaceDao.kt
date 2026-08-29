@@ -72,6 +72,45 @@ abstract class WorkspaceDao {
     }
 
     /**
+     * Deletes exactly one empty, non-protected page only if the complete page/item snapshot remains
+     * unchanged inside this transaction. The emptiness check is repeated after the snapshot read so
+     * a concurrent item insertion fails closed instead of being removed through the page FK cascade.
+     * Remaining page ranks are compacted transactionally after the deletion.
+     */
+    @Transaction
+    open suspend fun deleteEmptyPageIfSnapshotMatches(
+        containerType: String,
+        pageId: String,
+        protectedPageId: String,
+        expectedPages: List<WorkspacePageEntity>,
+        expectedItems: List<WorkspaceItemEntity>,
+    ): Boolean {
+        if (pageId.isBlank() || pageId == protectedPageId) return false
+
+        val currentPages = readPagesByContainer(containerType)
+        if (currentPages != expectedPages || currentPages.size <= 1) return false
+        if (currentPages.singleOrNull { it.pageId == pageId } == null) return false
+        if (currentPages.map { it.rank } != currentPages.indices.toList()) return false
+
+        val currentItems = readItems(currentPages.map { it.pageId })
+        val currentById = currentItems.associateBy { it.itemId }
+        val expectedById = expectedItems.associateBy { it.itemId }
+        if (currentById.size != currentItems.size || expectedById.size != expectedItems.size) return false
+        if (currentById != expectedById) return false
+        if (currentItems.any { it.pageId == pageId }) return false
+
+        val remaining = currentPages.filterNot { it.pageId == pageId }
+        stagePageRanks(containerType)
+        deletePages(listOf(pageId))
+        upsertPages(
+            remaining.mapIndexed { rank, page ->
+                page.copy(rank = rank)
+            }
+        )
+        return true
+    }
+
+    /**
      * Rewrites only page ranks for one container while preserving page rows and all child items.
      * The supplied page identity set must exactly match the current container identity set.
      */
