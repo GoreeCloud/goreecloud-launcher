@@ -6,7 +6,7 @@ GoreeCloud Launcher is GoreeCloud's privacy-first, original Android HOME applica
 
 **Development — not a signed production/Stable release.**
 
-The current repository contains a usable native daily-launcher foundation plus staged post-cutover workspace persistence contracts. Passing CI/emulator tests does not establish production Room cutover, complete physical-device interaction acceptance, signed release, or Stable qualification.
+The current repository contains a usable native daily-launcher foundation plus guarded Room-authority workspace foundations and an initial rendered multi-page navigation path. Passing CI/emulator tests does not establish production Room cutover, complete physical-device interaction acceptance, signed release, or Stable qualification.
 
 ## Product rules
 
@@ -31,12 +31,13 @@ Current source includes:
 - long-press placement management from supported surfaces;
 - explicit move-earlier/move-later controls;
 - Reorder-mode Favorites/Dock drag/drop using the current workspace persistence path;
+- terminal-Room multi-page HOME observation with page selection and read-only rendering of secondary application pages;
 - All apps with local label/package search and app launching; and
 - persisted System / Light / Dark appearance selection.
 
 ## Glaze UI 2.0 boundary
 
-Launcher now targets the current **Glaze UI 2.0.0 Stable** design-system baseline through its repository Adoption Candidate mapping. Historical Glaze UI 1.x references are not the current design authority.
+Launcher targets the current **Glaze UI 2.0.0 Stable** design-system baseline through its repository Adoption Candidate mapping. Historical Glaze UI 1.x references are not the current design authority.
 
 Source governance and mapped native tokens do not by themselves establish complete rendered/native/accessibility acceptance. Representative phone/tablet/foldable behavior, physical touch interaction, TalkBack/switch-access behavior, contrast, reduced-transparency/reduced-motion behavior where applicable, and other production design gates remain separate evidence requirements.
 
@@ -44,19 +45,28 @@ Source governance and mapped native tokens do not by themselves establish comple
 
 Launcher has progressed beyond the earlier DataStore-only relational rehearsal. The repository now contains:
 
-- Preferences DataStore compatibility/workspace state used by the current user-facing Home path;
+- Preferences DataStore compatibility/workspace state used by the primary user-facing Home path;
 - AndroidX Room relational workspace pages/items and schema history;
 - mirror, verification, dual-read, startup reconciliation, and durable authority-state contracts;
 - guarded terminal `ROOM` authority primitives;
 - deterministic framework-independent grid and multi-page placement validation/mutation contracts;
-- Room-backed multi-page HOME page-order persistence for terminal Room authority; and
-- Room-backed cross-page HOME item placement persistence that validates the complete workspace model and rechecks the observed page/item snapshot inside the transaction before writing, preventing a validated move from overwriting concurrent workspace drift.
+- Room-backed multi-page HOME page-order persistence for terminal Room authority;
+- Room-backed cross-page HOME item placement persistence that validates the complete workspace model and rechecks the observed page/item snapshot inside the transaction before writing; and
+- a terminal-Room paged HOME observer that maps authoritative Room pages/items into rendered application-page state and drives page selection in the Development Home UI.
 
-These merged source capabilities are **persistence/domain foundations**, not a claim that the current Home UI exposes a complete production multi-page editor. Production Room cutover/routing, rendered page creation/navigation, live cell/span editing, broader drag/drop UX, and recovery acceptance remain separate milestones.
+### Current rendered multi-page boundary
+
+When terminal Room authority is active and multiple HOME pages exist, Launcher can expose page selection and render application items from secondary Room pages. The primary Home page keeps the existing Favorites/Dock management path. Secondary pages are deliberately **launch-only/read-only** in this milestone: their placement editing callbacks are not enabled until the existing paged Room mutation repository is explicitly routed into the Home UI.
+
+Unsupported Room item types are counted and surfaced rather than silently treated as applications. Folders, shortcuts, widgets, page creation/deletion, live cell/span editing, and cross-page drag/drop UI remain separate milestones.
+
+This is a Development rendering bridge, not a claim of production Room cutover or a complete multi-page editor.
 
 ## Current Room item/page safety behavior
 
 Post-cutover Room mutation APIs refuse access unless durable terminal Room authority is already established. Multi-page item moves fail closed on missing pages/items, identity substitution, invalid/null placement coordinates, collisions, out-of-bounds state, or a workspace snapshot that changes between validation and the transactional write.
+
+The rendered page observer is likewise Room-authority gated. If authoritative paged Room state is unavailable, the application does not fabricate secondary pages and remains on the accepted primary Home path.
 
 Source/emulator acceptance of these paths does not equal production cutover or physical-device Home acceptance.
 
@@ -70,8 +80,9 @@ Run the repository validation commands documented by CI, including privacy/manif
 
 Still incomplete or separately gated:
 
-- production Room-authority cutover/routing and post-cutover recovery;
-- rendered multi-page workspace creation/navigation/editing;
+- production Room-authority cutover/routing and post-cutover recovery acceptance;
+- user-facing page creation/deletion/reordering and secondary-page placement editing;
+- live cell/span editing and cross-page drag/drop UI;
 - folders, shortcuts, widgets/AppWidgetHost, and richer placement UI;
 - complete icon/label customization and broader gesture bindings;
 - complete first-party Glaze Theme Engine behavior;
