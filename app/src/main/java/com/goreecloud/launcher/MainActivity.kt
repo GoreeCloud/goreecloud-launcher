@@ -139,7 +139,20 @@ class MainActivity : ComponentActivity() {
                         ReadOnlyPagedHomeSurface(
                             apps = apps,
                             page = selectedPage,
+                            pages = renderedPages,
                             onLaunchApp = appsRepository::launch,
+                            onMoveAppToPage = { app, targetPageId ->
+                                lifecycleScope.launch {
+                                    val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
+                                        sourcePageId = selectedPage.pageId,
+                                        appKey = app.workspaceKey(),
+                                        targetPageId = targetPageId,
+                                    )
+                                    if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
+                                        selectedHomePageId = result.pageId
+                                    }
+                                }
+                            },
                         )
                     } else {
                         LauncherRoot(
