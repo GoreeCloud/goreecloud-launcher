@@ -22,6 +22,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -40,9 +41,11 @@ fun HomePageSwitcher(
     pages: List<WorkspaceRenderedHomePage>,
     selectedPageId: String,
     onSelectPage: (String) -> Unit,
+    onMovePage: (String, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (pages.size <= 1) return
+    val selectedIndex = pages.indexOfFirst { it.pageId == selectedPageId }
 
     Surface(
         modifier = modifier,
@@ -50,37 +53,61 @@ fun HomePageSwitcher(
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 2.dp,
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = GlazeMetrics.space2, vertical = GlazeMetrics.space1),
-            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            pages.forEachIndexed { index, page ->
-                val selected = page.pageId == selectedPageId
-                Surface(
-                    modifier = Modifier
-                        .clickable { onSelectPage(page.pageId) }
-                        .padding(1.dp),
-                    shape = RoundedCornerShape(GlazeMetrics.radiusControl),
-                    color = if (selected) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    },
-                ) {
-                    Text(
-                        text = "Page ${index + 1}",
-                        modifier = Modifier.padding(
-                            horizontal = GlazeMetrics.space3,
-                            vertical = GlazeMetrics.space2,
-                        ),
-                        style = MaterialTheme.typography.labelLarge,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                pages.forEachIndexed { index, page ->
+                    val selected = page.pageId == selectedPageId
+                    Surface(
+                        modifier = Modifier
+                            .clickable { onSelectPage(page.pageId) }
+                            .padding(1.dp),
+                        shape = RoundedCornerShape(GlazeMetrics.radiusControl),
                         color = if (selected) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
+                            MaterialTheme.colorScheme.primaryContainer
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            MaterialTheme.colorScheme.surfaceVariant
                         },
-                    )
+                    ) {
+                        Text(
+                            text = "Page ${index + 1}",
+                            modifier = Modifier.padding(
+                                horizontal = GlazeMetrics.space3,
+                                vertical = GlazeMetrics.space2,
+                            ),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
+                }
+            }
+
+            if (selectedIndex >= 0) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(
+                        onClick = { onMovePage(selectedPageId, selectedIndex - 1) },
+                        enabled = selectedIndex > 0,
+                    ) {
+                        Text("Move earlier")
+                    }
+                    TextButton(
+                        onClick = { onMovePage(selectedPageId, selectedIndex + 1) },
+                        enabled = selectedIndex < pages.lastIndex,
+                    ) {
+                        Text("Move later")
+                    }
                 }
             }
         }

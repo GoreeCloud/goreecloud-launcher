@@ -192,6 +192,11 @@ class MainActivity : ComponentActivity() {
                             pages = renderedPages,
                             selectedPageId = selectedHomePageId,
                             onSelectPage = { selectedHomePageId = it },
+                            onMovePage = { pageId, targetRank ->
+                                lifecycleScope.launch {
+                                    workspaceRuntimeCoordinator.moveHomePage(pageId, targetRank)
+                                }
+                            },
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
                                 .statusBarsPadding()

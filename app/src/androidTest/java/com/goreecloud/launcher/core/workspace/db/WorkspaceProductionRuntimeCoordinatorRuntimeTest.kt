@@ -101,6 +101,32 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
     }
 
     @Test
+    fun terminalRoomRuntimeRoutesPageOrderMutation() = runBlocking {
+        val repository = WorkspaceRepository(openWorkspaceDataStore())
+        repository.ensureDefaults(INITIAL_FAVORITES, INITIAL_DOCK)
+        val runtime = runtime(repository) { database.workspaceDao() }
+
+        assertEquals(WorkspaceProductionRuntimeResult.RoomReady, runtime.reconcileAndActivate())
+        database.workspaceDao().upsertPages(
+            listOf(
+                WorkspacePageEntity("home:1", WorkspaceContainerType.HOME, 1),
+                WorkspacePageEntity("home:2", WorkspaceContainerType.HOME, 2),
+            )
+        )
+
+        assertEquals(
+            WorkspacePagedRoomMutationResult.Updated(
+                listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1")
+            ),
+            runtime.moveHomePage("home:2", 0),
+        )
+        assertEquals(
+            listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1"),
+            database.workspaceDao().readPagesByContainer(WorkspaceContainerType.HOME).map { it.pageId },
+        )
+    }
+
+    @Test
     fun terminalRoomUnavailabilityRequiresRecoveryAndNeverFallsBackToLegacyWrites() = runBlocking {
         val repository = WorkspaceRepository(openWorkspaceDataStore())
         repository.ensureDefaults(INITIAL_FAVORITES, INITIAL_DOCK)
