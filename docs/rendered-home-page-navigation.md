@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This Development surface connects the established terminal Room multi-page workspace model to rendered Home navigation and bounded user-facing page lifecycle controls without widening item-placement authority.
+This Development surface connects the established terminal Room multi-page workspace model to rendered Home navigation and bounded user-facing page lifecycle/item-placement controls without creating a second workspace authority.
 
 ## Authority boundary
 
@@ -20,10 +20,11 @@ When authoritative HOME pages exist:
 - the primary page keeps the existing Favorites/Dock UI and mutation callbacks;
 - secondary pages render their launchable application items from Room;
 - selected-page ordering can be changed through the existing guarded Room page-order mutation;
-- `Add page` requests creation of a new empty page through the terminal-Room mutation repository; and
-- `Delete empty page` is exposed only when the selected page is non-primary and the authoritative rendered snapshot contains no application or unsupported items.
+- `Add page` requests creation of a new empty page through the terminal-Room mutation repository;
+- `Delete empty page` is exposed only when the selected page is non-primary and the authoritative rendered snapshot contains no application or unsupported items; and
+- application tiles on a secondary page can request a move to another existing Home page through a bounded `Move` menu.
 
-A successful page creation returns the authoritative generated page ID/rank and the UI selects that page only after the Room transaction succeeds. A successful deletion returns the authoritative remaining page identity order; if the selected page was removed, the UI returns to the protected primary page. Selection is otherwise reconciled against the latest authoritative page identity set.
+A successful page creation returns the authoritative generated page ID/rank and the UI selects that page only after the Room transaction succeeds. A successful deletion returns the authoritative remaining page identity order; if the selected page was removed, the UI returns to the protected primary page. A successful application-page move returns `UpdatedItem`, and the UI selects the authoritative target page only after that write succeeds. Selection is otherwise reconciled against the latest authoritative page identity set.
 
 ## Page-creation mutation boundary
 
@@ -41,22 +42,40 @@ The UI generates opaque `home:user:<UUID>` page identities locally for the mutat
 
 This is deliberately not general destructive page deletion. Populated pages cannot be deleted from the UI or repository through this path. Moving/removing their contents, confirmation UX for destructive operations, recovery/undo semantics, and broader page management remain separate milestones.
 
-Secondary-page item placement editing, live grid cell/span editing, and cross-page drag/drop also remain separate UI milestones even though guarded repository foundations exist.
+## Bounded cross-page application move boundary
+
+`WorkspaceHomeItemPageMover` adds a narrow UI-facing adapter around the already-existing guarded `WorkspacePagedRoomMutationRepository.moveHomeItem` mutation.
+
+The adapter:
+
+- requires initialized terminal Room authority before reading page-placement state;
+- requires nonblank and distinct source/target page identities and a nonblank application key;
+- resolves exactly one APP item matching the source page and application key, rejecting ambiguous or missing state;
+- refuses to proceed when any authoritative HOME item still has null grid coordinates;
+- derives a deterministic grid envelope from the current persisted coordinates with a four-column minimum matching the rendered secondary grid;
+- scans target-page placements in row-major order and selects the first collision-free cell preserving the source item's span; and
+- delegates the final write to `moveHomeItem` rather than writing directly.
+
+The preflight free-cell selection is intentionally not write authority. `moveHomeItem` re-reads the complete HOME pages/items, validates the complete multi-page grid, and calls `WorkspaceDao.replaceItemPlacementIfSnapshotMatches`. If a concurrent mutation changes the snapshot, if the chosen cell becomes invalid, or if any source/target identity no longer matches, the write fails closed.
+
+This milestone does not expose arbitrary cell/span editing or cross-page drag/drop. It also does not yet route primary-page Favorites into the secondary-page move menu; the bounded UI is available from rendered secondary pages.
 
 ## Validation
 
 Acceptance for this slice requires:
 
-- Android file-backed Room tests proving page lifecycle mutations are reserved before terminal Room authority;
-- proof that an accepted creation persists one empty page at the next authoritative rank;
+- Android file-backed Room tests proving page lifecycle and app-page moves are reserved before terminal Room authority;
+- proof that an accepted page creation persists one empty page at the next authoritative rank;
 - duplicate page IDs fail closed;
 - the protected primary page cannot be deleted;
 - populated pages fail with `PageNotEmpty` and retain their child items;
 - an accepted empty-page deletion removes only the target page and compacts remaining ranks;
 - existing child items survive subsequent page reordering;
-- existing privacy, manifest, Glaze UI, Room schema/cutover, lint, unit, assembly, and instrumentation gates; and
+- an accepted secondary-page app move chooses the first free target cell, preserves item identity, persists on the target page, and removes the source-page placement;
+- same-page or missing-page app-move requests fail closed;
+- existing privacy, manifest, Glaze UI, Room schema/cutover, lint, unit, assembly, and Android 16 instrumentation gates; and
 - no promotion to production/Stable based on CI alone.
 
 ## Remaining boundaries
 
-This milestone does not establish populated-page deletion, destructive recovery/undo, secondary-page item editing, cross-page drag/drop UI, production Room cutover acceptance, folders, shortcuts, widgets/AppWidgetHost, representative physical-device HOME acceptance, complete accessibility acceptance, signed release packaging, or Stable qualification.
+This milestone does not establish populated-page deletion, destructive recovery/undo, arbitrary live cell/span editing, cross-page drag/drop UI, primary-Favorite-to-secondary placement UI, production Room cutover acceptance, folders, shortcuts, widgets/AppWidgetHost, representative physical-device HOME acceptance, complete accessibility acceptance, signed release packaging, or Stable qualification.

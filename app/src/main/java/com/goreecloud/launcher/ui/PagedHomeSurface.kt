@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,12 +20,17 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -135,12 +141,15 @@ fun HomePageSwitcher(
 fun ReadOnlyPagedHomeSurface(
     apps: List<LauncherActivityInfo>,
     page: WorkspaceRenderedHomePage,
+    pages: List<WorkspaceRenderedHomePage>,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val pageApps = remember(appsByKey, page.appKeys) {
         page.appKeys.mapNotNull(appsByKey::get)
     }
+    val targetPages = remember(pages, page.pageId) { pages.filterNot { it.pageId == page.pageId } }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -162,7 +171,7 @@ fun ReadOnlyPagedHomeSurface(
             )
             Spacer(Modifier.height(GlazeMetrics.space2))
             Text(
-                "This secondary page is rendered from terminal Room authority. Launching is enabled; placement editing remains read-only. Empty non-primary pages can be removed through the page switcher only after Room revalidates their emptiness.",
+                "This secondary page is rendered from terminal Room authority. Apps can launch or move to another authoritative Home page; exact placement is selected by the guarded Room placement path. Empty non-primary pages can be removed only after Room revalidates their emptiness.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -189,7 +198,7 @@ fun ReadOnlyPagedHomeSurface(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        "This authoritative Home page is empty. It can be removed from the page switcher; item placement editing remains a separate milestone.",
+                        "This authoritative Home page is empty. It can be removed from the page switcher or receive an app moved from another secondary page.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
@@ -202,7 +211,12 @@ fun ReadOnlyPagedHomeSurface(
                     horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
                 ) {
                     items(pageApps, key = { it.workspaceKey() }) { app ->
-                        ReadOnlyPagedAppTile(app = app, onLaunchApp = onLaunchApp)
+                        PagedAppTile(
+                            app = app,
+                            targetPages = targetPages,
+                            onLaunchApp = onLaunchApp,
+                            onMoveAppToPage = onMoveAppToPage,
+                        )
                     }
                 }
             }
@@ -211,30 +225,61 @@ fun ReadOnlyPagedHomeSurface(
 }
 
 @Composable
-private fun ReadOnlyPagedAppTile(
+private fun PagedAppTile(
     app: LauncherActivityInfo,
+    targetPages: List<WorkspaceRenderedHomePage>,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
 ) {
     val icon = remember(app) {
         app.getBadgedIcon(0).toBitmap(width = 96, height = 96).asImageBitmap()
     }
+    var moveMenuExpanded by remember(app) { mutableStateOf(false) }
+
     Column(
-        modifier = Modifier
-            .clickable { onLaunchApp(app) }
-            .padding(vertical = GlazeMetrics.space2),
+        modifier = Modifier.padding(vertical = GlazeMetrics.space2),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Image(
-            bitmap = icon,
-            contentDescription = null,
-            modifier = Modifier.height(52.dp),
-        )
-        Spacer(Modifier.height(GlazeMetrics.space2))
-        Text(
-            text = app.label.toString(),
-            style = MaterialTheme.typography.labelMedium,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-        )
+        Column(
+            modifier = Modifier.clickable { onLaunchApp(app) },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Image(
+                bitmap = icon,
+                contentDescription = null,
+                modifier = Modifier.height(52.dp),
+            )
+            Spacer(Modifier.height(GlazeMetrics.space2))
+            Text(
+                text = app.label.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+            )
+        }
+        if (targetPages.isNotEmpty()) {
+            Box {
+                TextButton(
+                    onClick = { moveMenuExpanded = true },
+                    modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
+                ) {
+                    Text("Move")
+                }
+                DropdownMenu(
+                    expanded = moveMenuExpanded,
+                    onDismissRequest = { moveMenuExpanded = false },
+                ) {
+                    targetPages.forEach { target ->
+                        DropdownMenuItem(
+                            text = { Text("Move to Page ${target.rank + 1}") },
+                            onClick = {
+                                moveMenuExpanded = false
+                                onMoveAppToPage(app, target.pageId)
+                            },
+                        )
+                    }
+                }
+            }
+        }
     }
 }

@@ -6,7 +6,7 @@ GoreeCloud Launcher is GoreeCloud's privacy-first, original Android HOME applica
 
 **Development — not a signed production/Stable release.**
 
-The current repository contains a usable native daily-launcher foundation plus guarded Room-authority workspace foundations and an initial rendered multi-page navigation path. Passing CI/emulator tests does not establish production Room cutover, complete physical-device interaction acceptance, signed release, or Stable qualification.
+The current repository contains a usable native daily-launcher foundation plus guarded Room-authority workspace foundations and an expanding rendered multi-page navigation/editing path. Passing CI/emulator tests does not establish production Room cutover, complete physical-device interaction acceptance, signed release, or Stable qualification.
 
 ## Product rules
 
@@ -31,7 +31,8 @@ Current source includes:
 - long-press placement management from supported surfaces;
 - explicit move-earlier/move-later controls;
 - Reorder-mode Favorites/Dock drag/drop using the current workspace persistence path;
-- terminal-Room multi-page HOME observation with page selection and read-only rendering of secondary application pages;
+- terminal-Room multi-page HOME observation with page selection, page reordering, empty-page creation/deletion, and rendering of secondary application pages;
+- bounded secondary-page application moves to another existing Home page through the guarded Room placement path;
 - All apps with local label/package search and app launching; and
 - persisted System / Light / Dark appearance selection.
 
@@ -56,15 +57,21 @@ Launcher has progressed beyond the earlier DataStore-only relational rehearsal. 
 
 ### Current rendered multi-page boundary
 
-When terminal Room authority is active and multiple HOME pages exist, Launcher can expose page selection and render application items from secondary Room pages. The primary Home page keeps the existing Favorites/Dock management path. Secondary pages are deliberately **launch-only/read-only** in this milestone: their placement editing callbacks are not enabled until the existing paged Room mutation repository is explicitly routed into the Home UI.
+When terminal Room authority is active, Launcher can expose page selection, create empty pages, delete only revalidated empty non-primary pages, reorder pages, render application items from secondary Room pages, and request that an application on a secondary page move to another existing Home page.
 
-Unsupported Room item types are counted and surfaced rather than silently treated as applications. Folders, shortcuts, widgets, page creation/deletion, live cell/span editing, and cross-page drag/drop UI remain separate milestones.
+For the bounded move path, the UI identifies the source page and application key. Room-authoritative state is read to identify exactly one source item and derive a deterministic free target cell from the current coordinate envelope. The actual write is then delegated to the existing guarded `moveHomeItem` transaction, which re-reads and validates the complete HOME page/item snapshot. Concurrent changes, malformed/null placement state, collisions, missing pages/items, or ambiguous source identity fail closed instead of overwriting newer state.
 
-This is a Development rendering bridge, not a claim of production Room cutover or a complete multi-page editor.
+The primary Home page keeps the existing Favorites/Dock management path. Direct cell/span editing, arbitrary drag across pages, and moving primary-page Favorites through the secondary-page menu remain separate interaction milestones.
+
+Unsupported Room item types are counted and surfaced rather than silently treated as applications. Folders, shortcuts, widgets, populated-page deletion, and destructive recovery/undo remain separate milestones.
+
+This is a Development rendering/editing bridge, not a claim of production Room cutover or a complete multi-page editor.
 
 ## Current Room item/page safety behavior
 
 Post-cutover Room mutation APIs refuse access unless durable terminal Room authority is already established. Multi-page item moves fail closed on missing pages/items, identity substitution, invalid/null placement coordinates, collisions, out-of-bounds state, or a workspace snapshot that changes between validation and the transactional write.
+
+Page creation validates the complete current page set before appending an empty page. Page deletion is limited to empty non-primary pages and repeats page/item snapshot and emptiness checks inside the transaction before the foreign-key cascade can run.
 
 The rendered page observer is likewise Room-authority gated. If authoritative paged Room state is unavailable, the application does not fabricate secondary pages and remains on the accepted primary Home path.
 
@@ -81,8 +88,9 @@ Run the repository validation commands documented by CI, including privacy/manif
 Still incomplete or separately gated:
 
 - production Room-authority cutover/routing and post-cutover recovery acceptance;
-- user-facing page creation/deletion/reordering and secondary-page placement editing;
-- live cell/span editing and cross-page drag/drop UI;
+- direct cell/span placement editing and cross-page drag/drop UI;
+- primary-page-to-secondary-page item movement through the rendered editor;
+- populated-page deletion plus confirmation/recovery/undo semantics;
 - folders, shortcuts, widgets/AppWidgetHost, and richer placement UI;
 - complete icon/label customization and broader gesture bindings;
 - complete first-party Glaze Theme Engine behavior;
@@ -95,7 +103,7 @@ Still incomplete or separately gated:
 ## Documentation
 
 - [USER-MANUAL.md](USER-MANUAL.md) — current Development user guidance.
-- [Rendered HOME page navigation](docs/rendered-home-page-navigation.md) — current terminal-Room page rendering boundary.
+- [Rendered HOME page navigation](docs/rendered-home-page-navigation.md) — current terminal-Room page rendering and bounded page-editing boundary.
 - `docs/` — architecture, persistence, Glaze UI adoption, validation, and implementation records.
 - Canonical application/service project specifications are maintained under `GoreeCloud/Projects` in the authorized GoreeCloud project documentation scope.
 

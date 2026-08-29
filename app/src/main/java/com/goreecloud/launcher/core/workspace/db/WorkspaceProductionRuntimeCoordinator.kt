@@ -64,6 +64,11 @@ class WorkspaceProductionRuntimeCoordinator(
         authorityRepository = authorityRepository,
         workspaceDaoProvider = workspaceDaoProvider,
     )
+    private val homeItemPageMover = WorkspaceHomeItemPageMover(
+        authorityRepository = authorityRepository,
+        workspaceDaoProvider = workspaceDaoProvider,
+        mutationRepository = pagedMutationRepository,
+    )
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observePlacement(): Flow<WorkspaceAuthoritativePlacementState> = combine(
@@ -163,6 +168,22 @@ class WorkspaceProductionRuntimeCoordinator(
     ): WorkspacePagedRoomMutationResult {
         val result = pagedMutationRepository.moveHomePage(pageId, targetRank)
         if (result is WorkspacePagedRoomMutationResult.Updated) {
+            refresh()
+        }
+        return result
+    }
+
+    suspend fun moveHomeAppToPage(
+        sourcePageId: String,
+        appKey: String,
+        targetPageId: String,
+    ): WorkspacePagedRoomMutationResult {
+        val result = homeItemPageMover.moveAppToPage(
+            sourcePageId = sourcePageId,
+            appKey = appKey,
+            targetPageId = targetPageId,
+        )
+        if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
             refresh()
         }
         return result
