@@ -56,7 +56,7 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
     }
 
     @Test
-    fun pageCreationAndOrderMutationRequireRoomAuthorityAndPreserveChildItems() = runBlocking {
+    fun pageLifecycleAndOrderMutationRequireRoomAuthorityAndPreserveChildItems() = runBlocking {
         val authorityRepository = WorkspaceRepository(openDataStore())
         authorityRepository.ensureDefaults(
             favoriteKeys = listOf(APP_ONE),
@@ -70,6 +70,10 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
         assertEquals(
             WorkspacePagedRoomMutationResult.Reserved,
             repository.createHomePage("home:user:reserved"),
+        )
+        assertEquals(
+            WorkspacePagedRoomMutationResult.Reserved,
+            repository.deleteEmptyHomePage("home:user:reserved"),
         )
         assertEquals(
             WorkspacePagedRoomMutationResult.Reserved,
@@ -125,14 +129,34 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
         assertTrue(database.workspaceDao().readItems(listOf("home:user:new")).isEmpty())
 
         assertEquals(
+            WorkspacePagedRoomMutationResult.PrimaryPageProtected,
+            repository.deleteEmptyHomePage(WorkspaceLegacyImportMapper.HOME_PAGE_ID),
+        )
+        assertEquals(
+            WorkspacePagedRoomMutationResult.PageNotEmpty,
+            repository.deleteEmptyHomePage("home:2"),
+        )
+        assertEquals(
+            WorkspacePagedRoomMutationResult.DeletedPage(
+                pageId = "home:user:new",
+                orderedPageIds = listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1", "home:2"),
+            ),
+            repository.deleteEmptyHomePage("home:user:new"),
+        )
+        assertEquals(
+            listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1", "home:2"),
+            database.workspaceDao().readPagesByContainer(WorkspaceContainerType.HOME).map { it.pageId },
+        )
+
+        assertEquals(
             WorkspacePagedRoomMutationResult.Updated(
-                listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1", "home:user:new")
+                listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1")
             ),
             repository.moveHomePage("home:2", 0),
         )
 
         assertEquals(
-            listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1", "home:user:new"),
+            listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1"),
             database.workspaceDao().readPagesByContainer(WorkspaceContainerType.HOME).map { it.pageId },
         )
         val preserved = database.workspaceDao().readItems(listOf("home:2"))
@@ -142,7 +166,7 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
 
         assertEquals(
             WorkspacePagedRoomMutationResult.TargetRankOutOfRange,
-            repository.moveHomePage("home:2", 4),
+            repository.moveHomePage("home:2", 3),
         )
         assertEquals(
             WorkspacePagedRoomMutationResult.PageNotFound,
