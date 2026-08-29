@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.first
 
 sealed interface WorkspaceProductionRuntimeResult {
     data object WaitingForInitialization : WorkspaceProductionRuntimeResult
@@ -57,6 +57,10 @@ class WorkspaceProductionRuntimeCoordinator(
         workspaceDaoProvider = workspaceDaoProvider,
     )
     private val placementRepository = WorkspaceAuthoritativePlacementRepository(
+        authorityRepository = authorityRepository,
+        workspaceDaoProvider = workspaceDaoProvider,
+    )
+    private val pagedMutationRepository = WorkspacePagedRoomMutationRepository(
         authorityRepository = authorityRepository,
         workspaceDaoProvider = workspaceDaoProvider,
     )
@@ -136,6 +140,17 @@ class WorkspaceProductionRuntimeCoordinator(
         key: String,
         targetKey: String,
     ): WorkspaceAuthoritativeWriteResult = placementRepository.moveDockToTarget(key, targetKey)
+
+    suspend fun moveHomePage(
+        pageId: String,
+        targetRank: Int,
+    ): WorkspacePagedRoomMutationResult {
+        val result = pagedMutationRepository.moveHomePage(pageId, targetRank)
+        if (result is WorkspacePagedRoomMutationResult.Updated) {
+            refresh()
+        }
+        return result
+    }
 
     private suspend fun reconcileTerminalRoom(): WorkspaceProductionRuntimeResult =
         when (val startup = postCutoverStartupCoordinator.reconcile()) {
