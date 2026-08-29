@@ -29,7 +29,7 @@ sealed interface WorkspaceProductionRuntimeResult {
  * Before terminal Room authority, DataStore remains usable while startup reconciliation establishes
  * verified Room evidence and the production promotion coordinator performs the guarded one-way
  * authority transaction. After terminal ROOM, startup health is checked before authoritative Room
- * placement is exposed. Placement writes always use the authority-aware router.
+ * placement is exposed. Placement and paged HOME writes always use authority-aware repositories.
  */
 class WorkspaceProductionRuntimeCoordinator(
     private val authorityRepository: WorkspaceRepository,
@@ -140,6 +140,14 @@ class WorkspaceProductionRuntimeCoordinator(
         key: String,
         targetKey: String,
     ): WorkspaceAuthoritativeWriteResult = placementRepository.moveDockToTarget(key, targetKey)
+
+    suspend fun createHomePage(pageId: String): WorkspacePagedRoomMutationResult {
+        val result = pagedMutationRepository.createHomePage(pageId)
+        if (result is WorkspacePagedRoomMutationResult.CreatedPage) {
+            refresh()
+        }
+        return result
+    }
 
     suspend fun moveHomePage(
         pageId: String,
