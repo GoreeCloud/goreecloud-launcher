@@ -149,6 +149,14 @@ class WorkspaceProductionRuntimeCoordinator(
         return result
     }
 
+    suspend fun deleteEmptyHomePage(pageId: String): WorkspacePagedRoomMutationResult {
+        val result = pagedMutationRepository.deleteEmptyHomePage(pageId)
+        if (result is WorkspacePagedRoomMutationResult.DeletedPage) {
+            refresh()
+        }
+        return result
+    }
+
     suspend fun moveHomePage(
         pageId: String,
         targetRank: Int,
