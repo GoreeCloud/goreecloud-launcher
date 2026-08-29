@@ -12,6 +12,9 @@ sealed interface WorkspacePagedRoomMutationResult {
     data object Unavailable : WorkspacePagedRoomMutationResult
     data object PageNotFound : WorkspacePagedRoomMutationResult
     data object PageAlreadyExists : WorkspacePagedRoomMutationResult
+    data object PrimaryPageProtected : WorkspacePagedRoomMutationResult
+    data object LastHomePageProtected : WorkspacePagedRoomMutationResult
+    data object PageNotEmpty : WorkspacePagedRoomMutationResult
     data object ItemNotFound : WorkspacePagedRoomMutationResult
     data object ItemIdentityMismatch : WorkspacePagedRoomMutationResult
     data object InvalidWorkspace : WorkspacePagedRoomMutationResult
@@ -21,6 +24,10 @@ sealed interface WorkspacePagedRoomMutationResult {
     data class CreatedPage(
         val pageId: String,
         val rank: Int,
+    ) : WorkspacePagedRoomMutationResult
+    data class DeletedPage(
+        val pageId: String,
+        val orderedPageIds: List<String>,
     ) : WorkspacePagedRoomMutationResult
     data class Updated(val orderedPageIds: List<String>) : WorkspacePagedRoomMutationResult
     data class UpdatedItem(
@@ -37,10 +44,12 @@ sealed interface WorkspacePagedRoomMutationResult {
 /**
  * Authoritative Room wiring for validated multi-page HOME mutations.
  *
- * Page creation, page ordering, and cross-page item placement require terminal Room authority.
- * Creation appends an empty page through a complete page-snapshot comparison. Item writes
- * additionally compare the complete observed HOME page/item snapshot inside the Room transaction
- * so a validated placement cannot overwrite a concurrent workspace change.
+ * Page creation, empty-page deletion, page ordering, and cross-page item placement require terminal
+ * Room authority. Creation appends an empty page through a complete page-snapshot comparison.
+ * Deletion is intentionally limited to empty non-primary pages and repeats the full page/item
+ * snapshot and emptiness checks inside the Room transaction so the page FK cascade can never remove
+ * a concurrently inserted child. Item writes additionally compare the complete observed HOME
+ * page/item snapshot so a validated placement cannot overwrite a concurrent workspace change.
  */
 class WorkspacePagedRoomMutationRepository(
     private val authorityRepository: WorkspaceRepository,
@@ -73,6 +82,53 @@ class WorkspacePagedRoomMutationRepository(
                 return WorkspacePagedRoomMutationResult.StoredPageSetChanged
             }
             WorkspacePagedRoomMutationResult.CreatedPage(newPage.pageId, newPage.rank)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            WorkspacePagedRoomMutationResult.Failed(exception::class.java.simpleName)
+        }
+    }
+
+    suspend fun deleteEmptyHomePage(pageId: String): WorkspacePagedRoomMutationResult {
+        if (!isRoomAuthoritative()) return WorkspacePagedRoomMutationResult.Reserved
+        if (pageId.isBlank()) return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        if (pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+            return WorkspacePagedRoomMutationResult.PrimaryPageProtected
+        }
+        val dao = workspaceDaoOrNull() ?: return WorkspacePagedRoomMutationResult.Unavailable
+
+        return try {
+            val storedPages = dao.readPagesByContainer(WorkspaceContainerType.HOME)
+            if (storedPages.none { it.pageId == pageId }) {
+                return WorkspacePagedRoomMutationResult.PageNotFound
+            }
+            if (storedPages.size <= 1) {
+                return WorkspacePagedRoomMutationResult.LastHomePageProtected
+            }
+            if (storedPages.map { it.rank } != storedPages.indices.toList()) {
+                return WorkspacePagedRoomMutationResult.InvalidWorkspace
+            }
+
+            val storedItems = dao.readItems(storedPages.map { it.pageId })
+            if (storedItems.any { it.pageId == pageId }) {
+                return WorkspacePagedRoomMutationResult.PageNotEmpty
+            }
+
+            if (!dao.deleteEmptyPageIfSnapshotMatches(
+                    containerType = WorkspaceContainerType.HOME,
+                    pageId = pageId,
+                    protectedPageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                    expectedPages = storedPages,
+                    expectedItems = storedItems,
+                )
+            ) {
+                return WorkspacePagedRoomMutationResult.StoredWorkspaceChanged
+            }
+
+            WorkspacePagedRoomMutationResult.DeletedPage(
+                pageId = pageId,
+                orderedPageIds = storedPages.filterNot { it.pageId == pageId }.map { it.pageId },
+            )
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
