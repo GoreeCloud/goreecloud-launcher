@@ -94,12 +94,10 @@ Still incomplete or separately gated:
 
 ## Documentation
 
-- [USER-MANUAL.md](USER-MANUAL.md)
-- [SPECIFICATIONS.md](SPECIFICATIONS.md)
-- [FEATURES.md](FEATURES.md)
-- [BENEFITS.md](BENEFITS.md)
-- [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md)
-- `docs/` for architecture, persistence, Glaze UI adoption, validation, and related implementation records.
+- [USER-MANUAL.md](USER-MANUAL.md) — current Development user guidance.
+- [Rendered HOME page navigation](docs/rendered-home-page-navigation.md) — current terminal-Room page rendering boundary.
+- `docs/` — architecture, persistence, Glaze UI adoption, validation, and implementation records.
+- Canonical application/service project specifications are maintained under `GoreeCloud/Projects` in the authorized GoreeCloud project documentation scope.
 
 ## License
 
