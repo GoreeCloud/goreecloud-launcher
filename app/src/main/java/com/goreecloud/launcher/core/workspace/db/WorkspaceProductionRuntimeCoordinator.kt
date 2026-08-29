@@ -52,6 +52,10 @@ class WorkspaceProductionRuntimeCoordinator(
         authorityRepository = authorityRepository,
         workspaceDaoProvider = workspaceDaoProvider,
     )
+    private val pagedHomeObserver = WorkspacePagedHomeObserver(
+        authorityRepository = authorityRepository,
+        workspaceDaoProvider = workspaceDaoProvider,
+    )
     private val placementRepository = WorkspaceAuthoritativePlacementRepository(
         authorityRepository = authorityRepository,
         workspaceDaoProvider = workspaceDaoProvider,
@@ -70,6 +74,8 @@ class WorkspaceProductionRuntimeCoordinator(
             }
         }
         .distinctUntilChanged()
+
+    fun observeHomePages(): Flow<WorkspacePagedHomeState> = pagedHomeObserver.observe()
 
     suspend fun reconcileAndActivate(): WorkspaceProductionRuntimeResult {
         val starting = authorityRepository.state.first()
