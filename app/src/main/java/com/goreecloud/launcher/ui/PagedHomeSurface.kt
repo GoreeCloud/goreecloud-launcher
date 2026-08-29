@@ -42,9 +42,10 @@ fun HomePageSwitcher(
     selectedPageId: String,
     onSelectPage: (String) -> Unit,
     onMovePage: (String, Int) -> Unit,
+    onCreatePage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (pages.size <= 1) return
+    if (pages.isEmpty()) return
     val selectedIndex = pages.indexOfFirst { it.pageId == selectedPageId }
 
     Surface(
@@ -89,9 +90,12 @@ fun HomePageSwitcher(
                         )
                     }
                 }
+                TextButton(onClick = onCreatePage) {
+                    Text("Add page")
+                }
             }
 
-            if (selectedIndex >= 0) {
+            if (selectedIndex >= 0 && pages.size > 1) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                     verticalAlignment = Alignment.CenterVertically,
@@ -172,7 +176,7 @@ fun ReadOnlyPagedHomeSurface(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        "No launchable application items are currently available on this page.",
+                        "This authoritative Home page is empty. Item placement editing remains a separate milestone.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
