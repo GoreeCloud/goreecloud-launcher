@@ -6,9 +6,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
@@ -17,10 +26,14 @@ import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
+import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
+import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
 import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
+import com.goreecloud.launcher.ui.HomePageSwitcher
 import com.goreecloud.launcher.ui.LauncherRoot
+import com.goreecloud.launcher.ui.ReadOnlyPagedHomeSurface
 import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,6 +71,9 @@ class MainActivity : ComponentActivity() {
             val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
                 initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
             )
+            val pagedHome by workspaceRuntimeCoordinator.observeHomePages().collectAsStateWithLifecycle(
+                initialValue = WorkspacePagedHomeState.WaitingForRoom
+            )
             val isDefaultHome by defaultHomeState.collectAsStateWithLifecycle()
 
             val workspace = when (val current = placement) {
@@ -75,6 +91,19 @@ class MainActivity : ComponentActivity() {
                         WorkspacePlacementSource.ROOM -> WorkspaceAuthority.ROOM
                     },
                 )
+            }
+            val renderedPages = (pagedHome as? WorkspacePagedHomeState.Ready)?.pages.orEmpty()
+            var selectedHomePageId by rememberSaveable {
+                mutableStateOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID)
+            }
+
+            LaunchedEffect(renderedPages) {
+                if (renderedPages.isNotEmpty() && renderedPages.none { it.pageId == selectedHomePageId }) {
+                    selectedHomePageId = renderedPages
+                        .firstOrNull { it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID }
+                        ?.pageId
+                        ?: renderedPages.first().pageId
+                }
             }
 
             LaunchedEffect(apps, workspace.initialized) {
@@ -99,51 +128,77 @@ class MainActivity : ComponentActivity() {
             }
 
             GlazeTheme(themeMode) {
-                LauncherRoot(
-                    apps = apps,
-                    workspace = workspace,
-                    isDefaultHome = isDefaultHome,
-                    onRequestHomeRole = ::requestHomeRole,
-                    onLaunchApp = appsRepository::launch,
-                    onToggleFavorite = { app ->
-                        lifecycleScope.launch {
-                            workspaceRuntimeCoordinator.toggleFavorite(app.workspaceKey())
-                        }
-                    },
-                    onToggleDock = { app ->
-                        lifecycleScope.launch {
-                            workspaceRuntimeCoordinator.toggleDock(app.workspaceKey())
-                        }
-                    },
-                    onMoveFavorite = { app, direction ->
-                        lifecycleScope.launch {
-                            workspaceRuntimeCoordinator.moveFavorite(app.workspaceKey(), direction)
-                        }
-                    },
-                    onMoveDock = { app, direction ->
-                        lifecycleScope.launch {
-                            workspaceRuntimeCoordinator.moveDock(app.workspaceKey(), direction)
-                        }
-                    },
-                    onMoveFavoriteToTarget = { app, targetKey ->
-                        lifecycleScope.launch {
-                            workspaceRuntimeCoordinator.moveFavoriteToTarget(
-                                app.workspaceKey(),
-                                targetKey,
-                            )
-                        }
-                    },
-                    onMoveDockToTarget = { app, targetKey ->
-                        lifecycleScope.launch {
-                            workspaceRuntimeCoordinator.moveDockToTarget(
-                                app.workspaceKey(),
-                                targetKey,
-                            )
-                        }
-                    },
-                    themeMode = themeMode,
-                    onCycleTheme = themeRepository::cycleMode,
-                )
+                Box {
+                    val selectedPage = renderedPages.firstOrNull { it.pageId == selectedHomePageId }
+                    if (
+                        selectedPage != null &&
+                        selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                    ) {
+                        ReadOnlyPagedHomeSurface(
+                            apps = apps,
+                            page = selectedPage,
+                            onLaunchApp = appsRepository::launch,
+                        )
+                    } else {
+                        LauncherRoot(
+                            apps = apps,
+                            workspace = workspace,
+                            isDefaultHome = isDefaultHome,
+                            onRequestHomeRole = ::requestHomeRole,
+                            onLaunchApp = appsRepository::launch,
+                            onToggleFavorite = { app ->
+                                lifecycleScope.launch {
+                                    workspaceRuntimeCoordinator.toggleFavorite(app.workspaceKey())
+                                }
+                            },
+                            onToggleDock = { app ->
+                                lifecycleScope.launch {
+                                    workspaceRuntimeCoordinator.toggleDock(app.workspaceKey())
+                                }
+                            },
+                            onMoveFavorite = { app, direction ->
+                                lifecycleScope.launch {
+                                    workspaceRuntimeCoordinator.moveFavorite(app.workspaceKey(), direction)
+                                }
+                            },
+                            onMoveDock = { app, direction ->
+                                lifecycleScope.launch {
+                                    workspaceRuntimeCoordinator.moveDock(app.workspaceKey(), direction)
+                                }
+                            },
+                            onMoveFavoriteToTarget = { app, targetKey ->
+                                lifecycleScope.launch {
+                                    workspaceRuntimeCoordinator.moveFavoriteToTarget(
+                                        app.workspaceKey(),
+                                        targetKey,
+                                    )
+                                }
+                            },
+                            onMoveDockToTarget = { app, targetKey ->
+                                lifecycleScope.launch {
+                                    workspaceRuntimeCoordinator.moveDockToTarget(
+                                        app.workspaceKey(),
+                                        targetKey,
+                                    )
+                                }
+                            },
+                            themeMode = themeMode,
+                            onCycleTheme = themeRepository::cycleMode,
+                        )
+                    }
+
+                    if (renderedPages.size > 1) {
+                        HomePageSwitcher(
+                            pages = renderedPages,
+                            selectedPageId = selectedHomePageId,
+                            onSelectPage = { selectedHomePageId = it },
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .statusBarsPadding()
+                                .padding(top = 6.dp),
+                        )
+                    }
+                }
             }
         }
     }
