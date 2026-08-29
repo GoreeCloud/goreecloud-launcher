@@ -11,12 +11,17 @@ sealed interface WorkspacePagedRoomMutationResult {
     data object Reserved : WorkspacePagedRoomMutationResult
     data object Unavailable : WorkspacePagedRoomMutationResult
     data object PageNotFound : WorkspacePagedRoomMutationResult
+    data object PageAlreadyExists : WorkspacePagedRoomMutationResult
     data object ItemNotFound : WorkspacePagedRoomMutationResult
     data object ItemIdentityMismatch : WorkspacePagedRoomMutationResult
     data object InvalidWorkspace : WorkspacePagedRoomMutationResult
     data object TargetRankOutOfRange : WorkspacePagedRoomMutationResult
     data object StoredPageSetChanged : WorkspacePagedRoomMutationResult
     data object StoredWorkspaceChanged : WorkspacePagedRoomMutationResult
+    data class CreatedPage(
+        val pageId: String,
+        val rank: Int,
+    ) : WorkspacePagedRoomMutationResult
     data class Updated(val orderedPageIds: List<String>) : WorkspacePagedRoomMutationResult
     data class UpdatedItem(
         val itemId: String,
@@ -32,14 +37,49 @@ sealed interface WorkspacePagedRoomMutationResult {
 /**
  * Authoritative Room wiring for validated multi-page HOME mutations.
  *
- * Page ordering and cross-page item placement both require terminal Room authority. Item writes
- * additionally compare the complete observed HOME snapshot inside the Room transaction so a
- * validated placement cannot overwrite a concurrent workspace change.
+ * Page creation, page ordering, and cross-page item placement require terminal Room authority.
+ * Creation appends an empty page through a complete page-snapshot comparison. Item writes
+ * additionally compare the complete observed HOME page/item snapshot inside the Room transaction
+ * so a validated placement cannot overwrite a concurrent workspace change.
  */
 class WorkspacePagedRoomMutationRepository(
     private val authorityRepository: WorkspaceRepository,
     private val workspaceDaoProvider: () -> WorkspaceDao?,
 ) {
+    suspend fun createHomePage(pageId: String): WorkspacePagedRoomMutationResult {
+        if (!isRoomAuthoritative()) return WorkspacePagedRoomMutationResult.Reserved
+        if (pageId.isBlank()) return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        val dao = workspaceDaoOrNull() ?: return WorkspacePagedRoomMutationResult.Unavailable
+
+        return try {
+            if (dao.readPages(listOf(pageId)).isNotEmpty()) {
+                return WorkspacePagedRoomMutationResult.PageAlreadyExists
+            }
+            val storedPages = dao.readPagesByContainer(WorkspaceContainerType.HOME)
+            if (storedPages.isEmpty() || storedPages.map { it.rank } != storedPages.indices.toList()) {
+                return WorkspacePagedRoomMutationResult.InvalidWorkspace
+            }
+            val newPage = WorkspacePageEntity(
+                pageId = pageId,
+                containerType = WorkspaceContainerType.HOME,
+                rank = storedPages.size,
+            )
+            if (!dao.appendPageIfSnapshotMatches(
+                    containerType = WorkspaceContainerType.HOME,
+                    expectedPages = storedPages,
+                    newPage = newPage,
+                )
+            ) {
+                return WorkspacePagedRoomMutationResult.StoredPageSetChanged
+            }
+            WorkspacePagedRoomMutationResult.CreatedPage(newPage.pageId, newPage.rank)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            WorkspacePagedRoomMutationResult.Failed(exception::class.java.simpleName)
+        }
+    }
+
     suspend fun moveHomePage(
         pageId: String,
         targetRank: Int,
