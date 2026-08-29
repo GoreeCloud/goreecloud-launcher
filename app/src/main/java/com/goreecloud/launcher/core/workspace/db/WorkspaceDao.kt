@@ -74,4 +74,34 @@ abstract class WorkspaceDao {
         )
         return true
     }
+
+    /**
+     * Applies one item placement write only if the complete HOME page/item snapshot observed by
+     * the caller is still current when this transaction executes. This prevents a validated
+     * cross-page placement from overwriting a concurrent workspace mutation.
+     */
+    @Transaction
+    open suspend fun replaceItemPlacementIfSnapshotMatches(
+        containerType: String,
+        expectedPages: List<WorkspacePageEntity>,
+        expectedItems: List<WorkspaceItemEntity>,
+        updatedItem: WorkspaceItemEntity,
+    ): Boolean {
+        if (updatedItem.itemId.isBlank() || updatedItem.pageId.isBlank()) return false
+
+        val currentPages = readPagesByContainer(containerType)
+        if (currentPages != expectedPages) return false
+        val currentPageIds = currentPages.map { it.pageId }
+        if (updatedItem.pageId !in currentPageIds) return false
+
+        val currentItems = readItems(currentPageIds)
+        val currentById = currentItems.associateBy { it.itemId }
+        val expectedById = expectedItems.associateBy { it.itemId }
+        if (currentById.size != currentItems.size || expectedById.size != expectedItems.size) return false
+        if (currentById != expectedById) return false
+        if (updatedItem.itemId !in currentById) return false
+
+        upsertItems(listOf(updatedItem))
+        return true
+    }
 }
