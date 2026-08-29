@@ -50,6 +50,28 @@ abstract class WorkspaceDao {
     }
 
     /**
+     * Appends one empty page only when the caller's complete observed container-page snapshot is
+     * still current. The page id must be globally unused and its rank must be exactly the next
+     * contiguous rank. No child workspace item is created or moved by this transaction.
+     */
+    @Transaction
+    open suspend fun appendPageIfSnapshotMatches(
+        containerType: String,
+        expectedPages: List<WorkspacePageEntity>,
+        newPage: WorkspacePageEntity,
+    ): Boolean {
+        if (newPage.pageId.isBlank() || newPage.containerType != containerType) return false
+        val currentPages = readPagesByContainer(containerType)
+        if (currentPages != expectedPages) return false
+        if (currentPages.map { it.rank } != currentPages.indices.toList()) return false
+        if (newPage.rank != currentPages.size) return false
+        if (readPages(listOf(newPage.pageId)).isNotEmpty()) return false
+
+        upsertPages(listOf(newPage))
+        return true
+    }
+
+    /**
      * Rewrites only page ranks for one container while preserving page rows and all child items.
      * The supplied page identity set must exactly match the current container identity set.
      */
