@@ -28,6 +28,7 @@ import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
+import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResult
 import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
@@ -38,6 +39,7 @@ import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
@@ -187,7 +189,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    if (renderedPages.size > 1) {
+                    if (renderedPages.isNotEmpty()) {
                         HomePageSwitcher(
                             pages = renderedPages,
                             selectedPageId = selectedHomePageId,
@@ -195,6 +197,15 @@ class MainActivity : ComponentActivity() {
                             onMovePage = { pageId, targetRank ->
                                 lifecycleScope.launch {
                                     workspaceRuntimeCoordinator.moveHomePage(pageId, targetRank)
+                                }
+                            },
+                            onCreatePage = {
+                                val pageId = "home:user:${UUID.randomUUID()}"
+                                lifecycleScope.launch {
+                                    val result = workspaceRuntimeCoordinator.createHomePage(pageId)
+                                    if (result is WorkspacePagedRoomMutationResult.CreatedPage) {
+                                        selectedHomePageId = result.pageId
+                                    }
                                 }
                             },
                             modifier = Modifier
