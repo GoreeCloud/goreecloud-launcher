@@ -28,7 +28,10 @@ class WorkspaceHomeItemPageMover(
         if (sourcePageId == targetPageId) {
             return WorkspacePagedRoomMutationResult.InvalidWorkspace
         }
-        val context = readMoveContext(sourcePageId, appKey) ?: return lastReadFailure
+        val context = when (val read = readMoveContext(sourcePageId, appKey)) {
+            is MoveContextResult.Ready -> read.context
+            is MoveContextResult.Failed -> return read.result
+        }
         if (context.pages.none { it.pageId == targetPageId }) {
             return WorkspacePagedRoomMutationResult.PageNotFound
         }
@@ -56,7 +59,10 @@ class WorkspaceHomeItemPageMover(
         if (pageId.isBlank() || appKey.isBlank()) {
             return WorkspacePagedRoomMutationResult.InvalidWorkspace
         }
-        val context = readMoveContext(pageId, appKey) ?: return lastReadFailure
+        val context = when (val read = readMoveContext(pageId, appKey)) {
+            is MoveContextResult.Ready -> read.context
+            is MoveContextResult.Failed -> return read.result
+        }
         val grid = deriveGrid(context.items, context.source)
         val occupied = context.items
             .filter { it.pageId == pageId && it.itemId != context.source.itemId }
@@ -72,30 +78,22 @@ class WorkspaceHomeItemPageMover(
         )
     }
 
-    private var lastReadFailure: WorkspacePagedRoomMutationResult = WorkspacePagedRoomMutationResult.InvalidWorkspace
-
-    private suspend fun readMoveContext(sourcePageId: String, appKey: String): MoveContext? {
+    private suspend fun readMoveContext(sourcePageId: String, appKey: String): MoveContextResult {
         val state = authorityRepository.state.first()
         if (!state.initialized || state.authority != WorkspaceAuthority.ROOM) {
-            lastReadFailure = WorkspacePagedRoomMutationResult.Reserved
-            return null
+            return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.Reserved)
         }
         val dao = workspaceDaoOrNull()
-        if (dao == null) {
-            lastReadFailure = WorkspacePagedRoomMutationResult.Unavailable
-            return null
-        }
+            ?: return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.Unavailable)
 
         return try {
             val pages = dao.readPagesByContainer(WorkspaceContainerType.HOME)
             if (pages.none { it.pageId == sourcePageId }) {
-                lastReadFailure = WorkspacePagedRoomMutationResult.PageNotFound
-                return null
+                return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.PageNotFound)
             }
             val items = dao.readItems(pages.map { it.pageId })
             if (items.any { it.cellX == null || it.cellY == null }) {
-                lastReadFailure = WorkspacePagedRoomMutationResult.InvalidWorkspace
-                return null
+                return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.InvalidWorkspace)
             }
             val candidates = items.filter {
                 it.pageId == sourcePageId &&
@@ -103,19 +101,18 @@ class WorkspaceHomeItemPageMover(
                     it.appKey == appKey
             }
             if (candidates.isEmpty()) {
-                lastReadFailure = WorkspacePagedRoomMutationResult.ItemNotFound
-                return null
+                return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.ItemNotFound)
             }
             if (candidates.size != 1) {
-                lastReadFailure = WorkspacePagedRoomMutationResult.InvalidWorkspace
-                return null
+                return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.InvalidWorkspace)
             }
-            MoveContext(pages = pages, items = items, source = candidates.single())
+            MoveContextResult.Ready(MoveContext(pages, items, candidates.single()))
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            lastReadFailure = WorkspacePagedRoomMutationResult.Failed(exception::class.java.simpleName)
-            null
+            MoveContextResult.Failed(
+                WorkspacePagedRoomMutationResult.Failed(exception::class.java.simpleName)
+            )
         }
     }
 
@@ -201,6 +198,11 @@ class WorkspaceHomeItemPageMover(
         throw exception
     } catch (_: Exception) {
         null
+    }
+
+    private sealed interface MoveContextResult {
+        data class Ready(val context: MoveContext) : MoveContextResult
+        data class Failed(val result: WorkspacePagedRoomMutationResult) : MoveContextResult
     }
 
     private data class MoveContext(
