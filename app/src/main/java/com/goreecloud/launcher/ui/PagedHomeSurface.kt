@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
 import com.goreecloud.launcher.core.workspace.workspaceKey
@@ -144,6 +145,7 @@ fun ReadOnlyPagedHomeSurface(
     pages: List<WorkspaceRenderedHomePage>,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
+    onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val pageApps = remember(appsByKey, page.appKeys) {
@@ -171,7 +173,7 @@ fun ReadOnlyPagedHomeSurface(
             )
             Spacer(Modifier.height(GlazeMetrics.space2))
             Text(
-                "This secondary page is rendered from terminal Room authority. Apps can launch or move to another authoritative Home page; exact placement is selected by the guarded Room placement path. Empty non-primary pages can be removed only after Room revalidates their emptiness.",
+                "This secondary page is rendered from terminal Room authority. Apps can launch, move to another authoritative Home page, or move to the nearest free cell earlier/later on this page. Every placement write is revalidated against the complete Room snapshot.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -216,6 +218,7 @@ fun ReadOnlyPagedHomeSurface(
                             targetPages = targetPages,
                             onLaunchApp = onLaunchApp,
                             onMoveAppToPage = onMoveAppToPage,
+                            onMoveAppWithinPage = onMoveAppWithinPage,
                         )
                     }
                 }
@@ -230,6 +233,7 @@ private fun PagedAppTile(
     targetPages: List<WorkspaceRenderedHomePage>,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
+    onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
 ) {
     val icon = remember(app) {
         app.getBadgedIcon(0).toBitmap(width = 96, height = 96).asImageBitmap()
@@ -257,13 +261,27 @@ private fun PagedAppTile(
                 maxLines = 2,
             )
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1)) {
+            TextButton(
+                onClick = { onMoveAppWithinPage(app, WorkspaceMoveDirection.EARLIER) },
+                modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
+            ) {
+                Text("Earlier")
+            }
+            TextButton(
+                onClick = { onMoveAppWithinPage(app, WorkspaceMoveDirection.LATER) },
+                modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
+            ) {
+                Text("Later")
+            }
+        }
         if (targetPages.isNotEmpty()) {
             Box {
                 TextButton(
                     onClick = { moveMenuExpanded = true },
                     modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
                 ) {
-                    Text("Move")
+                    Text("Move page")
                 }
                 DropdownMenu(
                     expanded = moveMenuExpanded,

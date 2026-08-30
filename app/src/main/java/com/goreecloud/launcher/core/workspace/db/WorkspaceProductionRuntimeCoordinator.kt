@@ -189,6 +189,22 @@ class WorkspaceProductionRuntimeCoordinator(
         return result
     }
 
+    suspend fun moveHomeAppWithinPage(
+        pageId: String,
+        appKey: String,
+        direction: WorkspaceMoveDirection,
+    ): WorkspacePagedRoomMutationResult {
+        val result = homeItemPageMover.moveAppWithinPage(
+            pageId = pageId,
+            appKey = appKey,
+            direction = direction,
+        )
+        if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
+            refresh()
+        }
+        return result
+    }
+
     private suspend fun reconcileTerminalRoom(): WorkspaceProductionRuntimeResult =
         when (val startup = postCutoverStartupCoordinator.reconcile()) {
             WorkspacePostCutoverStartupResult.Ready -> WorkspaceProductionRuntimeResult.RoomReady
