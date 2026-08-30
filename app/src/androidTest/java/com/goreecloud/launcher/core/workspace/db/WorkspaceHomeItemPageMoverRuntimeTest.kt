@@ -157,6 +157,15 @@ class WorkspaceHomeItemPageMoverRuntimeTest {
         database.workspaceDao().upsertItems(
             listOf(
                 WorkspaceItemEntity(
+                    itemId = "legacy:home:$APP_ONE",
+                    pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                    itemType = WorkspaceItemType.APP,
+                    appKey = APP_ONE,
+                    rank = 0,
+                    cellX = 0,
+                    cellY = 0,
+                ),
+                WorkspaceItemEntity(
                     itemId = "native:item:two",
                     pageId = "home:1",
                     itemType = WorkspaceItemType.APP,
