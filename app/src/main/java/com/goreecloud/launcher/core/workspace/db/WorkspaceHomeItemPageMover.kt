@@ -2,16 +2,15 @@ package com.goreecloud.launcher.core.workspace.db
 
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
+import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 /**
- * Chooses a deterministic free cell for moving one existing HOME application to another page,
- * then delegates the write to [WorkspacePagedRoomMutationRepository.moveHomeItem].
- *
- * The preflight read never carries write authority. The delegated move re-reads and validates the
- * complete HOME page/item snapshot, so any concurrent workspace change still fails closed.
+ * Chooses deterministic placements for existing HOME applications, then delegates every write to
+ * [WorkspacePagedRoomMutationRepository.moveHomeItem]. The preflight read never carries write
+ * authority: the delegated mutation re-reads and validates the complete HOME snapshot.
  */
 class WorkspaceHomeItemPageMover(
     private val authorityRepository: WorkspaceRepository,
@@ -26,50 +25,97 @@ class WorkspaceHomeItemPageMover(
         if (sourcePageId.isBlank() || appKey.isBlank() || targetPageId.isBlank()) {
             return WorkspacePagedRoomMutationResult.InvalidWorkspace
         }
-        val state = authorityRepository.state.first()
-        if (!state.initialized || state.authority != WorkspaceAuthority.ROOM) {
-            return WorkspacePagedRoomMutationResult.Reserved
-        }
         if (sourcePageId == targetPageId) {
             return WorkspacePagedRoomMutationResult.InvalidWorkspace
         }
-        val dao = workspaceDaoOrNull() ?: return WorkspacePagedRoomMutationResult.Unavailable
+        val context = readMoveContext(sourcePageId, appKey) ?: return lastReadFailure
+        if (context.pages.none { it.pageId == targetPageId }) {
+            return WorkspacePagedRoomMutationResult.PageNotFound
+        }
+
+        val grid = deriveGrid(context.items, context.source)
+        val targetPlacements = context.items
+            .filter { it.pageId == targetPageId && it.itemId != context.source.itemId }
+            .map(::toPlacement)
+        val target = firstAvailablePlacement(grid, targetPlacements, context.source)
+            ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
+
+        return mutationRepository.moveHomeItem(
+            grid = grid,
+            itemId = context.source.itemId,
+            targetPageId = targetPageId,
+            targetPlacement = target,
+        )
+    }
+
+    suspend fun moveAppWithinPage(
+        pageId: String,
+        appKey: String,
+        direction: WorkspaceMoveDirection,
+    ): WorkspacePagedRoomMutationResult {
+        if (pageId.isBlank() || appKey.isBlank()) {
+            return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        }
+        val context = readMoveContext(pageId, appKey) ?: return lastReadFailure
+        val grid = deriveGrid(context.items, context.source)
+        val occupied = context.items
+            .filter { it.pageId == pageId && it.itemId != context.source.itemId }
+            .map(::toPlacement)
+        val target = relativeAvailablePlacement(grid, occupied, context.source, direction)
+            ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
+
+        return mutationRepository.moveHomeItem(
+            grid = grid,
+            itemId = context.source.itemId,
+            targetPageId = pageId,
+            targetPlacement = target,
+        )
+    }
+
+    private var lastReadFailure: WorkspacePagedRoomMutationResult = WorkspacePagedRoomMutationResult.InvalidWorkspace
+
+    private suspend fun readMoveContext(sourcePageId: String, appKey: String): MoveContext? {
+        val state = authorityRepository.state.first()
+        if (!state.initialized || state.authority != WorkspaceAuthority.ROOM) {
+            lastReadFailure = WorkspacePagedRoomMutationResult.Reserved
+            return null
+        }
+        val dao = workspaceDaoOrNull()
+        if (dao == null) {
+            lastReadFailure = WorkspacePagedRoomMutationResult.Unavailable
+            return null
+        }
 
         return try {
             val pages = dao.readPagesByContainer(WorkspaceContainerType.HOME)
-            if (pages.none { it.pageId == sourcePageId } || pages.none { it.pageId == targetPageId }) {
-                return WorkspacePagedRoomMutationResult.PageNotFound
+            if (pages.none { it.pageId == sourcePageId }) {
+                lastReadFailure = WorkspacePagedRoomMutationResult.PageNotFound
+                return null
             }
             val items = dao.readItems(pages.map { it.pageId })
             if (items.any { it.cellX == null || it.cellY == null }) {
-                return WorkspacePagedRoomMutationResult.InvalidWorkspace
+                lastReadFailure = WorkspacePagedRoomMutationResult.InvalidWorkspace
+                return null
             }
             val candidates = items.filter {
                 it.pageId == sourcePageId &&
                     it.itemType == WorkspaceItemType.APP &&
                     it.appKey == appKey
             }
-            if (candidates.isEmpty()) return WorkspacePagedRoomMutationResult.ItemNotFound
-            if (candidates.size != 1) return WorkspacePagedRoomMutationResult.InvalidWorkspace
-            val source = candidates.single()
-
-            val grid = deriveGrid(items, source)
-            val targetPlacements = items
-                .filter { it.pageId == targetPageId && it.itemId != source.itemId }
-                .map(::toPlacement)
-            val target = firstAvailablePlacement(grid, targetPlacements, source)
-                ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
-
-            mutationRepository.moveHomeItem(
-                grid = grid,
-                itemId = source.itemId,
-                targetPageId = targetPageId,
-                targetPlacement = target,
-            )
+            if (candidates.isEmpty()) {
+                lastReadFailure = WorkspacePagedRoomMutationResult.ItemNotFound
+                return null
+            }
+            if (candidates.size != 1) {
+                lastReadFailure = WorkspacePagedRoomMutationResult.InvalidWorkspace
+                return null
+            }
+            MoveContext(pages = pages, items = items, source = candidates.single())
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            WorkspacePagedRoomMutationResult.Failed(exception::class.java.simpleName)
+            lastReadFailure = WorkspacePagedRoomMutationResult.Failed(exception::class.java.simpleName)
+            null
         }
     }
 
@@ -91,13 +137,7 @@ class WorkspaceHomeItemPageMover(
     ): WorkspaceGridPlacement.Placement? {
         for (cellY in 0..grid.rows - source.spanY) {
             for (cellX in 0..grid.columns - source.spanX) {
-                val candidate = WorkspaceGridPlacement.Placement(
-                    itemId = source.itemId,
-                    cellX = cellX,
-                    cellY = cellY,
-                    spanX = source.spanX,
-                    spanY = source.spanY,
-                )
+                val candidate = placementAt(source, cellX, cellY)
                 if (WorkspaceGridPlacement.validate(grid, occupied + candidate) == WorkspaceGridPlacement.Validation.Valid) {
                     return candidate
                 }
@@ -105,6 +145,46 @@ class WorkspaceHomeItemPageMover(
         }
         return null
     }
+
+    private fun relativeAvailablePlacement(
+        grid: WorkspaceGridPlacement.Grid,
+        occupied: List<WorkspaceGridPlacement.Placement>,
+        source: WorkspaceItemEntity,
+        direction: WorkspaceMoveDirection,
+    ): WorkspaceGridPlacement.Placement? {
+        val sourceX = checkNotNull(source.cellX)
+        val sourceY = checkNotNull(source.cellY)
+        val sourceIndex = sourceY * grid.columns + sourceX
+        val candidates = buildList {
+            for (cellY in 0..grid.rows - source.spanY) {
+                for (cellX in 0..grid.columns - source.spanX) {
+                    val index = cellY * grid.columns + cellX
+                    val inDirection = when (direction) {
+                        WorkspaceMoveDirection.EARLIER -> index < sourceIndex
+                        WorkspaceMoveDirection.LATER -> index > sourceIndex
+                    }
+                    if (!inDirection) continue
+                    val candidate = placementAt(source, cellX, cellY)
+                    if (WorkspaceGridPlacement.validate(grid, occupied + candidate) == WorkspaceGridPlacement.Validation.Valid) {
+                        add(index to candidate)
+                    }
+                }
+            }
+        }
+        return when (direction) {
+            WorkspaceMoveDirection.EARLIER -> candidates.maxByOrNull { it.first }?.second
+            WorkspaceMoveDirection.LATER -> candidates.minByOrNull { it.first }?.second
+        }
+    }
+
+    private fun placementAt(source: WorkspaceItemEntity, cellX: Int, cellY: Int) =
+        WorkspaceGridPlacement.Placement(
+            itemId = source.itemId,
+            cellX = cellX,
+            cellY = cellY,
+            spanX = source.spanX,
+            spanY = source.spanY,
+        )
 
     private fun toPlacement(item: WorkspaceItemEntity): WorkspaceGridPlacement.Placement =
         WorkspaceGridPlacement.Placement(
@@ -122,6 +202,12 @@ class WorkspaceHomeItemPageMover(
     } catch (_: Exception) {
         null
     }
+
+    private data class MoveContext(
+        val pages: List<WorkspacePageEntity>,
+        val items: List<WorkspaceItemEntity>,
+        val source: WorkspaceItemEntity,
+    )
 
     private companion object {
         const val MIN_HOME_COLUMNS = 4
