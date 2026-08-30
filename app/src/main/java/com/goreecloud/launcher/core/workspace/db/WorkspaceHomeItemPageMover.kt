@@ -7,6 +7,13 @@ import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
+enum class WorkspaceHomeSpatialDirection {
+    LEFT,
+    RIGHT,
+    UP,
+    DOWN,
+}
+
 /**
  * Chooses deterministic placements for existing HOME applications, then delegates every write to
  * [WorkspacePagedRoomMutationRepository.moveHomeItem]. The preflight read never carries write
@@ -69,6 +76,61 @@ class WorkspaceHomeItemPageMover(
             .map(::toPlacement)
         val target = relativeAvailablePlacement(grid, occupied, context.source, direction)
             ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
+
+        return mutationRepository.moveHomeItem(
+            grid = grid,
+            itemId = context.source.itemId,
+            targetPageId = pageId,
+            targetPlacement = target,
+        )
+    }
+
+    /**
+     * Moves one existing HOME app exactly one grid cell in a requested spatial direction.
+     * Occupied or out-of-bounds targets fail closed rather than swapping or displacing another
+     * item. The authoritative mutation repository re-reads the complete snapshot before writing.
+     */
+    suspend fun moveAppOneCellWithinPage(
+        pageId: String,
+        appKey: String,
+        direction: WorkspaceHomeSpatialDirection,
+    ): WorkspacePagedRoomMutationResult {
+        if (pageId.isBlank() || appKey.isBlank()) {
+            return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        }
+        val context = when (val read = readMoveContext(pageId, appKey)) {
+            is MoveContextResult.Ready -> read.context
+            is MoveContextResult.Failed -> return read.result
+        }
+        val grid = deriveGrid(context.items, context.source)
+        val occupied = context.items
+            .filter { it.pageId == pageId && it.itemId != context.source.itemId }
+            .map(::toPlacement)
+        val sourceX = checkNotNull(context.source.cellX)
+        val sourceY = checkNotNull(context.source.cellY)
+        val targetX = sourceX + when (direction) {
+            WorkspaceHomeSpatialDirection.LEFT -> -1
+            WorkspaceHomeSpatialDirection.RIGHT -> 1
+            WorkspaceHomeSpatialDirection.UP,
+            WorkspaceHomeSpatialDirection.DOWN -> 0
+        }
+        val targetY = sourceY + when (direction) {
+            WorkspaceHomeSpatialDirection.UP -> -1
+            WorkspaceHomeSpatialDirection.DOWN -> 1
+            WorkspaceHomeSpatialDirection.LEFT,
+            WorkspaceHomeSpatialDirection.RIGHT -> 0
+        }
+        if (
+            targetX < 0 || targetY < 0 ||
+            targetX + context.source.spanX > grid.columns ||
+            targetY + context.source.spanY > grid.rows
+        ) {
+            return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        }
+        val target = placementAt(context.source, targetX, targetY)
+        if (WorkspaceGridPlacement.validate(grid, occupied + target) != WorkspaceGridPlacement.Validation.Valid) {
+            return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        }
 
         return mutationRepository.moveHomeItem(
             grid = grid,
