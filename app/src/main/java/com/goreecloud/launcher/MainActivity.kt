@@ -162,6 +162,15 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             },
+                            onMoveAppOneCell = { app, direction ->
+                                lifecycleScope.launch {
+                                    workspaceRuntimeCoordinator.moveHomeAppOneCellWithinPage(
+                                        pageId = selectedPage.pageId,
+                                        appKey = app.workspaceKey(),
+                                        direction = direction,
+                                    )
+                                }
+                            },
                         )
                     } else {
                         LauncherRoot(
