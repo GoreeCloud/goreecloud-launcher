@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
+import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeSpatialDirection
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
 import com.goreecloud.launcher.core.workspace.workspaceKey
@@ -146,6 +147,7 @@ fun ReadOnlyPagedHomeSurface(
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
+    onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val pageApps = remember(appsByKey, page.appKeys) {
@@ -173,7 +175,7 @@ fun ReadOnlyPagedHomeSurface(
             )
             Spacer(Modifier.height(GlazeMetrics.space2))
             Text(
-                "This secondary page is rendered from terminal Room authority. Apps can launch, move to another authoritative Home page, or move to the nearest free cell earlier/later on this page. Every placement write is revalidated against the complete Room snapshot.",
+                "This secondary page is rendered from terminal Room authority. Apps can launch, move to another authoritative Home page, move to the nearest free cell earlier/later, or request an exact one-cell move. Exact-cell requests fail closed when the target is occupied or outside the authoritative grid.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -219,6 +221,7 @@ fun ReadOnlyPagedHomeSurface(
                             onLaunchApp = onLaunchApp,
                             onMoveAppToPage = onMoveAppToPage,
                             onMoveAppWithinPage = onMoveAppWithinPage,
+                            onMoveAppOneCell = onMoveAppOneCell,
                         )
                     }
                 }
@@ -234,11 +237,13 @@ private fun PagedAppTile(
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
+    onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
 ) {
     val icon = remember(app) {
         app.getBadgedIcon(0).toBitmap(width = 96, height = 96).asImageBitmap()
     }
-    var moveMenuExpanded by remember(app) { mutableStateOf(false) }
+    var movePageMenuExpanded by remember(app) { mutableStateOf(false) }
+    var moveCellMenuExpanded by remember(app) { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.padding(vertical = GlazeMetrics.space2),
@@ -275,23 +280,45 @@ private fun PagedAppTile(
                 Text("Later")
             }
         }
+        Box {
+            TextButton(
+                onClick = { moveCellMenuExpanded = true },
+                modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
+            ) {
+                Text("Move cell")
+            }
+            DropdownMenu(
+                expanded = moveCellMenuExpanded,
+                onDismissRequest = { moveCellMenuExpanded = false },
+            ) {
+                WorkspaceHomeSpatialDirection.entries.forEach { direction ->
+                    DropdownMenuItem(
+                        text = { Text(direction.displayLabel()) },
+                        onClick = {
+                            moveCellMenuExpanded = false
+                            onMoveAppOneCell(app, direction)
+                        },
+                    )
+                }
+            }
+        }
         if (targetPages.isNotEmpty()) {
             Box {
                 TextButton(
-                    onClick = { moveMenuExpanded = true },
+                    onClick = { movePageMenuExpanded = true },
                     modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
                 ) {
                     Text("Move page")
                 }
                 DropdownMenu(
-                    expanded = moveMenuExpanded,
-                    onDismissRequest = { moveMenuExpanded = false },
+                    expanded = movePageMenuExpanded,
+                    onDismissRequest = { movePageMenuExpanded = false },
                 ) {
                     targetPages.forEach { target ->
                         DropdownMenuItem(
                             text = { Text("Move to Page ${target.rank + 1}") },
                             onClick = {
-                                moveMenuExpanded = false
+                                movePageMenuExpanded = false
                                 onMoveAppToPage(app, target.pageId)
                             },
                         )
@@ -300,4 +327,11 @@ private fun PagedAppTile(
             }
         }
     }
+}
+
+private fun WorkspaceHomeSpatialDirection.displayLabel(): String = when (this) {
+    WorkspaceHomeSpatialDirection.LEFT -> "Move left one cell"
+    WorkspaceHomeSpatialDirection.RIGHT -> "Move right one cell"
+    WorkspaceHomeSpatialDirection.UP -> "Move up one cell"
+    WorkspaceHomeSpatialDirection.DOWN -> "Move down one cell"
 }
