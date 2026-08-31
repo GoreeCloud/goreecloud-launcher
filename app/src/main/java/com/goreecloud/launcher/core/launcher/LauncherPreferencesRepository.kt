@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,12 +17,24 @@ import kotlinx.coroutines.launch
 
 private val Context.launcherPreferencesStore by preferencesDataStore(name = "launcher_preferences")
 
+enum class GoreeCloudIndexHomeMode(val storageValue: String) {
+    PERMANENT("permanent"),
+    SWIPE_DOWN_ONLY("swipe_down_only");
+
+    companion object {
+        fun fromStorage(value: String?): GoreeCloudIndexHomeMode =
+            entries.firstOrNull { it.storageValue == value } ?: PERMANENT
+    }
+}
+
 data class LauncherPreferences(
     val homeColumns: Int = 4,
     val homeRows: Int = 5,
     val drawerColumns: Int = 5,
     val showLabels: Boolean = true,
     val iconScale: Float = 1.0f,
+    val layoutLocked: Boolean = false,
+    val indexHomeMode: GoreeCloudIndexHomeMode = GoreeCloudIndexHomeMode.PERMANENT,
 ) {
     val homeCapacity: Int get() = homeColumns * homeRows
 
@@ -40,6 +53,8 @@ class LauncherPreferencesRepository(private val context: Context) {
         val drawerColumns = intPreferencesKey("drawer_columns")
         val showLabels = booleanPreferencesKey("show_labels")
         val iconScale = floatPreferencesKey("icon_scale")
+        val layoutLocked = booleanPreferencesKey("layout_locked")
+        val indexHomeMode = stringPreferencesKey("index_home_mode")
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -53,6 +68,8 @@ class LauncherPreferencesRepository(private val context: Context) {
                 drawerColumns = values[Keys.drawerColumns] ?: defaults.drawerColumns,
                 showLabels = values[Keys.showLabels] ?: defaults.showLabels,
                 iconScale = values[Keys.iconScale] ?: defaults.iconScale,
+                layoutLocked = values[Keys.layoutLocked] ?: defaults.layoutLocked,
+                indexHomeMode = GoreeCloudIndexHomeMode.fromStorage(values[Keys.indexHomeMode]),
             ).sanitized()
         }
         .distinctUntilChanged()
@@ -89,6 +106,22 @@ class LauncherPreferencesRepository(private val context: Context) {
         scope.launch {
             context.launcherPreferencesStore.edit { values ->
                 values[Keys.iconScale] = normalized
+            }
+        }
+    }
+
+    fun setLayoutLocked(locked: Boolean) {
+        scope.launch {
+            context.launcherPreferencesStore.edit { values ->
+                values[Keys.layoutLocked] = locked
+            }
+        }
+    }
+
+    fun setIndexHomeMode(mode: GoreeCloudIndexHomeMode) {
+        scope.launch {
+            context.launcherPreferencesStore.edit { values ->
+                values[Keys.indexHomeMode] = mode.storageValue
             }
         }
     }
