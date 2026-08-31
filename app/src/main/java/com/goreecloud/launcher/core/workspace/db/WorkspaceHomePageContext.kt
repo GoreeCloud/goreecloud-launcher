@@ -30,6 +30,9 @@ data class WorkspaceHomePageContext(
         }
         return "Page $pageNumber, $appLabel$unsupportedLabel, ${if (selected) "selected" else "not selected"}"
     }
+
+    fun accessibilityLabel(pageNumber: Int, selected: Boolean): String =
+        switcherAccessibilityLabel(pageNumber, selected)
 }
 
 fun WorkspaceRenderedHomePage.context(): WorkspaceHomePageContext = WorkspaceHomePageContext(
