@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -56,7 +57,7 @@ class WorkspaceHomeItemPageMoverRuntimeTest {
     }
 
     @Test
-    fun moveToPageIsReservedBeforeRoomThenChoosesFirstFreeAuthoritativeCell() = runBlocking {
+    fun secondaryMovePreservesCanonicalPrimaryAndChoosesFirstFreeCell() = runBlocking {
         val authorityRepository = WorkspaceRepository(openDataStore())
         authorityRepository.ensureDefaults(
             favoriteKeys = listOf(APP_ONE),
@@ -74,29 +75,32 @@ class WorkspaceHomeItemPageMoverRuntimeTest {
 
         assertEquals(
             WorkspacePagedRoomMutationResult.Reserved,
-            mover.moveAppToPage("home:1", APP_TWO, WorkspaceLegacyImportMapper.HOME_PAGE_ID),
+            mover.moveAppToPage("home:1", APP_TWO, "home:2"),
         )
 
         promoteRoomAuthority(authorityRepository)
         database.workspaceDao().upsertPages(
-            listOf(WorkspacePageEntity("home:1", WorkspaceContainerType.HOME, 1))
+            listOf(
+                WorkspacePageEntity("home:1", WorkspaceContainerType.HOME, 1),
+                WorkspacePageEntity("home:2", WorkspaceContainerType.HOME, 2),
+            )
         )
         database.workspaceDao().upsertItems(
             listOf(
-                WorkspaceItemEntity(
-                    itemId = "legacy:home:$APP_ONE",
-                    pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
-                    itemType = WorkspaceItemType.APP,
-                    appKey = APP_ONE,
-                    rank = 0,
-                    cellX = 0,
-                    cellY = 0,
-                ),
                 WorkspaceItemEntity(
                     itemId = "native:item:two",
                     pageId = "home:1",
                     itemType = WorkspaceItemType.APP,
                     appKey = APP_TWO,
+                    rank = 0,
+                    cellX = 0,
+                    cellY = 0,
+                ),
+                WorkspaceItemEntity(
+                    itemId = "native:item:three",
+                    pageId = "home:2",
+                    itemType = WorkspaceItemType.APP,
+                    appKey = APP_THREE,
                     rank = 0,
                     cellX = 0,
                     cellY = 0,
@@ -107,30 +111,56 @@ class WorkspaceHomeItemPageMoverRuntimeTest {
         assertEquals(
             WorkspacePagedRoomMutationResult.UpdatedItem(
                 itemId = "native:item:two",
-                pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                pageId = "home:2",
                 cellX = 1,
                 cellY = 0,
                 spanX = 1,
                 spanY = 1,
             ),
-            mover.moveAppToPage("home:1", APP_TWO, WorkspaceLegacyImportMapper.HOME_PAGE_ID),
+            mover.moveAppToPage("home:1", APP_TWO, "home:2"),
         )
+
+        assertTrue(database.workspaceDao().readItems(listOf("home:1")).isEmpty())
+        val targetItems = database.workspaceDao().readItems(listOf("home:2")).sortedBy { it.rank }
+        assertEquals(listOf(APP_THREE, APP_TWO), targetItems.map { it.appKey })
+        assertEquals(1, targetItems.last().cellX)
+        assertEquals(0, targetItems.last().cellY)
 
         val primaryItems = database.workspaceDao()
             .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
-            .sortedBy { it.rank }
-        assertEquals(listOf(APP_ONE, APP_TWO), primaryItems.map { it.appKey })
-        assertEquals(1, primaryItems.last().cellX)
-        assertEquals(0, primaryItems.last().cellY)
-        assertTrue(database.workspaceDao().readItems(listOf("home:1")).isEmpty())
+        assertEquals(listOf(APP_ONE), primaryItems.map { it.appKey })
+        assertNull(primaryItems.single().cellX)
+        assertNull(primaryItems.single().cellY)
+        assertEquals(
+            WorkspaceRelationalSnapshot(
+                favoriteKeys = listOf(APP_ONE),
+                dockKeys = emptyList(),
+            ),
+            WorkspaceCanonicalRoomPlacementReader.read(database.workspaceDao()),
+        )
+        assertEquals(
+            WorkspacePostCutoverHealthResult.Healthy,
+            WorkspacePostCutoverHealthEvaluator(
+                repository = authorityRepository,
+                workspaceDaoProvider = { database.workspaceDao() },
+            ).evaluate(),
+        )
 
         assertEquals(
+            WorkspacePagedRoomMutationResult.PrimaryPageProtected,
+            mover.moveAppToPage("home:2", APP_TWO, WorkspaceLegacyImportMapper.HOME_PAGE_ID),
+        )
+        assertEquals(
+            WorkspacePagedRoomMutationResult.PrimaryPageProtected,
+            mover.moveAppToPage(WorkspaceLegacyImportMapper.HOME_PAGE_ID, APP_ONE, "home:2"),
+        )
+        assertEquals(
             WorkspacePagedRoomMutationResult.PageNotFound,
-            mover.moveAppToPage(WorkspaceLegacyImportMapper.HOME_PAGE_ID, APP_TWO, "missing"),
+            mover.moveAppToPage("home:2", APP_TWO, "missing"),
         )
         assertEquals(
             WorkspacePagedRoomMutationResult.InvalidWorkspace,
-            mover.moveAppToPage(WorkspaceLegacyImportMapper.HOME_PAGE_ID, APP_TWO, WorkspaceLegacyImportMapper.HOME_PAGE_ID),
+            mover.moveAppToPage("home:2", APP_TWO, "home:2"),
         )
     }
 
@@ -156,15 +186,6 @@ class WorkspaceHomeItemPageMoverRuntimeTest {
         )
         database.workspaceDao().upsertItems(
             listOf(
-                WorkspaceItemEntity(
-                    itemId = "legacy:home:$APP_ONE",
-                    pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
-                    itemType = WorkspaceItemType.APP,
-                    appKey = APP_ONE,
-                    rank = 0,
-                    cellX = 0,
-                    cellY = 0,
-                ),
                 WorkspaceItemEntity(
                     itemId = "native:item:two",
                     pageId = "home:1",
@@ -237,6 +258,13 @@ class WorkspaceHomeItemPageMoverRuntimeTest {
         assertEquals(1, items.getValue(APP_TWO).cellY)
         assertEquals(2, items.getValue(APP_THREE).cellX)
         assertEquals(0, items.getValue(APP_THREE).cellY)
+        assertEquals(
+            WorkspacePostCutoverHealthResult.Healthy,
+            WorkspacePostCutoverHealthEvaluator(
+                repository = authorityRepository,
+                workspaceDaoProvider = { database.workspaceDao() },
+            ).evaluate(),
+        )
     }
 
     private suspend fun promoteRoomAuthority(authorityRepository: WorkspaceRepository) {
