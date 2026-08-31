@@ -34,4 +34,18 @@ class WorkspaceHomePageContextTest {
 
         assertEquals("Page 4 · 3 apps · 1 other", context.moveTargetLabel(pageNumber = 4))
     }
+
+    @Test
+    fun accessibilityLabelAnnouncesPageContextAndSelection() {
+        val context = WorkspaceHomePageContext(appCount = 1, unsupportedItemCount = 2)
+
+        assertEquals(
+            "Page 3, 1 app, 2 other workspace items, selected",
+            context.switcherAccessibilityLabel(pageNumber = 3, selected = true),
+        )
+        assertEquals(
+            "Page 3, 1 app, 2 other workspace items, not selected",
+            context.switcherAccessibilityLabel(pageNumber = 3, selected = false),
+        )
+    }
 }
