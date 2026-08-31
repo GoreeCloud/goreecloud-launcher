@@ -2,6 +2,7 @@ package com.goreecloud.launcher
 
 import android.app.role.RoleManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.goreecloud.launcher.core.launcher.GoreeCloudIndexIntegration
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
@@ -45,6 +47,7 @@ import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
+    private lateinit var indexIntegration: GoreeCloudIndexIntegration
     private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
@@ -60,6 +63,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         appsRepository = LauncherAppsRepository(this)
+        indexIntegration = GoreeCloudIndexIntegration(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
         themeRepository = GlazeThemeRepository(this)
         workspaceRepository = WorkspaceRepository(this)
@@ -196,6 +200,7 @@ class MainActivity : ComponentActivity() {
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
+                            onOpenUniversalSearch = ::openUniversalSearch,
                             onToggleFavorite = { app ->
                                 lifecycleScope.launch {
                                     workspaceRuntimeCoordinator.toggleFavorite(app.workspaceKey())
@@ -291,6 +296,16 @@ class MainActivity : ComponentActivity() {
         val manager = getSystemService(RoleManager::class.java)
         if (manager.isRoleAvailable(RoleManager.ROLE_HOME) && !manager.isRoleHeld(RoleManager.ROLE_HOME)) {
             homeRoleRequest.launch(manager.createRequestRoleIntent(RoleManager.ROLE_HOME))
+        }
+    }
+
+    private fun openUniversalSearch() {
+        if (!indexIntegration.openSearch()) {
+            Toast.makeText(
+                this,
+                "GoreeCloud Index is not installed yet",
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 }
