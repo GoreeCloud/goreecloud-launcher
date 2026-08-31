@@ -27,6 +27,7 @@ if queries is None:
     sys.exit(1)
 
 has_launcher_query = False
+has_index_search_query = False
 for intent in queries.findall("intent"):
     action_names = {
         action.attrib.get(ns + "name")
@@ -41,10 +42,15 @@ for intent in queries.findall("intent"):
         and "android.intent.category.LAUNCHER" in category_names
     ):
         has_launcher_query = True
-        break
+    if "com.goreecloud.index.action.SEARCH" in action_names:
+        has_index_search_query = True
 
 if not has_launcher_query:
     print("Missing MAIN/LAUNCHER visibility query required for complete app discovery.")
+    sys.exit(1)
+
+if not has_index_search_query:
+    print("Missing bounded GoreeCloud Index search visibility query.")
     sys.exit(1)
 
 if "android.permission.QUERY_ALL_PACKAGES" in text:

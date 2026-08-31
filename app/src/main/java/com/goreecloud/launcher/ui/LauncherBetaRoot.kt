@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -51,6 +52,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,6 +81,7 @@ fun LauncherBetaRoot(
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onOpenUniversalSearch: () -> Unit,
     onToggleFavorite: (LauncherActivityInfo) -> Unit,
     onToggleDock: (LauncherActivityInfo) -> Unit,
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
@@ -105,6 +109,7 @@ fun LauncherBetaRoot(
             isDefaultHome = isDefaultHome,
             onRequestHomeRole = onRequestHomeRole,
             onLaunchApp = onLaunchApp,
+            onOpenUniversalSearch = onOpenUniversalSearch,
             onManageApp = { selectedApp = it },
             onOpenDrawer = { surfaceModeName = LauncherSurfaceMode.DRAWER.name },
             onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
@@ -154,6 +159,7 @@ private fun HomeSurface(
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onOpenUniversalSearch: () -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -165,6 +171,7 @@ private fun HomeSurface(
     val dockApps = remember(appsByKey, workspace.dockKeys) {
         workspace.dockKeys.mapNotNull(appsByKey::get).take(MAX_DOCK_ITEMS)
     }
+    val universalSearchSwipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
 
     // MainActivity uses FLAG_SHOW_WALLPAPER. Keep Home translucent so Android renders the
     // user's actual wallpaper behind this window without wallpaper/storage permissions.
@@ -182,7 +189,29 @@ private fun HomeSurface(
                 .navigationBarsPadding()
                 .padding(horizontal = GlazeMetrics.space4),
         ) {
-            Spacer(Modifier.height(72.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .pointerInput(onOpenUniversalSearch, universalSearchSwipeThreshold) {
+                        var downwardDistance = 0f
+                        detectVerticalDragGestures(
+                            onDragStart = { downwardDistance = 0f },
+                            onDragCancel = { downwardDistance = 0f },
+                            onDragEnd = {
+                                if (downwardDistance >= universalSearchSwipeThreshold) {
+                                    onOpenUniversalSearch()
+                                }
+                                downwardDistance = 0f
+                            },
+                            onVerticalDrag = { _, dragAmount ->
+                                if (dragAmount > 0f) {
+                                    downwardDistance += dragAmount
+                                }
+                            },
+                        )
+                    }
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -195,6 +224,35 @@ private fun HomeSurface(
                     tonalElevation = 2.dp,
                 ) {
                     TextButton(onClick = onOpenSettings) { Text("Launcher settings") }
+                }
+            }
+
+            Spacer(Modifier.height(GlazeMetrics.space2))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                tonalElevation = 3.dp,
+                onClick = onOpenUniversalSearch,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget)
+                        .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+                ) {
+                    Text(
+                        "Search GoreeCloud",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "Apps, files, people, calendar and more with GoreeCloud Index",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
 
