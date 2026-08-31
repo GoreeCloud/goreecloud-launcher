@@ -3,6 +3,7 @@ package com.goreecloud.launcher.ui
 import android.content.pm.LauncherActivityInfo
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -58,6 +60,8 @@ fun HomePageSwitcher(
     if (pages.isEmpty()) return
     val selectedIndex = pages.indexOfFirst { it.pageId == selectedPageId }
     val selectedPage = pages.getOrNull(selectedIndex)
+    val pageStripScroll = rememberScrollState()
+    val pageActionsScroll = rememberScrollState()
     val canDeleteSelectedPage = pages.size > 1 &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
@@ -75,6 +79,9 @@ fun HomePageSwitcher(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(pageStripScroll),
                 horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -113,6 +120,9 @@ fun HomePageSwitcher(
 
             if (selectedIndex >= 0 && pages.size > 1) {
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(pageActionsScroll),
                     horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
