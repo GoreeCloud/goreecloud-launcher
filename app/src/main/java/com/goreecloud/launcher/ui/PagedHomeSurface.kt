@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -29,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,13 +65,19 @@ fun HomePageSwitcher(
     if (pages.isEmpty()) return
     val selectedIndex = pages.indexOfFirst { it.pageId == selectedPageId }
     val selectedPage = pages.getOrNull(selectedIndex)
-    val pageStripScroll = rememberScrollState()
+    val pageListState = rememberLazyListState()
     val pageActionsScroll = rememberScrollState()
     val canDeleteSelectedPage = pages.size > 1 &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
         selectedPage.appKeys.isEmpty() &&
         selectedPage.unsupportedItemCount == 0
+
+    LaunchedEffect(selectedPageId, selectedIndex, pages.size) {
+        if (selectedIndex >= 0) {
+            pageListState.animateScrollToItem(selectedIndex)
+        }
+    }
 
     Surface(
         modifier = modifier,
@@ -79,14 +89,16 @@ fun HomePageSwitcher(
             modifier = Modifier.padding(horizontal = GlazeMetrics.space2, vertical = GlazeMetrics.space1),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(pageStripScroll),
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                state = pageListState,
                 horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                pages.forEachIndexed { index, page ->
+                itemsIndexed(
+                    items = pages,
+                    key = { _, page -> page.pageId },
+                ) { index, page ->
                     val selected = page.pageId == selectedPageId
                     val pageContext = page.context()
                     Surface(
@@ -128,8 +140,10 @@ fun HomePageSwitcher(
                         }
                     }
                 }
-                TextButton(onClick = onCreatePage) {
-                    Text("Add page")
+                item(key = "add-page") {
+                    TextButton(onClick = onCreatePage) {
+                        Text("Add page")
+                    }
                 }
             }
 
