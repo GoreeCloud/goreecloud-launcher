@@ -53,6 +53,7 @@ app/src/main/java/com/goreecloud/launcher/ui/PagedHomeSurface.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeRepository.kt
+app/src/main/res/drawable/ic_launcher_background.xml
 app/src/main/res/drawable/ic_launcher_foreground.xml
 app/src/main/res/drawable/ic_launcher_monochrome.xml
 app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
@@ -78,7 +79,7 @@ app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalR
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifierTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlacementModelTest.kt
 branding/README.md
-branding/source/goreecloud-launcher-icon.svg
+branding/provenance.json
 build.gradle.kts
 docs/PLATFORM_CONFORMANCE.md
 docs/activated-home-lifecycle-recreation.md
