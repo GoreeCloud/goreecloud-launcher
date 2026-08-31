@@ -16,7 +16,7 @@ class LauncherPreferencesTest {
         assertEquals(4, result.homeColumns)
         assertEquals(7, result.homeRows)
         assertEquals(6, result.drawerColumns)
-        assertEquals(1.15f, result.iconScale)
+        assertEquals(1.15f, result.iconScale, 0f)
     }
 
     @Test
