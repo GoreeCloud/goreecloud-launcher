@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -235,7 +236,7 @@ fun ReadOnlyPagedHomeSurface(
             )
             Spacer(Modifier.height(GlazeMetrics.space2))
             Text(
-                "This secondary page is rendered from terminal Room authority. Apps can launch, move to another secondary Home page, move to the nearest free cell earlier/later, or request an exact one-cell move. Exact-cell requests fail closed when the target is occupied or outside the authoritative grid.",
+                "This secondary page is rendered from terminal Room authority. Apps can launch, open Android App info, move to another secondary Home page, move to the nearest free cell earlier/later, or request an exact one-cell move. Exact-cell requests fail closed when the target is occupied or outside the authoritative grid.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -299,6 +300,7 @@ private fun PagedAppTile(
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
 ) {
+    val context = LocalContext.current
     val icon = remember(app) { app.getBadgedIcon(0).toBitmap(width = 96, height = 96).asImageBitmap() }
     var movePageMenuExpanded by remember(app) { mutableStateOf(false) }
     var moveCellMenuExpanded by remember(app) { mutableStateOf(false) }
@@ -319,6 +321,12 @@ private fun PagedAppTile(
                 textAlign = TextAlign.Center,
                 maxLines = 2,
             )
+        }
+        TextButton(
+            onClick = { LauncherAppInfo.open(context, app.componentName.packageName) },
+            modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
+        ) {
+            Text("App info")
         }
         Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1)) {
             TextButton(
