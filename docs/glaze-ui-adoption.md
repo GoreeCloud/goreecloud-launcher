@@ -3,76 +3,92 @@
 ## Target baseline
 
 - Canonical design system: `GoreeCloud/goreecloud-glaze-ui`
-- Target: Glaze UI 2.0 Stable
-- Canonical token version reviewed: 2.0.0
-- Reviewed canonical revision: `ff3fff4306bd53ea9c0715a7c0d64265bb038617`
+- Target: Glaze UI 2.1 Stable
+- Canonical token version reviewed: 2.1.0
+- Reviewed canonical revision: `c49113eb8b93c267613fdf1bbca1f814495acad7`
 - Adoption state: Adoption Candidate
 - Production eligible on Glaze UI gate: no
 - Adoption mode: native Android semantic mapping
 - Automated contract: `scripts/check_glaze_ui.py`
 
-The reviewed revision is the canonical merge commit that promoted Glaze UI 2.0.0 to Stable. This adoption record establishes real current-Stable migration work in Launcher; it does not certify the application for production or imply complete Glaze UI 2.0 conformance.
+The reviewed revision is the canonical Stable release anchor for Glaze UI 2.1.0. This adoption record establishes current-Stable migration work in Launcher; it does not certify the application for production or imply complete Glaze UI 2.1 conformance.
 
-## Implemented 2.0 mapping
+## Implemented 2.1 mapping
 
 GoreeCloud Launcher maps the Glaze UI semantics it consumes into Jetpack Compose rather than importing a web or third-party UI runtime.
 
-The current 2.0 Adoption Candidate mapping includes:
+The current 2.1 Adoption Candidate mapping includes:
 
-- the promoted 4/8/12/16/24/32/48 spacing subset used by Home, Dock, app drawer, and placement surfaces;
-- 8/12/16/24/32 utility geometry plus the 999 dp capsule control radius;
-- the 48 dp general interaction floor for mapped controls;
-- Light and Dark foundation/identity colors from the promoted Stable token map;
+- the promoted 4/8/12/16/20/24/32/40/48/64 spacing scale;
+- 10/14/16/22/28/32 geometry plus the 999 dp pill radius;
+- the 48 dp current-contract general interaction floor;
+- a mapped 56 dp touch-assistance target for later accessibility-resolution integration;
+- Light and Dark foundation/identity colors retained by the promoted 2.1 token map;
 - Canvas/Surface-oriented content presentation through native Material 3 surfaces;
 - native Android buttons, fields, dialogs, and explicit move controls for deterministic accessibility paths;
-- local-only presentation with no remote font, icon, analytics, or UI runtime dependency.
+- direct persisted System/Light/Dark theme selection support in the native theme repository; and
+- a native Theme Manager surface/catalog foundation with bounded previews for the currently implemented appearance modes.
 
-The native metric mapping lives in `app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt`. The Light/Dark color mapping lives in `app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt`.
+The native metric mapping lives in `app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt`. The Light/Dark color mapping lives in `app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt`. The native Theme Manager foundation lives in `GlazeThemeManagerCatalog.kt` and `ThemeManagerSurface.kt`.
 
-Existing metric property names are retained temporarily as compatibility aliases for Launcher call sites, but their values now follow the promoted 2.0 geometry/spacing/target contract. New Launcher UI work should use the 2.0 semantic intent rather than treat the old property names as an independent design vocabulary.
+The Theme Manager surface is source foundation in this slice and is not yet wired into Launcher Settings navigation. Existing Settings continues to expose its current appearance control until a separately reviewed wiring slice is accepted.
 
-## 2.0 interaction boundary
+## 2.1 material and accessibility boundary
 
-Glaze UI 2.0 requires content to default to Canvas/Surface while interaction uses Soft Glaze/Glaze/Deep Glaze/Live Glaze according to role. Launcher has migrated its baseline geometry, target floor, and Light/Dark palette, but this Adoption Candidate does not yet claim complete material-role mapping across every Home, Dock, drawer, dialog, drag, and search surface.
+Glaze UI 2.1 keeps the material hierarchy Canvas → Surface → Soft Glaze → Glaze → Deep Glaze → Live Glaze and adds stronger Material Clarity, density, performance-profile, material-budget, and deterministic Accessibility Resolution Matrix requirements.
 
-Connected Transformation, Navigation Capsule semantics where applicable, Live Glaze behavior, Calm/Balanced/Expressive expression modes, haptic semantics, and the complete 2.0 motion family remain application-specific implementation and acceptance work. Existing Compose animation and drag feedback must not be treated as complete 2.0 motion conformance until reduced-motion behavior, interruption/cancellation, rendered behavior, and representative-device acceptance are validated.
+Launcher has migrated its bounded spacing, shape, target, and Light/Dark foundation mapping, but this Adoption Candidate does not yet claim complete material-role coverage, clarity-mode behavior, material budgeting, density adaptation, performance fallback, or accessibility-resolution integration across every Home, Dock, Apps, settings, dialog, gesture, and search surface.
+
+Reduced transparency must resolve to Solid where required by the 2.1 contract. Touch-assistance behavior must apply the 56 dp resolution target where applicable. Large text/reflow, forced colors/system semantic authority, increased contrast, reduced motion, and assistive-technology behavior remain application-specific acceptance work rather than being inferred from token presence.
+
+## Theme Manager foundation boundary
+
+The native Theme Manager foundation currently represents only the persisted System, Light, and Dark modes that Launcher already implements. It adds stable user-facing metadata, bounded native previews, and direct `setMode` persistence so future Settings wiring does not depend on cycling through unrelated modes.
+
+This does not implement or claim Deep Dark, wallpaper-derived/user-selected palettes, expression controls, third-party icon-pack discovery, icon-pack application, icon masking, per-app icon replacement, optical normalization beyond the existing bounded icon-size preference, or complete Glaze Theme Engine behavior.
 
 ## Ordering interaction decision
 
-Launcher retains explicit move-earlier/move-later controls as the deterministic non-drag accessibility path for ordering. Direct drag/drop calls the same application-owned ordering domain rather than becoming authoritative for workspace truth. Drag cancellation must leave workspace state unchanged.
+Launcher retains explicit move-earlier/move-later controls as the deterministic non-drag accessibility path for ordering. Direct workspace manipulation must call the same application-owned ordering/mutation authority rather than becoming authoritative for workspace truth. Cancellation must leave workspace state unchanged.
 
-A separate test-only Glaze Motion evaluation may map Experimental motion semantics onto these existing domain operations. Glaze Motion remains Experimental and is not a production dependency, does not replace the Stable Glaze UI 2.0 motion contract, and cannot satisfy the Launcher production gate.
+A separate test-only Glaze Motion evaluation may map Experimental motion semantics onto existing domain operations. Glaze Motion remains Experimental and is not a production dependency, does not replace the Stable Glaze UI 2.1 contract, and cannot satisfy the Launcher production gate.
 
 ## Appearance boundary
 
-Light and Dark now use the promoted Glaze UI 2.0 Stable token values consumed by Launcher. Deep Dark is not approximated with an invented palette and remains an explicit application acceptance gap until a reviewed native mapping is implemented.
+Light and Dark use the promoted Glaze UI 2.1 Stable token values consumed by Launcher. System follows Android system Light/Dark state. Deep Dark is not approximated with an invented palette and remains an explicit application acceptance gap until a reviewed native mapping is implemented.
 
-System appearance continues to follow the Android system Light/Dark state. Launcher personalization does not yet claim complete 2.0 Appearance, Accent Seed, or Expression preference support.
+Launcher personalization does not yet claim complete Appearance, Accent Seed, Material Clarity, Expression, or density preference support.
 
 ## Form-factor and accessibility boundary
 
-This mapping does not yet constitute phone/tablet Glaze UI 2.0 acceptance. Mobile and tablet compositions still require representative rendered/native accessibility and real-device review. Tablet must not become a stretched phone composition; workspace/page and settings work should use window/posture-aware layouts where useful.
+This mapping does not constitute phone/tablet/foldable Glaze UI 2.1 acceptance. Representative rendered/native accessibility and real-device review remain required. Tablet and large-screen composition must not become a stretched phone surface; workspace, Theme Manager, Index, and settings surfaces require appropriate window/posture-aware composition where applicable.
 
-The current mapping also does not establish complete reduced-transparency, increased-contrast, large-text/reflow, TalkBack, switch-access, touch-assistance, haptic, or reduced-motion acceptance. These requirements remain mandatory before Launcher can be considered aligned-current-stable and production eligible on the Glaze UI gate.
+The current mapping also does not establish complete reduced-transparency, increased-contrast, large-text/reflow, forced-colors, TalkBack, switch-access, touch-assistance, haptic, or reduced-motion acceptance. These requirements remain mandatory before Launcher can be considered aligned-current-stable and production eligible on the Glaze UI gate.
 
 ## Historical migration evidence
 
-The prior Glaze UI 1.6 Adoption Candidate remains historical migration evidence only. It does not satisfy the current 2.0 Stable requirement and must not be used as a production conformance claim.
+The prior Glaze UI 2.0 Adoption Candidate and earlier 1.x migrations remain historical implementation/migration evidence only. They do not satisfy the current 2.1 Stable requirement and must not be used as a current production-conformance claim.
 
 ## Not yet claimed
 
-- Full Glaze UI 2.0 conformance.
+- Full Glaze UI 2.1 conformance.
 - Aligned-current-stable production acceptance.
 - Complete Soft Glaze/Glaze/Deep Glaze/Live Glaze role mapping.
+- Complete Material Clarity or material-budget behavior.
+- Complete density/performance profile adaptation.
 - Deep Dark appearance acceptance.
 - Accent Seed and expression-mode personalization.
-- Complete Connected Transformation or Navigation Capsule mapping.
-- Complete 2.0 motion-token mapping or reduced-motion acceptance.
+- Theme Manager navigation integration into current Launcher Settings.
+- Third-party icon-pack discovery/application or icon masking.
+- Complete 2.1 motion-token mapping or reduced-motion acceptance.
+- Complete Accessibility Resolution Matrix integration.
 - Complete increased-contrast or reduced-transparency acceptance.
-- Complete phone/tablet adaptive-layout acceptance.
+- Large-text/reflow or forced-colors acceptance.
+- Touch-assistance runtime acceptance despite the mapped 56 dp target token.
+- Complete phone/tablet/foldable adaptive-layout acceptance.
 - TalkBack or switch-access acceptance.
 - Phone/tablet rendered/native visual acceptance.
 - Representative physical-device launcher acceptance.
 - Glaze Motion Candidate, Stable, or production adoption.
 
-These remain application-specific gates even though Glaze UI 2.0 itself is Stable.
+These remain application-specific gates even though Glaze UI 2.1 itself is Stable.
