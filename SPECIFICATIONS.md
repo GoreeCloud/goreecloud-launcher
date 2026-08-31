@@ -25,11 +25,12 @@ Launcher must remain original GoreeCloud-owned software built from the ground up
 - Kotlin + Jetpack Compose with Android-native APIs where launcher contracts require them.
 - Android HOME-role onboarding remains user-controlled through platform role authority.
 - `LauncherApps` remains authoritative for launchable-activity discovery and profile-aware application identity.
-- Android package visibility is scoped to launchable `MAIN` + `LAUNCHER` activities; broad `QUERY_ALL_PACKAGES` access is not used.
+- Android package visibility is scoped to launchable `MAIN` + `LAUNCHER` activities plus the bounded GoreeCloud Index search action; broad `QUERY_ALL_PACKAGES` access is not used.
 - Home, Apps, and Launcher Settings are separate product surfaces.
-- Presentation preferences are persisted locally with DataStore.
+- Presentation and Launcher-policy preferences are persisted locally with DataStore.
 - Workspace persistence and placement use the guarded Room-backed workspace model for terminal Room paths.
 - Rendered paged Home state is projected from authoritative workspace state; UI convenience is not a second placement authority.
+- Home layout lock is a Launcher mutation policy layered over the authoritative workspace APIs; it is not a workspace persistence authority.
 - Universal search invocation is delegated through an explicit GoreeCloud Index action contract rather than duplicating Index provider/index/ranking logic inside Launcher.
 - Privacy, security, continuity, identity, design, and cross-service responsibilities remain separated into applicable GoreeCloud platform-system boundaries.
 
@@ -37,9 +38,15 @@ Launcher must remain original GoreeCloud-owned software built from the ground up
 
 ### Home
 
-The rebuilt primary Home is a launcher-style surface rather than an engineering Favorites screen. Android renders the system wallpaper behind the launcher window through the native window-wallpaper contract, requiring no wallpaper/storage privilege. The primary surface renders the current Home application grid, Dock, Apps affordance, Launcher Settings affordance, and a Search GoreeCloud affordance that invokes GoreeCloud Index.
+The rebuilt primary Home is a launcher-style surface rather than an engineering Favorites screen. Android renders the system wallpaper behind the launcher window through the native window-wallpaper contract, requiring no wallpaper/storage privilege. The primary surface renders the current Home application grid, Dock, Apps affordance, Launcher Settings affordance, and—when the selected entry mode is **Permanent on Home**—a Search GoreeCloud affordance that invokes GoreeCloud Index.
 
-Current supported presentation settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps columns of 4/5/6, Small/Medium/Large icon presentation, app-label visibility, and System/Light/Dark appearance.
+A one-finger downward gesture on the unobstructed Home search zone invokes GoreeCloud Index in both supported Home-entry modes. **Swipe down only** removes the persistent Search GoreeCloud affordance without changing Index authority or the gesture handoff.
+
+Current supported settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps columns of 4/5/6, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and GoreeCloud Index Home-entry mode.
+
+When layout lock is enabled, current Favorite, Dock, Home-page create/delete/reorder, secondary-to-secondary movement, and current secondary spatial mutation callbacks are blocked at the Launcher composition boundary. App launching, Home page selection, navigation, and non-placement presentation settings remain usable. Primary placement-dialog mutation controls are disabled while locked.
+
+The current locked-state Home UI provides an intentional five-second hold control with visible progress. Completing the hold disables the persisted lock. Launcher Settings remains the deterministic non-gesture unlock path. Representative physical-device hold/gesture/accessibility acceptance remains separately gated.
 
 The primary `WorkspaceLegacyImportMapper.HOME_PAGE_ID` page remains the protected compatibility representation for Favorites. Its canonical compatibility items retain null grid coordinates and its rank remains zero. The presentation grid does not silently convert this authority model into the secondary spatial model.
 
@@ -47,19 +54,25 @@ The primary `WorkspaceLegacyImportMapper.HOME_PAGE_ID` page remains the protecte
 
 The Apps surface displays the launchable inventory provided through `LauncherApps`, supports a narrow local filter by label/package, and launches selected applications. Long-press opens current placement management. Home page controls do not overlay the Apps surface.
 
-The Apps filter is a Launcher-specific navigation feature. It is not GoreeCloud Index and must not become a second universal-search provider/ranking pipeline.
+The Apps filter is a Launcher-specific navigation feature. It is not GoreeCloud Index and must not become a second universal-search provider/ranking pipeline. While layout lock is enabled, placement management may still be opened to explain state, but current placement mutation controls are disabled.
 
 ### Launcher Settings
 
-Launcher Settings is a distinct scrollable surface for current persisted presentation options. Settings changes affect rendering; they do not widen Room workspace mutation authority.
+Launcher Settings is a distinct scrollable surface. Current persisted settings include Home grid, Apps columns, app-label visibility, icon-size presentation, System/Light/Dark appearance, **Lock Home screen layout**, and the GoreeCloud Index **Permanent on Home / Swipe down only** entry choice.
 
-Approved target settings expand this surface substantially. Launcher must provide a dedicated native Theme Manager with Glaze Theme Engine integration, theme previews, icon-pack support, bounded icon masking and scaling/normalization, and coherent Home/Apps/folder/dock styling. Launcher Settings must also provide a Home layout-lock switch, GoreeCloud Index Home-entry mode selection (`Permanent on Home` or `Swipe down only`), and explicit local/offline-capable `Backup Launcher configuration` and `Restore Launcher configuration` actions. These target capabilities remain separately implementation- and acceptance-gated until repository/runtime evidence establishes them.
+Current settings changes do not widen Room workspace mutation authority. The layout-lock preference restricts Launcher mutation dispatch; the Index-entry preference controls Launcher-owned invocation presentation only.
 
-## Home layout lock target
+Approved target settings expand this surface further. Launcher must provide a dedicated native Theme Manager with Glaze Theme Engine integration, theme previews, icon-pack support, bounded icon masking and scaling/normalization, and coherent Home/Apps/folder/dock styling. Launcher Settings must also provide explicit local/offline-capable **Backup Launcher configuration** and **Restore Launcher configuration** actions. Theme Manager/icon-pack runtime behavior and backup/restore remain separately implementation- and acceptance-gated.
 
-The Home screen layout lock is intended to protect placement-changing operations for supported placeable content, including applications, shortcuts, widgets, folders, pages, and other Launcher-owned layout elements as those capabilities become implemented. Normal launching and non-placement interactions remain available while locked.
+## Home layout lock behavior and boundary
 
-The deterministic accessible unlock path is the Launcher Settings switch. Launcher should additionally support intentional one-finger hold on an unobstructed Home area for five seconds, with clear progressive/completion feedback and cancellation when the gesture ceases to qualify. The five-second gesture must not require a privileged accessibility service and must not be the only unlock path.
+The current layout lock protects every placement-changing path presently implemented by the Launcher composition layer: primary Favorite/Dock membership and ordering, Home page creation/deletion/reordering, secondary-to-secondary application moves, and current within-secondary-page spatial movement. UI controls are disabled where practical, and the underlying callbacks are also gated so a stale or missed presentation control cannot dispatch a mutation while the current preference is locked.
+
+Normal application launching, page selection, search invocation, Apps navigation, Settings access, and presentation settings remain available because they do not mutate authoritative workspace placement.
+
+The deterministic accessible unlock path is the Launcher Settings switch. The current Home also exposes an intentional five-second hold on its locked-state control with progressive feedback. Releasing early cancels the hold. The gesture does not require a privileged accessibility service and is not the only unlock path.
+
+Folders, shortcuts, widgets, and other placeable item types are approved target scope but not yet implemented. The lock policy must extend to those mutation paths when they become real; current source must not be represented as runtime coverage for item types that do not yet exist.
 
 ## Theme Manager and icon presentation target
 
@@ -86,8 +99,9 @@ Current Development source supports:
 - secondary-to-secondary page movement;
 - within-secondary-page nearest-free-cell earlier/later movement;
 - guarded exact one-cell left/right/up/down movement;
-- fail-closed movement for collisions, invalid bounds, malformed/ambiguous placement, stale snapshots, or primary-page spatial source/target requests; and
-- canonical primary/Dock compatibility validation before secondary spatial writes.
+- fail-closed movement for collisions, invalid bounds, malformed/ambiguous placement, stale snapshots, or primary-page spatial source/target requests;
+- canonical primary/Dock compatibility validation before secondary spatial writes; and
+- a Launcher-level layout-lock gate that prevents these implemented page/item mutation calls from being dispatched while locked.
 
 Primary-grid coordinates and primary↔secondary spatial item movement require a separate accepted migration.
 
@@ -103,18 +117,18 @@ A user-facing Launcher entry point may be described as Launcher Unified Search w
 
 ### Default interaction and current Development handoff
 
-A **one-finger downward swipe on an unobstructed Home-screen area** is the approved default direct gesture for opening universal search. Launcher also currently provides a visible **Search GoreeCloud** Home affordance so universal search does not depend on gesture discovery.
+A **one-finger downward swipe on an unobstructed Home-screen area** is the current direct Launcher gesture for opening GoreeCloud Index universal search.
 
-The approved configurable Home-entry modes are:
+Launcher supports two persisted Home-entry modes:
 
-- **Permanent on Home** — keep a polished native Glaze UI GoreeCloud Index affordance visible on Home.
+- **Permanent on Home** — keep the Search GoreeCloud Index affordance visible on Home while retaining swipe-down invocation.
 - **Swipe down only** — hide the persistent Home affordance while retaining one-finger downward invocation.
 
-Both modes must preserve an accessible non-gesture path to search. This preference controls invocation/presentation only; it does not transfer indexing or ranking authority from GoreeCloud Index to Launcher.
+The preference controls Launcher invocation/presentation only; it does not transfer indexing or ranking authority from GoreeCloud Index to Launcher.
 
-The current Development integration invokes the explicit action `com.goreecloud.index.action.SEARCH`. The bounded handoff recognizes the production Index package `com.goreecloud.index` and Development package `com.goreecloud.index.dev`. If no compatible Index activity resolves, Launcher reports the unavailable state instead of silently substituting an independent universal-search implementation.
+The Development integration invokes the explicit action `com.goreecloud.index.action.SEARCH`. The bounded handoff recognizes the production Index package `com.goreecloud.index` and Development package `com.goreecloud.index.dev`. If no compatible Index activity resolves, Launcher reports the unavailable state instead of silently substituting an independent universal-search implementation.
 
-The search experience must provide equivalent hardware-keyboard, switch-access, screen-reader, and other supported non-gesture paths and must not require understanding gesture animation to operate.
+Accessible non-gesture search access remains a product requirement. The persistent Home affordance supplies a direct non-gesture path in Permanent mode; additional equivalent accessibility/keyboard/system entry behavior must be validated as the Index experience matures.
 
 ### Search presentation quality target
 
@@ -169,9 +183,13 @@ Sensitive/permissioned Index source categories must be independently controllabl
 
 ### Current acceptance boundary
 
-PR #53 implemented the Launcher-side Search GoreeCloud Home affordance, one-finger downward invocation, scoped package visibility for the Index action, and bounded activity handoff. Exact PR head `b18cfa05a1b18243e52046ef581cb67fc3298a5f` passed Android CI run `33417830081`, including the Android 16 runtime-emulator suite, and merged to `main` as `fde148081cc292bcdfd7e221312fe830515331fb`. Post-merge main CI remains a separately verified acceptance record.
+Launcher PR #53 implemented the Search GoreeCloud Home affordance, one-finger downward invocation, scoped package visibility for the Index action, and bounded activity handoff. Exact PR head `b18cfa05a1b18243e52046ef581cb67fc3298a5f` passed Android CI run `33417830081`, including the Android 16 runtime-emulator suite, and merged to `main` as `fde148081cc292bcdfd7e221312fe830515331fb`. Push-triggered main CI run `33418531343` then passed both validate and Android 16/API 36 runtime-emulator jobs on the exact merge commit.
 
-The Index Android foundation implements its first scoped installed-applications provider and provider-neutral query/result engine. Contacts, files/documents, calendar, media, Drive, first-party app-content providers, connected devices, extensions, third-party providers, GoreeCloud Search integration, complete platform-runtime adoption, representative-device accessibility/gesture acceptance, production signing/deployment, and Stable qualification remain separate gates.
+GoreeCloud Index PR #1 established its initial Android Development foundation and merged as `331e97507a7b3b7ca3d930771915f1026bf2d4a8`; push-triggered Index validation run `33418751538` succeeded. The accepted Index slice includes its first scoped installed-applications provider and provider-neutral query/result/action engine.
+
+This branch adds Launcher-owned persisted Home-entry modes and layout-lock behavior. Those changes remain candidate behavior until the branch's final exact head passes its required CI/runtime gates and is merged to authoritative main.
+
+Contacts, files/documents, calendar, media, Drive, first-party app-content providers, connected devices, extensions, third-party providers, GoreeCloud Search integration, complete Glaze UI 2.1 application adoption, representative-device accessibility/gesture acceptance, production signing/deployment, and Stable qualification remain separate gates.
 
 ## Official Launcher product identity specification
 
@@ -182,6 +200,8 @@ All canonical Launcher logos, icons, symbols, illustrations, and artwork must be
 `branding/provenance.json` records the canonical repository/path/blob used to create the current Android adaptive, round, and monochrome derivatives. A consumer derivative must never be edited into an independent canonical source. Future visual revisions begin in `goreecloud-branding-assets`, then propagate through a traceable derivative update.
 
 The previous Launcher-local portal/activity-tile source is superseded and removed because it conflicted with the project-wide branding source-of-truth rule.
+
+Launcher PR #55 reconciled this authority at exact head `a9ced7e136cf02aa0f9c1301df4a6407c6999fa2` and merged as `d845803e0a7af88c8394602a5545c44193ed7ad7`. PR-head run `33419656151` and push-triggered main run `33420478729` both passed validate and Android 16/API 36 runtime-emulator jobs.
 
 The existence of a canonical asset and synchronized Development derivatives does not by itself establish production visual-identity acceptance. Rendered small-size, adaptive-mask, themed-icon, representative-device/system-chooser, and release review remain required.
 
@@ -210,6 +230,7 @@ Naming an integration establishes no implementation claim. Each participating sy
 - GoreeCloud Index remains authoritative for universal search orchestration/indexing/ranking; Launcher remains an invocation/presentation surface and source-specific participant.
 - `GoreeCloud/goreecloud-branding-assets` remains authoritative for all GoreeCloud logos/icons/artwork; consumer repositories carry derivatives only.
 - GoreeCloud workspace persistence maintains one accepted placement authority at a time.
+- Home layout lock is a Launcher dispatch/mutation policy and must not create a second writable placement source of truth.
 - Compatibility and secondary spatial models must not be mixed in ways that invalidate authority/recovery.
 - Cross-device continuity must not create ambiguous writable workspace authorities.
 - Search/personalization signals should remain transparent and user-controlled.
@@ -224,14 +245,14 @@ Stable qualification still requires, as applicable:
 - accepted production Launcher identity artwork and derivative asset pipeline from the canonical branding repository;
 - accepted GoreeCloud Index integration with the release-intended provider set and Launcher invocation/presentation behavior;
 - accepted native Theme Manager/icon-pack/masking/scaling behavior for release scope;
-- accepted Home layout-lock enforcement and accessible unlock behavior across supported placeable content;
-- accepted configurable Index Home-entry modes;
+- accepted Home layout-lock enforcement and accessible unlock behavior across all release-supported placeable content and representative devices;
+- accepted configurable Index Home-entry modes and non-gesture accessibility behavior;
 - accepted versioned Launcher backup/restore behavior and safe migration/rebinding semantics;
 - complete intended workspace/user flows and recovery semantics;
 - accepted primary compatibility-page grid migration and complete intended cross-page movement semantics;
 - folders/widgets/shortcuts required by release scope;
 - mature cross-page placement editing and accessible alternatives;
-- representative-device, rotation/posture, performance, physical-interaction, universal-search gesture, and accessibility acceptance;
+- representative-device, rotation/posture, performance, physical-interaction, universal-search gesture, five-second unlock, and accessibility acceptance;
 - complete current Glaze UI application acceptance, currently targeting Glaze UI 2.1.0 Stable;
 - accepted applicable Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, Index, Search, Sync, Backup, and continuity integrations;
 - Android process-death and schema-upgrade recovery evidence;

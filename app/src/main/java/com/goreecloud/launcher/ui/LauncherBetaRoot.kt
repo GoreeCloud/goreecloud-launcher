@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
@@ -92,6 +93,8 @@ fun LauncherBetaRoot(
     onSetDrawerColumns: (Int) -> Unit,
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
+    onSetLayoutLocked: (Boolean) -> Unit,
+    onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
 ) {
     var surfaceModeName by rememberSaveable { mutableStateOf(LauncherSurfaceMode.HOME.name) }
@@ -133,6 +136,8 @@ fun LauncherBetaRoot(
             onSetDrawerColumns = onSetDrawerColumns,
             onSetShowLabels = onSetShowLabels,
             onSetIconScale = onSetIconScale,
+            onSetLayoutLocked = onSetLayoutLocked,
+            onSetIndexHomeMode = onSetIndexHomeMode,
             onCycleTheme = onCycleTheme,
             onBack = { surfaceModeName = LauncherSurfaceMode.HOME.name },
         )
@@ -142,6 +147,7 @@ fun LauncherBetaRoot(
         AppPlacementDialog(
             app = app,
             workspace = workspace,
+            layoutLocked = preferences.layoutLocked,
             onToggleFavorite = { onToggleFavorite(app) },
             onToggleDock = { onToggleDock(app) },
             onMoveFavorite = { onMoveFavorite(app, it) },
@@ -227,32 +233,34 @@ private fun HomeSurface(
                 }
             }
 
-            Spacer(Modifier.height(GlazeMetrics.space2))
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-                tonalElevation = 3.dp,
-                onClick = onOpenUniversalSearch,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget)
-                        .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+            if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) {
+                Spacer(Modifier.height(GlazeMetrics.space2))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                    tonalElevation = 3.dp,
+                    onClick = onOpenUniversalSearch,
                 ) {
-                    Text(
-                        "Search GoreeCloud",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        "Apps, files, people, calendar and more with GoreeCloud Index",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget)
+                            .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+                    ) {
+                        Text(
+                            "Search GoreeCloud",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            "Apps, files, people, calendar and more with GoreeCloud Index",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
 
@@ -472,6 +480,8 @@ private fun LauncherSettingsSurface(
     onSetDrawerColumns: (Int) -> Unit,
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
+    onSetLayoutLocked: (Boolean) -> Unit,
+    onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
     onCycleTheme: (GlazeThemeMode) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -514,6 +524,64 @@ private fun LauncherSettingsSurface(
                     selected = preferences.homeColumns to preferences.homeRows,
                     onSelect = { (columns, rows) -> onSetHomeGrid(columns, rows) },
                 )
+                Spacer(Modifier.height(GlazeMetrics.space3))
+                HorizontalDivider()
+                Spacer(Modifier.height(GlazeMetrics.space2))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Lock Home screen layout", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (preferences.layoutLocked) {
+                                "Placement changes are blocked. Unlock here or hold the Home lock control for 5 seconds."
+                            } else {
+                                "Keep apps and other supported Home items in place until you unlock the layout."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.width(GlazeMetrics.space3))
+                    Switch(
+                        checked = preferences.layoutLocked,
+                        onCheckedChange = onSetLayoutLocked,
+                    )
+                }
+            }
+
+            SettingsCard("GoreeCloud Index") {
+                Text("Home search entry", fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Swipe down always opens GoreeCloud Index. Choose whether the Search GoreeCloud control also stays visible on Home.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(GlazeMetrics.space2))
+                if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) {
+                    FilledTonalButton(
+                        onClick = { onSetIndexHomeMode(GoreeCloudIndexHomeMode.PERMANENT) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Permanent on Home") }
+                } else {
+                    OutlinedButton(
+                        onClick = { onSetIndexHomeMode(GoreeCloudIndexHomeMode.PERMANENT) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Permanent on Home") }
+                }
+                if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY) {
+                    FilledTonalButton(
+                        onClick = { onSetIndexHomeMode(GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Swipe down only") }
+                } else {
+                    OutlinedButton(
+                        onClick = { onSetIndexHomeMode(GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Swipe down only") }
+                }
             }
 
             SettingsCard("Apps screen") {
@@ -729,6 +797,7 @@ private fun LauncherAppTile(
 private fun AppPlacementDialog(
     app: LauncherActivityInfo,
     workspace: WorkspaceState,
+    layoutLocked: Boolean,
     onToggleFavorite: () -> Unit,
     onToggleDock: () -> Unit,
     onMoveFavorite: (WorkspaceMoveDirection) -> Unit,
@@ -749,7 +818,11 @@ private fun AppPlacementDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3)) {
                 Text(
-                    "Choose where this app appears. Long-press an icon to manage it again.",
+                    if (layoutLocked) {
+                        "Home screen layout is locked. Unlock it in Launcher settings or hold the Home lock control for 5 seconds before changing placement."
+                    } else {
+                        "Choose where this app appears. Long-press an icon to manage it again."
+                    },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 PlacementSection(
@@ -758,7 +831,8 @@ private fun AppPlacementDialog(
                     position = favoriteIndex,
                     count = workspace.favoriteKeys.size,
                     toggleLabel = if (isFavorite) "Remove" else "Add to Home",
-                    toggleEnabled = true,
+                    controlsEnabled = !layoutLocked,
+                    toggleEnabled = !layoutLocked,
                     onToggle = onToggleFavorite,
                     onMoveEarlier = { onMoveFavorite(WorkspaceMoveDirection.EARLIER) },
                     onMoveLater = { onMoveFavorite(WorkspaceMoveDirection.LATER) },
@@ -773,7 +847,8 @@ private fun AppPlacementDialog(
                         dockFull -> "Dock full"
                         else -> "Add to Dock"
                     },
-                    toggleEnabled = !dockFull,
+                    controlsEnabled = !layoutLocked,
+                    toggleEnabled = !layoutLocked && !dockFull,
                     onToggle = onToggleDock,
                     onMoveEarlier = { onMoveDock(WorkspaceMoveDirection.EARLIER) },
                     onMoveLater = { onMoveDock(WorkspaceMoveDirection.LATER) },
@@ -791,6 +866,7 @@ private fun PlacementSection(
     position: Int,
     count: Int,
     toggleLabel: String,
+    controlsEnabled: Boolean,
     toggleEnabled: Boolean,
     onToggle: () -> Unit,
     onMoveEarlier: () -> Unit,
@@ -828,12 +904,12 @@ private fun PlacementSection(
                 ) {
                     OutlinedButton(
                         onClick = onMoveEarlier,
-                        enabled = position > 0,
+                        enabled = controlsEnabled && position > 0,
                         modifier = Modifier.weight(1f),
                     ) { Text("Earlier") }
                     OutlinedButton(
                         onClick = onMoveLater,
-                        enabled = position < count - 1,
+                        enabled = controlsEnabled && position < count - 1,
                         modifier = Modifier.weight(1f),
                     ) { Text("Later") }
                 }

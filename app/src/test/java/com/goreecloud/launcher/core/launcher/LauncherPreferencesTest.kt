@@ -1,6 +1,7 @@
 package com.goreecloud.launcher.core.launcher
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class LauncherPreferencesTest {
@@ -24,6 +25,30 @@ class LauncherPreferencesTest {
         assertEquals(
             30,
             LauncherPreferences(homeColumns = 5, homeRows = 6).homeCapacity,
+        )
+    }
+
+    @Test
+    fun defaultsPreserveExistingVisibleIndexEntryAndUnlockedLayout() {
+        val defaults = LauncherPreferences()
+
+        assertFalse(defaults.layoutLocked)
+        assertEquals(GoreeCloudIndexHomeMode.PERMANENT, defaults.indexHomeMode)
+    }
+
+    @Test
+    fun indexHomeModeStorageDecodingFailsSafeToPermanent() {
+        assertEquals(
+            GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
+            GoreeCloudIndexHomeMode.fromStorage("swipe_down_only"),
+        )
+        assertEquals(
+            GoreeCloudIndexHomeMode.PERMANENT,
+            GoreeCloudIndexHomeMode.fromStorage("unknown"),
+        )
+        assertEquals(
+            GoreeCloudIndexHomeMode.PERMANENT,
+            GoreeCloudIndexHomeMode.fromStorage(null),
         )
     }
 }

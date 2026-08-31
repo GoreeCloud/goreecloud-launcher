@@ -36,6 +36,7 @@ import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.HomePageSwitcher
+import com.goreecloud.launcher.ui.LayoutLockHoldControl
 import com.goreecloud.launcher.ui.LauncherBetaRoot
 import com.goreecloud.launcher.ui.LauncherSurfaceMode
 import com.goreecloud.launcher.ui.ReadOnlyPagedHomeSurface
@@ -151,6 +152,7 @@ class MainActivity : ComponentActivity() {
                     val selectedPage = renderedPages.firstOrNull { it.pageId == selectedHomePageId }
                     val onPrimaryPage = selectedPage == null ||
                         selectedPage.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                    val showingHome = !onPrimaryPage || primarySurfaceMode == LauncherSurfaceMode.HOME
 
                     if (!onPrimaryPage && selectedPage != null) {
                         ReadOnlyPagedHomeSurface(
@@ -160,35 +162,42 @@ class MainActivity : ComponentActivity() {
                             homeColumns = launcherPreferences.homeColumns,
                             showLabels = launcherPreferences.showLabels,
                             iconScale = launcherPreferences.iconScale,
+                            layoutLocked = launcherPreferences.layoutLocked,
                             onLaunchApp = appsRepository::launch,
                             onMoveAppToPage = { app, targetPageId ->
-                                lifecycleScope.launch {
-                                    val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
-                                        sourcePageId = selectedPage.pageId,
-                                        appKey = app.workspaceKey(),
-                                        targetPageId = targetPageId,
-                                    )
-                                    if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
-                                        selectedHomePageId = result.pageId
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
+                                            sourcePageId = selectedPage.pageId,
+                                            appKey = app.workspaceKey(),
+                                            targetPageId = targetPageId,
+                                        )
+                                        if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
+                                            selectedHomePageId = result.pageId
+                                        }
                                     }
                                 }
                             },
                             onMoveAppWithinPage = { app, direction ->
-                                lifecycleScope.launch {
-                                    workspaceRuntimeCoordinator.moveHomeAppWithinPage(
-                                        pageId = selectedPage.pageId,
-                                        appKey = app.workspaceKey(),
-                                        direction = direction,
-                                    )
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.moveHomeAppWithinPage(
+                                            pageId = selectedPage.pageId,
+                                            appKey = app.workspaceKey(),
+                                            direction = direction,
+                                        )
+                                    }
                                 }
                             },
                             onMoveAppOneCell = { app, direction ->
-                                lifecycleScope.launch {
-                                    workspaceRuntimeCoordinator.moveHomeAppOneCellWithinPage(
-                                        pageId = selectedPage.pageId,
-                                        appKey = app.workspaceKey(),
-                                        direction = direction,
-                                    )
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.moveHomeAppOneCellWithinPage(
+                                            pageId = selectedPage.pageId,
+                                            appKey = app.workspaceKey(),
+                                            direction = direction,
+                                        )
+                                    }
                                 }
                             },
                         )
@@ -202,23 +211,31 @@ class MainActivity : ComponentActivity() {
                             onLaunchApp = appsRepository::launch,
                             onOpenUniversalSearch = ::openUniversalSearch,
                             onToggleFavorite = { app ->
-                                lifecycleScope.launch {
-                                    workspaceRuntimeCoordinator.toggleFavorite(app.workspaceKey())
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.toggleFavorite(app.workspaceKey())
+                                    }
                                 }
                             },
                             onToggleDock = { app ->
-                                lifecycleScope.launch {
-                                    workspaceRuntimeCoordinator.toggleDock(app.workspaceKey())
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.toggleDock(app.workspaceKey())
+                                    }
                                 }
                             },
                             onMoveFavorite = { app, direction ->
-                                lifecycleScope.launch {
-                                    workspaceRuntimeCoordinator.moveFavorite(app.workspaceKey(), direction)
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.moveFavorite(app.workspaceKey(), direction)
+                                    }
                                 }
                             },
                             onMoveDock = { app, direction ->
-                                lifecycleScope.launch {
-                                    workspaceRuntimeCoordinator.moveDock(app.workspaceKey(), direction)
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.moveDock(app.workspaceKey(), direction)
+                                    }
                                 }
                             },
                             themeMode = themeMode,
@@ -227,48 +244,67 @@ class MainActivity : ComponentActivity() {
                             onSetDrawerColumns = launcherPreferencesRepository::setDrawerColumns,
                             onSetShowLabels = launcherPreferencesRepository::setShowLabels,
                             onSetIconScale = launcherPreferencesRepository::setIconScale,
+                            onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,
+                            onSetIndexHomeMode = launcherPreferencesRepository::setIndexHomeMode,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
                             },
                         )
                     }
 
-                    val showPageSwitcher = renderedPages.isNotEmpty() &&
-                        (!onPrimaryPage || primarySurfaceMode == LauncherSurfaceMode.HOME)
+                    val showPageSwitcher = renderedPages.isNotEmpty() && showingHome
                     if (showPageSwitcher) {
                         HomePageSwitcher(
                             pages = renderedPages,
                             selectedPageId = selectedHomePageId,
                             onSelectPage = { selectedHomePageId = it },
                             onMovePage = { pageId, targetRank ->
-                                lifecycleScope.launch {
-                                    workspaceRuntimeCoordinator.moveHomePage(pageId, targetRank)
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.moveHomePage(pageId, targetRank)
+                                    }
                                 }
                             },
                             onCreatePage = {
-                                val pageId = "home:user:${UUID.randomUUID()}"
-                                lifecycleScope.launch {
-                                    val result = workspaceRuntimeCoordinator.createHomePage(pageId)
-                                    if (result is WorkspacePagedRoomMutationResult.CreatedPage) {
-                                        selectedHomePageId = result.pageId
+                                if (!launcherPreferences.layoutLocked) {
+                                    val pageId = "home:user:${UUID.randomUUID()}"
+                                    lifecycleScope.launch {
+                                        val result = workspaceRuntimeCoordinator.createHomePage(pageId)
+                                        if (result is WorkspacePagedRoomMutationResult.CreatedPage) {
+                                            selectedHomePageId = result.pageId
+                                        }
                                     }
                                 }
                             },
                             onDeletePage = { pageId ->
-                                lifecycleScope.launch {
-                                    val result = workspaceRuntimeCoordinator.deleteEmptyHomePage(pageId)
-                                    if (
-                                        result is WorkspacePagedRoomMutationResult.DeletedPage &&
-                                        selectedHomePageId == result.pageId
-                                    ) {
-                                        selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        val result = workspaceRuntimeCoordinator.deleteEmptyHomePage(pageId)
+                                        if (
+                                            result is WorkspacePagedRoomMutationResult.DeletedPage &&
+                                            selectedHomePageId == result.pageId
+                                        ) {
+                                            selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                                        }
                                     }
                                 }
                             },
+                            layoutLocked = launcherPreferences.layoutLocked,
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
                                 .statusBarsPadding()
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
+
+                    if (launcherPreferences.layoutLocked && showingHome) {
+                        LayoutLockHoldControl(
+                            locked = true,
+                            onUnlock = { launcherPreferencesRepository.setLayoutLocked(false) },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .statusBarsPadding()
+                                .padding(top = 72.dp, end = 12.dp),
                         )
                     }
                 }

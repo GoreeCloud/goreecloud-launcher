@@ -71,6 +71,7 @@ fun HomePageSwitcher(
     onMovePage: (String, Int) -> Unit,
     onCreatePage: () -> Unit,
     onDeletePage: (String) -> Unit,
+    layoutLocked: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     if (pages.isEmpty()) return
@@ -79,18 +80,18 @@ fun HomePageSwitcher(
     val selectedPage = pages.getOrNull(selectedIndex)
     val primaryRankHealthy = pages.firstOrNull()?.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
     val pageListState = rememberLazyListState()
-    var pageMenuExpanded by remember(selectedPageId) { mutableStateOf(false) }
+    var pageMenuExpanded by remember(selectedPageId, layoutLocked) { mutableStateOf(false) }
 
-    val canDelete = pages.size > 1 &&
+    val canDelete = !layoutLocked && pages.size > 1 &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
         selectedPage.appKeys.isEmpty() &&
         selectedPage.unsupportedItemCount == 0
-    val canMoveEarlier = primaryRankHealthy &&
+    val canMoveEarlier = !layoutLocked && primaryRankHealthy &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
         selectedIndex > 1
-    val canMoveLater = primaryRankHealthy &&
+    val canMoveLater = !layoutLocked && primaryRankHealthy &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
         selectedIndex in 1 until pages.lastIndex
@@ -144,9 +145,18 @@ fun HomePageSwitcher(
                 }
             }
 
-            TextButton(onClick = onCreatePage) { Text("Add") }
+            TextButton(
+                onClick = onCreatePage,
+                enabled = !layoutLocked,
+            ) { Text("Add") }
 
-            if (canMoveEarlier || canMoveLater || canDelete) {
+            if (layoutLocked) {
+                Text(
+                    "Locked",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (canMoveEarlier || canMoveLater || canDelete) {
                 Box {
                     TextButton(onClick = { pageMenuExpanded = true }) { Text("More") }
                     DropdownMenu(
@@ -199,6 +209,7 @@ fun ReadOnlyPagedHomeSurface(
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
+    layoutLocked: Boolean = false,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val pageApps = remember(appsByKey, page.appKeys) {
@@ -274,6 +285,7 @@ fun ReadOnlyPagedHomeSurface(
                             showLabel = showLabels,
                             iconScale = iconScale,
                             targetPages = targetPages,
+                            layoutLocked = layoutLocked,
                             onLaunchApp = onLaunchApp,
                             onMoveAppToPage = onMoveAppToPage,
                             onMoveAppWithinPage = onMoveAppWithinPage,
@@ -293,6 +305,7 @@ private fun PagedAppTile(
     showLabel: Boolean,
     iconScale: Float,
     targetPages: List<WorkspaceRenderedHomePage>,
+    layoutLocked: Boolean,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
@@ -351,6 +364,7 @@ private fun PagedAppTile(
         PagedAppManagementDialog(
             app = app,
             targetPages = targetPages,
+            layoutLocked = layoutLocked,
             onMoveAppToPage = onMoveAppToPage,
             onMoveAppWithinPage = onMoveAppWithinPage,
             onMoveAppOneCell = onMoveAppOneCell,
@@ -363,6 +377,7 @@ private fun PagedAppTile(
 private fun PagedAppManagementDialog(
     app: LauncherActivityInfo,
     targetPages: List<WorkspaceRenderedHomePage>,
+    layoutLocked: Boolean,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
@@ -378,7 +393,11 @@ private fun PagedAppManagementDialog(
                 verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
             ) {
                 Text(
-                    "Manage this app on the current Home page.",
+                    if (layoutLocked) {
+                        "Home screen layout is locked. Unlock it in Launcher settings or hold the Home lock control for 5 seconds before changing placement."
+                    } else {
+                        "Manage this app on the current Home page."
+                    },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
@@ -389,10 +408,12 @@ private fun PagedAppManagementDialog(
                 ) {
                     OutlinedButton(
                         onClick = { onMoveAppWithinPage(app, WorkspaceMoveDirection.EARLIER) },
+                        enabled = !layoutLocked,
                         modifier = Modifier.weight(1f),
                     ) { Text("Earlier") }
                     OutlinedButton(
                         onClick = { onMoveAppWithinPage(app, WorkspaceMoveDirection.LATER) },
+                        enabled = !layoutLocked,
                         modifier = Modifier.weight(1f),
                     ) { Text("Later") }
                 }
@@ -404,10 +425,12 @@ private fun PagedAppManagementDialog(
                 ) {
                     OutlinedButton(
                         onClick = { onMoveAppOneCell(app, WorkspaceHomeSpatialDirection.LEFT) },
+                        enabled = !layoutLocked,
                         modifier = Modifier.weight(1f),
                     ) { Text("Left") }
                     OutlinedButton(
                         onClick = { onMoveAppOneCell(app, WorkspaceHomeSpatialDirection.RIGHT) },
+                        enabled = !layoutLocked,
                         modifier = Modifier.weight(1f),
                     ) { Text("Right") }
                 }
@@ -417,10 +440,12 @@ private fun PagedAppManagementDialog(
                 ) {
                     OutlinedButton(
                         onClick = { onMoveAppOneCell(app, WorkspaceHomeSpatialDirection.UP) },
+                        enabled = !layoutLocked,
                         modifier = Modifier.weight(1f),
                     ) { Text("Up") }
                     OutlinedButton(
                         onClick = { onMoveAppOneCell(app, WorkspaceHomeSpatialDirection.DOWN) },
+                        enabled = !layoutLocked,
                         modifier = Modifier.weight(1f),
                     ) { Text("Down") }
                 }
@@ -433,6 +458,7 @@ private fun PagedAppManagementDialog(
                                 onMoveAppToPage(app, target.pageId)
                                 onClose()
                             },
+                            enabled = !layoutLocked,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(target.context().moveTargetLabel(target.rank + 1))
