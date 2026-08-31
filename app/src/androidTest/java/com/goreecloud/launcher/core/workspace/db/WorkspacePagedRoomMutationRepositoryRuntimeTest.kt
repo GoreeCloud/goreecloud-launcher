@@ -56,7 +56,7 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
     }
 
     @Test
-    fun pageLifecycleAndOrderMutationRequireRoomAuthorityAndPreserveChildItems() = runBlocking {
+    fun pageLifecycleAndOrderMutationRequireRoomAuthorityAndProtectPrimaryRank() = runBlocking {
         val authorityRepository = WorkspaceRepository(openDataStore())
         authorityRepository.ensureDefaults(
             favoriteKeys = listOf(APP_ONE),
@@ -149,20 +149,35 @@ class WorkspacePagedRoomMutationRepositoryRuntimeTest {
         )
 
         assertEquals(
-            WorkspacePagedRoomMutationResult.Updated(
-                listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1")
-            ),
+            WorkspacePagedRoomMutationResult.PrimaryPageProtected,
             repository.moveHomePage("home:2", 0),
+        )
+        assertEquals(
+            WorkspacePagedRoomMutationResult.PrimaryPageProtected,
+            repository.moveHomePage(WorkspaceLegacyImportMapper.HOME_PAGE_ID, 1),
+        )
+        assertEquals(
+            WorkspacePagedRoomMutationResult.Updated(
+                listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:2", "home:1")
+            ),
+            repository.moveHomePage("home:2", 1),
         )
 
         assertEquals(
-            listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1"),
+            listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:2", "home:1"),
             database.workspaceDao().readPagesByContainer(WorkspaceContainerType.HOME).map { it.pageId },
         )
         val preserved = database.workspaceDao().readItems(listOf("home:2"))
         assertEquals(1, preserved.size)
         assertEquals("native:item:two", preserved.single().itemId)
         assertEquals(APP_TWO, preserved.single().appKey)
+        assertEquals(
+            WorkspaceRelationalSnapshot(
+                favoriteKeys = listOf(APP_ONE),
+                dockKeys = emptyList(),
+            ),
+            WorkspaceCanonicalRoomPlacementReader.read(database.workspaceDao()),
+        )
 
         assertEquals(
             WorkspacePagedRoomMutationResult.TargetRankOutOfRange,
