@@ -48,7 +48,6 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlaceme
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceStartupReconciler.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherBetaRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt
-app/src/main/java/com/goreecloud/launcher/ui/NullableDrawableBitmap.kt
 app/src/main/java/com/goreecloud/launcher/ui/PagedHomeSurface.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
