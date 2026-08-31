@@ -43,15 +43,18 @@ Current Development source includes:
 - a distinct wallpaper-backed **Home** surface rather than an engineering Favorites screen;
 - a separate **Apps** surface with local label/package filtering and launching;
 - a separate scrollable **Launcher Settings** surface;
-- locally persisted Home grid presets, Apps-grid columns, app-label visibility, icon-size preference, and System / Light / Dark appearance;
+- locally persisted Home grid presets, Apps-grid columns, app-label visibility, icon-size preference, System / Light / Dark appearance, Home layout-lock state, and GoreeCloud Index Home-entry mode;
 - ordered persisted Home Favorites and a five-item Dock;
 - long-press placement management with accessible earlier/later controls;
+- a persisted **Lock Home screen layout** policy that blocks current Favorite, Dock, secondary-app, Home-page create/delete/reorder, and secondary spatial mutation callbacks while leaving app launching and page selection available;
+- a visible locked-state Home control that can unlock the layout after an intentional five-second hold with progress feedback, while the Settings switch remains the deterministic accessible unlock path;
 - terminal-Room multi-page HOME observation, page selection, protected-primary/secondary-page reordering, empty-page creation/deletion, and secondary application pages;
 - a compact/lazy Home page selector with authoritative accessibility context;
 - secondary-page icons rendered as normal launcher tiles, with movement/cell controls moved behind long-press management instead of permanently shown beneath every app;
 - bounded secondary-to-secondary page movement, nearest-free-cell movement, and guarded exact one-cell movement;
-- a visible **Search GoreeCloud** Home affordance that hands universal search to GoreeCloud Index;
-- the approved one-finger downward Home gesture wired to the same Index handoff;
+- persisted GoreeCloud Index Home entry choices for **Permanent on Home** and **Swipe down only**;
+- a **Search GoreeCloud** Home affordance when Permanent mode is selected;
+- the one-finger downward Home gesture wired to the same Index handoff in both entry modes;
 - bounded package visibility for the Index search action without broad package access; and
 - Android system wallpaper presentation through the native window-wallpaper mechanism without requesting wallpaper/storage privileges.
 
@@ -67,15 +70,19 @@ The Launcher-to-Index integration adds only a scoped visibility declaration for 
 
 Home uses the system wallpaper behind the launcher-owned surface, renders the current app grid and Dock, and keeps placement management behind long-press. The protected primary compatibility Home remains rank zero while the separate primary-grid migration is still pending.
 
-Home now provides a visible Search GoreeCloud control and an unobstructed top-area downward-swipe path that invoke GoreeCloud Index. If Index is unavailable, Launcher reports that state instead of silently substituting a rival universal search engine.
+The one-finger downward Home gesture invokes GoreeCloud Index in both supported entry modes. **Permanent on Home** additionally keeps the Search GoreeCloud control visible; **Swipe down only** removes that permanent control without replacing Index or changing search authority. If Index is unavailable, Launcher reports that state instead of silently substituting a rival universal search engine.
+
+When Home layout lock is enabled, current placement/page mutation callbacks are rejected at the Launcher composition boundary. Normal app launching, page selection, Apps navigation, and Settings access remain usable. The lock can be disabled from Launcher Settings or by intentionally holding the visible locked-state Home control for five seconds. The hold path has progress feedback; Settings remains the non-gesture accessible path.
 
 ### Apps
 
 Apps presents the launchable application inventory in a configurable 4/5/6-column grid and supports a narrow local filter by label/package. This **Search apps** filter is a Launcher navigation feature, not GoreeCloud universal search and not an alternative Index provider/ranking pipeline.
 
+Long-press placement management remains discoverable while the layout is locked, but current placement controls are disabled and explain that the user must unlock Home first.
+
 ### Launcher Settings
 
-Current persisted settings include supported Home-grid presets, Apps columns, Small/Medium/Large icon presentation, app-label visibility, and System/Light/Dark appearance. These are presentation preferences; they do not widen Room workspace mutation authority.
+Current persisted settings include supported Home-grid presets, Apps columns, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and GoreeCloud Index Home entry mode. The Index setting controls only Launcher-owned invocation presentation; it does not move provider/index/ranking authority out of GoreeCloud Index.
 
 ## Multi-page Room boundary
 
@@ -83,13 +90,13 @@ When terminal Room authority is active, Launcher can expose page selection, crea
 
 Room writes continue to verify the protected primary compatibility projection and re-read the complete HOME page/item snapshot so concurrent changes, malformed placement, collisions, invalid bounds, or attempts to use primary Home as a secondary spatial source/target fail closed.
 
-This remains a Development editing bridge, not a complete multi-page drag/drop editor.
+The Home layout lock is an additional Launcher mutation policy over these authoritative operations. It does not create a second workspace persistence authority. This remains a Development editing bridge, not a complete multi-page drag/drop editor.
 
 ## GoreeCloud Index universal search integration
 
 **GoreeCloud Index is the canonical unified/universal first-party search and indexing authority.** Launcher is a first-party invocation/presentation surface and a potential provider of Launcher-owned application/action/settings/folder/widget context. Launcher does not own a separate cross-provider index, result normalization system, or universal ranking engine.
 
-The current Development integration uses the explicit action contract `com.goreecloud.index.action.SEARCH`. Launcher can resolve both the production package identity `com.goreecloud.index` and the Development package identity `com.goreecloud.index.dev` while testing. The Home Search GoreeCloud affordance and one-finger downward gesture use this same handoff.
+The current Development integration uses the explicit action contract `com.goreecloud.index.action.SEARCH`. Launcher can resolve both the production package identity `com.goreecloud.index` and the Development package identity `com.goreecloud.index.dev` while testing. Both Home entry modes use this same handoff; only the presence of the permanent Home affordance changes.
 
 The first Index Android slice currently targets installed applications only. Broader provider classes remain separate Index work, including contacts, calendar, files/documents, media, first-party GoreeCloud application content, Drive, connected devices, extensions, optional third-party services, and Web/current-information results.
 
@@ -124,8 +131,7 @@ Still incomplete or separately gated:
 - populated-page deletion with confirmation/recovery/undo;
 - folders, shortcuts, widgets/AppWidgetHost, and richer workspace editing;
 - complete Theme Manager, icon-pack/masking support, and broader configurable gestures;
-- configurable Home layout lock and five-second Home unlock gesture;
-- selectable permanent-on-Home versus swipe-only GoreeCloud Index entry mode;
+- layout-lock coverage for future folders/shortcuts/widgets once those item types are implemented, plus representative physical-device five-second-hold acceptance;
 - embedded/polished Index result presentation beyond the current activity handoff;
 - Index providers for files/photos/documents/contacts/calendar and first-party searchable-content contracts;
 - GoreeCloud Search provider implementation in Index;
