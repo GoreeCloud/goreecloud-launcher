@@ -4,6 +4,8 @@
 
 GoreeCloud Launcher is a **Development** Android HOME application. It is not yet a signed production/Stable release. Current source supports daily-launcher foundations including HOME-role onboarding, app discovery, Favorites, Dock, All apps search, local placement/reorder controls, Light/Dark/System appearance behavior, and a guarded terminal-Room multi-page Home surface.
 
+Features described under **Approved future product direction** are planned/target capabilities and are **not currently available** unless a later current-behavior section or acceptance record explicitly says otherwise.
+
 ## Make GoreeCloud Launcher your Home app
 
 After installing a Development build, open GoreeCloud Launcher and use its Home-role onboarding control to request Android's default HOME role. Android remains the authority for which launcher is the default.
@@ -23,7 +25,7 @@ The launcher discovers launchable applications through Android's `LauncherApps` 
 
 ## Multi-page Home navigation
 
-When the guarded workspace has reached terminal Room authority, the Development build can expose the authoritative HOME pages through a horizontal page selector.
+When the guarded workspace has reached terminal Room authority, the Development build can expose authoritative HOME pages through a horizontal page selector.
 
 Each page selector entry shows:
 
@@ -56,7 +58,7 @@ Exact-cell requests fail closed if the target cell is occupied or outside the au
 
 If authoritative paged Room state is unavailable, Launcher does not fabricate secondary-page state and remains on the safe primary Home path.
 
-This remains a Development workspace surface. Mature drag/drop page editing, folders, shortcuts, widgets, and production Room acceptance remain separate milestones.
+This remains a Development workspace surface. Mature drag/drop page editing, folders, shortcuts, widgets, and complete release acceptance remain separate milestones.
 
 ## All apps
 
@@ -91,23 +93,59 @@ Complete rendered Glaze UI 2.0 acceptance, all accessibility configurations, and
 
 The repository contains deterministic multi-page workspace mutation contracts and Room-backed page-order, app-placement, cross-page movement, and guarded exact-cell movement foundations for the terminal Room-authority path. The rendered page selector and secondary-page surface read from that terminal Room authority; they do not bypass it.
 
-Broader drag/drop controls, folders, shortcuts, widgets, complete live cell/span editing, and production Room cutover/routing acceptance remain separate milestones.
+Broader drag/drop controls, folders, shortcuts, widgets, complete live cell/span editing, and complete release acceptance remain separate milestones.
 
 ## Privacy and network behavior
 
 The current launcher has no Android `INTERNET` permission and core operation is intended to remain offline-capable.
 
-- Privacy Shield governs privacy/user-control surfaces.
+- Privacy Shield governs applicable privacy/user-control surfaces.
 - Wardveil Security governs applicable security/trust surfaces.
 - Everkeep governs accepted backup/restore, continuity, preservation, and portability.
 - GoreeCloud Identity governs any future account-backed authorization.
-- GoreeCloud Mesh governs authenticated cross-service integration.
+- GoreeCloud Mesh governs authenticated/authorized cross-service and cross-device integration.
 - Glaze UI governs interface/design-system conformance.
+
+Naming these platform systems does not mean every integration is currently implemented or accepted.
 
 The current launcher does not require a GoreeCloud account for core Home operation.
 
 ## Current limitations
 
-Still incomplete or separately gated include production Room authority cutover/routing acceptance, mature page drag/drop editing, folders, shortcuts, widgets/AppWidgetHost, complete icon/label customization, broader gesture bindings, full Glaze Theme Engine behavior, versioned backup/restore, process-death acceptance, physical-device default-HOME acceptance, signed release packaging, and Stable qualification.
+Still incomplete or separately gated include mature cross-page drag/drop editing, folders, shortcuts, widgets/AppWidgetHost, complete icon/label customization, broader gesture bindings, full Glaze Theme Engine behavior, unified GoreeCloud Search/context/feed capabilities, versioned backup/restore, cross-device continuity, complete applicable platform-system integration acceptance, process-death/schema-upgrade recovery acceptance, representative physical-device default-HOME acceptance, signed release packaging, and Stable qualification.
 
-Refer to `README.md`, `SPECIFICATIONS.md`, `FEATURES.md`, and the `docs/` directory for implementation and acceptance details.
+# Approved future product direction — not currently available
+
+The long-term Launcher product scope is substantially broader than the current Development build. The following areas are approved targets, not instructions for features that can be used today.
+
+## Home and organization
+
+Future Launcher releases are intended to support deeply customizable Home pages and grids, icon/label sizing, margins/padding, folders, shortcuts, widgets, multiple dock pages, page indicators, wallpaper behavior, precise placement, layout locking, overlapping supported elements, and adaptive layouts for different form factors.
+
+## Application drawer
+
+The intended application drawer includes custom grids, folders/tabs, categories, smart groups, suggested/recent/frequent applications, hiding, visual customization, and context-sensitive ordering in addition to search.
+
+## GoreeCloud Search
+
+The approved direction includes search across applications, application content, contacts, device/GoreeCloud settings, files/documents/screenshots, shortcuts/actions, web results, application-store/services, and compatible connected devices with direct actions and configurable result categories.
+
+## Appearance and gestures
+
+The intended personalization surface includes icon packs, GoreeCloud/adaptive themed icons, icon shapes, wallpaper-derived palettes, custom colors, transparency, custom Home/drawer/folder/dock styling, custom text styling, richer gesture assignments, reduced-motion behavior, and high-contrast/accessibility preferences.
+
+## Smart information and cards
+
+Future optional contextual experiences may include application suggestions, calendar/weather/event/delivery/travel/flight/navigation/media/file/device information, privacy/security status, backup/sync state, and other GoreeCloud service cards. These surfaces must remain configurable and privacy-aware.
+
+## Backup and continuity
+
+The approved direction includes Launcher configuration/layout backup and restore, configuration history, device migration, supported Sync continuity, Everkeep preservation, and safe device-replacement recovery.
+
+## GoreeCloud integration
+
+The intended product can integrate, where implemented and authorized, with GoreeCloud Drive, Sync, Backups, Everkeep, Identity, Privacy Shield, Wardveil Security, Mesh, Location, Mail, Messenger, Maps, Calendar, Search, Glaze UI, and other compatible GoreeCloud services.
+
+Personalization and contextual intelligence should remain transparent and user-controlled. Privacy, security, identity, continuity, and cross-device features must not be inferred from a name or visual surface alone; each requires substantive implementation and acceptance.
+
+Refer to `README.md`, `SPECIFICATIONS.md`, `FEATURES.md`, `BENEFITS.md`, `COMPETITIVE-OBJECTIVES.md`, and the `docs/` directory for product scope, implementation state, architecture, and acceptance details.
