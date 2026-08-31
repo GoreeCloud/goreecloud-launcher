@@ -13,7 +13,7 @@ Competitive objectives describe the standard Launcher should meet. They are not 
 3. **Deep customization without chaos.** Users should be able to customize grids, icons, labels, folders, widgets, dock behavior, gestures, layouts, and appearance while the underlying workspace model remains deterministic and recoverable.
 4. **One workspace authority.** UI convenience, sync, contextual surfaces, and cross-device features must not create competing silent sources of truth beside the accepted workspace authority.
 5. **Safe mutations.** Moves, reorder, placement, deletion, migration, and restore should use explicit preconditions and fail closed rather than guess at state.
-6. **Powerful application discovery.** The application drawer and GoreeCloud Search should make applications and relevant content easy to find through search, organization, categories, smart groups, direct actions, and privacy-aware suggestions.
+6. **Powerful application discovery and universal search.** The application drawer and GoreeCloud Index-powered universal search should make applications and relevant content easy to find through search, organization, direct actions, source provenance, and privacy-aware provider participation. GoreeCloud Search remains the Web/current-information provider reached through Index when authorized.
 7. **Context without surveillance.** Recommendations and contextual cards should be useful, explainable, controllable, and bounded by Privacy Shield rather than opaque behavioral profiling.
 8. **Strong privacy defaults.** Core launcher use should remain privacy-conscious and offline-capable where practical; sensitive content, location-derived behavior, search context, notifications, widgets, and cross-app data must honor explicit privacy controls.
 9. **Security that is substantive.** Wardveil Security integration should provide real trust/protection/security-state behavior where applicable rather than decorative badges or unsupported claims.
@@ -27,7 +27,7 @@ Competitive objectives describe the standard Launcher should meet. They are not 
 17. **Visual personalization with coherence.** Icon packs, GoreeCloud-themed icons, icon shapes, wallpaper palettes, custom accents, transparency, typography, and custom Home/drawer/folder/dock styling should remain visually coherent rather than becoming an unstructured theme collection.
 18. **Performance-aware motion and layout.** Animation and adaptive visual effects should scale responsibly with device capabilities and reduced-motion preferences.
 19. **Open, maintainable product architecture.** First-party native ownership, explicit platform boundaries, documented capability status, and narrowly justified dependencies should keep the product understandable and maintainable.
-20. **No monetized launcher manipulation.** Ads, sponsorship placement, promoted apps, affiliate ranking, and behavioral-advertising incentives should not distort Home, Search, drawer ordering, recommendations, or user trust.
+20. **No monetized launcher manipulation.** Ads, sponsorship placement, promoted apps, affiliate ranking, and behavioral-advertising incentives should not distort Home, universal search, drawer ordering, recommendations, or user trust.
 
 ## Competitive capability targets
 
@@ -37,11 +37,13 @@ Launcher should match or exceed mature launcher expectations for configurable pa
 
 ### Application drawer
 
-Launcher should provide excellent alphabetical browsing, search, custom grids, folders/tabs, categories, smart groups, suggestions, recent/frequent views, hiding, and visual customization without making ranking logic opaque.
+Launcher should provide excellent alphabetical browsing, local app filtering, custom grids, folders/tabs, categories, smart groups, suggestions, recent/frequent views, hiding, and visual customization without making ranking logic opaque.
 
-### Search
+### Universal search
 
-GoreeCloud Search integration should evolve beyond app-name filtering into a unified, privacy-aware command/search surface for applications, content, contacts, settings, files, screenshots, shortcuts/actions, web results, store/services, and compatible devices with direct actions and configurable categories.
+Launcher should provide a fast, polished first-party invocation and presentation experience for **GoreeCloud Index**, the canonical GoreeCloud universal query/provider/index/normalization/ranking authority. Index should evolve beyond the current installed-app foundation to authorized content, contacts, settings, files, screenshots/media, shortcuts/actions, compatible devices, first-party GoreeCloud content, and other approved providers with direct actions, grouping, source provenance, and configurable categories.
+
+**GoreeCloud Search** is the Internet/Web/current-information provider that Index may invoke when enabled and authorized. Launcher should not build a rival universal index or silently transfer Index authority into a local app-name filter.
 
 ### Smart/contextual Home
 
@@ -57,27 +59,30 @@ Layout migration, backup/restore, configuration history, Sync, Everkeep preserva
 
 ### GoreeCloud integration
 
-Launcher should make GoreeCloud Drive, Mail, Messenger, Maps, Calendar, Location, Search, Sync, Backups, Identity, Mesh, Everkeep, Privacy Shield, Wardveil Security, Glaze UI, and compatible future services more accessible through appropriate shortcuts, widgets, cards, search, actions, and continuity interfaces—without artificial integrations or unsupported protection claims.
+Launcher should make GoreeCloud Index, Drive, Mail, Messenger, Maps, Calendar, Location, Search, Sync, Backups, Identity, Mesh, Everkeep, Privacy Shield, Wardveil Security, Glaze UI, and compatible future services more accessible through appropriate shortcuts, widgets, cards, search/provider contracts, actions, and continuity interfaces—without artificial integrations or unsupported protection claims.
 
 ## Current Development proof points
 
 The current source has:
 
 - native Android HOME/application discovery foundations;
-- local Favorites/Dock and All apps search;
+- local Favorites/Dock and Apps label/package filtering;
 - guarded Room-authoritative multi-page Home projection;
 - guarded page/app mutation paths;
 - exact one-cell fail-closed movement;
 - page context counts;
 - a lazy selected-page-aware switcher;
-- Development Glaze UI 2.0 Adoption Candidate mapping; and
-- CI/emulator validation for the currently exercised Development paths.
+- a bounded GoreeCloud Index invocation path with persisted Home-entry modes;
+- Home layout locking with a deterministic Settings path and five-second Home hold path;
+- Glaze UI 2.1.0 Adoption Candidate source mapping anchored to the canonical Stable release, with complete application acceptance still pending;
+- a native Theme Manager catalog/preview/persistence source foundation that is not yet wired into current Launcher Settings navigation; and
+- CI/emulator validation for the currently exercised Development paths once each exact candidate completes its required checks.
 
 These proof points establish useful architectural progress, not competitive completeness.
 
 ## Not yet competitive-complete
 
-Major remaining areas include mature cross-page drag/drop and complete placement editing; folders/widgets/shortcuts; rich icon/label/theme customization; complete application-drawer organization; unified GoreeCloud Search; contextual recommendations/feed/cards; complete notification behavior; backup/restore and configuration migration; cross-device continuity; full applicable Privacy Shield/Wardveil/Everkeep/Identity/Mesh integration; complete Glaze UI rendered accessibility/device acceptance; representative physical-device validation; signed release packaging; and Stable qualification.
+Major remaining areas include mature cross-page drag/drop and complete placement editing; folders/widgets/shortcuts; user-reachable Theme Manager plus rich icon-pack/masking/theme customization; complete application-drawer organization; mature GoreeCloud Index result presentation and broader provider coverage; GoreeCloud Search Web/current-information integration through Index; contextual recommendations/feed/cards; complete notification behavior; backup/restore and configuration migration; cross-device continuity; full applicable Privacy Shield/Wardveil/Everkeep/Identity/Mesh integration; complete Glaze UI 2.1 rendered accessibility/device acceptance; representative physical-device validation; signed release packaging; and Stable qualification.
 
 ## Competitive success standard
 
