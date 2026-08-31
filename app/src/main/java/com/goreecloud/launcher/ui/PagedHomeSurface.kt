@@ -40,6 +40,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -103,6 +106,10 @@ fun HomePageSwitcher(
                     val pageContext = page.context()
                     Surface(
                         modifier = Modifier
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = pageContext.switcherAccessibilityLabel(index + 1, selected)
+                                this.selected = selected
+                            }
                             .clickable { onSelectPage(page.pageId) }
                             .padding(1.dp),
                         shape = RoundedCornerShape(GlazeMetrics.radiusControl),
