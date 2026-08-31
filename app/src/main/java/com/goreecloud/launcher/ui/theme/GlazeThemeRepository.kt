@@ -18,7 +18,11 @@ class GlazeThemeRepository(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     val defaultMode = GlazeThemeMode.SYSTEM
     val themeMode: Flow<GlazeThemeMode> = context.themeStore.data.map {
-        it[key]?.let { value -> runCatching { GlazeThemeMode.valueOf(value) }.getOrNull() } ?: defaultMode
+        GlazeThemeModeCodec.decode(it[key], defaultMode)
+    }
+
+    fun setMode(mode: GlazeThemeMode) {
+        scope.launch { context.themeStore.edit { prefs -> prefs[key] = mode.name } }
     }
 
     fun cycleMode(current: GlazeThemeMode) {
@@ -27,6 +31,11 @@ class GlazeThemeRepository(private val context: Context) {
             GlazeThemeMode.LIGHT -> GlazeThemeMode.DARK
             GlazeThemeMode.DARK -> GlazeThemeMode.SYSTEM
         }
-        scope.launch { context.themeStore.edit { prefs -> prefs[key] = next.name } }
+        setMode(next)
     }
+}
+
+internal object GlazeThemeModeCodec {
+    fun decode(value: String?, fallback: GlazeThemeMode = GlazeThemeMode.SYSTEM): GlazeThemeMode =
+        value?.let { stored -> runCatching { GlazeThemeMode.valueOf(stored) }.getOrNull() } ?: fallback
 }
