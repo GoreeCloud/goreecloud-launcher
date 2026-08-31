@@ -10,10 +10,14 @@ import androidx.compose.ui.graphics.Color
 enum class GlazeThemeMode { SYSTEM, LIGHT, DARK }
 
 /**
- * Glaze UI 2.0 Stable color mapping for the Launcher surfaces currently in use.
- * Values come from the promoted `tokens/glaze.tokens.json` Light/Dark foundation
- * and identity roles. Deep Dark remains an explicit application acceptance gap
- * rather than being approximated with an unreviewed palette.
+ * Glaze UI 2.1 Stable Light/Dark foundation and identity mapping for the
+ * Launcher surfaces currently in use. The promoted 2.1 token contract retains
+ * these foundation values from the compatible 2.0 base while adding stronger
+ * material-clarity, density, performance, and accessibility resolution rules.
+ *
+ * Deep Dark remains an explicit application acceptance gap rather than being
+ * approximated with an unreviewed palette. Material Clarity and accessibility
+ * resolution behavior are also separately acceptance-gated for Launcher.
  */
 private val light = lightColorScheme(
     primary = Color(0xFF366CF6),
