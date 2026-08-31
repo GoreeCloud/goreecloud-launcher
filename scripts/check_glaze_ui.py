@@ -19,10 +19,10 @@ EXPECTED_METRICS = {
     "space4": 16,
     "space5": 20,
     "space6": 24,
-    "space7": 32,
-    "space8": 40,
-    "space9": 48,
-    "space10": 64,
+    "space8": 32,
+    "space10": 40,
+    "space12": 48,
+    "space16": 64,
     "radiusSmall": 10,
     "radiusMedium": 14,
     "radiusControl": 16,
@@ -79,6 +79,10 @@ def main() -> None:
         if expected not in metrics_text:
             fail(f"expected Glaze UI 2.1 metric mapping `{expected}`")
 
+    for invented_alias in ("val space7:", "val space9:"):
+        if invented_alias in metrics_text:
+            fail(f"non-canonical sequential spacing alias remains active: `{invented_alias}`")
+
     for marker in EXPECTED_THEME_MARKERS:
         if marker not in theme_text:
             fail(f"missing Glaze UI 2.1 Light/Dark theme evidence `{marker}`")
@@ -103,8 +107,10 @@ def main() -> None:
         "Production eligible on Glaze UI gate: no",
         "Adoption mode: native Android semantic mapping",
         "Implemented 2.1 mapping",
+        "canonical spacing token keys",
         "48 dp current-contract general interaction floor",
         "56 dp touch-assistance target",
+        "compatibility token `target.minimum=44`",
         "Reduced transparency must resolve to Solid",
         "Deep Dark is not approximated with an invented palette",
         "Theme Manager surface is source foundation",
@@ -143,8 +149,8 @@ def main() -> None:
 
     print(
         "Glaze UI 2.1 Launcher Adoption Candidate contract passed: "
-        f"{len(EXPECTED_METRICS)} native metrics + promoted Light/Dark mapping + "
-        "bounded Theme Manager foundation + exact Stable evidence boundary validated."
+        f"{len(EXPECTED_METRICS)} native metrics + canonical spacing token identities + "
+        "promoted Light/Dark mapping + bounded Theme Manager foundation + exact Stable evidence boundary validated."
     )
 
 
