@@ -6,149 +6,141 @@ GoreeCloud Launcher is GoreeCloud's privacy-first, original Android HOME applica
 
 **Development — not a signed production/Stable release.**
 
-The current repository contains a usable native daily-launcher foundation plus guarded Room-authority workspace foundations and an expanding rendered multi-page navigation/editing path. Passing CI/emulator tests does not establish complete physical-device interaction acceptance, signed release, full platform integration, or Stable qualification.
+The current repository contains a usable native daily-launcher foundation, a rebuilt Home / Apps / Launcher Settings product shell, and guarded Room-authority multi-page workspace foundations. Passing CI/emulator tests does not establish complete physical-device interaction acceptance, signed release, complete platform integration, or Stable qualification.
 
-The complete approved target capability inventory is maintained in [FEATURES.md](FEATURES.md). Target capabilities are not implementation claims unless they are also identified as current Development behavior and supported by repository evidence.
+The complete approved target capability inventory is maintained in [FEATURES.md](FEATURES.md). Target capabilities are not implementation claims unless separately identified as current Development behavior and supported by repository evidence.
 
 ## Product role
 
 Launcher is intended to become the personalized front door to GoreeCloud: bringing applications, files, people, devices, search, information, services, privacy controls, security state, continuity features, and contextual actions together within one adaptive interface.
 
-Its approved product scope includes rich Home and application-drawer organization, GoreeCloud Search integration, visual/icon personalization, gestures, contextual experiences, information feeds/cards, notifications, folders, widgets, adaptive dock/layout behavior, motion, application management, backup/sync/configuration, and applicable cross-platform GoreeCloud integrations.
-
 Launcher intelligence and personalization should remain transparent and user-controlled.
 
 ## Product rules
 
-- No ads, sponsorships, promoted apps, or affiliate placement.
+- No ads, sponsorships, promoted apps, affiliate placement, or monetized search ranking.
 - No behavioral advertising or mandatory analytics.
-- Core Home operation is offline-capable.
+- Core Home and local application use remain offline-capable.
 - No required GoreeCloud server or account for core launcher use.
 - Minimal, documented permissions; current source has no Android `INTERNET` permission.
+- No broad `QUERY_ALL_PACKAGES` access for ordinary launcher discovery.
 - Glaze UI is the Design Center authority for applicable interface behavior.
-- Privacy Shield governs applicable privacy, consent, data-minimization, and user-control surfaces.
-- Wardveil Security governs applicable security, trust, protection, verification, and response surfaces.
-- Everkeep governs applicable continuity, backup, recovery, preservation, and portability behavior.
-- GoreeCloud Identity governs applicable identity/authentication/authorization behavior.
-- GoreeCloud Mesh governs applicable cross-service/device coordination and capability integration.
-- A platform-system integration is not considered implemented merely because it is named in product documentation or displayed in the interface.
+- Privacy Shield, Wardveil Security, Everkeep, GoreeCloud Identity, and GoreeCloud Mesh govern their applicable platform boundaries.
+- A platform integration is not considered implemented merely because it appears in approved scope or UI copy.
 
-## Current user-facing foundation
+## Current rebuilt daily-launcher shell
 
-Current source includes:
+Current Development source includes:
 
 - Android HOME activity and user-controlled `ROLE_HOME` onboarding;
 - lifecycle-aware default-HOME status;
-- `LauncherApps` discovery across available profiles and package lifecycle callbacks;
-- ordered locally persisted Favorites and a five-item Dock;
-- first-run Favorites/Dock seeding from installed launchable apps;
-- long-press placement management from supported surfaces;
-- explicit move-earlier/move-later controls;
-- Reorder-mode Favorites/Dock drag/drop using the current workspace persistence path;
-- terminal-Room multi-page HOME observation with page selection, protected-primary/secondary-page reordering, empty-page creation/deletion, and rendering of secondary application pages;
-- a lazy horizontal Home page selector that shows authoritative app/unsupported-item context and automatically scrolls the selected page into view after selection, reorder, or page-count changes;
-- bounded secondary-page application moves to another existing secondary Home page through the guarded Room placement path;
-- guarded nearest-free-cell and exact one-cell movement for supported secondary-page app items;
-- All apps with local label/package search and app launching; and
-- persisted System / Light / Dark appearance selection.
+- scoped Android package visibility for `MAIN` + `LAUNCHER` activities and `LauncherApps` discovery across available profiles;
+- package/profile lifecycle refresh and stable launcher-item deduplication;
+- a distinct wallpaper-backed **Home** surface rather than an engineering Favorites screen;
+- a separate **Apps** surface with local label/package search and launching;
+- a separate scrollable **Launcher Settings** surface;
+- locally persisted Home grid presets, Apps-grid columns, app-label visibility, icon-size preference, and System / Light / Dark appearance;
+- ordered persisted Home Favorites and a five-item Dock;
+- long-press placement management with accessible earlier/later controls;
+- terminal-Room multi-page HOME observation, page selection, protected-primary/secondary-page reordering, empty-page creation/deletion, and secondary application pages;
+- a compact/lazy Home page selector with authoritative accessibility context;
+- secondary-page icons rendered as normal launcher tiles, with movement/cell controls moved behind long-press management instead of permanently shown beneath every app;
+- bounded secondary-to-secondary page movement, nearest-free-cell movement, and guarded exact one-cell movement; and
+- Android system wallpaper presentation through the native window-wallpaper mechanism without requesting wallpaper/storage privileges.
 
-## Approved target capability areas
+## Complete app discovery boundary
 
-The approved product scope extends substantially beyond the current Development surface. Major target areas include:
+Android 11+ package visibility requires launchers to declare which external activity class they need to discover. GoreeCloud Launcher declares a scoped `MAIN` + `LAUNCHER` visibility query and continues to use `LauncherApps` for actual launchable-activity discovery.
 
-- deeply customizable multi-page Home layouts, grids, icons, labels, margins, folders, widgets, dock behavior, and device-adaptive layouts;
-- a richer application drawer with custom grids, folders/tabs, categorization, smart groups, suggestions, recency/frequency surfaces, and privacy-aware organization;
-- GoreeCloud Search across installed apps, application content, contacts, settings, files/documents/screenshots, actions, the web, application store, GoreeCloud services, and compatible connected devices;
-- icon packs, GoreeCloud-native/adaptive themed icons, custom icon shapes, wallpaper-derived palettes, transparent surfaces, and adaptive Glaze UI visual themes;
-- configurable gestures and direct contextual actions;
-- optional contextual recommendations and cards for calendar, weather, travel, package delivery, navigation, media, files, devices, privacy/security state, and GoreeCloud services;
-- notification badges/previews with privacy-aware visibility;
-- smart folders and complete widget workflows;
-- adaptive dock, per-page/per-device/per-display layout configuration, foldable/tablet/desktop-style modes, and accessibility-aware motion;
-- application-management shortcuts into Android/GoreeCloud permission, storage, notification, privacy, and security controls;
-- launcher-layout backup/restore, configuration history, migration, Sync continuity, Everkeep preservation, and safe device-replacement recovery; and
-- applicable integration with Drive, Sync, Backups, Everkeep, Identity, Privacy Shield, Wardveil Security, Mesh, Location, Mail, Messenger, Maps, Calendar, Glaze UI, and other compatible GoreeCloud services.
+This fixes the earlier Development APK behavior where only a small visible subset of installed apps could appear. It does **not** add `QUERY_ALL_PACKAGES`, Internet access, analytics, or an installed-application export path.
 
-See [FEATURES.md](FEATURES.md) for the detailed approved scope and implementation-state boundaries.
+## Home, Apps, and Settings
 
-## Glaze UI 2.0 boundary
+### Home
 
-Launcher targets the current **Glaze UI 2.0.0 Stable** design-system baseline through its repository Adoption Candidate mapping. Historical Glaze UI 1.x references are not the current design authority.
+Home uses the system wallpaper behind the launcher-owned surface, renders the current app grid and Dock, and keeps placement management behind long-press. The protected primary compatibility Home remains rank zero while the separate primary-grid migration is still pending.
 
-Source governance and mapped native tokens do not by themselves establish complete rendered/native/accessibility acceptance. Representative phone/tablet/foldable behavior, physical touch interaction, TalkBack/switch-access behavior, contrast, reduced-transparency/reduced-motion behavior where applicable, and other production design gates remain separate evidence requirements.
+### Apps
 
-## Workspace persistence and multi-page foundation
+Apps presents the launchable application inventory in a configurable 4/5/6-column grid and supports local search by label/package. Page-management controls are not overlaid on the Apps surface.
 
-Launcher contains:
+### Launcher Settings
 
-- Preferences DataStore compatibility/workspace state;
-- AndroidX Room relational workspace pages/items and schema history;
-- mirror, verification, dual-read, startup reconciliation, and durable authority-state contracts;
-- guarded terminal `ROOM` authority primitives;
-- deterministic framework-independent grid and multi-page placement validation/mutation contracts;
-- Room-backed multi-page HOME page-order persistence for terminal Room authority;
-- Room-backed secondary-page HOME item placement persistence that validates the secondary spatial model while rechecking the complete HOME page/item snapshot inside the transaction before writing; and
-- a terminal-Room paged HOME observer that maps authoritative Room pages/items into rendered application-page state and drives page selection in the Development Home UI.
+Current persisted settings include supported Home-grid presets, Apps columns, Small/Medium/Large icon presentation, app-label visibility, and System/Light/Dark appearance. These are presentation preferences; they do not widen Room workspace mutation authority.
 
-### Current rendered multi-page boundary
+## Multi-page Room boundary
 
-When terminal Room authority is active, Launcher can expose page selection, create empty pages, delete only revalidated empty non-primary pages, reorder secondary pages while keeping the protected primary compatibility page at rank zero, render application items from secondary Room pages, and request that an application on a secondary page move to another existing secondary Home page.
+When terminal Room authority is active, Launcher can expose page selection, create empty pages, delete only revalidated empty non-primary pages, reorder secondary pages while keeping the protected primary page at rank zero, render secondary application pages, and request supported secondary spatial moves.
 
-The page selector is lazy rather than eagerly rendering an unbounded Row. It presents the authoritative app count and any unsupported-item count for each page, and the current selected page is automatically scrolled into view after selection/reorder/page-count changes. This presentation behavior does not own or mutate workspace placement.
+Room writes continue to verify the protected primary compatibility projection and re-read the complete HOME page/item snapshot so concurrent changes, malformed placement, collisions, invalid bounds, or attempts to use primary Home as a secondary spatial source/target fail closed.
 
-For bounded app movement, the UI identifies the source page and application key. Room-authoritative state is read to identify exactly one source item and derive the permitted target from the secondary-page coordinate envelope. Actual writes are delegated to guarded Room transactions, which verify the protected primary compatibility projection, validate the secondary spatial pages, and re-read the complete HOME page/item snapshot. Concurrent changes, malformed/null secondary placement state, collisions, missing pages/items, ambiguous source identity, occupied exact-cell targets, out-of-bounds moves, or attempts to use the primary compatibility page as a spatial source/target fail closed instead of overwriting newer state.
+This remains a Development editing bridge, not a complete multi-page drag/drop editor.
 
-The primary Home page keeps the existing Favorites/Dock compatibility and management path and remains fixed at HOME rank zero. Arbitrary drag across pages, primary-grid coordinates, moving primary-page Favorites into secondary pages, and moving secondary items into the primary compatibility page remain separate migration/interaction milestones.
+## Launcher Unified Search — approved next capability
 
-Unsupported Room item types are counted and surfaced rather than silently treated as applications. Folders, shortcuts, widgets, populated-page deletion, and destructive recovery/undo remain separate milestones.
+The approved product interaction now defines a **one-finger swipe downward on an unobstructed Home area** as the default direct gesture for opening **Launcher Unified Search**.
 
-This is a Development rendering/editing bridge, not a complete multi-page editor.
+Launcher Unified Search is intended to be a first-party **local-first orchestration surface**, not merely a web search box. Planned providers include installed apps, shortcuts/actions, Launcher/device settings, contacts when enabled and permissioned, scoped photos/screenshots/media, files/documents exposed through Android-supported providers, explicit first-party GoreeCloud app search contracts, authorized GoreeCloud Drive content, and other compatible local/connected-device sources.
 
-## Current Room item/page safety behavior
+**GoreeCloud Search is an optional first-party online provider** for web/current-information categories. It is not the authority for the private Launcher device index, and local result payloads must not be uploaded merely to obtain local results.
 
-Post-cutover Room mutation APIs refuse access unless durable terminal Room authority is already established. Secondary-page item moves fail closed on missing pages/items, identity substitution, invalid/null secondary placement coordinates, collisions, out-of-bounds state, attempts to spatially mutate the protected primary compatibility page, a malformed primary compatibility projection, or a workspace snapshot that changes between validation and the transactional write.
+This swipe-down unified search and its broader providers are approved scope but are **not implemented/accepted by the current beta-shell rebuild yet**.
 
-Page creation validates the complete current page set before appending an empty page. Page deletion is limited to empty non-primary pages and repeats page/item snapshot and emptiness checks inside the transaction before the foreign-key cascade can run. Page reordering cannot move the primary compatibility page away from rank zero or move a secondary page ahead of it.
+## Official Launcher identity
 
-The rendered page observer is likewise Room-authority gated. If authoritative paged Room state is unavailable, the application does not fabricate secondary pages and remains on the accepted safe path.
+GoreeCloud Launcher requires a unique product-specific official icon/logo/artwork. The current generic Android/framework-style placeholder must not be treated as the official release identity.
 
-Source/emulator acceptance of these paths does not equal complete physical-device Home acceptance or Stable qualification.
+The approved canonical artwork must live in this repository and produce traceable Android adaptive foreground/background resources, monochrome/themed icon resources, and other required cross-platform derivatives from one recognizable product identity. No generated/unreviewed, upstream, framework-default, or generic GoreeCloud platform-logo substitute is accepted as the official Launcher mark.
 
-## Build baseline
+An approved canonical Launcher artwork asset has not yet been committed, so product-identity acceptance remains incomplete.
 
-Current Android source uses Kotlin, Jetpack Compose, AndroidX Room/SQLite, DataStore, and Android SDK 36-era build tooling. See repository Gradle files and CI for the exact pinned versions used by the current source tree rather than relying on copied version text in external documentation.
+## Privacy and search architecture
 
-Run the repository validation commands documented by CI, including privacy/manifest/Glaze guards, lint, JVM tests, debug assembly, Room schema checks, and the complete Android instrumentation suite on the configured emulator target.
+Core Launcher behavior remains local-first. Sensitive unified-search sources must be separately controlled where required. Contacts require explicit enablement and Android permission. Media must use scoped Android APIs. Files/documents must use supported document/provider access rather than unrestricted filesystem privileges. Work/private profiles must remain appropriately isolated.
+
+Search history is intended to remain local, separately clearable, and disableable. Optional contextual/local ranking must remain transparent and user-controlled. There is no sponsored or paid ranking.
+
+## Glaze UI boundary
+
+Launcher retains repository-level Glaze UI Adoption Candidate evidence. Source token mapping and automated guards do not establish complete rendered/native/accessibility/device acceptance. Representative phones/tablets/foldables, physical touch behavior, TalkBack/switch access, contrast, reduced-transparency/reduced-motion behavior, and other production design gates remain separate evidence requirements.
 
 ## Current limitations
 
 Still incomplete or separately gated:
 
-- mature cross-page drag/drop and direct live cell/span editing UI;
-- primary compatibility-page grid migration and primary-to-secondary/secondary-to-primary spatial item movement;
-- populated-page deletion plus confirmation/recovery/undo semantics;
-- folders, shortcuts, widgets/AppWidgetHost, and richer placement UI;
-- complete icon/label customization and broader gesture bindings;
-- complete first-party Glaze Theme Engine behavior;
-- complete GoreeCloud Search/context/feed behavior described in approved scope;
-- accepted cross-device Sync/Mesh/Identity continuity behavior;
+- mature cross-page drag/drop and live cell/span editing;
+- primary compatibility-page grid migration and primary↔secondary spatial movement;
+- populated-page deletion with confirmation/recovery/undo;
+- folders, shortcuts, widgets/AppWidgetHost, and richer workspace editing;
+- complete icon/theme customization and broader configurable gestures;
+- one-finger swipe-down Launcher Unified Search implementation;
+- local files/photos/documents/contacts search providers and first-party searchable-content contracts;
+- GoreeCloud Search provider integration inside Launcher Unified Search;
+- approved official Launcher artwork and derivative asset pipeline;
+- complete Glaze Theme Engine behavior;
+- accepted cross-device Sync/Mesh/Identity continuity;
 - versioned backup/restore and Everkeep acceptance;
-- complete applicable Privacy Shield and Wardveil Security integration acceptance;
+- complete Privacy Shield and Wardveil Security integration acceptance;
 - Android OS process-death/schema-upgrade recovery acceptance;
-- representative physical-device default-HOME and drag interaction acceptance;
+- representative physical-device default-HOME interaction acceptance;
 - signed release packaging/distribution; and
 - production/Stable qualification.
 
 ## Documentation
 
-- [USER-MANUAL.md](USER-MANUAL.md) — current Development user guidance.
-- [SPECIFICATIONS.md](SPECIFICATIONS.md) — launcher architecture, scope, and authority boundaries.
-- [FEATURES.md](FEATURES.md) — implemented Development behavior plus the approved target capability inventory.
-- [BENEFITS.md](BENEFITS.md) — supportable current benefits and intended product benefits.
-- [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — first-party product objectives and competitive completeness targets.
-- [Rendered HOME page navigation](docs/rendered-home-page-navigation.md) — current terminal-Room page rendering and bounded page-editing boundary.
-- `docs/` — architecture, persistence, Glaze UI adoption, validation, and implementation records.
-- Canonical application/service project specifications are maintained under `GoreeCloud/Projects` in the authorized GoreeCloud project documentation scope.
+- [USER-MANUAL.md](USER-MANUAL.md) — current Development behavior and user guidance.
+- [SPECIFICATIONS.md](SPECIFICATIONS.md) — architecture, scope, and authority boundaries.
+- [FEATURES.md](FEATURES.md) — implemented Development behavior plus approved target scope.
+- [BENEFITS.md](BENEFITS.md) — current and intended benefits.
+- [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — product completeness objectives.
+- [Rendered HOME page navigation](docs/rendered-home-page-navigation.md) — terminal-Room page behavior.
+- `docs/` — architecture, persistence, design-system, validation, and implementation records.
+
+Canonical project specifications and acceptance/change records are maintained in the authorized GoreeCloud project documentation hierarchy.
+
+## Build baseline
+
+Current Android source uses Kotlin, Jetpack Compose, AndroidX Room/SQLite, DataStore, and Android SDK 36-era tooling. CI enforces privacy/manifest/Glaze/Room guards, Android lint, JVM tests, debug assembly, Room schema validation, and an Android 16 runtime-emulator suite.
 
 ## License
 
