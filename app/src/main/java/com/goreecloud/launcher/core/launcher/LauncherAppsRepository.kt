@@ -18,14 +18,30 @@ class LauncherAppsRepository(context: Context) {
     private val callbackHandler = Handler(Looper.getMainLooper())
 
     val apps: Flow<List<LauncherActivityInfo>> = callbackFlow {
-        fun publish() { trySend(loadApps()) }
+        fun publish() {
+            trySend(loadApps())
+        }
+
         val callback = object : LauncherApps.Callback() {
             override fun onPackageRemoved(packageName: String, user: UserHandle) = publish()
             override fun onPackageAdded(packageName: String, user: UserHandle) = publish()
             override fun onPackageChanged(packageName: String, user: UserHandle) = publish()
-            override fun onPackagesAvailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) = publish()
-            override fun onPackagesUnavailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) = publish()
+            override fun onPackagesAvailable(
+                packageNames: Array<out String>,
+                user: UserHandle,
+                replacing: Boolean,
+            ) = publish()
+
+            override fun onPackagesUnavailable(
+                packageNames: Array<out String>,
+                user: UserHandle,
+                replacing: Boolean,
+            ) = publish()
+
+            override fun onPackagesSuspended(packageNames: Array<out String>, user: UserHandle) = publish()
+            override fun onPackagesUnsuspended(packageNames: Array<out String>, user: UserHandle) = publish()
         }
+
         launcherApps.registerCallback(callback, callbackHandler)
         publish()
         awaitClose { launcherApps.unregisterCallback(callback) }
@@ -37,6 +53,13 @@ class LauncherAppsRepository(context: Context) {
 
     private fun loadApps(): List<LauncherActivityInfo> =
         launcherApps.profiles
-            .flatMap { launcherApps.getActivityList(null, it) }
-            .sortedWith(compareBy({ it.label.toString().lowercase() }, { it.componentName.packageName }))
+            .flatMap { profile -> launcherApps.getActivityList(null, profile) }
+            .distinctBy { app -> "${app.user.hashCode()}:${app.componentName.flattenToString()}" }
+            .sortedWith(
+                compareBy(
+                    { it.label.toString().lowercase() },
+                    { it.componentName.packageName },
+                    { it.componentName.className },
+                )
+            )
 }
