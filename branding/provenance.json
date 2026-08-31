@@ -1,0 +1,20 @@
+{
+  "schema": "goreecloud.visual-asset-provenance/v1",
+  "product": "GoreeCloud Launcher",
+  "canonical_repository": "GoreeCloud/goreecloud-branding-assets",
+  "canonical_repository_commit": "e8dba369cd7bbaf2c2f97ed740caf0def1c2c0ee",
+  "canonical_path": "products/launcher/app-icon.svg",
+  "canonical_blob_sha": "d6768114e689058f1c911beca4050f33c96bd7c2",
+  "consumer_repository": "GoreeCloud/goreecloud-launcher",
+  "consumer_role": "platform-specific derivative only",
+  "derivatives": [
+    "app/src/main/res/drawable/ic_launcher_background.xml",
+    "app/src/main/res/drawable/ic_launcher_foreground.xml",
+    "app/src/main/res/drawable/ic_launcher_monochrome.xml",
+    "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+    "app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+    "app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml",
+    "app/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml"
+  ],
+  "source_authority_note": "All GoreeCloud logos, icons, symbols, illustrations, and artwork are canonical only in GoreeCloud/goreecloud-branding-assets. This repository must not carry an independent canonical artwork source."
+}
