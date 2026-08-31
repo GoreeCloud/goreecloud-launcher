@@ -53,7 +53,9 @@ app/src/main/java/com/goreecloud/launcher/ui/LayoutLockHoldControl.kt
 app/src/main/java/com/goreecloud/launcher/ui/PagedHomeSurface.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
+app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalog.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeRepository.kt
+app/src/main/java/com/goreecloud/launcher/ui/theme/ThemeManagerSurface.kt
 app/src/main/res/drawable/ic_launcher_background.xml
 app/src/main/res/drawable/ic_launcher_foreground.xml
 app/src/main/res/drawable/ic_launcher_monochrome.xml
@@ -79,6 +81,7 @@ app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePrimaryHome
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalReadMapperTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifierTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlacementModelTest.kt
+app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
 branding/README.md
 branding/provenance.json
 build.gradle.kts
