@@ -27,6 +27,7 @@ Launcher intelligence and personalization should remain transparent and user-con
 - Minimal, documented permissions; current source has no Android `INTERNET` permission.
 - No broad `QUERY_ALL_PACKAGES` access for ordinary launcher discovery.
 - Universal search is delegated to GoreeCloud Index rather than duplicated as a hidden Launcher-owned index/ranking engine.
+- All GoreeCloud logos/icons/artwork are canonical in `GoreeCloud/goreecloud-branding-assets`; this repository carries only traceable Android derivatives required by Launcher.
 - Glaze UI is the Design Center authority for applicable interface behavior.
 - Privacy Shield, Wardveil Security, Everkeep, GoreeCloud Identity, and GoreeCloud Mesh govern their applicable platform boundaries.
 - A platform integration is not considered implemented merely because it appears in approved scope or UI copy.
@@ -98,9 +99,11 @@ Sensitive and permissioned providers remain governed by their own Android and Go
 
 ## Official Launcher identity
 
-GoreeCloud Launcher requires a unique product-specific official icon/logo/artwork. A first-party Launcher identity candidate and Android adaptive/monochrome resources are present in the Development source, but production product-identity acceptance remains a separate review gate.
+All GoreeCloud Launcher logos, icons, symbols, illustrations, and artwork are canonical only in **`GoreeCloud/goreecloud-branding-assets`**. The current canonical Launcher asset is `products/launcher/app-icon.svg`. This repository is a consumer and may carry only traceable synchronized/generated/packaged Android derivatives required to build Launcher.
 
-The approved canonical artwork must live in this repository and produce traceable Android adaptive foreground/background resources, monochrome/themed icon resources, and other required cross-platform derivatives from one recognizable product identity. Generated/unreviewed, upstream, framework-default, or generic GoreeCloud platform-logo substitutes are not accepted as the official Launcher mark.
+`branding/provenance.json` pins the canonical repository, asset path, and source blob used for the current Android derivatives. The previous Launcher-local portal-style artwork source has been removed so it cannot become a competing source of truth. Any future visual revision must be authored, reviewed, and approved in `goreecloud-branding-assets` first.
+
+The Development APK currently uses adaptive, round, and Android 13+ monochrome derivatives synchronized from the canonical four-cell cyan-to-indigo Launcher asset. The existence of those derivatives does not by itself establish production visual-identity acceptance or Stable qualification.
 
 ## Privacy and search architecture
 
@@ -110,7 +113,7 @@ Index search history, provider controls, contextual ranking, and remote-provider
 
 ## Glaze UI boundary
 
-Launcher retains repository-level Glaze UI Adoption Candidate evidence. Source token mapping and automated guards do not establish complete rendered/native/accessibility/device acceptance. Representative phones/tablets/foldables, physical touch behavior, TalkBack/switch access, contrast, reduced-transparency/reduced-motion behavior, and other production design gates remain separate evidence requirements.
+Launcher retains repository-level Glaze UI Adoption Candidate evidence. Source token mapping and automated guards do not establish complete rendered/native/accessibility/device acceptance. The approved product target is the latest applicable Stable Glaze UI release; migration to and application-specific acceptance against Glaze UI 2.1.0 remain evidence-gated. Representative phones/tablets/foldables, physical touch behavior, TalkBack/switch access, contrast, reduced-transparency/reduced-motion behavior, and other production design gates remain separate evidence requirements.
 
 ## Current limitations
 
@@ -120,14 +123,16 @@ Still incomplete or separately gated:
 - primary compatibility-page grid migration and primary↔secondary spatial movement;
 - populated-page deletion with confirmation/recovery/undo;
 - folders, shortcuts, widgets/AppWidgetHost, and richer workspace editing;
-- complete icon/theme customization and broader configurable gestures;
-- embedded Index result presentation inside Launcher beyond the current activity handoff;
+- complete Theme Manager, icon-pack/masking support, and broader configurable gestures;
+- configurable Home layout lock and five-second Home unlock gesture;
+- selectable permanent-on-Home versus swipe-only GoreeCloud Index entry mode;
+- embedded/polished Index result presentation beyond the current activity handoff;
 - Index providers for files/photos/documents/contacts/calendar and first-party searchable-content contracts;
 - GoreeCloud Search provider implementation in Index;
+- versioned local Launcher backup/restore plus later authorized continuity integrations;
 - complete production Launcher identity acceptance;
 - complete Glaze Theme Engine behavior;
 - accepted cross-device Sync/Mesh/Identity continuity;
-- versioned backup/restore and Everkeep acceptance;
 - complete Privacy Shield and Wardveil Security integration acceptance;
 - Android OS process-death/schema-upgrade recovery acceptance;
 - representative physical-device default-HOME and universal-search gesture/accessibility acceptance;
@@ -148,7 +153,7 @@ Canonical project specifications and acceptance/change records are maintained in
 
 ## Build baseline
 
-Current Android source uses Kotlin, Jetpack Compose, AndroidX Room/SQLite, DataStore, and Android SDK 36-era tooling. CI enforces privacy/manifest/Glaze/Room guards, Android lint, JVM tests, debug assembly, Room schema validation, and an Android 16 runtime-emulator suite.
+Current Android source uses Kotlin, Jetpack Compose, AndroidX Room/SQLite, DataStore, and Android SDK 36-era tooling. CI enforces privacy/manifest/identity/Glaze/Room guards, Android lint, JVM tests, debug assembly, Room schema validation, and an Android 16 runtime-emulator suite.
 
 ## License
 
