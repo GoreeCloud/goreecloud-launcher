@@ -20,6 +20,7 @@ jobs:
           gradle-version: "8.11.1"
       - run: python3 scripts/check_privacy.py
       - run: python3 scripts/check_manifest.py
+      - run: python3 scripts/check_identity.py
       - run: python3 scripts/check_glaze_ui.py
       - run: python3 scripts/check_glaze_motion_evaluation.py
       - run: python3 scripts/check_room_cutover.py

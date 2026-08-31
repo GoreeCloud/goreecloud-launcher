@@ -52,6 +52,13 @@ app/src/main/java/com/goreecloud/launcher/ui/PagedHomeSurface.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeRepository.kt
+app/src/main/res/drawable/ic_launcher_foreground.xml
+app/src/main/res/drawable/ic_launcher_monochrome.xml
+app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml
+app/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml
+app/src/main/res/values/colors.xml
 app/src/main/res/values/strings.xml
 app/src/main/res/values/themes.xml
 app/src/main/res/xml/backup_rules.xml
@@ -69,6 +76,8 @@ app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePrimaryHome
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalReadMapperTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifierTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlacementModelTest.kt
+branding/README.md
+branding/source/goreecloud-launcher-icon.svg
 build.gradle.kts
 docs/PLATFORM_CONFORMANCE.md
 docs/activated-home-lifecycle-recreation.md
@@ -90,6 +99,7 @@ gradle.properties
 gradle/wrapper/gradle-wrapper.properties
 scripts/check_glaze_motion_evaluation.py
 scripts/check_glaze_ui.py
+scripts/check_identity.py
 scripts/check_manifest.py
 scripts/check_privacy.py
 scripts/check_room_cutover.py
