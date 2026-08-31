@@ -22,6 +22,7 @@ app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceStar
 app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPreferencesRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthority.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceGridPlacement.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspacePagedPlacement.kt
@@ -45,6 +46,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalR
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifier.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlacementRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceStartupReconciler.kt
+app/src/main/java/com/goreecloud/launcher/ui/LauncherBetaRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/PagedHomeSurface.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
@@ -54,6 +56,7 @@ app/src/main/res/values/strings.xml
 app/src/main/res/values/themes.xml
 app/src/main/res/xml/backup_rules.xml
 app/src/main/res/xml/data_extraction_rules.xml
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPreferencesTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/GlazeMotionExperimentalConsumerTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthorityTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceCodecTest.kt
