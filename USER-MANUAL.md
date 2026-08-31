@@ -2,7 +2,7 @@
 
 ## Current availability
 
-GoreeCloud Launcher is a **Development** Android HOME application. It is not yet a signed production/Stable release. Current source supports daily-launcher foundations including HOME-role onboarding, app discovery, Favorites, Dock, All apps search, local placement/reorder controls, Light/Dark/System appearance behavior, and an initial terminal-Room multi-page navigation surface.
+GoreeCloud Launcher is a **Development** Android HOME application. It is not yet a signed production/Stable release. Current source supports daily-launcher foundations including HOME-role onboarding, app discovery, Favorites, Dock, All apps search, local placement/reorder controls, Light/Dark/System appearance behavior, and a guarded terminal-Room multi-page Home surface.
 
 ## Make GoreeCloud Launcher your Home app
 
@@ -23,18 +23,40 @@ The launcher discovers launchable applications through Android's `LauncherApps` 
 
 ## Multi-page Home navigation
 
-When the guarded workspace has reached terminal Room authority and more than one HOME page exists, the current Development build can expose a page selector and render application items from those authoritative Room pages.
+When the guarded workspace has reached terminal Room authority, the Development build can expose the authoritative HOME pages through a horizontal page selector.
 
-The primary page continues to use the existing Favorites/Dock management experience. Secondary Room pages are currently **read-only for placement**:
+Each page selector entry shows:
 
-- you can select a secondary page;
-- application items on that page can be launched;
-- unsupported workspace item types are reported rather than silently rendered as apps; and
-- placement editing, cross-page drag/drop, page creation/deletion, and page reordering are not yet exposed from this surface.
+- the page number;
+- the authoritative number of app items on that page; and
+- the count of unsupported workspace items when present, so those items are not silently hidden from page context.
 
-If authoritative paged Room state is unavailable, Launcher does not fabricate secondary-page state and remains on the primary Home surface.
+The selector is a lazy horizontal list. When you select a page, reorder pages, or change the page count, Launcher automatically scrolls the selected page back into view instead of leaving the active context off-screen.
 
-This feature is a Development rendering bridge. It does not establish production Room cutover or a complete multi-page workspace editor.
+### Page controls
+
+The current selector can expose guarded controls to:
+
+- **Add page**;
+- **Move earlier**;
+- **Move later**; and
+- **Delete empty page** when the selected secondary page is eligible.
+
+The primary legacy-import Home page is not deleted by the empty-secondary-page control. Page mutations continue through the existing authoritative workspace mutation boundary; the switcher itself is not a second workspace source of truth.
+
+### Apps on secondary pages
+
+Application items on authoritative Room pages can be launched. Current secondary-page controls also support:
+
+- move to another authoritative Home page;
+- move earlier/later to the nearest permitted free cell; and
+- exact one-cell moves left/right/up/down.
+
+Exact-cell requests fail closed if the target cell is occupied or outside the authoritative grid. Unsupported item types are reported rather than rendered falsely as apps.
+
+If authoritative paged Room state is unavailable, Launcher does not fabricate secondary-page state and remains on the safe primary Home path.
+
+This remains a Development workspace surface. Mature drag/drop page editing, folders, shortcuts, widgets, and production Room acceptance remain separate milestones.
 
 ## All apps
 
@@ -67,9 +89,9 @@ Complete rendered Glaze UI 2.0 acceptance, all accessibility configurations, and
 
 ## Workspace persistence status
 
-The repository contains deterministic multi-page workspace mutation contracts and Room-backed page-order and cross-page item-persistence foundations for the guarded terminal Room-authority path. The rendered page selector/secondary-page surface reads from that terminal Room authority; it does not bypass it.
+The repository contains deterministic multi-page workspace mutation contracts and Room-backed page-order, app-placement, cross-page movement, and guarded exact-cell movement foundations for the terminal Room-authority path. The rendered page selector and secondary-page surface read from that terminal Room authority; they do not bypass it.
 
-Secondary-page editing, live cell/span controls, broader drag/drop controls, folders, shortcuts, widgets, and production Room cutover/routing remain separate milestones.
+Broader drag/drop controls, folders, shortcuts, widgets, complete live cell/span editing, and production Room cutover/routing acceptance remain separate milestones.
 
 ## Privacy and network behavior
 
@@ -86,6 +108,6 @@ The current launcher does not require a GoreeCloud account for core Home operati
 
 ## Current limitations
 
-Still incomplete or separately gated include production Room authority cutover/routing, user-facing page creation/deletion/reordering, secondary-page placement editing, live cell/span editing, cross-page drag/drop UI, folders, shortcuts, widgets/AppWidgetHost, complete icon/label customization, broader gesture bindings, full Glaze Theme Engine behavior, versioned backup/restore, process-death acceptance, physical-device default-HOME acceptance, signed release packaging, and Stable qualification.
+Still incomplete or separately gated include production Room authority cutover/routing acceptance, mature page drag/drop editing, folders, shortcuts, widgets/AppWidgetHost, complete icon/label customization, broader gesture bindings, full Glaze Theme Engine behavior, versioned backup/restore, process-death acceptance, physical-device default-HOME acceptance, signed release packaging, and Stable qualification.
 
-Refer to `README.md`, `SPECIFICATIONS.md`, and the `docs/` directory for implementation and acceptance details.
+Refer to `README.md`, `SPECIFICATIONS.md`, `FEATURES.md`, and the `docs/` directory for implementation and acceptance details.

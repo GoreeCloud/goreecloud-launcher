@@ -32,7 +32,9 @@ Current source includes:
 - explicit move-earlier/move-later controls;
 - Reorder-mode Favorites/Dock drag/drop using the current workspace persistence path;
 - terminal-Room multi-page HOME observation with page selection, page reordering, empty-page creation/deletion, and rendering of secondary application pages;
+- a lazy horizontal Home page selector that shows authoritative app/unsupported-item context and automatically scrolls the selected page into view after selection, reorder, or page-count changes;
 - bounded secondary-page application moves to another existing Home page through the guarded Room placement path;
+- guarded nearest-free-cell and exact one-cell movement for supported secondary-page app items;
 - All apps with local label/package search and app launching; and
 - persisted System / Light / Dark appearance selection.
 
@@ -59,9 +61,11 @@ Launcher has progressed beyond the earlier DataStore-only relational rehearsal. 
 
 When terminal Room authority is active, Launcher can expose page selection, create empty pages, delete only revalidated empty non-primary pages, reorder pages, render application items from secondary Room pages, and request that an application on a secondary page move to another existing Home page.
 
-For the bounded move path, the UI identifies the source page and application key. Room-authoritative state is read to identify exactly one source item and derive a deterministic free target cell from the current coordinate envelope. The actual write is then delegated to the existing guarded `moveHomeItem` transaction, which re-reads and validates the complete HOME page/item snapshot. Concurrent changes, malformed/null placement state, collisions, missing pages/items, or ambiguous source identity fail closed instead of overwriting newer state.
+The page selector is lazy rather than eagerly rendering an unbounded Row. It presents the authoritative app count and any unsupported-item count for each page, and the current selected page is automatically scrolled into view after selection/reorder/page-count changes. This presentation behavior does not own or mutate workspace placement.
 
-The primary Home page keeps the existing Favorites/Dock management path. Direct cell/span editing, arbitrary drag across pages, and moving primary-page Favorites through the secondary-page menu remain separate interaction milestones.
+For bounded app movement, the UI identifies the source page and application key. Room-authoritative state is read to identify exactly one source item and derive the permitted target from the current coordinate envelope. Actual writes are delegated to existing guarded Room transactions, which re-read and validate the complete HOME page/item snapshot. Concurrent changes, malformed/null placement state, collisions, missing pages/items, ambiguous source identity, occupied exact-cell targets, or out-of-bounds moves fail closed instead of overwriting newer state.
+
+The primary Home page keeps the existing Favorites/Dock management path. Arbitrary drag across pages and moving primary-page Favorites through the secondary-page menu remain separate interaction milestones.
 
 Unsupported Room item types are counted and surfaced rather than silently treated as applications. Folders, shortcuts, widgets, populated-page deletion, and destructive recovery/undo remain separate milestones.
 
@@ -88,7 +92,7 @@ Run the repository validation commands documented by CI, including privacy/manif
 Still incomplete or separately gated:
 
 - production Room-authority cutover/routing and post-cutover recovery acceptance;
-- direct cell/span placement editing and cross-page drag/drop UI;
+- mature cross-page drag/drop and direct live cell/span editing UI;
 - primary-page-to-secondary-page item movement through the rendered editor;
 - populated-page deletion plus confirmation/recovery/undo semantics;
 - folders, shortcuts, widgets/AppWidgetHost, and richer placement UI;
@@ -103,6 +107,10 @@ Still incomplete or separately gated:
 ## Documentation
 
 - [USER-MANUAL.md](USER-MANUAL.md) — current Development user guidance.
+- [SPECIFICATIONS.md](SPECIFICATIONS.md) — current launcher architecture and authority boundaries.
+- [FEATURES.md](FEATURES.md) — implemented Development capabilities and incomplete work.
+- [BENEFITS.md](BENEFITS.md) — current and intended product benefits.
+- [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — first-party product objectives.
 - [Rendered HOME page navigation](docs/rendered-home-page-navigation.md) — current terminal-Room page rendering and bounded page-editing boundary.
 - `docs/` — architecture, persistence, Glaze UI adoption, validation, and implementation records.
 - Canonical application/service project specifications are maintained under `GoreeCloud/Projects` in the authorized GoreeCloud project documentation scope.
