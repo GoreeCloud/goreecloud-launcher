@@ -23,6 +23,8 @@ The primary Home experience shows locally persisted app Favorites and a Dock.
 
 The launcher discovers launchable applications through Android's `LauncherApps` APIs and keeps profile-aware application identities distinct.
 
+The current primary Home page is also the compatibility representation used by the existing Favorites path. In the current Development architecture it remains the first Home page and is not yet treated as a secondary spatial grid page.
+
 ## Multi-page Home navigation
 
 When the guarded workspace has reached terminal Room authority, the Development build can expose authoritative HOME pages through a horizontal page selector.
@@ -33,32 +35,34 @@ Each page selector entry shows:
 - the authoritative number of app items on that page; and
 - the count of unsupported workspace items when present, so those items are not silently hidden from page context.
 
-The selector is a lazy horizontal list. When you select a page, reorder pages, or change the page count, Launcher automatically scrolls the selected page back into view instead of leaving the active context off-screen.
+The selector is a lazy horizontal list. When you select a page, reorder supported secondary pages, or change the page count, Launcher automatically scrolls the selected page back into view instead of leaving the active context off-screen.
 
 ### Page controls
 
 The current selector can expose guarded controls to:
 
 - **Add page**;
-- **Move earlier**;
-- **Move later**; and
+- **Move earlier** for eligible secondary pages;
+- **Move later** for eligible secondary pages; and
 - **Delete empty page** when the selected secondary page is eligible.
 
-The primary legacy-import Home page is not deleted by the empty-secondary-page control. Page mutations continue through the existing authoritative workspace mutation boundary; the switcher itself is not a second workspace source of truth.
+The protected primary compatibility Home page remains first and cannot be moved later or deleted. A secondary page cannot be moved ahead of it. Page mutations continue through the existing authoritative workspace mutation boundary; the switcher itself is not a second workspace source of truth.
 
 ### Apps on secondary pages
 
-Application items on authoritative Room pages can be launched. Current secondary-page controls also support:
+Application items on authoritative secondary Room pages can be launched. Current secondary-page controls also support:
 
-- move to another authoritative Home page;
+- move to another authoritative secondary Home page;
 - move earlier/later to the nearest permitted free cell; and
 - exact one-cell moves left/right/up/down.
 
-Exact-cell requests fail closed if the target cell is occupied or outside the authoritative grid. Unsupported item types are reported rather than rendered falsely as apps.
+The protected primary Favorites compatibility page is not offered as a spatial move destination, and primary Favorites are not yet movable into secondary pages through this editor. Those directions require a separate accepted primary-grid/compatibility migration.
+
+Exact-cell requests fail closed if the target cell is occupied or outside the authoritative grid. Secondary spatial mutations also fail closed if the primary compatibility projection is malformed, if secondary coordinates are incomplete, or if the authoritative workspace changes during the transaction. Unsupported item types are reported rather than rendered falsely as apps.
 
 If authoritative paged Room state is unavailable, Launcher does not fabricate secondary-page state and remains on the safe primary Home path.
 
-This remains a Development workspace surface. Mature drag/drop page editing, folders, shortcuts, widgets, and complete release acceptance remain separate milestones.
+This remains a Development workspace surface. Mature drag/drop page editing, primary-grid migration, folders, shortcuts, widgets, and complete release acceptance remain separate milestones.
 
 ## All apps
 
@@ -70,7 +74,9 @@ Use the local search field to filter by application label or package information
 
 Long-press an app from supported primary Home/All apps surfaces to access placement actions.
 
-Current controls include explicit move-earlier/move-later operations and Reorder mode for Favorites/Dock. The non-drag move controls remain important for keyboard, switch-access, and users who prefer not to rely on gestures.
+Current primary controls include explicit move-earlier/move-later operations and Reorder mode for Favorites/Dock. The non-drag move controls remain important for keyboard, switch-access, and users who prefer not to rely on gestures.
+
+These primary Favorites/Dock controls are distinct from the secondary-page spatial editor. Moving a primary Favorite into a secondary page is not yet available in the current Development build.
 
 ### Reorder mode
 
@@ -91,9 +97,9 @@ Complete rendered Glaze UI 2.0 acceptance, all accessibility configurations, and
 
 ## Workspace persistence status
 
-The repository contains deterministic multi-page workspace mutation contracts and Room-backed page-order, app-placement, cross-page movement, and guarded exact-cell movement foundations for the terminal Room-authority path. The rendered page selector and secondary-page surface read from that terminal Room authority; they do not bypass it.
+The repository contains deterministic multi-page workspace mutation contracts and Room-backed page-order, secondary app-placement, secondary-to-secondary movement, and guarded exact-cell movement foundations for the terminal Room-authority path. The rendered page selector and secondary-page surface read from that terminal Room authority; they do not bypass it.
 
-Broader drag/drop controls, folders, shortcuts, widgets, complete live cell/span editing, and complete release acceptance remain separate milestones.
+The current primary Home/Favorites compatibility representation remains protected at Home rank zero with its canonical non-spatial item shape. Primary-grid migration, primary↔secondary spatial movement, broader drag/drop controls, folders, shortcuts, widgets, complete live cell/span editing, and complete release acceptance remain separate milestones.
 
 ## Privacy and network behavior
 
@@ -112,7 +118,7 @@ The current launcher does not require a GoreeCloud account for core Home operati
 
 ## Current limitations
 
-Still incomplete or separately gated include mature cross-page drag/drop editing, folders, shortcuts, widgets/AppWidgetHost, complete icon/label customization, broader gesture bindings, full Glaze Theme Engine behavior, unified GoreeCloud Search/context/feed capabilities, versioned backup/restore, cross-device continuity, complete applicable platform-system integration acceptance, process-death/schema-upgrade recovery acceptance, representative physical-device default-HOME acceptance, signed release packaging, and Stable qualification.
+Still incomplete or separately gated include mature cross-page drag/drop editing, primary compatibility-page grid migration and primary↔secondary spatial movement, folders, shortcuts, widgets/AppWidgetHost, complete icon/label customization, broader gesture bindings, full Glaze Theme Engine behavior, unified GoreeCloud Search/context/feed capabilities, versioned backup/restore, cross-device continuity, complete applicable platform-system integration acceptance, process-death/schema-upgrade recovery acceptance, representative physical-device default-HOME acceptance, signed release packaging, and Stable qualification.
 
 # Approved future product direction — not currently available
 
