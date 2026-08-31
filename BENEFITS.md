@@ -31,9 +31,9 @@ Users should be able to choose simple defaults or deeply customize grids, pages,
 
 Launcher is intended to feel visually polished, modern, coherent, responsive, and distinctly GoreeCloud across phones, tablets, foldables, desktop-style modes, and other supported surfaces. Adaptive materials, motion, wallpaper-aware styling, typography, iconography, and accessibility should behave as one system rather than disconnected customizations.
 
-## Strong application discovery
+## Strong application discovery and universal search
 
-A richer application drawer and GoreeCloud Search can reduce time spent hunting for applications or content through alphabetical organization, search, smart groups, recency/frequency views, contextual results, direct actions, and user-controlled recommendations.
+A richer application drawer plus GoreeCloud Index-powered universal search can reduce time spent hunting for applications or content through organization, source-aware search, contextual results, direct actions, and user-controlled recommendations. GoreeCloud Search can contribute Internet/Web/current-information results through Index when separately enabled and authorized without becoming local-index authority.
 
 ## Context that remains under user control
 
@@ -77,7 +77,7 @@ Privacy Shield and Wardveil Security surfaces can make privacy/security state mo
 
 ## Extensible GoreeCloud interoperability
 
-Drive, Mail, Messenger, Maps, Calendar, Location, Search, Backups, Sync, Identity, Mesh, Everkeep, Privacy Shield, Wardveil Security, Glaze UI, and compatible future services can contribute useful Launcher experiences through explicit interfaces rather than one-off tightly coupled behavior.
+Index, Drive, Mail, Messenger, Maps, Calendar, Location, Search, Backups, Sync, Identity, Mesh, Everkeep, Privacy Shield, Wardveil Security, Glaze UI, and compatible future services can contribute useful Launcher experiences through explicit interfaces rather than one-off tightly coupled behavior. Index remains the universal search/query authority; Search remains its Web/current-information provider rather than a competing local index.
 
 ## Long-term maintainability
 
