@@ -19,6 +19,17 @@ data class WorkspaceHomePageContext(
         require(pageNumber >= 1)
         return "Page $pageNumber · $compactLabel"
     }
+
+    fun switcherAccessibilityLabel(pageNumber: Int, selected: Boolean): String {
+        require(pageNumber >= 1)
+        val appLabel = "$appCount app${if (appCount == 1) "" else "s"}"
+        val unsupportedLabel = if (unsupportedItemCount > 0) {
+            ", $unsupportedItemCount other workspace item${if (unsupportedItemCount == 1) "" else "s"}"
+        } else {
+            ""
+        }
+        return "Page $pageNumber, $appLabel$unsupportedLabel, ${if (selected) "selected" else "not selected"}"
+    }
 }
 
 fun WorkspaceRenderedHomePage.context(): WorkspaceHomePageContext = WorkspaceHomePageContext(
