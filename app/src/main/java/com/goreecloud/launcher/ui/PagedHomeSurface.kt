@@ -1,19 +1,23 @@
 package com.goreecloud.launcher.ui
 
 import android.content.pm.LauncherActivityInfo
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -23,11 +27,15 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +52,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
@@ -65,55 +74,49 @@ fun HomePageSwitcher(
     modifier: Modifier = Modifier,
 ) {
     if (pages.isEmpty()) return
+
     val selectedIndex = pages.indexOfFirst { it.pageId == selectedPageId }
     val selectedPage = pages.getOrNull(selectedIndex)
-    val primaryIndex = pages.indexOfFirst {
-        it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
-    }
-    val primaryRankHealthy = primaryIndex == 0
+    val primaryRankHealthy = pages.firstOrNull()?.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
     val pageListState = rememberLazyListState()
-    val pageActionsScroll = rememberScrollState()
-    val canDeleteSelectedPage = pages.size > 1 &&
+    var pageMenuExpanded by remember(selectedPageId) { mutableStateOf(false) }
+
+    val canDelete = pages.size > 1 &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
         selectedPage.appKeys.isEmpty() &&
         selectedPage.unsupportedItemCount == 0
-    val canMoveSelectedEarlier = primaryRankHealthy &&
+    val canMoveEarlier = primaryRankHealthy &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
         selectedIndex > 1
-    val canMoveSelectedLater = primaryRankHealthy &&
+    val canMoveLater = primaryRankHealthy &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
-        selectedIndex >= 1 &&
-        selectedIndex < pages.lastIndex
+        selectedIndex in 1 until pages.lastIndex
 
     LaunchedEffect(selectedPageId, selectedIndex, pages.size) {
-        if (selectedIndex >= 0) {
-            pageListState.animateScrollToItem(selectedIndex)
-        }
+        if (selectedIndex >= 0) pageListState.animateScrollToItem(selectedIndex)
     }
 
     Surface(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusControl),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
         tonalElevation = 2.dp,
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = GlazeMetrics.space2, vertical = GlazeMetrics.space1),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = GlazeMetrics.space2),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
         ) {
             LazyRow(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
                 state = pageListState,
                 horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                itemsIndexed(
-                    items = pages,
-                    key = { _, page -> page.pageId },
-                ) { index, page ->
+                itemsIndexed(pages, key = { _, page -> page.pageId }) { index, page ->
                     val selected = page.pageId == selectedPageId
                     val pageContext = page.context()
                     Surface(
@@ -121,73 +124,61 @@ fun HomePageSwitcher(
                             .semantics(mergeDescendants = true) {
                                 contentDescription = pageContext.accessibilityLabel(index + 1, selected)
                             }
-                            .clickable { onSelectPage(page.pageId) }
-                            .padding(1.dp),
+                            .clickable { onSelectPage(page.pageId) },
                         shape = RoundedCornerShape(GlazeMetrics.radiusControl),
                         color = if (selected) {
                             MaterialTheme.colorScheme.primaryContainer
                         } else {
-                            MaterialTheme.colorScheme.surfaceVariant
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
                         },
                     ) {
-                        Column(
+                        Text(
+                            text = if (selected) "Page ${index + 1}" else "${index + 1}",
                             modifier = Modifier.padding(
                                 horizontal = GlazeMetrics.space3,
                                 vertical = GlazeMetrics.space2,
                             ),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(
-                                text = "Page ${index + 1}",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (selected) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
-                            Text(
-                                text = pageContext.compactLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (selected) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
-                        }
-                    }
-                }
-                item(key = "add-page") {
-                    TextButton(onClick = onCreatePage) {
-                        Text("Add page")
+                            style = MaterialTheme.typography.labelLarge,
+                        )
                     }
                 }
             }
 
-            if (selectedIndex >= 0 && pages.size > 1) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(pageActionsScroll),
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(
-                        onClick = { onMovePage(selectedPageId, selectedIndex - 1) },
-                        enabled = canMoveSelectedEarlier,
+            TextButton(onClick = onCreatePage) { Text("Add") }
+
+            if (canMoveEarlier || canMoveLater || canDelete) {
+                Box {
+                    TextButton(onClick = { pageMenuExpanded = true }) { Text("More") }
+                    DropdownMenu(
+                        expanded = pageMenuExpanded,
+                        onDismissRequest = { pageMenuExpanded = false },
                     ) {
-                        Text("Move earlier")
-                    }
-                    TextButton(
-                        onClick = { onMovePage(selectedPageId, selectedIndex + 1) },
-                        enabled = canMoveSelectedLater,
-                    ) {
-                        Text("Move later")
-                    }
-                    if (canDeleteSelectedPage) {
-                        TextButton(onClick = { onDeletePage(selectedPageId) }) {
-                            Text("Delete empty page")
+                        if (canMoveEarlier) {
+                            DropdownMenuItem(
+                                text = { Text("Move page earlier") },
+                                onClick = {
+                                    pageMenuExpanded = false
+                                    onMovePage(selectedPageId, selectedIndex - 1)
+                                },
+                            )
+                        }
+                        if (canMoveLater) {
+                            DropdownMenuItem(
+                                text = { Text("Move page later") },
+                                onClick = {
+                                    pageMenuExpanded = false
+                                    onMovePage(selectedPageId, selectedIndex + 1)
+                                },
+                            )
+                        }
+                        if (canDelete) {
+                            DropdownMenuItem(
+                                text = { Text("Delete empty page") },
+                                onClick = {
+                                    pageMenuExpanded = false
+                                    onDeletePage(selectedPageId)
+                                },
+                            )
                         }
                     }
                 }
@@ -201,82 +192,87 @@ fun ReadOnlyPagedHomeSurface(
     apps: List<LauncherActivityInfo>,
     page: WorkspaceRenderedHomePage,
     pages: List<WorkspaceRenderedHomePage>,
+    homeColumns: Int,
+    showLabels: Boolean,
+    iconScale: Float,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
-    val pageApps = remember(appsByKey, page.appKeys) { page.appKeys.mapNotNull(appsByKey::get) }
+    val pageApps = remember(appsByKey, page.appKeys) {
+        page.appKeys.mapNotNull(appsByKey::get)
+    }
     val targetPages = remember(pages, page.pageId) {
         pages.filterNot {
-            it.pageId == page.pageId ||
-                it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+            it.pageId == page.pageId || it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
         }
     }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
+    // The activity window asks Android to draw the system wallpaper underneath Launcher.
+    // This surface remains translucent and does not read wallpaper files directly.
+    Box(Modifier.fillMaxSize()) {
+        Box(
             Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.08f))
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
                 .statusBarsPadding()
-                .padding(horizontal = GlazeMetrics.space5, vertical = GlazeMetrics.space4),
+                .navigationBarsPadding()
+                .padding(horizontal = GlazeMetrics.space4),
         ) {
-            Spacer(Modifier.height(GlazeMetrics.space8))
-            Text(
-                "Workspace page",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                "Room page ${page.rank + 1}",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(Modifier.height(GlazeMetrics.space2))
-            Text(
-                "This secondary page is rendered from terminal Room authority. Apps can launch, move to another secondary Home page, move to the nearest free cell earlier/later, or request an exact one-cell move. Exact-cell requests fail closed when the target is occupied or outside the authoritative grid.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Spacer(Modifier.height(72.dp))
 
             if (page.unsupportedItemCount > 0) {
-                Spacer(Modifier.height(GlazeMetrics.space4))
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(top = GlazeMetrics.space2),
                     shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.92f)
+                    ),
                 ) {
                     Text(
-                        "${page.unsupportedItemCount} workspace item${if (page.unsupportedItemCount == 1) " is" else "s are"} not rendered yet. Folder, shortcut, and widget presentation remain separate milestones.",
-                        modifier = Modifier.padding(GlazeMetrics.space4),
+                        "${page.unsupportedItemCount} item${if (page.unsupportedItemCount == 1) "" else "s"} on this page still need folder, shortcut, or widget rendering support.",
+                        modifier = Modifier.padding(GlazeMetrics.space3),
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
 
-            Spacer(Modifier.height(GlazeMetrics.space5))
             if (pageApps.isEmpty()) {
                 Box(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        "This authoritative Home page is empty. It can be removed from the page switcher or receive an app moved from another secondary page.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    ) {
+                        Text(
+                            "This Home page is empty.",
+                            modifier = Modifier.padding(GlazeMetrics.space5),
+                        )
+                    }
                 }
             } else {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space5),
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+                    columns = GridCells.Fixed(homeColumns.coerceIn(4, 6)),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = GlazeMetrics.space4),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
                 ) {
                     items(pageApps, key = { it.workspaceKey() }) { app ->
                         PagedAppTile(
                             app = app,
+                            showLabel = showLabels,
+                            iconScale = iconScale,
                             targetPages = targetPages,
                             onLaunchApp = onLaunchApp,
                             onMoveAppToPage = onMoveAppToPage,
@@ -290,88 +286,161 @@ fun ReadOnlyPagedHomeSurface(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PagedAppTile(
     app: LauncherActivityInfo,
+    showLabel: Boolean,
+    iconScale: Float,
     targetPages: List<WorkspaceRenderedHomePage>,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
 ) {
-    val icon = remember(app) { app.getBadgedIcon(0).toBitmap(width = 96, height = 96).asImageBitmap() }
-    var movePageMenuExpanded by remember(app) { mutableStateOf(false) }
-    var moveCellMenuExpanded by remember(app) { mutableStateOf(false) }
+    val icon = remember(app.componentName, app.user) {
+        runCatching { app.getBadgedIcon(0).toBitmap(128, 128).asImageBitmap() }.getOrNull()
+    }
+    var manageOpen by remember(app.componentName, app.user) { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.padding(vertical = GlazeMetrics.space2),
+        modifier = Modifier
+            .combinedClickable(
+                onClick = { onLaunchApp(app) },
+                onLongClick = { manageOpen = true },
+            )
+            .padding(GlazeMetrics.space1),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier.clickable { onLaunchApp(app) },
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Image(bitmap = icon, contentDescription = null, modifier = Modifier.height(52.dp))
-            Spacer(Modifier.height(GlazeMetrics.space2))
-            Text(
-                text = app.label.toString(),
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
+        if (icon != null) {
+            Image(
+                bitmap = icon,
+                contentDescription = app.label.toString(),
+                modifier = Modifier.size((54f * iconScale.coerceIn(0.85f, 1.15f)).dp),
             )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1)) {
-            TextButton(
-                onClick = { onMoveAppWithinPage(app, WorkspaceMoveDirection.EARLIER) },
-                modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
-            ) { Text("Earlier") }
-            TextButton(
-                onClick = { onMoveAppWithinPage(app, WorkspaceMoveDirection.LATER) },
-                modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
-            ) { Text("Later") }
-        }
-        Box {
-            TextButton(
-                onClick = { moveCellMenuExpanded = true },
-                modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
-            ) { Text("Move cell") }
-            DropdownMenu(expanded = moveCellMenuExpanded, onDismissRequest = { moveCellMenuExpanded = false }) {
-                WorkspaceHomeSpatialDirection.entries.forEach { direction ->
-                    DropdownMenuItem(
-                        text = { Text(direction.displayLabel()) },
-                        onClick = {
-                            moveCellMenuExpanded = false
-                            onMoveAppOneCell(app, direction)
-                        },
-                    )
+        } else {
+            Surface(
+                modifier = Modifier.size((54f * iconScale.coerceIn(0.85f, 1.15f)).dp),
+                shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(app.label.toString().take(1).uppercase(), fontWeight = FontWeight.Bold)
                 }
             }
         }
-        if (targetPages.isNotEmpty()) {
-            Box {
-                TextButton(
-                    onClick = { movePageMenuExpanded = true },
-                    modifier = Modifier.defaultMinSize(minHeight = GlazeMetrics.comfortableTarget),
-                ) { Text("Move page") }
-                DropdownMenu(expanded = movePageMenuExpanded, onDismissRequest = { movePageMenuExpanded = false }) {
-                    targetPages.forEach { target ->
-                        DropdownMenuItem(
-                            text = { Text(target.context().moveTargetLabel(target.rank + 1)) },
-                            onClick = {
-                                movePageMenuExpanded = false
-                                onMoveAppToPage(app, target.pageId)
-                            },
-                        )
-                    }
-                }
+        if (showLabel) {
+            Spacer(Modifier.height(GlazeMetrics.space1))
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
+                shape = RoundedCornerShape(GlazeMetrics.radiusControl),
+            ) {
+                Text(
+                    text = app.label.toString(),
+                    modifier = Modifier.padding(horizontal = GlazeMetrics.space1),
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
+
+    if (manageOpen) {
+        PagedAppManagementDialog(
+            app = app,
+            targetPages = targetPages,
+            onMoveAppToPage = onMoveAppToPage,
+            onMoveAppWithinPage = onMoveAppWithinPage,
+            onMoveAppOneCell = onMoveAppOneCell,
+            onClose = { manageOpen = false },
+        )
+    }
 }
 
-private fun WorkspaceHomeSpatialDirection.displayLabel(): String = when (this) {
-    WorkspaceHomeSpatialDirection.LEFT -> "Move left one cell"
-    WorkspaceHomeSpatialDirection.RIGHT -> "Move right one cell"
-    WorkspaceHomeSpatialDirection.UP -> "Move up one cell"
-    WorkspaceHomeSpatialDirection.DOWN -> "Move down one cell"
+@Composable
+private fun PagedAppManagementDialog(
+    app: LauncherActivityInfo,
+    targetPages: List<WorkspaceRenderedHomePage>,
+    onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
+    onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
+    onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
+    onClose: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+        title = { Text(app.label.toString()) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+            ) {
+                Text(
+                    "Manage this app on the current Home page.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Text("Order on page", fontWeight = FontWeight.SemiBold)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    OutlinedButton(
+                        onClick = { onMoveAppWithinPage(app, WorkspaceMoveDirection.EARLIER) },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Earlier") }
+                    OutlinedButton(
+                        onClick = { onMoveAppWithinPage(app, WorkspaceMoveDirection.LATER) },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Later") }
+                }
+
+                Text("Move one cell", fontWeight = FontWeight.SemiBold)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    OutlinedButton(
+                        onClick = { onMoveAppOneCell(app, WorkspaceHomeSpatialDirection.LEFT) },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Left") }
+                    OutlinedButton(
+                        onClick = { onMoveAppOneCell(app, WorkspaceHomeSpatialDirection.RIGHT) },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Right") }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    OutlinedButton(
+                        onClick = { onMoveAppOneCell(app, WorkspaceHomeSpatialDirection.UP) },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Up") }
+                    OutlinedButton(
+                        onClick = { onMoveAppOneCell(app, WorkspaceHomeSpatialDirection.DOWN) },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Down") }
+                }
+
+                if (targetPages.isNotEmpty()) {
+                    Text("Move to another Home page", fontWeight = FontWeight.SemiBold)
+                    targetPages.forEach { target ->
+                        FilledTonalButton(
+                            onClick = {
+                                onMoveAppToPage(app, target.pageId)
+                                onClose()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(target.context().moveTargetLabel(target.rank + 1))
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text("Done") } },
+    )
 }

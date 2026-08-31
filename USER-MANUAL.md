@@ -2,143 +2,146 @@
 
 ## Current availability
 
-GoreeCloud Launcher is a **Development** Android HOME application. It is not yet a signed production/Stable release. Current source supports daily-launcher foundations including HOME-role onboarding, app discovery, Favorites, Dock, All apps search, local placement/reorder controls, Light/Dark/System appearance behavior, and a guarded terminal-Room multi-page Home surface.
+GoreeCloud Launcher is a **Development** Android HOME application. It is not yet a signed production/Stable release. Current source provides a substantially rebuilt daily-launcher shell with a real Home surface, complete scoped launchable-app discovery, Apps, Launcher Settings, local placement controls, persisted presentation preferences, and the existing guarded terminal-Room multi-page Home foundation.
 
-Features described under **Approved future product direction** are planned/target capabilities and are **not currently available** unless a later current-behavior section or acceptance record explicitly says otherwise.
+Features described under **Approved future product direction** are planned/target capabilities and are **not currently available** unless a current-behavior section explicitly says otherwise.
 
 ## Make GoreeCloud Launcher your Home app
 
-After installing a Development build, open GoreeCloud Launcher and use its Home-role onboarding control to request Android's default HOME role. Android remains the authority for which launcher is the default.
+After installing a Development build, open GoreeCloud Launcher and use the default-Home control when shown. Android remains the authority for which launcher is the default and presents the system chooser.
 
-You can change the default launcher later through Android's system settings. Exact labels vary by device and Android version.
+You can change the default launcher later through Android system settings. Exact labels vary by device and Android version.
 
 ## Home screen
 
-The primary Home experience shows locally persisted app Favorites and a Dock.
+The primary Home experience is now a launcher-style surface rather than an app-management screen. Android renders the device wallpaper behind the launcher window, and Home presents the persisted application grid and Dock over that surface without requesting wallpaper-storage privileges.
 
-- Tap an app tile to launch it.
-- Long-press a supported primary-Home tile to open local placement controls.
+- Tap an app icon to launch it.
+- Long-press a supported Home or Dock icon to manage its placement.
+- Open **Apps** from the Home affordance to browse installed launchable applications.
+- Open **Launcher settings** to change supported Home, Apps, icon, label, and appearance preferences.
 - Favorites and Dock are seeded from installed launchable apps on first run when needed.
 - The Dock is currently bounded to five items.
 
-The launcher discovers launchable applications through Android's `LauncherApps` APIs and keeps profile-aware application identities distinct.
+The launcher discovers launchable activities through Android `LauncherApps` across available profiles. The manifest uses a scoped `MAIN` + `LAUNCHER` package-visibility query so the launcher can enumerate launchable applications without requesting broad `QUERY_ALL_PACKAGES` access.
 
-The current primary Home page is also the compatibility representation used by the existing Favorites path. In the current Development architecture it remains the first Home page and is not yet treated as a secondary spatial grid page.
+The primary Home page is still the protected Favorites compatibility representation used by the current Room-authority path. It remains HOME rank zero and is not yet a secondary spatial grid page.
+
+## Apps
+
+Open **Apps** from Home to browse the launchable application inventory exposed to the launcher. The Apps surface is separate from Home and Launcher Settings; Home page-management controls are not rendered over it.
+
+Use the search field to filter locally by application label or package information. Search is local and does not require Internet access.
+
+Long-press an app to open its current placement dialog. Depending on its state, you can add/remove it from Home or the Dock and use accessible earlier/later ordering controls.
+
+## Launcher settings
+
+The current Development settings surface is scrollable and persists supported presentation choices locally.
+
+### Home screen grid
+
+Current presets cover Home grids from 4 to 6 columns and 4 to 7 rows through the supported preset combinations in the UI. Changing the grid affects rendered Home density; it does not migrate the protected primary compatibility page into the secondary spatial-authority model.
+
+### Apps screen
+
+You can choose 4, 5, or 6 columns for the Apps grid.
+
+### Icons and labels
+
+You can choose Small, Medium, or Large icon presentation and turn app labels on or off. These settings apply to the rebuilt primary surface and are also used by the current secondary-page presentation where applicable.
+
+### Appearance
+
+The launcher supports persisted **System**, **Light**, and **Dark** appearance selection. The current repository targets the Glaze UI design-system baseline through its Adoption Candidate mapping; complete rendered/native/device acceptance remains separately gated.
 
 ## Multi-page Home navigation
 
-When the guarded workspace has reached terminal Room authority, the Development build can expose authoritative HOME pages through a horizontal page selector.
+When the guarded workspace has reached terminal Room authority, the Development build can expose authoritative HOME pages through a compact horizontal page selector.
 
-Each page selector entry shows:
-
-- the page number;
-- the authoritative number of app items on that page; and
-- the count of unsupported workspace items when present, so those items are not silently hidden from page context.
-
-The selector is a lazy horizontal list. When you select a page, reorder supported secondary pages, or change the page count, Launcher automatically scrolls the selected page back into view instead of leaving the active context off-screen.
+Each page selector entry conveys page identity plus authoritative app/unsupported-item context through its accessibility semantics. The selected page is automatically brought into view as page selection/order/count changes.
 
 ### Page controls
 
 The current selector can expose guarded controls to:
 
 - **Add page**;
-- **Move earlier** for eligible secondary pages;
-- **Move later** for eligible secondary pages; and
+- move eligible secondary pages earlier or later without crossing the protected primary page; and
 - **Delete empty page** when the selected secondary page is eligible.
 
-The protected primary compatibility Home page remains first and cannot be moved later or deleted. A secondary page cannot be moved ahead of it. Page mutations continue through the existing authoritative workspace mutation boundary; the switcher itself is not a second workspace source of truth.
+The protected primary compatibility Home page remains first and cannot be moved later or deleted. A secondary page cannot be moved ahead of it. Page mutations continue through the authoritative Room mutation boundary; the switcher is not a second workspace source of truth.
 
 ### Apps on secondary pages
 
-Application items on authoritative secondary Room pages can be launched. Current secondary-page controls also support:
+Secondary authoritative Room pages now render as ordinary icon grids rather than engineering/debug panels. Tap an icon to launch the app. Long-press a supported secondary-page icon to open its management dialog.
+
+Current secondary management actions can request:
 
 - move to another authoritative secondary Home page;
 - move earlier/later to the nearest permitted free cell; and
 - exact one-cell moves left/right/up/down.
 
-The protected primary Favorites compatibility page is not offered as a spatial move destination, and primary Favorites are not yet movable into secondary pages through this editor. Those directions require a separate accepted primary-grid/compatibility migration.
+These controls are intentionally behind long-press rather than permanently displayed under every icon.
 
-Exact-cell requests fail closed if the target cell is occupied or outside the authoritative grid. Secondary spatial mutations also fail closed if the primary compatibility projection is malformed, if secondary coordinates are incomplete, or if the authoritative workspace changes during the transaction. Unsupported item types are reported rather than rendered falsely as apps.
+The protected primary Favorites compatibility page is not offered as a secondary spatial source or destination. Primary-to-secondary and secondary-to-primary movement require a separately accepted primary-grid/compatibility migration.
 
-If authoritative paged Room state is unavailable, Launcher does not fabricate secondary-page state and remains on the safe primary Home path.
+Exact-cell requests fail closed if the target is occupied or outside the authoritative grid. Secondary spatial mutations also fail closed when authority/placement health is invalid or when the workspace changes during the transaction. Unsupported item types are reported rather than falsely rendered as applications.
 
-This remains a Development workspace surface. Mature drag/drop page editing, primary-grid migration, folders, shortcuts, widgets, and complete release acceptance remain separate milestones.
+If authoritative paged Room state is unavailable, Launcher does not fabricate secondary-page state.
 
-## All apps
+## Search — current and planned boundary
 
-Open **All apps** to browse launchable applications available to the launcher.
+The current accepted user-facing search is the local Apps search described above.
 
-Use the local search field to filter by application label or package information. Search is local; the current launcher does not require Internet access for core app discovery or launch.
+The approved product direction also includes a first-party **Launcher Unified Search** surface opened by a one-finger downward swipe on Home. That future surface is intended to orchestrate local results such as apps, actions, contacts (when enabled and permissioned), photos/media through scoped Android APIs, files/documents exposed through supported providers, first-party GoreeCloud app content, and other authorized sources, with GoreeCloud Search participating as an optional online/web provider.
 
-## Add or move apps
+That unified swipe-down experience and its broader device-content providers are **not implemented or accepted by this Development shell rebuild yet**. Local device content must not be uploaded to GoreeCloud Search merely to produce local results.
 
-Long-press an app from supported primary Home/All apps surfaces to access placement actions.
+## Official Launcher identity
 
-Current primary controls include explicit move-earlier/move-later operations and Reorder mode for Favorites/Dock. The non-drag move controls remain important for keyboard, switch-access, and users who prefer not to rely on gestures.
+The current Development package still requires an approved product-specific GoreeCloud Launcher visual identity. A framework/default Android-style placeholder is not the official release identity. The approved artwork must be stored in the Launcher repository and supply traceable Android adaptive and monochrome/themed icon derivatives.
 
-These primary Favorites/Dock controls are distinct from the secondary-page spatial editor. Moving a primary Favorite into a secondary page is not yet available in the current Development build.
-
-### Reorder mode
-
-When Reorder mode is active:
-
-- ordinary tile launching/long-press behavior is suppressed for the editable primary surface;
-- the dragged tile receives edit-state feedback;
-- valid targets are indicated by the current native UI; and
-- the final accepted move is committed through the launcher's workspace persistence boundary.
-
-Source/emulator validation does not equal complete physical-device drag acceptance. Touch targeting, rotation, TalkBack, switch access, and representative-device behavior remain separate acceptance work.
-
-## Appearance
-
-The current launcher supports persisted **System**, **Light**, and **Dark** appearance selection and targets the current Glaze UI 2.0 design-system baseline through an Adoption Candidate source mapping.
-
-Complete rendered Glaze UI 2.0 acceptance, all accessibility configurations, and representative physical-device design acceptance remain incomplete unless a later acceptance record states otherwise.
-
-## Workspace persistence status
-
-The repository contains deterministic multi-page workspace mutation contracts and Room-backed page-order, secondary app-placement, secondary-to-secondary movement, and guarded exact-cell movement foundations for the terminal Room-authority path. The rendered page selector and secondary-page surface read from that terminal Room authority; they do not bypass it.
-
-The current primary Home/Favorites compatibility representation remains protected at Home rank zero with its canonical non-spatial item shape. Primary-grid migration, primary↔secondary spatial movement, broader drag/drop controls, folders, shortcuts, widgets, complete live cell/span editing, and complete release acceptance remain separate milestones.
+No official artwork is claimed by this Development build until a reviewed canonical Launcher identity is supplied and accepted.
 
 ## Privacy and network behavior
 
-The current launcher has no Android `INTERNET` permission and core operation is intended to remain offline-capable.
+The current launcher has no Android `INTERNET` permission and core Home/App operation remains offline-capable.
 
+- No broad `QUERY_ALL_PACKAGES` permission is used for launcher discovery.
+- No wallpaper/storage permission is required to show the system wallpaper behind Home.
+- Launcher presentation preferences remain local.
 - Privacy Shield governs applicable privacy/user-control surfaces.
 - Wardveil Security governs applicable security/trust surfaces.
 - Everkeep governs accepted backup/restore, continuity, preservation, and portability.
-- GoreeCloud Identity governs any future account-backed authorization.
+- GoreeCloud Identity governs future account/profile-backed authorization where applicable.
 - GoreeCloud Mesh governs authenticated/authorized cross-service and cross-device integration.
 - Glaze UI governs interface/design-system conformance.
 
-Naming these platform systems does not mean every integration is currently implemented or accepted.
-
-The current launcher does not require a GoreeCloud account for core Home operation.
+Naming a platform system does not mean every integration is currently implemented or accepted.
 
 ## Current limitations
 
-Still incomplete or separately gated include mature cross-page drag/drop editing, primary compatibility-page grid migration and primary↔secondary spatial movement, folders, shortcuts, widgets/AppWidgetHost, complete icon/label customization, broader gesture bindings, full Glaze Theme Engine behavior, unified GoreeCloud Search/context/feed capabilities, versioned backup/restore, cross-device continuity, complete applicable platform-system integration acceptance, process-death/schema-upgrade recovery acceptance, representative physical-device default-HOME acceptance, signed release packaging, and Stable qualification.
+Still incomplete or separately gated include mature cross-page drag/drop editing; primary compatibility-page grid migration and primary↔secondary spatial movement; folders; shortcuts; widgets/AppWidgetHost; complete icon/theme customization; broader configurable gestures including the approved swipe-down Unified Search interaction; device files/photos/contacts/document search providers; GoreeCloud Search provider integration; official Launcher identity artwork; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
 
 # Approved future product direction — not currently available
 
-The long-term Launcher product scope is substantially broader than the current Development build. The following areas are approved targets, not instructions for features that can be used today.
+The long-term Launcher product scope is substantially broader than the current Development build.
 
 ## Home and organization
 
-Future Launcher releases are intended to support deeply customizable Home pages and grids, icon/label sizing, margins/padding, folders, shortcuts, widgets, multiple dock pages, page indicators, wallpaper behavior, precise placement, layout locking, overlapping supported elements, and adaptive layouts for different form factors.
+Future Launcher releases are intended to support deeply customizable Home pages and grids, margins/padding, folders, shortcuts, widgets, multiple dock pages, page indicators, wallpaper behavior, precise placement, layout locking, overlapping supported elements, and adaptive layouts for different form factors.
 
 ## Application drawer
 
-The intended application drawer includes custom grids, folders/tabs, categories, smart groups, suggested/recent/frequent applications, hiding, visual customization, and context-sensitive ordering in addition to search.
+The intended Apps/application-drawer experience includes folders/tabs, categories, smart groups, suggested/recent/frequent applications, hiding, richer visual customization, and context-sensitive ordering in addition to local search.
 
-## GoreeCloud Search
+## Launcher Unified Search and GoreeCloud Search
 
-The approved direction includes search across applications, application content, contacts, device/GoreeCloud settings, files/documents/screenshots, shortcuts/actions, web results, application-store/services, and compatible connected devices with direct actions and configurable result categories.
+The approved direction includes one-finger swipe-down access to a Launcher-owned unified search surface spanning applications, application content, contacts, device/GoreeCloud settings, files/documents/screenshots/photos, shortcuts/actions, GoreeCloud services, connected devices, and supported first-party providers. GoreeCloud Search is an optional provider for web/current-information results rather than the authority for the private local device index.
 
 ## Appearance and gestures
 
-The intended personalization surface includes icon packs, GoreeCloud/adaptive themed icons, icon shapes, wallpaper-derived palettes, custom colors, transparency, custom Home/drawer/folder/dock styling, custom text styling, richer gesture assignments, reduced-motion behavior, and high-contrast/accessibility preferences.
+The intended personalization surface includes icon packs, GoreeCloud/adaptive themed icons, icon shapes, wallpaper-derived palettes, custom colors/transparency, custom Home/Apps/folder/dock styling, richer gesture assignments, reduced-motion behavior, and high-contrast/accessibility preferences.
 
 ## Smart information and cards
 
@@ -152,6 +155,6 @@ The approved direction includes Launcher configuration/layout backup and restore
 
 The intended product can integrate, where implemented and authorized, with GoreeCloud Drive, Sync, Backups, Everkeep, Identity, Privacy Shield, Wardveil Security, Mesh, Location, Mail, Messenger, Maps, Calendar, Search, Glaze UI, and other compatible GoreeCloud services.
 
-Personalization and contextual intelligence should remain transparent and user-controlled. Privacy, security, identity, continuity, and cross-device features must not be inferred from a name or visual surface alone; each requires substantive implementation and acceptance.
+Personalization and contextual intelligence should remain transparent and user-controlled. Privacy, security, identity, continuity, and cross-device features require substantive implementation and acceptance rather than being inferred from names or visuals.
 
-Refer to `README.md`, `SPECIFICATIONS.md`, `FEATURES.md`, `BENEFITS.md`, `COMPETITIVE-OBJECTIVES.md`, and the `docs/` directory for product scope, implementation state, architecture, and acceptance details.
+Refer to `README.md`, `SPECIFICATIONS.md`, `FEATURES.md`, `BENEFITS.md`, `COMPETITIVE-OBJECTIVES.md`, and the `docs/` directory for scope, implementation state, architecture, and acceptance details.

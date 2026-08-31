@@ -6,167 +6,175 @@
 
 GoreeCloud Launcher is GoreeCloud's first-party native Android launcher and the intended home, application-navigation, search, personalization, and contextual-access experience for GoreeCloud devices.
 
-This repository specification describes both the current implementation architecture and the approved product direction. The detailed target capability inventory is maintained in [FEATURES.md](FEATURES.md). A target capability is not an implementation or acceptance claim unless repository evidence separately establishes that state.
+This repository specification describes both current implementation architecture and approved product direction. [FEATURES.md](FEATURES.md) maintains the detailed capability inventory. A target capability is not an implementation or acceptance claim unless repository evidence separately establishes that state.
 
 ## Product role
 
-Launcher is intended to serve as the personalized front door to GoreeCloud. Its long-term role is to bring applications, files, people, devices, search, information, services, privacy controls, security state, continuity features, and contextual actions together in one adaptive interface.
+Launcher is intended to serve as the personalized front door to GoreeCloud: applications, files, people, devices, search, information, services, privacy controls, security state, continuity features, and contextual actions in one adaptive interface.
 
 Launcher intelligence and personalization should remain transparent and user-controlled.
 
 ## Native application requirement
 
-Launcher must remain original GoreeCloud-owned software built from the ground up as a native application. Complete-product forks or adopted launcher implementations must not become the product authority.
-
-Android platform APIs and narrowly justified foundational dependencies may be used where direct operating-system integration, standards compatibility, security, interoperability, rendering, or maintainability requires them.
+Launcher must remain original GoreeCloud-owned software built from the ground up as a native Android application. Android platform APIs and narrowly justified foundational dependencies may be used where direct operating-system integration, standards compatibility, security, interoperability, rendering, or maintainability requires them.
 
 ## Current architecture
 
-- Native Android application using Kotlin and Jetpack Compose, with platform-native Android APIs where launcher contracts require them.
-- Android HOME-role onboarding remains user-controlled through Android's platform role authority.
-- Android `LauncherApps` remains authoritative for installed/launchable application discovery and available profile/application identity.
-- Workspace persistence and authoritative placement are represented through the repository's guarded Room-backed workspace model for terminal Room paths.
-- The rendered paged Home projection is read from authoritative workspace state; UI convenience must not become a second workspace source of truth.
-- Installed launchable application identity is mapped through the repository's stable workspace-key representation.
-- Privacy, security, continuity, identity, design, and cross-service integration must remain separated into their applicable GoreeCloud platform-system responsibilities rather than being implied by visual branding.
+- Kotlin + Jetpack Compose with Android-native APIs where launcher contracts require them.
+- Android HOME-role onboarding remains user-controlled through platform role authority.
+- `LauncherApps` remains authoritative for launchable-activity discovery and profile-aware application identity.
+- Android package visibility is scoped to launchable `MAIN` + `LAUNCHER` activities; broad `QUERY_ALL_PACKAGES` access is not used.
+- Home, Apps, and Launcher Settings are separate product surfaces.
+- Presentation preferences are persisted locally with DataStore.
+- Workspace persistence and placement use the guarded Room-backed workspace model for terminal Room paths.
+- Rendered paged Home state is projected from authoritative workspace state; UI convenience is not a second placement authority.
+- Privacy, security, continuity, identity, design, and cross-service responsibilities remain separated into applicable GoreeCloud platform-system boundaries.
 
-## Current Home-page behavior
+## Current daily-launcher shell
+
+### Home
+
+The rebuilt primary Home is a launcher-style surface rather than an engineering Favorites screen. Android renders the system wallpaper behind the launcher window through the native window-wallpaper contract, requiring no wallpaper/storage privilege. The primary surface renders the current Home application grid, Dock, Apps affordance, and Launcher Settings affordance.
+
+Current supported presentation settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps columns of 4/5/6, Small/Medium/Large icon presentation, app-label visibility, and System/Light/Dark appearance.
+
+The primary `WorkspaceLegacyImportMapper.HOME_PAGE_ID` page remains the protected compatibility representation for Favorites. Its canonical compatibility items retain null grid coordinates and its rank remains zero. The new presentation grid does not silently convert this authority model into the secondary spatial model.
+
+### Apps
+
+The Apps surface displays the launchable inventory provided through `LauncherApps`, supports local filtering by label/package, and launches selected applications. Long-press opens current placement management. Home page controls do not overlay the Apps surface.
+
+### Launcher Settings
+
+Launcher Settings is a distinct scrollable surface for current persisted presentation options. Settings changes affect rendering; they do not widen Room workspace mutation authority.
+
+## Current multi-page Home behavior
 
 Current Development source supports:
 
-- multiple authoritative Home pages that can be rendered and selected;
-- a lazy/scrollable page selector with authoritative app counts and unsupported-item counts;
-- automatic scrolling of the selected page into view after selection, reorder, or page-count changes;
-- guarded page creation, secondary-page reordering, and deletion of eligible empty non-primary pages while the protected primary compatibility page remains rank zero;
-- app launching from supported rendered pages;
-- app movement between existing authoritative secondary Home pages;
+- authoritative Home page rendering and selection;
+- compact/lazy page navigation with authoritative accessibility context;
+- guarded page creation, eligible empty-secondary deletion, and secondary page reordering without crossing protected primary rank zero;
+- app launching from supported secondary pages;
+- ordinary icon-grid rendering for secondary pages rather than permanent engineering controls;
+- long-press management for secondary movement actions;
+- secondary-to-secondary page movement;
 - within-secondary-page nearest-free-cell earlier/later movement;
-- guarded exact one-cell left/right/up/down movement on supported secondary pages;
-- fail-closed movement when targets are occupied, outside the authoritative grid, malformed, ambiguous, based on stale workspace state, or attempt to use the protected primary compatibility page as a spatial source/target;
-- canonical primary/Dock compatibility validation before secondary spatial writes; and
-- existing Favorites/Dock placement controls on the supported primary surface.
+- guarded exact one-cell left/right/up/down movement;
+- fail-closed movement for collisions, invalid bounds, malformed/ambiguous placement, stale snapshots, or primary-page spatial source/target requests; and
+- canonical primary/Dock compatibility validation before secondary spatial writes.
 
-The primary `WorkspaceLegacyImportMapper.HOME_PAGE_ID` page remains the compatibility representation for current Favorites. Its canonical items intentionally retain null grid coordinates and its page rank remains zero. Primary-grid coordinates and primary↔secondary spatial item movement require a separate accepted migration rather than being inferred from the secondary-page editor.
+Primary-grid coordinates and primary↔secondary spatial item movement require a separate accepted migration.
+
+## Launcher Unified Search architecture — approved next capability
+
+### Default interaction
+
+A **one-finger downward swipe on an unobstructed Home-screen area** is the approved default direct gesture for opening **Launcher Unified Search**.
+
+The gesture opens a Launcher-owned native search overlay/sheet, immediately focuses the query field, and may show the software keyboard where appropriate. The experience must provide equivalent hardware-keyboard, switch-access, and screen-reader paths and must not require understanding gesture animation to operate.
+
+### Ownership and local-first boundary
+
+Launcher Unified Search is a first-party local-first search orchestration, ranking, and action surface. It is not merely a web field and core local results must remain usable without a network connection, GoreeCloud account, or GoreeCloud Search availability.
+
+A normalized provider/result model should support independent providers while keeping source identity visible. Planned provider classes include:
+
+- installed applications through `LauncherApps`;
+- app shortcuts/direct actions through supported Android launcher APIs;
+- Launcher settings/actions and supported Android settings actions;
+- contacts only when explicitly enabled and permissioned;
+- photos, screenshots, videos, and other supported media through scoped Android media APIs;
+- files/documents exposed through supported Android document/provider access or user-granted locations;
+- explicit first-party GoreeCloud searchable-content contracts rather than scraping another app's private storage;
+- authorized GoreeCloud Drive content;
+- compatible connected-device providers when separately authorized; and
+- optional GoreeCloud Search online/web/current-information results.
+
+### GoreeCloud Search boundary
+
+GoreeCloud Search is an optional first-party provider for web/current-information categories. It does not own or receive the private Launcher local index by default. Local files, photos, contacts, installed-app inventory, Launcher history, and local result payloads must not be uploaded merely to produce local search results.
+
+Where practical, the integration should use an explicit first-party provider/handoff contract so Launcher can preserve its current offline-capable/no-`INTERNET` core. Any later direct Launcher networking requires separate destination/privacy/failure review and acceptance.
+
+### Android platform boundaries
+
+Launcher must not request unrestricted filesystem privileges merely to emulate a privileged system index. File/document coverage must use supported document providers, user-granted locations, app-owned provider contracts, Android search/index APIs, or other platform-compliant access. Media search must use scoped APIs. Work/private profile isolation must follow Android and GoreeCloud Identity policy.
+
+### Ranking and actions
+
+Exact/prefix matches should generally outrank fuzzy matches. Optional local recency/frequency/context signals must remain transparent, disableable, and local by default. There is no sponsored, promoted, affiliate, or advertising ranking.
+
+Supported results may expose direct actions such as launch app, invoke shortcut, open file/photo, contact communication action, open setting, open a GoreeCloud service result, or hand the query to GoreeCloud Search. External intents, deep links, provider payloads, and cross-app searchable-content records are untrusted input and require validation.
+
+### Privacy and controls
+
+Sensitive/permissioned source categories must be independently controllable. Search history remains local, separately clearable, and disableable. The user must be able to understand enabled sources and clear/rebuild local index state. Local search must continue to function when online providers are disabled or unavailable.
+
+### Current acceptance boundary
+
+This architecture is approved product scope. The one-finger gesture, overlay, provider interface, local content indexes, contacts/media/document providers, and GoreeCloud Search integration are not claimed as implemented by the current beta-shell rebuild.
+
+## Official Launcher product identity specification
+
+Launcher requires a unique first-party visual identity distinct from framework defaults, upstream products, and the generic GoreeCloud platform/corporate logo.
+
+The canonical source artwork must:
+
+- be stored in `GoreeCloud/goreecloud-launcher`;
+- communicate Launcher/system-utility semantics such as application/activity access, navigation, launching, discovery, or the personalized GoreeCloud entry point;
+- remain recognizable at small launcher-icon sizes;
+- preserve one recognizable identity across Android and other supported surfaces;
+- generate traceable Android adaptive foreground/background resources;
+- generate a monochrome/themed-icon derivative; and
+- produce other required raster/vector derivatives from the same approved source.
+
+Automatically generated/unreviewed artwork, framework/default Android imagery, copied/upstream identities, and a generic corporate-logo substitute do not qualify as the official Launcher identity.
+
+No approved canonical Launcher artwork is currently committed; official product-identity acceptance is therefore incomplete.
 
 ## Approved product capability domains
 
-The approved Launcher product scope includes the following major domains. Detailed features and implementation-state boundaries are in [FEATURES.md](FEATURES.md).
-
-### Home and workspace
-
-- Customizable multi-page Home layouts.
-- Independent row/column/grid configuration, icon sizing, margins/padding, sub-grid placement, folders, shortcuts, widgets, docks, page indicators, wallpaper behavior, overlapping supported elements, layout locking, and device-adaptive layouts.
-
-### Application drawer
-
-- Swipe-up All apps experience with custom grids, folders/tabs, categorization, smart groups, suggestions, recency/frequency surfaces, search, hiding, visual customization, and context-sensitive ordering.
-
-### GoreeCloud Search
-
-- Search across installed applications, application content, contacts, device/GoreeCloud settings, files/documents/screenshots, shortcuts/actions, web results, application store, GoreeCloud services, and compatible connected GoreeCloud devices.
-- Context-aware recommendations, result-category controls, search-bar personalization, animation, and direct actions.
-
-### Appearance and personalization
-
-- Icon packs, GoreeCloud-native/adaptive themed icons, icon shapes/sizes, per-app/folder icons, wallpaper-derived color systems, interface/accent colors, appearance switching, transparency, custom Home/drawer/folder/dock styling, text styling, context-aware themes, per-device/per-display personalization, reduced motion, and high-contrast options.
-
-### Gestures and interaction
-
-- Configurable swipe, horizontal swipe, double-tap, pinch, two-finger, long-press, drag-and-drop, search, notification, feed, application, shortcut, and GoreeCloud action interactions with accessible non-gesture alternatives where required.
-
-### Smart and contextual experiences
-
-- Optional recommendations and contextual surfaces based on recent/long-term usage, routines, time of day, permitted location, device state, connected devices, calendar, weather, events, deliveries, travel, flights, navigation, media, files, and relevant GoreeCloud actions.
-- Contextual intelligence must respect Privacy Shield, explicit user controls, authorization, sensitive-content visibility, and data-minimization boundaries.
-
-### Feed, cards, notifications, folders, widgets, and dock
-
-- Optional personalized information feed and configurable cards.
-- Notification dots/badges/previews with privacy-aware visibility.
-- Complete Home/drawer folder experiences, including smart/automatic organization where accepted.
-- Complete widget library, resizing, preview, interactive/context-aware behavior, precise placement, privacy-aware content, and update controls.
-- Multi-page/adaptive Dock behavior with optional search/widgets/suggestions and GoreeCloud actions.
-
-### Adaptive layout and motion
-
-- Per-page, portrait/landscape, foldable, multi-display, tablet, and desktop-style layouts where appropriate.
-- Custom transitions and motion with reduced-motion, accessibility, and device-performance-aware behavior.
-
-### Application management
-
-- Launcher shortcuts for uninstall/application information, hide/rename/icon customization, folder/category organization, pinning, installed/recently installed/recently updated discovery, and integrated access to permission, storage, notification, privacy, and security controls.
-
-### Backup, Sync, and configuration
-
-- Versioned Launcher-layout backup/restore, multiple saved configurations, restoration of layouts/folders/dock/preferences/icons/widgets, compatible layout import/migration, supported cross-device preference/layout synchronization, device-specific overrides, configuration history, and safe reset/replacement recovery.
+Detailed approved features are maintained in [FEATURES.md](FEATURES.md). Major domains include customizable Home/workspace, rich Apps organization, Launcher Unified Search, GoreeCloud Search provider integration, appearance/personalization, gestures, contextual experiences, feeds/cards, notifications, folders, widgets, adaptive Dock/layout/motion, application management, backup/Sync/configuration, and applicable GoreeCloud platform integrations.
 
 ## GoreeCloud platform integration boundaries
 
-Every integration below is a target requirement only to the extent applicable and implemented. Naming an integration does not establish acceptance.
+Naming an integration establishes no implementation claim. Each participating system must satisfy its own implementation, authorization, privacy, security, availability, and acceptance boundary.
 
-### Glaze UI / Design Center
-
-Glaze UI governs visual hierarchy, components, interaction, responsiveness, motion, accessibility, adaptive layouts, wallpaper-aware styling, and design-system acceptance. Launcher currently targets the Glaze UI 2.0 Stable baseline through an Adoption Candidate mapping; complete rendered/native/accessibility acceptance remains separate.
-
-### Privacy Shield / Privacy Center
-
-Privacy Shield governs personalization signals, usage-derived ranking, contextual recommendations, location-derived behavior, search/history exposure, sensitive-content visibility, privacy status, consent, and direct user control.
-
-### Wardveil Security / Security Center
-
-Wardveil governs applicable package trust, suspicious-application warnings, protected application access, security-state surfaces, risky cross-application actions, and protection of Launcher configuration/personalization data.
-
-### Everkeep / Continuity Center
-
-Everkeep governs accepted long-term preservation, backup/recovery, portability, device-transition continuity, restoration evidence, and preservation of selected Launcher configurations.
-
-### GoreeCloud Identity / Identity Center
-
-Identity governs user/profile identity, authentication/authorization, secure profile switching, managed application visibility, profile-specific personalization, credentials/sessions where introduced, and identity-aware continuity.
-
-### GoreeCloud Mesh / Mesh Center
-
-Mesh governs authenticated/authorized cross-device coordination, device awareness, handoff, nearby-device actions, connected-device cards, device-triggered layouts, cross-device suggestions, and coordinated Launcher state where implemented.
-
-### GoreeCloud Drive
-
-Target integration includes recent files/folders, Launcher search, pinned file/folder shortcuts/widgets, contextual document suggestions, and synchronized-content access.
-
-### GoreeCloud Sync and Backups
-
-Target integration includes supported preference/layout/folder/application-organization synchronization and automatic configuration/layout/widget/folder/preference recovery where accepted.
-
-### GoreeCloud Location and Maps
-
-Target integration includes explicitly enabled location-aware application suggestions, travel/destination information, nearby actions, commute/navigation suggestions, Maps shortcuts, and destination search.
-
-### GoreeCloud Mail, Messenger, and Calendar
-
-Target integration includes unread/message/event widgets and cards, communication shortcuts, search/actions, meeting/event shortcuts, and context-aware schedule information where authorized and accepted.
+- **Glaze UI / Design Center** governs visual hierarchy, components, motion, responsiveness, accessibility, adaptive layouts, wallpaper-aware presentation, and design-system acceptance.
+- **Privacy Shield / Privacy Center** governs personalization signals, sensitive search sources/results, history exposure, consent, location/usage-derived behavior, and user control.
+- **Wardveil Security / Security Center** governs applicable package trust, risky cross-application actions, security-state surfaces, and protection of Launcher configuration/index state.
+- **Everkeep / Continuity Center** governs accepted preservation, backup/recovery, portability, and device-transition continuity.
+- **GoreeCloud Identity** governs profiles, authentication/authorization, managed application visibility, and identity-aware continuity.
+- **GoreeCloud Mesh** governs authorized cross-device coordination, device awareness, handoff, connected-device results/cards, and coordinated Launcher state.
+- **GoreeCloud Drive** may provide authorized recent/searchable files/folders and launcher shortcuts/widgets.
+- **GoreeCloud Search** may provide optional web/current-information results without becoming local-index authority.
+- **Sync/Backups/Location/Maps/Mail/Messenger/Calendar** may provide their approved integrations only where substantively implemented and accepted.
 
 ## Authority and privacy principles
 
-- Android remains authoritative for installed applications, launchability, platform roles, and operating-system launcher capabilities.
-- GoreeCloud workspace persistence must maintain one accepted placement authority at a time.
-- Compatibility representations and newer spatial workspace models must not be mixed in ways that invalidate the accepted authority or recovery path.
+- Android remains authoritative for installed/launchable applications, platform roles, and operating-system launcher capabilities.
+- GoreeCloud workspace persistence maintains one accepted placement authority at a time.
+- Compatibility and secondary spatial models must not be mixed in ways that invalidate authority/recovery.
 - Cross-device continuity must not create ambiguous writable workspace authorities.
-- Personalization and recommendations must be transparent, optional/configurable where appropriate, and bounded by Privacy Shield.
-- Sensitive content must not be exposed through cards, search, widgets, notification previews, or recommendations without the applicable privacy/authorization policy.
-- Platform integration must be substantive. A badge, label, icon, or named menu entry is not sufficient evidence of integration.
-- Current source remains offline-capable for core Home behavior and currently requests no Android `INTERNET` permission.
+- Search/personalization signals should remain transparent and user-controlled.
+- Sensitive content must not be exposed through search/cards/widgets/notifications without applicable authorization/privacy policy.
+- Platform integration must be substantive; visual labels do not prove integration.
+- Core Home and current Apps behavior remain offline-capable and currently request no Android `INTERNET` permission.
 
 ## Stable blockers
 
 Stable qualification still requires, as applicable:
 
+- approved official Launcher identity artwork and derivative asset pipeline;
+- implemented/accepted Launcher Unified Search with the release-intended provider set;
 - complete intended workspace/user flows and recovery semantics;
 - accepted primary compatibility-page grid migration and complete intended cross-page movement semantics;
-- folder/widget/shortcut functionality required by the accepted release scope;
+- folders/widgets/shortcuts required by release scope;
 - mature cross-page placement editing and accessible alternatives;
 - representative-device, rotation/posture, performance, physical-interaction, and accessibility acceptance;
 - complete current Glaze UI application acceptance;
-- accepted applicable Privacy Shield, Wardveil Security, Everkeep, GoreeCloud Identity, and GoreeCloud Mesh integrations;
-- accepted Sync/Backup/continuity behavior for any release claiming those capabilities;
+- accepted applicable Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, Search, Sync, Backup, and continuity integrations;
 - Android process-death and schema-upgrade recovery evidence;
 - signed distribution and upgrade/recovery validation; and
 - release/production evidence supporting every capability represented as implemented.
