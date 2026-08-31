@@ -79,6 +79,7 @@ docs/glaze-motion-evaluation.md
 docs/glaze-ui-adoption.md
 docs/post-cutover-startup-recovery.md
 docs/primary-home-grid-migration-planning.md
+docs/product-identity.md
 docs/production-promotion-coordinator.md
 docs/production-workspace-activation.md
 docs/rendered-home-page-navigation.md
