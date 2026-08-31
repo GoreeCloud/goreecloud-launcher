@@ -14,6 +14,11 @@ data class WorkspaceHomePageContext(
             unsupportedItemCount > 0 -> "$appCount app${if (appCount == 1) "" else "s"} · $unsupportedItemCount other"
             else -> "$appCount app${if (appCount == 1) "" else "s"}"
         }
+
+    fun moveTargetLabel(pageNumber: Int): String {
+        require(pageNumber >= 1)
+        return "Page $pageNumber · $compactLabel"
+    }
 }
 
 fun WorkspaceRenderedHomePage.context(): WorkspaceHomePageContext = WorkspaceHomePageContext(

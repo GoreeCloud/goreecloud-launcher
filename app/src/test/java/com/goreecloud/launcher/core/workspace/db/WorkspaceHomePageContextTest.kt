@@ -27,4 +27,11 @@ class WorkspaceHomePageContextTest {
 
         assertEquals("1 app · 2 other", page.context().compactLabel)
     }
+
+    @Test
+    fun moveTargetLabelIncludesPageNumberAndCurrentContext() {
+        val context = WorkspaceHomePageContext(appCount = 3, unsupportedItemCount = 1)
+
+        assertEquals("Page 4 · 3 apps · 1 other", context.moveTargetLabel(pageNumber = 4))
+    }
 }
