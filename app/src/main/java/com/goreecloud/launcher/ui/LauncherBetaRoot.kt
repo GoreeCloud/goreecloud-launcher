@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +26,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -194,7 +197,7 @@ private fun HomeSurface(
                 .navigationBarsPadding()
                 .padding(horizontal = GlazeMetrics.space4),
         ) {
-            // Reserved for the compact page switcher owned by MainActivity.
+            // The authoritative page selector is drawn above Home by MainActivity.
             Spacer(Modifier.height(72.dp))
 
             Row(
@@ -259,7 +262,7 @@ private fun HomeSurface(
                         }
                     }
                 } else {
-                    val preferredTileHeight = maxHeight / preferences.homeRows
+                    val preferredTileHeight = maxHeight / preferences.homeRows.toFloat()
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(preferences.homeColumns),
                         modifier = Modifier.fillMaxSize(),
@@ -442,6 +445,7 @@ private fun LauncherSettingsSurface(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = GlazeMetrics.space5, vertical = GlazeMetrics.space4),
             verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space4),
         ) {
@@ -450,7 +454,7 @@ private fun LauncherSettingsSurface(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text("Launcher settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text("Home, Apps and appearance", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -557,6 +561,7 @@ private fun LauncherSettingsSurface(
                     }
                 }
             }
+            Spacer(Modifier.height(GlazeMetrics.space4))
         }
     }
 }
@@ -564,7 +569,7 @@ private fun LauncherSettingsSurface(
 @Composable
 private fun SettingsCard(
     title: String,
-    content: @Composable Column.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -593,8 +598,7 @@ private fun GridPresetRow(
         horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
     ) {
         options.forEach { option ->
-            val selectedOption = option == selected
-            if (selectedOption) {
+            if (option == selected) {
                 FilledTonalButton(
                     onClick = { onSelect(option) },
                     modifier = Modifier.weight(1f),
