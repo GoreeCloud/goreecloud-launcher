@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -79,28 +78,26 @@ fun HomePageSwitcher(
     modifier: Modifier = Modifier,
 ) {
     if (pages.isEmpty()) return
+
     val selectedIndex = pages.indexOfFirst { it.pageId == selectedPageId }
     val selectedPage = pages.getOrNull(selectedIndex)
-    val primaryIndex = pages.indexOfFirst { it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID }
-    val primaryRankHealthy = primaryIndex == 0
+    val primaryRankHealthy = pages.firstOrNull()?.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
     val pageListState = rememberLazyListState()
     var pageMenuExpanded by remember(selectedPageId) { mutableStateOf(false) }
 
-    val canDeleteSelectedPage = pages.size > 1 &&
+    val canDelete = pages.size > 1 &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
         selectedPage.appKeys.isEmpty() &&
         selectedPage.unsupportedItemCount == 0
-    val canMoveSelectedEarlier = primaryRankHealthy &&
+    val canMoveEarlier = primaryRankHealthy &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
         selectedIndex > 1
-    val canMoveSelectedLater = primaryRankHealthy &&
+    val canMoveLater = primaryRankHealthy &&
         selectedPage != null &&
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
-        selectedIndex >= 1 &&
-        selectedIndex < pages.lastIndex
-    val hasPageActions = canMoveSelectedEarlier || canMoveSelectedLater || canDeleteSelectedPage
+        selectedIndex in 1 until pages.lastIndex
 
     LaunchedEffect(selectedPageId, selectedIndex, pages.size) {
         if (selectedIndex >= 0) pageListState.animateScrollToItem(selectedIndex)
@@ -123,10 +120,7 @@ fun HomePageSwitcher(
                 horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                itemsIndexed(
-                    items = pages,
-                    key = { _, page -> page.pageId },
-                ) { index, page ->
+                itemsIndexed(pages, key = { _, page -> page.pageId }) { index, page ->
                     val selected = page.pageId == selectedPageId
                     val pageContext = page.context()
                     Surface(
@@ -149,11 +143,6 @@ fun HomePageSwitcher(
                                 vertical = GlazeMetrics.space2,
                             ),
                             style = MaterialTheme.typography.labelLarge,
-                            color = if (selected) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
                         )
                     }
                 }
@@ -161,14 +150,14 @@ fun HomePageSwitcher(
 
             TextButton(onClick = onCreatePage) { Text("Add") }
 
-            if (hasPageActions) {
+            if (canMoveEarlier || canMoveLater || canDelete) {
                 Box {
                     TextButton(onClick = { pageMenuExpanded = true }) { Text("More") }
                     DropdownMenu(
                         expanded = pageMenuExpanded,
                         onDismissRequest = { pageMenuExpanded = false },
                     ) {
-                        if (canMoveSelectedEarlier) {
+                        if (canMoveEarlier) {
                             DropdownMenuItem(
                                 text = { Text("Move page earlier") },
                                 onClick = {
@@ -177,7 +166,7 @@ fun HomePageSwitcher(
                                 },
                             )
                         }
-                        if (canMoveSelectedLater) {
+                        if (canMoveLater) {
                             DropdownMenuItem(
                                 text = { Text("Move page later") },
                                 onClick = {
@@ -186,7 +175,7 @@ fun HomePageSwitcher(
                                 },
                             )
                         }
-                        if (canDeleteSelectedPage) {
+                        if (canDelete) {
                             DropdownMenuItem(
                                 text = { Text("Delete empty page") },
                                 onClick = {
@@ -216,7 +205,9 @@ fun ReadOnlyPagedHomeSurface(
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
-    val pageApps = remember(appsByKey, page.appKeys) { page.appKeys.mapNotNull(appsByKey::get) }
+    val pageApps = remember(appsByKey, page.appKeys) {
+        page.appKeys.mapNotNull(appsByKey::get)
+    }
     val targetPages = remember(pages, page.pageId) {
         pages.filterNot {
             it.pageId == page.pageId || it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
@@ -268,7 +259,10 @@ fun ReadOnlyPagedHomeSurface(
             }
 
             if (pageApps.isEmpty()) {
-                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Surface(
                         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
@@ -276,7 +270,6 @@ fun ReadOnlyPagedHomeSurface(
                         Text(
                             "This Home page is empty.",
                             modifier = Modifier.padding(GlazeMetrics.space5),
-                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
@@ -398,7 +391,7 @@ private fun PagedAppManagementDialog(
                 verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
             ) {
                 Text(
-                    "Move this app without exposing editing controls on the normal Home surface.",
+                    "Manage this app on the current Home page.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
