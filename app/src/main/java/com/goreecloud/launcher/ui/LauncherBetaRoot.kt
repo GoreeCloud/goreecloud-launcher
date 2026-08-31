@@ -1,6 +1,5 @@
 package com.goreecloud.launcher.ui
 
-import android.app.WallpaperManager
 import android.content.pm.LauncherActivityInfo
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -51,10 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -99,9 +95,7 @@ fun LauncherBetaRoot(
         .getOrDefault(LauncherSurfaceMode.HOME)
     var selectedApp by remember { mutableStateOf<LauncherActivityInfo?>(null) }
 
-    LaunchedEffect(surfaceMode) {
-        onSurfaceModeChanged(surfaceMode)
-    }
+    LaunchedEffect(surfaceMode) { onSurfaceModeChanged(surfaceMode) }
 
     when (surfaceMode) {
         LauncherSurfaceMode.HOME -> HomeSurface(
@@ -171,23 +165,14 @@ private fun HomeSurface(
     val dockApps = remember(appsByKey, workspace.dockKeys) {
         workspace.dockKeys.mapNotNull(appsByKey::get).take(MAX_DOCK_ITEMS)
     }
-    val wallpaper = rememberWallpaper()
 
+    // MainActivity uses FLAG_SHOW_WALLPAPER. Keep Home translucent so Android renders the
+    // user's actual wallpaper behind this window without wallpaper/storage permissions.
     Box(Modifier.fillMaxSize()) {
-        if (wallpaper != null) {
-            Image(
-                bitmap = wallpaper,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
-        }
         Box(
-            Modifier.fillMaxSize().background(
-                MaterialTheme.colorScheme.background.copy(alpha = 0.26f)
-            )
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.08f))
         )
 
         Column(
@@ -197,7 +182,6 @@ private fun HomeSurface(
                 .navigationBarsPadding()
                 .padding(horizontal = GlazeMetrics.space4),
         ) {
-            // The authoritative page selector is drawn above Home by MainActivity.
             Spacer(Modifier.height(72.dp))
 
             Row(
@@ -208,10 +192,9 @@ private fun HomeSurface(
                 Surface(
                     shape = RoundedCornerShape(GlazeMetrics.radiusControl),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                    tonalElevation = 2.dp,
                 ) {
-                    TextButton(onClick = onOpenSettings) {
-                        Text("Launcher settings")
-                    }
+                    TextButton(onClick = onOpenSettings) { Text("Launcher settings") }
                 }
             }
 
@@ -221,7 +204,7 @@ private fun HomeSurface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f)
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.94f)
                     ),
                 ) {
                     Row(
@@ -244,25 +227,22 @@ private fun HomeSurface(
 
             Spacer(Modifier.height(GlazeMetrics.space3))
 
-            BoxWithConstraints(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-            ) {
+            BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 if (favoriteApps.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Surface(
                             shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
                         ) {
                             Text(
                                 "Your Home is empty. Open Apps, long-press an app, and add it to Home.",
                                 modifier = Modifier.padding(GlazeMetrics.space5),
                                 textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
                 } else {
-                    val preferredTileHeight = maxHeight / preferences.homeRows.toFloat()
+                    val tileHeight = (maxHeight / preferences.homeRows.toFloat()).coerceAtLeast(76.dp)
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(preferences.homeColumns),
                         modifier = Modifier.fillMaxSize(),
@@ -277,8 +257,8 @@ private fun HomeSurface(
                                 showLabel = preferences.showLabels,
                                 onClick = { onLaunchApp(app) },
                                 onLongClick = { onManageApp(app) },
-                                modifier = Modifier.height(preferredTileHeight.coerceAtLeast(76.dp)),
-                                transparent = true,
+                                modifier = Modifier.height(tileHeight),
+                                translucentLabel = true,
                             )
                         }
                     }
@@ -290,7 +270,7 @@ private fun HomeSurface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.80f),
-                    tonalElevation = 2.dp,
+                    tonalElevation = 3.dp,
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(
@@ -308,7 +288,7 @@ private fun HomeSurface(
                                 onClick = { onLaunchApp(app) },
                                 onLongClick = { onManageApp(app) },
                                 modifier = Modifier.width(68.dp).height(72.dp),
-                                transparent = true,
+                                translucentLabel = true,
                             )
                         }
                     }
@@ -319,8 +299,8 @@ private fun HomeSurface(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(GlazeMetrics.radiusControl),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
-                tonalElevation = 2.dp,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                tonalElevation = 3.dp,
                 onClick = onOpenDrawer,
             ) {
                 Text(
@@ -371,7 +351,7 @@ private fun AppDrawerSurface(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text("Apps", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text(
                         "${apps.size} installed app${if (apps.size == 1) "" else "s"}",
@@ -379,10 +359,8 @@ private fun AppDrawerSurface(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1)) {
-                    TextButton(onClick = onOpenSettings) { Text("Settings") }
-                    TextButton(onClick = onHome) { Text("Home") }
-                }
+                TextButton(onClick = onOpenSettings) { Text("Settings") }
+                TextButton(onClick = onHome) { Text("Home") }
             }
 
             Spacer(Modifier.height(GlazeMetrics.space3))
@@ -417,7 +395,7 @@ private fun AppDrawerSurface(
                             onClick = { onLaunchApp(app) },
                             onLongClick = { onManageApp(app) },
                             modifier = Modifier.height(104.dp),
-                            transparent = false,
+                            translucentLabel = false,
                         )
                     }
                 }
@@ -461,7 +439,7 @@ private fun LauncherSettingsSurface(
                 TextButton(onClick = onBack) { Text("Done") }
             }
 
-            SettingsCard(title = "Home screen") {
+            SettingsCard("Home screen") {
                 Text("Grid", fontWeight = FontWeight.SemiBold)
                 Text(
                     "${preferences.homeColumns} × ${preferences.homeRows}",
@@ -480,7 +458,7 @@ private fun LauncherSettingsSurface(
                 )
             }
 
-            SettingsCard(title = "Apps screen") {
+            SettingsCard("Apps screen") {
                 Text("Columns", fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(GlazeMetrics.space2))
                 ChoiceRow(
@@ -490,7 +468,7 @@ private fun LauncherSettingsSurface(
                 )
             }
 
-            SettingsCard(title = "Icons and labels") {
+            SettingsCard("Icons and labels") {
                 Text("Icon size", fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(GlazeMetrics.space2))
                 ChoiceRow(
@@ -500,9 +478,7 @@ private fun LauncherSettingsSurface(
                         preferences.iconScale > 1.05f -> 2
                         else -> 1
                     },
-                    onSelected = { index ->
-                        onSetIconScale(listOf(0.85f, 1.0f, 1.15f)[index])
-                    },
+                    onSelected = { onSetIconScale(listOf(0.85f, 1.0f, 1.15f)[it]) },
                 )
                 Spacer(Modifier.height(GlazeMetrics.space3))
                 Row(
@@ -513,19 +489,16 @@ private fun LauncherSettingsSurface(
                     Column(Modifier.weight(1f)) {
                         Text("App labels", fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Show app names under icons",
+                            "Show names under app icons",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Switch(
-                        checked = preferences.showLabels,
-                        onCheckedChange = onSetShowLabels,
-                    )
+                    Switch(checked = preferences.showLabels, onCheckedChange = onSetShowLabels)
                 }
             }
 
-            SettingsCard(title = "Appearance") {
+            SettingsCard("Appearance") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -538,13 +511,11 @@ private fun LauncherSettingsSurface(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    FilledTonalButton(onClick = { onCycleTheme(themeMode) }) {
-                        Text("Change")
-                    }
+                    FilledTonalButton(onClick = { onCycleTheme(themeMode) }) { Text("Change") }
                 }
             }
 
-            SettingsCard(title = "Default Home app") {
+            SettingsCard("Default Home app") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -567,10 +538,7 @@ private fun LauncherSettingsSurface(
 }
 
 @Composable
-private fun SettingsCard(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit,
-) {
+private fun SettingsCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
@@ -614,11 +582,7 @@ private fun GridPresetRow(
 }
 
 @Composable
-private fun ChoiceRow(
-    labels: List<String>,
-    selectedIndex: Int,
-    onSelected: (Int) -> Unit,
-) {
+private fun ChoiceRow(labels: List<String>, selectedIndex: Int, onSelected: (Int) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
@@ -647,11 +611,13 @@ private fun LauncherAppTile(
     showLabel: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    transparent: Boolean,
+    modifier: Modifier,
+    translucentLabel: Boolean,
 ) {
-    val icon = rememberAppIcon(app, size = 128)
-    val iconSize = (54f * iconScale).dp
+    val icon = remember(app.componentName, app.user) {
+        runCatching { app.getBadgedIcon(0).toBitmap(128, 128).asImageBitmap() }.getOrNull()
+    }
+    val iconSize = (54f * iconScale.coerceIn(0.85f, 1.15f)).dp
 
     Column(
         modifier = modifier
@@ -660,35 +626,32 @@ private fun LauncherAppTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(
-            modifier = Modifier.size((68f * iconScale).dp).then(
-                if (transparent) Modifier
-                else Modifier.background(
-                    MaterialTheme.colorScheme.surfaceVariant,
-                    RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                )
-            ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (icon != null) {
-                Image(
-                    bitmap = icon,
-                    contentDescription = app.label.toString(),
-                    modifier = Modifier.size(iconSize),
-                )
-            } else {
-                Text(
-                    app.label.toString().take(1).uppercase(),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
+        if (icon != null) {
+            Image(
+                bitmap = icon,
+                contentDescription = app.label.toString(),
+                modifier = Modifier.size(iconSize),
+            )
+        } else {
+            Surface(
+                modifier = Modifier.size(iconSize),
+                shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(app.label.toString().take(1).uppercase(), fontWeight = FontWeight.Bold)
+                }
             }
         }
+
         if (showLabel) {
             Spacer(Modifier.height(GlazeMetrics.space1))
             Surface(
-                color = if (transparent) MaterialTheme.colorScheme.surface.copy(alpha = 0.58f)
-                else MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                color = if (translucentLabel) {
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
+                } else {
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+                },
                 shape = RoundedCornerShape(GlazeMetrics.radiusControl),
             ) {
                 Text(
@@ -728,7 +691,7 @@ private fun AppPlacementDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3)) {
                 Text(
-                    "Choose where this app appears. Long-press Home icons anytime to return here.",
+                    "Choose where this app appears. Long-press an icon to manage it again.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 PlacementSection(
@@ -759,9 +722,7 @@ private fun AppPlacementDialog(
                 )
             }
         },
-        confirmButton = {
-            TextButton(onClick = onClose) { Text("Done") }
-        },
+        confirmButton = { TextButton(onClick = onClose) { Text("Done") } },
     )
 }
 
@@ -820,27 +781,5 @@ private fun PlacementSection(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun rememberAppIcon(app: LauncherActivityInfo, size: Int): ImageBitmap? =
-    remember(app.componentName, app.user, size) {
-        runCatching { app.getBadgedIcon(0).toBitmap(size, size).asImageBitmap() }.getOrNull()
-    }
-
-@Composable
-private fun rememberWallpaper(): ImageBitmap? {
-    val context = LocalContext.current
-    return remember(context) {
-        runCatching {
-            val metrics = context.resources.displayMetrics
-            WallpaperManager.getInstance(context).drawable
-                .toBitmap(
-                    width = metrics.widthPixels.coerceAtLeast(1),
-                    height = metrics.heightPixels.coerceAtLeast(1),
-                )
-                .asImageBitmap()
-        }.getOrNull()
     }
 }
