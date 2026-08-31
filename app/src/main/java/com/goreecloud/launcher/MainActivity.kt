@@ -13,7 +13,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -153,6 +152,9 @@ class MainActivity : ComponentActivity() {
                             apps = apps,
                             page = selectedPage,
                             pages = renderedPages,
+                            homeColumns = launcherPreferences.homeColumns,
+                            showLabels = launcherPreferences.showLabels,
+                            iconScale = launcherPreferences.iconScale,
                             onLaunchApp = appsRepository::launch,
                             onMoveAppToPage = { app, targetPageId ->
                                 lifecycleScope.launch {
