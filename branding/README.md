@@ -1,31 +1,31 @@
 # GoreeCloud Launcher visual identity
 
-## Current status
+## Canonical authority
 
-The artwork under `branding/source/` is a **Development identity candidate**, generated directly in the authoritative `GoreeCloud/goreecloud-launcher` repository for review. It is not yet the approved official GoreeCloud Launcher identity.
+All GoreeCloud Launcher logos, icons, symbols, illustrations, and artwork are canonical only in **`GoreeCloud/goreecloud-branding-assets`**.
 
-The candidate must not be represented as final/official until it receives explicit product approval and passes the applicable GoreeCloud visual-identity review.
+Canonical Launcher asset:
 
-## Candidate Identity DNA
+- repository: `GoreeCloud/goreecloud-branding-assets`
+- path: `products/launcher/app-icon.svg`
+- pinned canonical blob: `d6768114e689058f1c911beca4050f33c96bd7c2`
+- pinned branding repository revision for this synchronization: `e8dba369cd7bbaf2c2f97ed740caf0def1c2c0ee`
 
-- **Family:** System Utility.
-- **Primary idea:** access / launch / passage into applications and activities.
-- **Identity Lock:** an open rounded portal with a deliberate upper-right opening, crossed by one diamond-shaped activity tile.
-- **Negative-space signature:** the portal opening remains visibly distinct even in monochrome.
-- **Material personality:** quiet, durable and precise rather than highly decorative.
-- **Color family:** deep indigo foundation with a cyan activity accent; shape remains authoritative when color is removed.
-- **Avoided motifs:** Android robot, generic house, generic four-square app grid, magnifying glass, copied launcher imagery, and the GoreeCloud corporate logo as the app symbol.
+`branding/provenance.json` is the machine-readable record of this relationship.
 
-## Canonical candidate source
+This repository is a **consumer**, not an independent branding source of truth. It may contain only synchronized/generated/packaged Android derivatives required to build GoreeCloud Launcher.
 
-`source/goreecloud-launcher-icon.svg` is the review source for this candidate. Android vector/adaptive resources are hand-derived from the same geometry and are validated as repository-local derivatives.
+## Superseded local candidate
 
-The SVG is intentionally vector-first and text-free. The primary mark is designed to remain legible under circular, squircle, rounded-square and manufacturer adaptive-icon masks.
+An earlier Development slice placed a newly authored portal-style candidate under `branding/source/` and described the Launcher repository as its canonical source. That authority model is superseded. The local source is removed so it cannot compete with `goreecloud-branding-assets`.
 
-## Android derivatives
+Any future Launcher logo/icon/artwork revision must be authored, reviewed, and approved in `GoreeCloud/goreecloud-branding-assets` first. Consumer derivatives in this repository may be updated only from that canonical asset.
 
-The Development APK uses:
+## Current synchronized Android derivatives
 
+The Development APK consumes Android derivatives synchronized from `products/launcher/app-icon.svg`:
+
+- `app/src/main/res/drawable/ic_launcher_background.xml`
 - `app/src/main/res/drawable/ic_launcher_foreground.xml`
 - `app/src/main/res/drawable/ic_launcher_monochrome.xml`
 - `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
@@ -33,8 +33,10 @@ The Development APK uses:
 - `app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml`
 - `app/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml`
 
-The full-color derivative uses the indigo background plus white portal and cyan activity tile. The Android 13+ monochrome derivative preserves the portal/tile silhouette as one themed foreground.
+The full-color derivative preserves the canonical cyan-to-indigo field and four white rounded application cells. The Android 13+ monochrome derivative preserves the same four-cell identity geometry for themed-icon rendering.
 
-## Approval gate
+## Approval and release boundary
 
-Before promotion from candidate to official identity, review should verify small-size recognition, family/ecosystem distinction, monochrome clarity, adaptive-mask cropping, light/dark wallpaper contexts, default-Home chooser presentation, Settings/installer presentation, and distinction from neighboring GoreeCloud applications and recognizable third-party launchers.
+The existence of synchronized derivatives does not by itself establish production visual-identity acceptance. The canonical branding asset and required derivatives still require the applicable GoreeCloud product/visual review, small-size recognition checks, adaptive-mask checks, themed-icon checks, Light/Dark surrounding-context checks, default-Home chooser presentation, accessibility/design review, and release acceptance before Stable qualification.
+
+If the canonical asset changes, update `branding/provenance.json`, regenerate/synchronize the platform derivatives, rerun identity/build validation, and review the rendered result. Do not edit a consumer derivative into a new canonical design.

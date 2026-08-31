@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
+import json
 from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
 
 root = Path(__file__).resolve().parents[1]
+
+CANONICAL_REPOSITORY = "GoreeCloud/goreecloud-branding-assets"
+CANONICAL_PATH = "products/launcher/app-icon.svg"
+CANONICAL_BLOB = "d6768114e689058f1c911beca4050f33c96bd7c2"
+LOCAL_SOURCE = root / "branding/source/goreecloud-launcher-icon.svg"
+
 required = [
-    root / "branding/source/goreecloud-launcher-icon.svg",
+    root / "branding/provenance.json",
     root / "branding/README.md",
     root / "docs/product-identity.md",
-    root / "app/src/main/res/values/colors.xml",
+    root / "app/src/main/res/drawable/ic_launcher_background.xml",
     root / "app/src/main/res/drawable/ic_launcher_foreground.xml",
     root / "app/src/main/res/drawable/ic_launcher_monochrome.xml",
     root / "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
@@ -18,15 +25,40 @@ required = [
 ]
 missing = [str(path.relative_to(root)) for path in required if not path.is_file()]
 if missing:
-    print("Missing Launcher identity candidate files:", missing)
+    print("Missing Launcher identity/provenance files:", missing)
     sys.exit(1)
 
+if LOCAL_SOURCE.exists():
+    print(
+        "Competing Launcher-local canonical artwork source is forbidden; "
+        "use GoreeCloud/goreecloud-branding-assets instead."
+    )
+    sys.exit(1)
+
+try:
+    provenance = json.loads((root / "branding/provenance.json").read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError) as exc:
+    print("Invalid Launcher branding provenance:", exc)
+    sys.exit(1)
+
+expected_provenance = {
+    "canonical_repository": CANONICAL_REPOSITORY,
+    "canonical_path": CANONICAL_PATH,
+    "canonical_blob_sha": CANONICAL_BLOB,
+    "consumer_repository": "GoreeCloud/goreecloud-launcher",
+    "consumer_role": "platform-specific derivative only",
+}
+for key, expected in expected_provenance.items():
+    if provenance.get(key) != expected:
+        print(f"Launcher branding provenance mismatch for {key}: {provenance.get(key)!r}")
+        sys.exit(1)
+
 for path in required:
-    if path.suffix in {".xml", ".svg"}:
+    if path.suffix == ".xml":
         try:
             ET.parse(path)
         except ET.ParseError as exc:
-            print(f"Invalid XML/SVG in {path.relative_to(root)}: {exc}")
+            print(f"Invalid XML in {path.relative_to(root)}: {exc}")
             sys.exit(1)
 
 manifest = ET.parse(root / "app/src/main/AndroidManifest.xml").getroot()
@@ -42,23 +74,46 @@ if application.attrib.get(ns + "roundIcon") != "@mipmap/ic_launcher_round":
     print("Android round icon is not wired to @mipmap/ic_launcher_round.")
     sys.exit(1)
 
-v33 = (root / "app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml").read_text(encoding="utf-8")
-if "<monochrome" not in v33 or "@drawable/ic_launcher_monochrome" not in v33:
-    print("Android 13+ adaptive icon is missing its monochrome derivative.")
-    sys.exit(1)
-
-source = (root / "branding/source/goreecloud-launcher-icon.svg").read_text(encoding="utf-8")
-for required_token in ("#18214B", "#F7F9FF", "#6FE7FF"):
-    if required_token not in source:
-        print("Canonical candidate source is missing expected identity token:", required_token)
+background = (root / "app/src/main/res/drawable/ic_launcher_background.xml").read_text(encoding="utf-8")
+for required_token in ("#FF38BDF8", "#FF6366F1"):
+    if required_token not in background:
+        print("Launcher icon background lost canonical source color:", required_token)
         sys.exit(1)
 
-identity_doc = (root / "docs/product-identity.md").read_text(encoding="utf-8").lower()
-if "development identity candidate" not in identity_doc:
-    print("Identity documentation must preserve candidate status.")
-    sys.exit(1)
-if "not yet the approved official" not in identity_doc:
-    print("Identity documentation must preserve the explicit approval boundary.")
-    sys.exit(1)
+for derivative_name in ("ic_launcher_foreground.xml", "ic_launcher_monochrome.xml"):
+    derivative = (root / "app/src/main/res/drawable" / derivative_name).read_text(encoding="utf-8")
+    if derivative.count("android:pathData=") != 4:
+        print(f"{derivative_name} must preserve the four-cell canonical identity geometry.")
+        sys.exit(1)
+    if derivative.count('android:strokeColor="#FFFFFFFF"') != 4:
+        print(f"{derivative_name} must preserve the four white outlined cells.")
+        sys.exit(1)
 
-print("Launcher identity candidate guard passed.")
+for path in (
+    root / "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+    root / "app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+    root / "app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml",
+    root / "app/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml",
+):
+    text = path.read_text(encoding="utf-8")
+    if '@drawable/ic_launcher_background' not in text or '@drawable/ic_launcher_foreground' not in text:
+        print(f"{path.relative_to(root)} lost synchronized adaptive-icon wiring.")
+        sys.exit(1)
+
+for path in (
+    root / "app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml",
+    root / "app/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml",
+):
+    text = path.read_text(encoding="utf-8")
+    if "<monochrome" not in text or "@drawable/ic_launcher_monochrome" not in text:
+        print(f"{path.relative_to(root)} is missing the themed/monochrome derivative.")
+        sys.exit(1)
+
+branding_doc = (root / "branding/README.md").read_text(encoding="utf-8")
+identity_doc = (root / "docs/product-identity.md").read_text(encoding="utf-8")
+for document_name, text in (("branding/README.md", branding_doc), ("docs/product-identity.md", identity_doc)):
+    if CANONICAL_REPOSITORY not in text or CANONICAL_PATH not in text:
+        print(f"{document_name} must preserve canonical branding authority/provenance.")
+        sys.exit(1)
+
+print("Launcher branding provenance and synchronized identity derivatives passed.")

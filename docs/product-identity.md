@@ -1,93 +1,65 @@
-# GoreeCloud Launcher Product Identity
+# GoreeCloud Launcher product identity
 
 ## Status
 
-**Development identity candidate committed — explicit approval still required before official product-identity acceptance.**
+GoreeCloud Launcher consumes a first-party product icon from the canonical GoreeCloud visual-asset repository. This document records consumer-side provenance and Android derivative behavior; it does **not** make `GoreeCloud/goreecloud-launcher` an artwork authority.
 
-GoreeCloud Launcher now has a product-specific candidate identity generated directly in its authoritative Git repository. The candidate is wired into Development Android builds so the APK can be distinguished from other installed applications during device testing.
+Production visual-identity acceptance and Stable qualification remain separate review gates.
 
-The candidate is **not yet the approved official GoreeCloud Launcher identity**. Automatically generated or newly authored artwork requires review and explicit approval before it may be represented as official under the GoreeCloud visual-identity standard.
+## Canonical source
 
-## Candidate source and provenance
+All Launcher logos, icons, symbols, illustrations, and artwork are canonical only in:
 
-Canonical candidate review source:
+- repository: `GoreeCloud/goreecloud-branding-assets`
+- asset: `products/launcher/app-icon.svg`
+- pinned source blob for the current derivative synchronization: `d6768114e689058f1c911beca4050f33c96bd7c2`
+- branding-repository revision observed for this synchronization: `e8dba369cd7bbaf2c2f97ed740caf0def1c2c0ee`
 
-`branding/source/goreecloud-launcher-icon.svg`
+The machine-readable consumer record is `branding/provenance.json`.
 
-The source was authored directly in `GoreeCloud/goreecloud-launcher` rather than produced as a chat attachment or stored only in a temporary/export location. `branding/README.md` records the candidate Identity DNA, derivative relationship, and approval boundary.
+Any future visual revision must be authored/reviewed in `goreecloud-branding-assets` first. A Launcher-repository derivative must never be edited into a competing canonical mark.
 
-Android derivatives are repository-local and traceable to the same geometry:
+## Current identity DNA
 
-- `app/src/main/res/drawable/ic_launcher_foreground.xml`
-- `app/src/main/res/drawable/ic_launcher_monochrome.xml`
-- `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
-- `app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
-- `app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml`
-- `app/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml`
+The current canonical Launcher icon uses:
 
-The Android manifest references the adaptive and round resources. Android 13+ variants include the monochrome/themed-icon derivative.
+- a cyan-to-indigo rounded application field;
+- four white rounded application cells arranged as a balanced 2×2 launcher grid;
+- simple geometry that remains legible at small icon sizes;
+- adaptive-mask compatibility without encoding a second independent outer silhouette; and
+- a monochrome derivative that keeps the four-cell structure for Android themed icons.
 
-## Product-family role
+This identity is distinct from a framework/default Android icon and from the generic GoreeCloud corporate/platform mark. It communicates Launcher/application-access semantics without copying another launcher identity.
 
-GoreeCloud Launcher belongs to the GoreeCloud **System Utility** family. Its identity communicates the product's role as the personalized front door to GoreeCloud and as the native access point for applications, activities, navigation, discovery, search, and contextual actions.
+## Android consumer derivatives
 
-The candidate deliberately does not place the GoreeCloud corporate logo inside an app-icon container.
+`GoreeCloud/goreecloud-launcher` carries only Android build derivatives:
 
-## Candidate Identity DNA
+- `app/src/main/res/drawable/ic_launcher_background.xml` — synchronized cyan-to-indigo gradient field;
+- `app/src/main/res/drawable/ic_launcher_foreground.xml` — four outlined application cells;
+- `app/src/main/res/drawable/ic_launcher_monochrome.xml` — themed-icon geometry;
+- adaptive/round resources under `mipmap-anydpi-v26`; and
+- Android 13+ monochrome-aware adaptive/round resources under `mipmap-anydpi-v33`.
 
-The dominant visual idea is **access through a launch portal**.
+These files are packaging/rendering derivatives, not source artwork.
 
-The candidate uses an open rounded portal with a deliberate upper-right opening. One diamond-shaped activity tile crosses that opening. The opening and crossing tile are intended to form the long-term Identity Lock if the candidate is approved.
+## Superseded repository-local candidate
 
-The design deliberately avoids:
+A previous Development slice authored a portal/activity-tile candidate in `branding/source/goreecloud-launcher-icon.svg` and described the Launcher repository as its canonical source. The project-wide branding authority is now explicit: `GoreeCloud/goreecloud-branding-assets` owns all logos/icons/artwork. The local source candidate is therefore removed and superseded; it must not be treated as an approved or canonical Launcher identity.
 
-- Android robot imagery;
-- a generic home glyph;
-- a generic four-square application grid;
-- a magnifying glass as the primary application symbol;
-- copied Pixel/Samsung/Nova or other launcher imagery;
-- a corporate-logo substitute; and
-- text or initials as the primary identity.
+## Validation
 
-The material personality is restrained and durable. A deep indigo foundation supports a cyan activity accent, but the geometry is designed to remain recognizable when color is removed.
+`scripts/check_identity.py` fails closed when:
 
-## Form requirements
+- the provenance record is missing or malformed;
+- the canonical repository/path/blob metadata does not match the synchronized source;
+- a competing Launcher-local canonical source path reappears;
+- the Android background/foreground/monochrome derivatives are missing or lose required source-derived geometry/colors;
+- adaptive or themed-icon resources lose derivative wiring; or
+- the manifest no longer references the Launcher icon resources.
 
-The identity must:
+The check is intentionally consumer-side. It verifies what this repository claims to consume; it does not silently redefine or approve the canonical branding asset.
 
-- remain recognizable at small launcher sizes;
-- have a strong, distinctive silhouette;
-- tolerate circular, rounded-square, squircle, and manufacturer mask shapes through Android adaptive-icon behavior;
-- preserve meaningful negative space and avoid hairline detail that disappears at small sizes;
-- remain understandable in monochrome/themed-icon rendering;
-- work in Light and Dark surrounding UI contexts;
-- avoid embedding essential text or a wordmark into the primary app icon; and
-- remain one recognizable identity across Android and future supported platforms.
+## Remaining acceptance
 
-## Quality review required before approval
-
-Before the candidate can be called official, review must cover:
-
-- legibility at small sizes;
-- visual distinction from other GoreeCloud applications installed on the same device;
-- visual distinction from Android, Pixel Launcher, Samsung One UI Home, Nova Launcher, and other recognizable third-party/system launcher identities;
-- themed/monochrome rendering;
-- adaptive-mask cropping across representative mask shapes;
-- Light/Dark wallpaper contrast contexts;
-- home-screen, application-drawer, Android default-Home chooser, Settings, and package-installer presentation; and
-- consistency with current GoreeCloud visual-identity and icon-system standards.
-
-## Approval and release boundary
-
-The current candidate may be used in Development builds for recognition and review. It becomes the official GoreeCloud Launcher identity only after explicit approval of the canonical source and its required derivatives.
-
-Until that occurs:
-
-- GoreeCloud Launcher remains Development;
-- the candidate must be described as a candidate rather than an approved official mark;
-- product-identity acceptance remains a release blocker; and
-- a later approved revision may refine or replace the candidate without changing the current implementation-status claims.
-
-## Relationship to Launcher Unified Search
-
-Launcher Unified Search may use a search-specific glyph or motion treatment inside the Launcher UI, but that treatment does not replace the application identity. Search imagery remains subordinate to and visually compatible with the Launcher mark.
+Before production/Stable visual acceptance, the canonical asset and synchronized derivatives still require the applicable rendered/device review, including adaptive masks, round launchers, monochrome/themed rendering, small-size recognition, system Home/default-app chooser presentation, Light/Dark surrounding contexts, representative densities/devices, and any applicable accessibility/design review.
