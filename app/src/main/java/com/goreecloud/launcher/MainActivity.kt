@@ -162,6 +162,7 @@ class MainActivity : ComponentActivity() {
                             homeColumns = launcherPreferences.homeColumns,
                             showLabels = launcherPreferences.showLabels,
                             iconScale = launcherPreferences.iconScale,
+                            layoutLocked = launcherPreferences.layoutLocked,
                             onLaunchApp = appsRepository::launch,
                             onMoveAppToPage = { app, targetPageId ->
                                 if (!launcherPreferences.layoutLocked) {
@@ -288,6 +289,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             },
+                            layoutLocked = launcherPreferences.layoutLocked,
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
                                 .statusBarsPadding()
