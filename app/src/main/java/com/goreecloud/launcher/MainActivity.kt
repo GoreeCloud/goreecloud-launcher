@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
+import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
@@ -33,7 +34,8 @@ import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.HomePageSwitcher
-import com.goreecloud.launcher.ui.LauncherRoot
+import com.goreecloud.launcher.ui.LauncherBetaRoot
+import com.goreecloud.launcher.ui.LauncherSurfaceMode
 import com.goreecloud.launcher.ui.ReadOnlyPagedHomeSurface
 import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
@@ -43,6 +45,7 @@ import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
+    private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
     private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
@@ -57,6 +60,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         appsRepository = LauncherAppsRepository(this)
+        launcherPreferencesRepository = LauncherPreferencesRepository(this)
         themeRepository = GlazeThemeRepository(this)
         workspaceRepository = WorkspaceRepository(this)
         workspaceRuntimeCoordinator = WorkspaceProductionRuntimeCoordinator(
@@ -69,6 +73,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val apps by appsRepository.apps.collectAsStateWithLifecycle(initialValue = emptyList())
+            val launcherPreferences by launcherPreferencesRepository.preferences.collectAsStateWithLifecycle(
+                initialValue = launcherPreferencesRepository.defaults,
+            )
             val themeMode by themeRepository.themeMode.collectAsState(initial = themeRepository.defaultMode)
             val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
                 initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
@@ -98,6 +105,12 @@ class MainActivity : ComponentActivity() {
             var selectedHomePageId by rememberSaveable {
                 mutableStateOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID)
             }
+            var primarySurfaceModeName by rememberSaveable {
+                mutableStateOf(LauncherSurfaceMode.HOME.name)
+            }
+            val primarySurfaceMode = runCatching {
+                LauncherSurfaceMode.valueOf(primarySurfaceModeName)
+            }.getOrDefault(LauncherSurfaceMode.HOME)
 
             LaunchedEffect(renderedPages) {
                 if (renderedPages.isNotEmpty() && renderedPages.none { it.pageId == selectedHomePageId }) {
@@ -132,10 +145,10 @@ class MainActivity : ComponentActivity() {
             GlazeTheme(themeMode) {
                 Box {
                     val selectedPage = renderedPages.firstOrNull { it.pageId == selectedHomePageId }
-                    if (
-                        selectedPage != null &&
-                        selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID
-                    ) {
+                    val onPrimaryPage = selectedPage == null ||
+                        selectedPage.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+
+                    if (!onPrimaryPage && selectedPage != null) {
                         ReadOnlyPagedHomeSurface(
                             apps = apps,
                             page = selectedPage,
@@ -173,9 +186,10 @@ class MainActivity : ComponentActivity() {
                             },
                         )
                     } else {
-                        LauncherRoot(
+                        LauncherBetaRoot(
                             apps = apps,
                             workspace = workspace,
+                            preferences = launcherPreferences,
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
@@ -199,28 +213,21 @@ class MainActivity : ComponentActivity() {
                                     workspaceRuntimeCoordinator.moveDock(app.workspaceKey(), direction)
                                 }
                             },
-                            onMoveFavoriteToTarget = { app, targetKey ->
-                                lifecycleScope.launch {
-                                    workspaceRuntimeCoordinator.moveFavoriteToTarget(
-                                        app.workspaceKey(),
-                                        targetKey,
-                                    )
-                                }
-                            },
-                            onMoveDockToTarget = { app, targetKey ->
-                                lifecycleScope.launch {
-                                    workspaceRuntimeCoordinator.moveDockToTarget(
-                                        app.workspaceKey(),
-                                        targetKey,
-                                    )
-                                }
-                            },
                             themeMode = themeMode,
                             onCycleTheme = themeRepository::cycleMode,
+                            onSetHomeGrid = launcherPreferencesRepository::setHomeGrid,
+                            onSetDrawerColumns = launcherPreferencesRepository::setDrawerColumns,
+                            onSetShowLabels = launcherPreferencesRepository::setShowLabels,
+                            onSetIconScale = launcherPreferencesRepository::setIconScale,
+                            onSurfaceModeChanged = { mode ->
+                                primarySurfaceModeName = mode.name
+                            },
                         )
                     }
 
-                    if (renderedPages.isNotEmpty()) {
+                    val showPageSwitcher = renderedPages.isNotEmpty() &&
+                        (!onPrimaryPage || primarySurfaceMode == LauncherSurfaceMode.HOME)
+                    if (showPageSwitcher) {
                         HomePageSwitcher(
                             pages = renderedPages,
                             selectedPageId = selectedHomePageId,
@@ -253,7 +260,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
                                 .statusBarsPadding()
-                                .padding(top = 6.dp),
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
                         )
                     }
                 }
