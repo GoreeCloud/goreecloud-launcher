@@ -19,15 +19,17 @@ GoreeCloud Launcher maps the Glaze UI semantics it consumes into Jetpack Compose
 
 The current 2.1 Adoption Candidate mapping includes:
 
-- the promoted 4/8/12/16/20/24/32/40/48/64 spacing scale;
-- 10/14/16/22/28/32 geometry plus the 999 dp pill radius;
-- the 48 dp current-contract general interaction floor;
-- a mapped 56 dp touch-assistance target for later accessibility-resolution integration;
+- the canonical spacing token keys `space.1`, `space.2`, `space.3`, `space.4`, `space.5`, `space.6`, `space.8`, `space.10`, `space.12`, and `space.16`, mapped respectively to 4/8/12/16/20/24/32/40/48/64 dp;
+- `radius.sm`, `radius.md`, `radius.control`, `radius.lg`, `radius.xl`, `radius.2xl`, and `radius.pill`, mapped to 10/14/16/22/28/32/999 dp;
+- the 48 dp current-contract general interaction floor from `currentContract.touchMinimum`;
+- a mapped 56 dp touch-assistance target from `currentContract.touchAssistanceMinimum` for later accessibility-resolution integration;
 - Light and Dark foundation/identity colors retained by the promoted 2.1 token map;
 - Canvas/Surface-oriented content presentation through native Material 3 surfaces;
 - native Android buttons, fields, dialogs, and explicit move controls for deterministic accessibility paths;
 - direct persisted System/Light/Dark theme selection support in the native theme repository; and
 - a native Theme Manager surface/catalog foundation with bounded previews for the currently implemented appearance modes.
+
+The canonical token map also retains the historical compatibility token `target.minimum=44`. Launcher does not use that compatibility value to lower the current 2.1 mobile interaction contract: the active mapped floor remains 48 dp because the 2.1 `currentContract.touchMinimum` is authoritative for migrated current-contract interaction.
 
 The native metric mapping lives in `app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt`. The Light/Dark color mapping lives in `app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt`. The native Theme Manager foundation lives in `GlazeThemeManagerCatalog.kt` and `ThemeManagerSurface.kt`.
 
