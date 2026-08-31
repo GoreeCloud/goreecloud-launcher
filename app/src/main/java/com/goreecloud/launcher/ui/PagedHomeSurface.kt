@@ -65,6 +65,10 @@ fun HomePageSwitcher(
     if (pages.isEmpty()) return
     val selectedIndex = pages.indexOfFirst { it.pageId == selectedPageId }
     val selectedPage = pages.getOrNull(selectedIndex)
+    val primaryIndex = pages.indexOfFirst {
+        it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+    }
+    val primaryRankHealthy = primaryIndex == 0
     val pageListState = rememberLazyListState()
     val pageActionsScroll = rememberScrollState()
     val canDeleteSelectedPage = pages.size > 1 &&
@@ -72,6 +76,15 @@ fun HomePageSwitcher(
         selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
         selectedPage.appKeys.isEmpty() &&
         selectedPage.unsupportedItemCount == 0
+    val canMoveSelectedEarlier = primaryRankHealthy &&
+        selectedPage != null &&
+        selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
+        selectedIndex > 1
+    val canMoveSelectedLater = primaryRankHealthy &&
+        selectedPage != null &&
+        selectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
+        selectedIndex >= 1 &&
+        selectedIndex < pages.lastIndex
 
     LaunchedEffect(selectedPageId, selectedIndex, pages.size) {
         if (selectedIndex >= 0) {
@@ -157,13 +170,13 @@ fun HomePageSwitcher(
                 ) {
                     TextButton(
                         onClick = { onMovePage(selectedPageId, selectedIndex - 1) },
-                        enabled = selectedIndex > 0,
+                        enabled = canMoveSelectedEarlier,
                     ) {
                         Text("Move earlier")
                     }
                     TextButton(
                         onClick = { onMovePage(selectedPageId, selectedIndex + 1) },
-                        enabled = selectedIndex < pages.lastIndex,
+                        enabled = canMoveSelectedLater,
                     ) {
                         Text("Move later")
                     }
@@ -190,7 +203,12 @@ fun ReadOnlyPagedHomeSurface(
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val pageApps = remember(appsByKey, page.appKeys) { page.appKeys.mapNotNull(appsByKey::get) }
-    val targetPages = remember(pages, page.pageId) { pages.filterNot { it.pageId == page.pageId } }
+    val targetPages = remember(pages, page.pageId) {
+        pages.filterNot {
+            it.pageId == page.pageId ||
+                it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+        }
+    }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -212,7 +230,7 @@ fun ReadOnlyPagedHomeSurface(
             )
             Spacer(Modifier.height(GlazeMetrics.space2))
             Text(
-                "This secondary page is rendered from terminal Room authority. Apps can launch, move to another authoritative Home page, move to the nearest free cell earlier/later, or request an exact one-cell move. Exact-cell requests fail closed when the target is occupied or outside the authoritative grid.",
+                "This secondary page is rendered from terminal Room authority. Apps can launch, move to another secondary Home page, move to the nearest free cell earlier/later, or request an exact one-cell move. Exact-cell requests fail closed when the target is occupied or outside the authoritative grid.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

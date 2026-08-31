@@ -101,7 +101,7 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
     }
 
     @Test
-    fun terminalRoomRuntimeRoutesPageOrderMutation() = runBlocking {
+    fun terminalRoomRuntimeProtectsPrimaryPageAndRoutesSecondaryPageOrderMutation() = runBlocking {
         val repository = WorkspaceRepository(openWorkspaceDataStore())
         repository.ensureDefaults(INITIAL_FAVORITES, INITIAL_DOCK)
         val runtime = runtime(repository) { database.workspaceDao() }
@@ -115,13 +115,22 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
         )
 
         assertEquals(
-            WorkspacePagedRoomMutationResult.Updated(
-                listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1")
-            ),
+            WorkspacePagedRoomMutationResult.PrimaryPageProtected,
             runtime.moveHomePage("home:2", 0),
         )
         assertEquals(
-            listOf("home:2", WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1"),
+            listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:1", "home:2"),
+            database.workspaceDao().readPagesByContainer(WorkspaceContainerType.HOME).map { it.pageId },
+        )
+
+        assertEquals(
+            WorkspacePagedRoomMutationResult.Updated(
+                listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:2", "home:1")
+            ),
+            runtime.moveHomePage("home:2", 1),
+        )
+        assertEquals(
+            listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID, "home:2", "home:1"),
             database.workspaceDao().readPagesByContainer(WorkspaceContainerType.HOME).map { it.pageId },
         )
     }

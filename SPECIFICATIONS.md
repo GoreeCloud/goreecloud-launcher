@@ -37,13 +37,16 @@ Current Development source supports:
 - multiple authoritative Home pages that can be rendered and selected;
 - a lazy/scrollable page selector with authoritative app counts and unsupported-item counts;
 - automatic scrolling of the selected page into view after selection, reorder, or page-count changes;
-- guarded page creation, reordering, and deletion of eligible empty non-primary pages;
+- guarded page creation, secondary-page reordering, and deletion of eligible empty non-primary pages while the protected primary compatibility page remains rank zero;
 - app launching from supported rendered pages;
-- app movement to another existing authoritative page;
-- within-page nearest-free-cell earlier/later movement;
-- guarded exact one-cell left/right/up/down movement;
-- fail-closed movement when targets are occupied, outside the authoritative grid, malformed, ambiguous, or based on stale workspace state; and
+- app movement between existing authoritative secondary Home pages;
+- within-secondary-page nearest-free-cell earlier/later movement;
+- guarded exact one-cell left/right/up/down movement on supported secondary pages;
+- fail-closed movement when targets are occupied, outside the authoritative grid, malformed, ambiguous, based on stale workspace state, or attempt to use the protected primary compatibility page as a spatial source/target;
+- canonical primary/Dock compatibility validation before secondary spatial writes; and
 - existing Favorites/Dock placement controls on the supported primary surface.
+
+The primary `WorkspaceLegacyImportMapper.HOME_PAGE_ID` page remains the compatibility representation for current Favorites. Its canonical items intentionally retain null grid coordinates and its page rank remains zero. Primary-grid coordinates and primary↔secondary spatial item movement require a separate accepted migration rather than being inferred from the secondary-page editor.
 
 ## Approved product capability domains
 
@@ -145,6 +148,7 @@ Target integration includes unread/message/event widgets and cards, communicatio
 
 - Android remains authoritative for installed applications, launchability, platform roles, and operating-system launcher capabilities.
 - GoreeCloud workspace persistence must maintain one accepted placement authority at a time.
+- Compatibility representations and newer spatial workspace models must not be mixed in ways that invalidate the accepted authority or recovery path.
 - Cross-device continuity must not create ambiguous writable workspace authorities.
 - Personalization and recommendations must be transparent, optional/configurable where appropriate, and bounded by Privacy Shield.
 - Sensitive content must not be exposed through cards, search, widgets, notification previews, or recommendations without the applicable privacy/authorization policy.
@@ -156,6 +160,7 @@ Target integration includes unread/message/event widgets and cards, communicatio
 Stable qualification still requires, as applicable:
 
 - complete intended workspace/user flows and recovery semantics;
+- accepted primary compatibility-page grid migration and complete intended cross-page movement semantics;
 - folder/widget/shortcut functionality required by the accepted release scope;
 - mature cross-page placement editing and accessible alternatives;
 - representative-device, rotation/posture, performance, physical-interaction, and accessibility acceptance;

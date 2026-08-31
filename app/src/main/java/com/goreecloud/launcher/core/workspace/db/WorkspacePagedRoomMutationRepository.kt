@@ -44,12 +44,15 @@ sealed interface WorkspacePagedRoomMutationResult {
 /**
  * Authoritative Room wiring for validated multi-page HOME mutations.
  *
- * Page creation, empty-page deletion, page ordering, and cross-page item placement require terminal
- * Room authority. Creation appends an empty page through a complete page-snapshot comparison.
- * Deletion is intentionally limited to empty non-primary pages and repeats the full page/item
- * snapshot and emptiness checks inside the Room transaction so the page FK cascade can never remove
- * a concurrently inserted child. Item writes additionally compare the complete observed HOME
- * page/item snapshot so a validated placement cannot overwrite a concurrent workspace change.
+ * Page creation, empty-page deletion, page ordering, and secondary-page item placement require
+ * terminal Room authority. The protected primary HOME compatibility page remains rank zero and is
+ * excluded from spatial item placement until a separately accepted primary-grid migration exists.
+ * Creation appends an empty page through a complete page-snapshot comparison. Deletion is
+ * intentionally limited to empty non-primary pages and repeats the full page/item snapshot and
+ * emptiness checks inside the Room transaction so the page FK cascade can never remove a
+ * concurrently inserted child. Item writes additionally compare the complete observed HOME
+ * page/item snapshot so a validated secondary-page placement cannot overwrite a concurrent
+ * workspace change.
  */
 class WorkspacePagedRoomMutationRepository(
     private val authorityRepository: WorkspaceRepository,
@@ -65,7 +68,11 @@ class WorkspacePagedRoomMutationRepository(
                 return WorkspacePagedRoomMutationResult.PageAlreadyExists
             }
             val storedPages = dao.readPagesByContainer(WorkspaceContainerType.HOME)
-            if (storedPages.isEmpty() || storedPages.map { it.rank } != storedPages.indices.toList()) {
+            if (
+                storedPages.isEmpty() ||
+                storedPages.map { it.rank } != storedPages.indices.toList() ||
+                storedPages.firstOrNull()?.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID
+            ) {
                 return WorkspacePagedRoomMutationResult.InvalidWorkspace
             }
             val newPage = WorkspacePageEntity(
@@ -105,7 +112,10 @@ class WorkspacePagedRoomMutationRepository(
             if (storedPages.size <= 1) {
                 return WorkspacePagedRoomMutationResult.LastHomePageProtected
             }
-            if (storedPages.map { it.rank } != storedPages.indices.toList()) {
+            if (
+                storedPages.map { it.rank } != storedPages.indices.toList() ||
+                storedPages.firstOrNull()?.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID
+            ) {
                 return WorkspacePagedRoomMutationResult.InvalidWorkspace
             }
 
@@ -151,6 +161,15 @@ class WorkspacePagedRoomMutationRepository(
             if (targetRank !in storedPages.indices) {
                 return WorkspacePagedRoomMutationResult.TargetRankOutOfRange
             }
+            if (storedPages.firstOrNull()?.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+                return WorkspacePagedRoomMutationResult.InvalidWorkspace
+            }
+            if (
+                (pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID && targetRank != 0) ||
+                (pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID && targetRank == 0)
+            ) {
+                return WorkspacePagedRoomMutationResult.PrimaryPageProtected
+            }
 
             val domainPages = storedPages.map { page ->
                 WorkspacePagedPlacement.Page(
@@ -173,6 +192,9 @@ class WorkspacePagedRoomMutationRepository(
                 }
 
             val orderedPageIds = updated.pages.map { it.pageId }
+            if (orderedPageIds.firstOrNull() != WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+                return WorkspacePagedRoomMutationResult.PrimaryPageProtected
+            }
             if (!dao.replacePageOrder(WorkspaceContainerType.HOME, orderedPageIds)) {
                 return WorkspacePagedRoomMutationResult.StoredPageSetChanged
             }
@@ -191,26 +213,45 @@ class WorkspacePagedRoomMutationRepository(
         targetPlacement: WorkspaceGridPlacement.Placement,
     ): WorkspacePagedRoomMutationResult {
         if (!isRoomAuthoritative()) return WorkspacePagedRoomMutationResult.Reserved
+        if (targetPageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+            return WorkspacePagedRoomMutationResult.PrimaryPageProtected
+        }
         val dao = workspaceDaoOrNull() ?: return WorkspacePagedRoomMutationResult.Unavailable
 
         return try {
+            if (WorkspaceCanonicalRoomPlacementReader.read(dao) == null) {
+                return WorkspacePagedRoomMutationResult.InvalidWorkspace
+            }
+
             val storedPages = dao.readPagesByContainer(WorkspaceContainerType.HOME)
             if (storedPages.none { it.pageId == targetPageId }) {
                 return WorkspacePagedRoomMutationResult.PageNotFound
+            }
+            if (storedPages.firstOrNull()?.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+                return WorkspacePagedRoomMutationResult.InvalidWorkspace
             }
             val pageIds = storedPages.map { it.pageId }
             val storedItems = dao.readItems(pageIds)
             val sourceItem = storedItems.singleOrNull { it.itemId == itemId }
                 ?: return WorkspacePagedRoomMutationResult.ItemNotFound
+            if (sourceItem.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+                return WorkspacePagedRoomMutationResult.PrimaryPageProtected
+            }
             if (targetPlacement.itemId != itemId) {
                 return WorkspacePagedRoomMutationResult.ItemIdentityMismatch
             }
-            if (storedItems.any { it.cellX == null || it.cellY == null }) {
+
+            val spatialPages = storedPages.filterNot {
+                it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+            }
+            val spatialPageIds = spatialPages.map { it.pageId }.toSet()
+            val spatialItems = storedItems.filter { it.pageId in spatialPageIds }
+            if (spatialItems.any { it.cellX == null || it.cellY == null }) {
                 return WorkspacePagedRoomMutationResult.InvalidWorkspace
             }
 
-            val itemsByPage = storedItems.groupBy { it.pageId }
-            val domainPages = storedPages.map { page ->
+            val itemsByPage = spatialItems.groupBy { it.pageId }
+            val domainPages = spatialPages.map { page ->
                 WorkspacePagedPlacement.Page(
                     pageId = page.pageId,
                     rank = page.rank,

@@ -15,9 +15,11 @@ enum class WorkspaceHomeSpatialDirection {
 }
 
 /**
- * Chooses deterministic placements for existing HOME applications, then delegates every write to
- * [WorkspacePagedRoomMutationRepository.moveHomeItem]. The preflight read never carries write
- * authority: the delegated mutation re-reads and validates the complete HOME snapshot.
+ * Chooses deterministic placements for existing secondary HOME applications, then delegates every
+ * write to [WorkspacePagedRoomMutationRepository.moveHomeItem]. The protected primary compatibility
+ * page remains outside the spatial grid until a separately accepted primary-grid migration exists.
+ * The preflight read never carries write authority: the delegated mutation re-reads and validates
+ * the complete HOME snapshot.
  */
 class WorkspaceHomeItemPageMover(
     private val authorityRepository: WorkspaceRepository,
@@ -34,6 +36,12 @@ class WorkspaceHomeItemPageMover(
         }
         if (sourcePageId == targetPageId) {
             return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        }
+        if (
+            sourcePageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
+            targetPageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+        ) {
+            return WorkspacePagedRoomMutationResult.PrimaryPageProtected
         }
         val context = when (val read = readMoveContext(sourcePageId, appKey)) {
             is MoveContextResult.Ready -> read.context
@@ -66,6 +74,9 @@ class WorkspaceHomeItemPageMover(
         if (pageId.isBlank() || appKey.isBlank()) {
             return WorkspacePagedRoomMutationResult.InvalidWorkspace
         }
+        if (pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+            return WorkspacePagedRoomMutationResult.PrimaryPageProtected
+        }
         val context = when (val read = readMoveContext(pageId, appKey)) {
             is MoveContextResult.Ready -> read.context
             is MoveContextResult.Failed -> return read.result
@@ -86,7 +97,7 @@ class WorkspaceHomeItemPageMover(
     }
 
     /**
-     * Moves one existing HOME app exactly one grid cell in a requested spatial direction.
+     * Moves one existing secondary HOME app exactly one grid cell in a requested spatial direction.
      * Occupied or out-of-bounds targets fail closed rather than swapping or displacing another
      * item. The authoritative mutation repository re-reads the complete snapshot before writing.
      */
@@ -97,6 +108,9 @@ class WorkspaceHomeItemPageMover(
     ): WorkspacePagedRoomMutationResult {
         if (pageId.isBlank() || appKey.isBlank()) {
             return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        }
+        if (pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+            return WorkspacePagedRoomMutationResult.PrimaryPageProtected
         }
         val context = when (val read = readMoveContext(pageId, appKey)) {
             is MoveContextResult.Ready -> read.context
@@ -153,11 +167,17 @@ class WorkspaceHomeItemPageMover(
             if (pages.none { it.pageId == sourcePageId }) {
                 return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.PageNotFound)
             }
-            val items = dao.readItems(pages.map { it.pageId })
-            if (items.any { it.cellX == null || it.cellY == null }) {
+            if (pages.firstOrNull()?.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
                 return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.InvalidWorkspace)
             }
-            val candidates = items.filter {
+            val items = dao.readItems(pages.map { it.pageId })
+            val spatialItems = items.filterNot {
+                it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+            }
+            if (spatialItems.any { it.cellX == null || it.cellY == null }) {
+                return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.InvalidWorkspace)
+            }
+            val candidates = spatialItems.filter {
                 it.pageId == sourcePageId &&
                     it.itemType == WorkspaceItemType.APP &&
                     it.appKey == appKey
@@ -168,7 +188,7 @@ class WorkspaceHomeItemPageMover(
             if (candidates.size != 1) {
                 return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.InvalidWorkspace)
             }
-            MoveContextResult.Ready(MoveContext(pages, items, candidates.single()))
+            MoveContextResult.Ready(MoveContext(pages, spatialItems, candidates.single()))
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {

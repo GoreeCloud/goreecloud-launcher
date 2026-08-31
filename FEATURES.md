@@ -18,13 +18,14 @@ Current source includes:
 - Explicit non-drag placement controls and Reorder-mode Favorites/Dock drag ordering.
 - Room-backed authoritative workspace cutover/read foundations.
 - Multi-page Home projection from authoritative Room state.
-- Home page selection, creation, guarded reordering, and guarded deletion of eligible empty secondary pages.
+- Home page selection, creation, guarded secondary-page reordering, and guarded deletion of eligible empty secondary pages while the protected primary compatibility page remains rank zero.
 - Scrollable/lazy Home page selector with authoritative app/unsupported-item context.
 - Automatic focus/scroll of the selected Home page after selection, reorder, or page-count changes.
 - App launch from rendered Home pages.
-- App movement between authoritative Home pages.
-- Within-page nearest-free-cell earlier/later movement.
-- Guarded exact one-cell movement left/right/up/down that fails closed on occupied or out-of-bounds targets.
+- App movement between authoritative secondary Home pages.
+- Within-secondary-page nearest-free-cell earlier/later movement.
+- Guarded exact one-cell movement left/right/up/down on supported secondary pages that fails closed on occupied or out-of-bounds targets.
+- Protection of the canonical primary Favorites compatibility page from spatial moves and page-rank changes until a separate primary-grid migration is accepted.
 - Development presentation of unsupported workspace-item counts instead of silently hiding their presence.
 - Persisted System / Light / Dark appearance selection.
 - Repository-level Glaze UI 2.0 Adoption Candidate mapping and validation guard.
@@ -36,7 +37,7 @@ Important incomplete or separately gated work includes:
 
 - Production Room-authority cutover/recovery acceptance for the complete intended workspace experience.
 - Mature cross-page drag/drop and direct live cell/span editing.
-- Primary-page-to-secondary-page rendered item movement.
+- Primary compatibility-page grid migration and primary-to-secondary/secondary-to-primary spatial item movement.
 - Populated-page deletion with recovery/undo semantics.
 - Complete folders, shortcuts, widgets/AppWidgetHost, folder/widget editing, and richer workspace editing.
 - Complete icon/label customization and broader gesture bindings.

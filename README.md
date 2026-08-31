@@ -45,9 +45,9 @@ Current source includes:
 - long-press placement management from supported surfaces;
 - explicit move-earlier/move-later controls;
 - Reorder-mode Favorites/Dock drag/drop using the current workspace persistence path;
-- terminal-Room multi-page HOME observation with page selection, page reordering, empty-page creation/deletion, and rendering of secondary application pages;
+- terminal-Room multi-page HOME observation with page selection, protected-primary/secondary-page reordering, empty-page creation/deletion, and rendering of secondary application pages;
 - a lazy horizontal Home page selector that shows authoritative app/unsupported-item context and automatically scrolls the selected page into view after selection, reorder, or page-count changes;
-- bounded secondary-page application moves to another existing Home page through the guarded Room placement path;
+- bounded secondary-page application moves to another existing secondary Home page through the guarded Room placement path;
 - guarded nearest-free-cell and exact one-cell movement for supported secondary-page app items;
 - All apps with local label/package search and app launching; and
 - persisted System / Light / Dark appearance selection.
@@ -87,18 +87,18 @@ Launcher contains:
 - guarded terminal `ROOM` authority primitives;
 - deterministic framework-independent grid and multi-page placement validation/mutation contracts;
 - Room-backed multi-page HOME page-order persistence for terminal Room authority;
-- Room-backed cross-page HOME item placement persistence that validates the complete workspace model and rechecks the observed page/item snapshot inside the transaction before writing; and
+- Room-backed secondary-page HOME item placement persistence that validates the secondary spatial model while rechecking the complete HOME page/item snapshot inside the transaction before writing; and
 - a terminal-Room paged HOME observer that maps authoritative Room pages/items into rendered application-page state and drives page selection in the Development Home UI.
 
 ### Current rendered multi-page boundary
 
-When terminal Room authority is active, Launcher can expose page selection, create empty pages, delete only revalidated empty non-primary pages, reorder pages, render application items from secondary Room pages, and request that an application on a secondary page move to another existing Home page.
+When terminal Room authority is active, Launcher can expose page selection, create empty pages, delete only revalidated empty non-primary pages, reorder secondary pages while keeping the protected primary compatibility page at rank zero, render application items from secondary Room pages, and request that an application on a secondary page move to another existing secondary Home page.
 
 The page selector is lazy rather than eagerly rendering an unbounded Row. It presents the authoritative app count and any unsupported-item count for each page, and the current selected page is automatically scrolled into view after selection/reorder/page-count changes. This presentation behavior does not own or mutate workspace placement.
 
-For bounded app movement, the UI identifies the source page and application key. Room-authoritative state is read to identify exactly one source item and derive the permitted target from the current coordinate envelope. Actual writes are delegated to existing guarded Room transactions, which re-read and validate the complete HOME page/item snapshot. Concurrent changes, malformed/null placement state, collisions, missing pages/items, ambiguous source identity, occupied exact-cell targets, or out-of-bounds moves fail closed instead of overwriting newer state.
+For bounded app movement, the UI identifies the source page and application key. Room-authoritative state is read to identify exactly one source item and derive the permitted target from the secondary-page coordinate envelope. Actual writes are delegated to guarded Room transactions, which verify the protected primary compatibility projection, validate the secondary spatial pages, and re-read the complete HOME page/item snapshot. Concurrent changes, malformed/null secondary placement state, collisions, missing pages/items, ambiguous source identity, occupied exact-cell targets, out-of-bounds moves, or attempts to use the primary compatibility page as a spatial source/target fail closed instead of overwriting newer state.
 
-The primary Home page keeps the existing Favorites/Dock management path. Arbitrary drag across pages and moving primary-page Favorites through the secondary-page menu remain separate interaction milestones.
+The primary Home page keeps the existing Favorites/Dock compatibility and management path and remains fixed at HOME rank zero. Arbitrary drag across pages, primary-grid coordinates, moving primary-page Favorites into secondary pages, and moving secondary items into the primary compatibility page remain separate migration/interaction milestones.
 
 Unsupported Room item types are counted and surfaced rather than silently treated as applications. Folders, shortcuts, widgets, populated-page deletion, and destructive recovery/undo remain separate milestones.
 
@@ -106,9 +106,9 @@ This is a Development rendering/editing bridge, not a complete multi-page editor
 
 ## Current Room item/page safety behavior
 
-Post-cutover Room mutation APIs refuse access unless durable terminal Room authority is already established. Multi-page item moves fail closed on missing pages/items, identity substitution, invalid/null placement coordinates, collisions, out-of-bounds state, or a workspace snapshot that changes between validation and the transactional write.
+Post-cutover Room mutation APIs refuse access unless durable terminal Room authority is already established. Secondary-page item moves fail closed on missing pages/items, identity substitution, invalid/null secondary placement coordinates, collisions, out-of-bounds state, attempts to spatially mutate the protected primary compatibility page, a malformed primary compatibility projection, or a workspace snapshot that changes between validation and the transactional write.
 
-Page creation validates the complete current page set before appending an empty page. Page deletion is limited to empty non-primary pages and repeats page/item snapshot and emptiness checks inside the transaction before the foreign-key cascade can run.
+Page creation validates the complete current page set before appending an empty page. Page deletion is limited to empty non-primary pages and repeats page/item snapshot and emptiness checks inside the transaction before the foreign-key cascade can run. Page reordering cannot move the primary compatibility page away from rank zero or move a secondary page ahead of it.
 
 The rendered page observer is likewise Room-authority gated. If authoritative paged Room state is unavailable, the application does not fabricate secondary pages and remains on the accepted safe path.
 
@@ -125,7 +125,7 @@ Run the repository validation commands documented by CI, including privacy/manif
 Still incomplete or separately gated:
 
 - mature cross-page drag/drop and direct live cell/span editing UI;
-- primary-page-to-secondary-page item movement through the rendered editor;
+- primary compatibility-page grid migration and primary-to-secondary/secondary-to-primary spatial item movement;
 - populated-page deletion plus confirmation/recovery/undo semantics;
 - folders, shortcuts, widgets/AppWidgetHost, and richer placement UI;
 - complete icon/label customization and broader gesture bindings;
