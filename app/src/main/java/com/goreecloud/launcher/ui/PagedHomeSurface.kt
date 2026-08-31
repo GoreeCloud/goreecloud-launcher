@@ -1,6 +1,5 @@
 package com.goreecloud.launcher.ui
 
-import android.app.WallpaperManager
 import android.content.pm.LauncherActivityInfo
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -48,10 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -213,23 +209,14 @@ fun ReadOnlyPagedHomeSurface(
             it.pageId == page.pageId || it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
         }
     }
-    val wallpaper = rememberPagedWallpaper()
 
+    // The activity window asks Android to draw the system wallpaper underneath Launcher.
+    // This surface remains translucent and does not read wallpaper files directly.
     Box(Modifier.fillMaxSize()) {
-        if (wallpaper != null) {
-            Image(
-                bitmap = wallpaper,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        } else {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
-        }
         Box(
-            Modifier.fillMaxSize().background(
-                MaterialTheme.colorScheme.background.copy(alpha = 0.26f)
-            )
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.08f))
         )
 
         Column(
@@ -265,7 +252,7 @@ fun ReadOnlyPagedHomeSurface(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
                     ) {
                         Text(
                             "This Home page is empty.",
@@ -345,7 +332,7 @@ private fun PagedAppTile(
         if (showLabel) {
             Spacer(Modifier.height(GlazeMetrics.space1))
             Surface(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.58f),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
                 shape = RoundedCornerShape(GlazeMetrics.radiusControl),
             ) {
                 Text(
@@ -454,24 +441,6 @@ private fun PagedAppManagementDialog(
                 }
             }
         },
-        confirmButton = {
-            TextButton(onClick = onClose) { Text("Done") }
-        },
+        confirmButton = { TextButton(onClick = onClose) { Text("Done") } },
     )
-}
-
-@Composable
-private fun rememberPagedWallpaper(): ImageBitmap? {
-    val context = LocalContext.current
-    return remember(context) {
-        runCatching {
-            val metrics = context.resources.displayMetrics
-            WallpaperManager.getInstance(context).drawable
-                .toBitmap(
-                    width = metrics.widthPixels.coerceAtLeast(1),
-                    height = metrics.heightPixels.coerceAtLeast(1),
-                )
-                .asImageBitmap()
-        }.getOrNull()
-    }
 }
