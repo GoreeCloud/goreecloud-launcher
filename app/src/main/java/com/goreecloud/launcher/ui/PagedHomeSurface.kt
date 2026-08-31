@@ -333,7 +333,7 @@ private fun PagedAppTile(
                 DropdownMenu(expanded = movePageMenuExpanded, onDismissRequest = { movePageMenuExpanded = false }) {
                     targetPages.forEach { target ->
                         DropdownMenuItem(
-                            text = { Text("Move to Page ${target.rank + 1}") },
+                            text = { Text(target.context().moveTargetLabel(target.rank + 1)) },
                             onClick = {
                                 movePageMenuExpanded = false
                                 onMoveAppToPage(app, target.pageId)
