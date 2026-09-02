@@ -60,4 +60,4 @@ Existing drag transforms, alpha, and scale feedback are therefore treated as app
 
 This historical evaluation remains evidence that a first-party consumer mapped Experimental motion semantics against Launcher's actual ordering domain. It is insufficient for Candidate promotion by itself and does not establish adoption of the current Glaze Motion Experimental revision.
 
-Glaze UI 2.1 Stable is the production design-system authority. Glaze Motion remains Experimental and test-only; Motion Studio and Motion Spatial remain outside this historical evaluation.
+Glaze UI 2.2.0 Stable is the production design-system authority. Glaze Motion remains Experimental and test-only; Motion Studio and Motion Spatial remain outside this historical evaluation.

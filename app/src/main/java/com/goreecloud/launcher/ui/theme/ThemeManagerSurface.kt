@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -26,6 +26,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -34,7 +40,7 @@ import androidx.compose.ui.unit.dp
  * System/Light/Dark appearance modes.
  *
  * This surface deliberately does not imply icon-pack discovery, icon masking,
- * Deep Dark, wallpaper palettes, expression controls, or full Glaze UI 2.1
+ * Deep Dark, wallpaper palettes, expression controls, or full Glaze UI 2.2
  * application acceptance. Those remain separately gated capabilities.
  */
 @Composable
@@ -69,7 +75,10 @@ fun ThemeManagerSurface(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = onBack) { Text("Done") }
+                TextButton(
+                    onClick = onBack,
+                    modifier = Modifier.heightIn(min = GlazeMetrics.touchAssistanceTarget),
+                ) { Text("Done") }
             }
 
             GlazeThemeManagerCatalog.choices.forEach { choice ->
@@ -129,7 +138,11 @@ private fun ThemeChoiceCard(
 
             GlazeTheme(choice.mode) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clearAndSetSemantics {
+                            contentDescription = choice.previewAccessibilityLabel
+                        },
                     shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
                     color = MaterialTheme.colorScheme.background,
                 ) {
@@ -170,11 +183,29 @@ private fun ThemeChoiceCard(
             }
 
             if (selected) {
-                FilledTonalButton(onClick = onSelect, modifier = Modifier.fillMaxWidth()) {
-                    Text("Selected")
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = GlazeMetrics.touchAssistanceTarget)
+                        .semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            stateDescription = choice.selectedAccessibilityState
+                        },
+                    shape = RoundedCornerShape(GlazeMetrics.radiusControl),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("Selected", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             } else {
-                OutlinedButton(onClick = onSelect, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = onSelect,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = GlazeMetrics.touchAssistanceTarget),
+                ) {
                     Text("Use ${choice.title}")
                 }
             }

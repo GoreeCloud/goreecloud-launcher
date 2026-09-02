@@ -7,10 +7,13 @@ THEME = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
 THEME_REPOSITORY = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeRepository.kt"
 THEME_MANAGER = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/theme/ThemeManagerSurface.kt"
 THEME_CATALOG = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalog.kt"
+SETTINGS_SURFACE = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/LauncherSettingsSurface.kt"
 ADOPTION = ROOT / "docs/glaze-ui-adoption.md"
+DEVELOPMENT = ROOT / "docs/development/saveable-theme-manager-settings-composition.md"
 
-TARGET_VERSION = "2.1.0"
-REFERENCE_REVISION = "c49113eb8b93c267613fdf1bbca1f814495acad7"
+TARGET_VERSION = "2.2.0"
+STABLE_PROMOTION_HEAD = "fb5ecde4a8258503789ffde08ac46a2e524ef71e"
+STABLE_RELEASE_REVISION = "6731098b28dd0393faa878c70d989a221d714a20"
 
 EXPECTED_METRICS = {
     "space1": 4,
@@ -61,7 +64,9 @@ def main() -> None:
         (THEME_REPOSITORY, "theme persistence repository"),
         (THEME_MANAGER, "native Theme Manager surface"),
         (THEME_CATALOG, "native Theme Manager catalog"),
+        (SETTINGS_SURFACE, "Launcher Settings composition"),
         (ADOPTION, "adoption evidence"),
+        (DEVELOPMENT, "Theme Manager development evidence"),
     )
     for path, label in required_files:
         if not path.is_file():
@@ -72,12 +77,26 @@ def main() -> None:
     repository_text = THEME_REPOSITORY.read_text(encoding="utf-8")
     manager_text = THEME_MANAGER.read_text(encoding="utf-8")
     catalog_text = THEME_CATALOG.read_text(encoding="utf-8")
+    settings_text = SETTINGS_SURFACE.read_text(encoding="utf-8")
     adoption_text = ADOPTION.read_text(encoding="utf-8")
+    development_text = DEVELOPMENT.read_text(encoding="utf-8")
+
+    stable_markers = [
+        f'const val stableVersion = "{TARGET_VERSION}"',
+        f'const val stablePromotionHead = "{STABLE_PROMOTION_HEAD}"',
+        f'const val stableReleaseRevision = "{STABLE_RELEASE_REVISION}"',
+        "const val systemGlazeDominantPanelMax = 1",
+        "const val systemGlazeSmallFloatingControlsMax = 3",
+        "const val nestedBackdropBlurAllowed = false",
+    ]
+    for marker in stable_markers:
+        if marker not in metrics_text:
+            fail(f"missing Glaze UI 2.2 Stable metric/governance marker `{marker}`")
 
     for name, value in EXPECTED_METRICS.items():
         expected = f"val {name}: Dp = {value}.dp"
         if expected not in metrics_text:
-            fail(f"expected Glaze UI 2.1 metric mapping `{expected}`")
+            fail(f"expected Glaze UI 2.2 metric mapping `{expected}`")
 
     for invented_alias in ("val space7:", "val space9:"):
         if invented_alias in metrics_text:
@@ -85,61 +104,76 @@ def main() -> None:
 
     for marker in EXPECTED_THEME_MARKERS:
         if marker not in theme_text:
-            fail(f"missing Glaze UI 2.1 Light/Dark theme evidence `{marker}`")
+            fail(f"missing Glaze UI 2.2 Light/Dark theme evidence `{marker}`")
 
     manager_markers = [
         "fun setMode(mode: GlazeThemeMode)",
         "GlazeThemeManagerCatalog",
         "fun ThemeManagerSurface(",
+        "fun LauncherSettingsSurface(",
+        "LauncherSettingsDestinationHost",
         "Icon packs, masking, Deep Dark",
     ]
-    manager_combined = repository_text + "\n" + manager_text + "\n" + catalog_text
+    manager_combined = repository_text + "\n" + manager_text + "\n" + catalog_text + "\n" + settings_text
     for marker in manager_markers:
         if marker not in manager_combined:
-            fail(f"missing bounded Theme Manager foundation evidence `{marker}`")
+            fail(f"missing bounded Theme Manager/Settings composition evidence `{marker}`")
 
     required_evidence = [
-        "Canonical design system: `GoreeCloud/goreecloud-glaze-ui`",
-        "Target: Glaze UI 2.1 Stable",
-        f"Canonical token version reviewed: {TARGET_VERSION}",
-        f"Reviewed canonical revision: `{REFERENCE_REVISION}`",
-        "Adoption state: Adoption Candidate",
-        "Production eligible on Glaze UI gate: no",
-        "Adoption mode: native Android semantic mapping",
-        "Implemented 2.1 mapping",
-        "canonical spacing token keys",
-        "48 dp current-contract general interaction floor",
-        "56 dp touch-assistance target",
+        "# Glaze UI 2.2 Adoption Candidate — GoreeCloud Launcher",
+        "Status: **Adoption Candidate**",
+        "Required Stable baseline: **Glaze UI 2.2.0**",
+        f"Reviewed exact Stable promotion head: `{STABLE_PROMOTION_HEAD}`",
+        f"Reviewed Stable release merge: `{STABLE_RELEASE_REVISION}`",
+        "Reviewed Stable tag: `v2.2.0`",
+        "Production eligible on the Glaze UI gate: **no**",
+        "Automated contract: `scripts/check_glaze_ui.py`",
+        "Glaze UI 2.2.0 Stable is the production design-system authority.",
+        "Implemented 2.2 mapping",
+        "canonical spacing keys",
+        "48 dp `currentContract.touchMinimum` interaction floor",
+        "56 dp `currentContract.touchAssistanceMinimum` target",
         "compatibility token `target.minimum=44`",
-        "Reduced transparency must resolve to Solid",
+        "System Glaze budget",
+        "Launcher Home is treated as a **Workspace** presentation surface",
+        "Launcher Settings and Theme Manager are **Application** surfaces",
         "Deep Dark is not approximated with an invented palette",
-        "Theme Manager surface is source foundation",
+        "Motion quarantine",
         "Historical migration evidence",
-        "Full Glaze UI 2.1 conformance.",
-        "Complete Accessibility Resolution Matrix integration.",
-        "TalkBack or switch-access acceptance.",
-        "Phone/tablet rendered/native visual acceptance.",
-        "Representative physical-device launcher acceptance.",
+        "TalkBack, Switch Access",
+        "Representative physical-device Theme Manager navigation/persistence",
     ]
     for evidence in required_evidence:
         if evidence not in adoption_text:
             fail(f"missing adoption evidence `{evidence}`")
 
+    for marker in (
+        "Status: Development — Glaze UI 2.2 Adoption Candidate",
+        "Glaze UI 2.2.0 Stable",
+        f"{STABLE_PROMOTION_HEAD}",
+        f"{STABLE_RELEASE_REVISION}",
+        "Theme Manager is **Application** settings content",
+        "representative-device Theme Manager navigation/persistence testing",
+    ):
+        if marker not in development_text:
+            fail(f"Theme Manager Development evidence is not synchronized with current 2.2 mapping: `{marker}`")
+
     stale_active_markers = [
+        "Required Stable baseline: **Glaze UI 2.1.0**",
+        "Target: Glaze UI 2.1 Stable",
+        "Canonical token version reviewed: 2.1.0",
+        "Glaze UI 2.1 Stable is the production design-system authority.",
+        "Required Stable baseline: **Glaze UI 2.0.0**",
         "Target: Glaze UI 2.0 Stable",
         "Canonical token version reviewed: 2.0.0",
-        "Native Android mapping of the Glaze UI 2.0 Stable",
         "Target: Glaze UI 1.6 Stable",
         "Canonical token version reviewed: 1.6.0",
-        "Glaze UI 1.6 Stable remains the production design-system authority",
-        "Native Android mapping of the Glaze UI 1.5 Stable",
         "Target: Glaze UI 1.5 Stable",
         "Canonical token version reviewed: 1.5.0",
         "Target: Glaze UI 1.4 Stable",
         "Canonical token version reviewed: 1.4.0",
-        "Native Android mapping of the Glaze UI 1.4 Stable",
     ]
-    combined = adoption_text + "\n" + metrics_text + "\n" + theme_text
+    combined = adoption_text + "\n" + metrics_text + "\n" + theme_text + "\n" + development_text
     for marker in stale_active_markers:
         if marker in combined:
             fail(f"stale historical target remains active: `{marker}`")
@@ -148,9 +182,9 @@ def main() -> None:
         fail("superseded 44 dp general target floor remains in active Glaze mapping")
 
     print(
-        "Glaze UI 2.1 Launcher Adoption Candidate contract passed: "
-        f"{len(EXPECTED_METRICS)} native metrics + canonical spacing token identities + "
-        "promoted Light/Dark mapping + bounded Theme Manager foundation + exact Stable evidence boundary validated."
+        "Glaze UI 2.2 Launcher Adoption Candidate contract passed: "
+        f"{len(EXPECTED_METRICS)} native metrics + exact Stable anchors + System Glaze budget + "
+        "Light/Dark mapping + reachable Theme Manager Settings composition + explicit production block validated."
     )
 
 

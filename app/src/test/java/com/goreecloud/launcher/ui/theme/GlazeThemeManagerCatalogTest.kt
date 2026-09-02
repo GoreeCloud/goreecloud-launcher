@@ -13,11 +13,13 @@ class GlazeThemeManagerCatalogTest {
     }
 
     @Test
-    fun choiceLookupReturnsStableUserFacingMetadata() {
+    fun choiceLookupReturnsStableUserFacingAndAccessibilityMetadata() {
         val dark = GlazeThemeManagerCatalog.choiceFor(GlazeThemeMode.DARK)
 
         assertEquals("Dark", dark.title)
         assertEquals(GlazeThemeMode.DARK, dark.mode)
+        assertEquals("Dark appearance preview", dark.previewAccessibilityLabel)
+        assertEquals("Dark appearance selected", dark.selectedAccessibilityState)
     }
 
     @Test

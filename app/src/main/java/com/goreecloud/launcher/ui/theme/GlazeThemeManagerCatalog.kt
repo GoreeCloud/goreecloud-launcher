@@ -4,7 +4,13 @@ data class GlazeThemeChoice(
     val mode: GlazeThemeMode,
     val title: String,
     val summary: String,
-)
+) {
+    val previewAccessibilityLabel: String
+        get() = "$title appearance preview"
+
+    val selectedAccessibilityState: String
+        get() = "$title appearance selected"
+}
 
 object GlazeThemeManagerCatalog {
     val choices: List<GlazeThemeChoice> = listOf(
