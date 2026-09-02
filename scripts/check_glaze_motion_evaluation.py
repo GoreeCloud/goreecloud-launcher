@@ -28,7 +28,7 @@ def main() -> None:
         f"Reviewed canonical revision: `{REFERENCE_REVISION}`",
         "Evaluation mode: native Android semantic mapping, test-only",
         "Production dependency: no",
-        "Glaze UI 2.1 Stable is the production design-system authority.",
+        "Glaze UI 2.2.0 Stable is the production design-system authority.",
         "insufficient for Candidate promotion by itself",
         "Glaze Motion remains Experimental and test-only",
     ]
@@ -37,6 +37,7 @@ def main() -> None:
             fail(f"missing lifecycle or evidence boundary `{evidence}`")
 
     for stale in (
+        "Glaze UI 2.1 Stable is the production design-system authority.",
         "Glaze UI 2.0 Stable is the production design-system authority.",
         "Glaze UI 1.6 Stable remains the production design-system authority.",
         "Glaze UI 1.5 Stable remains the production design-system authority.",
@@ -81,7 +82,7 @@ def main() -> None:
         )
 
     print(
-        "Glaze Motion 0.4 Launcher historical test-only evaluation boundary passed under Glaze UI 2.1 Stable: "
+        "Glaze Motion 0.4 Launcher historical test-only evaluation boundary passed under Glaze UI 2.2.0 Stable: "
         "real ordering domain mapped, production source remains quarantined."
     )
 
