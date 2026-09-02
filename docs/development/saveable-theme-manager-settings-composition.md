@@ -26,10 +26,18 @@ The rendered Theme Manager applies `GlazeMetrics.touchAssistanceTarget` (56 dp) 
 
 The already-selected appearance renders as a non-actionable `Selected` status surface rather than another persistence button. This prevents a redundant `onSelectThemeMode` callback for the current mode while preserving clear selected-state presentation. Only a different appearance choice can invoke the caller-owned persistence path.
 
-These interaction changes do not introduce additional theme modes, icon-pack discovery, icon masking, wallpaper-derived palettes, Deep Dark, expression controls, Universal Search, Control Center behavior, or new system-setting authority.
+## Accessibility semantics hardening
+
+Each visual theme preview is now exposed as one descriptive semantics node using stable catalog metadata such as `Dark appearance preview`. Decorative preview internals—including the sample GoreeCloud glyph, sample label, and color chip—are cleared from the accessibility tree for that preview so assistive technology receives one concise description instead of reading decorative fragments as independent content.
+
+The non-actionable selected-state surface now exposes an explicit state description such as `Dark appearance selected` and uses a polite live region. A change to the selected appearance can therefore be announced as state rather than being misrepresented as another clickable control. The semantics metadata is derived from the same `GlazeThemeChoice` catalog as the visible title, and unit coverage locks the user-facing/accessibility strings for the current modes.
+
+This is source-level semantic hardening only. It does not prove TalkBack, Switch Access, keyboard/D-pad, focus-order, spoken-announcement timing, or representative-device accessibility acceptance; those remain runtime gates.
+
+These interaction and semantics changes do not introduce additional theme modes, icon-pack discovery, icon masking, wallpaper-derived palettes, Deep Dark, expression controls, Universal Search, Control Center behavior, or new system-setting authority.
 
 ## Remaining acceptance
 
 This Adoption Candidate still requires complete repository/application 2.2 component mapping, state-priority review, Reduced Motion, Reduced Transparency, Increased Contrast, native accessibility-equivalent/forced-color handling where applicable, 200% text/reflow, RTL/localization expansion, platform Touch Assistance resolution, complete System Glaze budget review across Launcher, representative phone/tablet/foldable behavior, TalkBack/Switch Access, performance fallbacks, Human Visual Excellence, representative-device Theme Manager navigation/persistence testing, production signing/distribution, release, and Stable qualification.
 
-This remains Development evidence only. A green build or correct token mapping does not establish full Glaze UI 2.2 conformance or production readiness.
+This remains Development evidence only. A green build or correct token/semantics mapping does not establish full Glaze UI 2.2 conformance or production readiness.
