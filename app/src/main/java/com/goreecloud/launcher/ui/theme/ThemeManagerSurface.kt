@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
  * System/Light/Dark appearance modes.
  *
  * This surface deliberately does not imply icon-pack discovery, icon masking,
- * Deep Dark, wallpaper palettes, expression controls, or full Glaze UI 2.1
+ * Deep Dark, wallpaper palettes, expression controls, or full Glaze UI 2.2
  * application acceptance. Those remain separately gated capabilities.
  */
 @Composable
