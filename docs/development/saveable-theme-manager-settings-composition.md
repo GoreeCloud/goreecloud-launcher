@@ -10,10 +10,16 @@ Theme persistence remains with the caller-provided `GlazeThemeRepository` path t
 
 ## Root composition
 
-`LauncherBetaRoot` now routes `LauncherSurfaceMode.SETTINGS` through `LauncherSettingsSurface`, supplies the current theme mode and caller-owned theme callback, and returns to the Home surface through the existing root navigation state.
+`LauncherBetaRoot` routes `LauncherSurfaceMode.SETTINGS` through `LauncherSettingsSurface`, supplies the current theme mode and caller-owned theme callback, and returns to the Home surface through the existing root navigation state.
+
+## Theme Manager interaction targets
+
+The rendered Theme Manager applies `GlazeMetrics.touchAssistanceTarget` as the minimum height for its Done action and for all System/Light/Dark appearance-selection buttons. This keeps those explicit Settings interactions aligned with the launcher's current Glaze touch-assistance contract instead of relying only on Material component defaults.
+
+This target-size adjustment does not introduce additional theme modes, icon-pack discovery, icon masking, wallpaper-derived palettes, Deep Dark, expression controls, or new system-setting authority.
 
 ## Remaining acceptance
 
-The branch still requires fresh exact-head Android validation after this documentation reconciliation, plus representative-device Theme Manager navigation, persistence, accessibility, and Glaze UI acceptance before any Stable claim.
+The branch still requires fresh exact-head Android validation after the latest interaction-target source change, plus representative-device Theme Manager navigation, persistence, accessibility, and Glaze UI acceptance before any Stable claim.
 
 This is Development evidence only and does not establish Stable Glaze UI or representative-device acceptance.
