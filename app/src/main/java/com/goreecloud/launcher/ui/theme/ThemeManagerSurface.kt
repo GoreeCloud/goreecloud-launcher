@@ -26,6 +26,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -132,7 +138,11 @@ private fun ThemeChoiceCard(
 
             GlazeTheme(choice.mode) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clearAndSetSemantics {
+                            contentDescription = choice.previewAccessibilityLabel
+                        },
                     shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
                     color = MaterialTheme.colorScheme.background,
                 ) {
@@ -176,7 +186,11 @@ private fun ThemeChoiceCard(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = GlazeMetrics.touchAssistanceTarget),
+                        .heightIn(min = GlazeMetrics.touchAssistanceTarget)
+                        .semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            stateDescription = choice.selectedAccessibilityState
+                        },
                     shape = RoundedCornerShape(GlazeMetrics.radiusControl),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
