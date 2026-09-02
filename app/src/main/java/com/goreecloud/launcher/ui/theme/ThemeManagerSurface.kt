@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -174,13 +173,17 @@ private fun ThemeChoiceCard(
             }
 
             if (selected) {
-                FilledTonalButton(
-                    onClick = onSelect,
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = GlazeMetrics.touchAssistanceTarget),
+                    shape = RoundedCornerShape(GlazeMetrics.radiusControl),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ) {
-                    Text("Selected")
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("Selected", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             } else {
                 OutlinedButton(
