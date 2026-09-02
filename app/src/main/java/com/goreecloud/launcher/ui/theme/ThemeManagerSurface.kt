@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -69,7 +70,10 @@ fun ThemeManagerSurface(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = onBack) { Text("Done") }
+                TextButton(
+                    onClick = onBack,
+                    modifier = Modifier.heightIn(min = GlazeMetrics.touchAssistanceTarget),
+                ) { Text("Done") }
             }
 
             GlazeThemeManagerCatalog.choices.forEach { choice ->
@@ -170,11 +174,21 @@ private fun ThemeChoiceCard(
             }
 
             if (selected) {
-                FilledTonalButton(onClick = onSelect, modifier = Modifier.fillMaxWidth()) {
+                FilledTonalButton(
+                    onClick = onSelect,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = GlazeMetrics.touchAssistanceTarget),
+                ) {
                     Text("Selected")
                 }
             } else {
-                OutlinedButton(onClick = onSelect, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = onSelect,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = GlazeMetrics.touchAssistanceTarget),
+                ) {
                     Text("Use ${choice.title}")
                 }
             }
