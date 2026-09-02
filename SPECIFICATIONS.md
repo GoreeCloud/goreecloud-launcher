@@ -32,7 +32,7 @@ Launcher must remain original GoreeCloud-owned software built from the ground up
 - Rendered paged Home state is projected from authoritative workspace state; UI convenience is not a second placement authority.
 - Home layout lock is a Launcher mutation policy layered over the authoritative workspace APIs; it is not a workspace persistence authority.
 - Universal search invocation is delegated through an explicit GoreeCloud Index action contract rather than duplicating Index provider/index/ranking logic inside Launcher.
-- Glaze UI 2.1.0 Stable is the current bounded native design-system target for Launcher. The repository carries Adoption Candidate token/geometry/target mapping plus a native Theme Manager source foundation, while complete rendered/native/accessibility/device acceptance remains separately gated.
+- Glaze UI 2.2.0 Stable is the current bounded native design-system target for Launcher. The repository carries Adoption Candidate token/geometry/target mapping, the ordinary System Glaze composition budget, and a reachable native Theme Manager Settings composition, while complete rendered/native/accessibility/device acceptance remains separately gated.
 - Privacy, security, continuity, identity, design, and cross-service responsibilities remain separated into applicable GoreeCloud platform-system boundaries.
 
 ## Current daily-launcher shell
@@ -63,7 +63,7 @@ Launcher Settings is a distinct scrollable surface. Current persisted settings i
 
 Current settings changes do not widen Room workspace mutation authority. The layout-lock preference restricts Launcher mutation dispatch; the Index-entry preference controls Launcher-owned invocation presentation only.
 
-A native Theme Manager catalog/surface and direct persisted System/Light/Dark theme-selection API now exist as Development source foundation under the Glaze UI 2.1 Adoption Candidate mapping. That Theme Manager surface is not yet wired into Launcher Settings navigation, so the currently reachable Appearance behavior remains the existing System/Light/Dark control. Icon-pack discovery/application, icon masking, Deep Dark, wallpaper-derived palettes, expression controls, and complete Glaze Theme Engine behavior remain separately implementation- and acceptance-gated.
+The native Theme Manager catalog/surface and direct persisted System/Light/Dark theme-selection API are now composed into Launcher Settings under the Glaze UI 2.2 Adoption Candidate mapping. Settings uses a saveable/fail-closed sub-destination model; stale destination values restore to Settings root. The current appearance is represented as non-actionable selected state, and only a different supported appearance invokes caller-owned persistence. Icon-pack discovery/application, icon masking, Deep Dark, wallpaper-derived palettes, expression controls, and complete Glaze Theme Engine behavior remain separately implementation- and acceptance-gated.
 
 Launcher Settings must also provide explicit local/offline-capable **Backup Launcher configuration** and **Restore Launcher configuration** actions. Backup/restore remains separately implementation- and acceptance-gated.
 
@@ -79,7 +79,7 @@ Folders, shortcuts, widgets, and other placeable item types are approved target 
 
 ## Theme Manager and icon presentation
 
-Launcher now contains a bounded native Theme Manager source foundation for the currently implemented System/Light/Dark appearance modes. The foundation provides a catalog of supported modes, native Compose preview presentation, and direct persisted mode selection through the existing local theme repository. It does not become current user behavior until the Theme Manager surface is separately wired into Launcher Settings.
+Launcher now contains a bounded native Theme Manager for the currently implemented System/Light/Dark appearance modes. The Theme Manager is reachable from Launcher Settings through the saveable Settings destination host, provides the application-owned mode catalog and Compose preview presentation, and delegates persisted mode selection through the existing local theme repository. The selected mode is state rather than another action, so only a different appearance choice may call persistence.
 
 The approved broader target includes applicable Glaze Theme Engine modes, richer previews, wallpaper-derived/user-selected palettes where supported, icon-pack discovery/application, icon masking, bounded icon scaling/optical normalization, fallback/reset behavior, and coherent styling across Launcher-owned surfaces.
 
@@ -137,7 +137,7 @@ Accessible non-gesture search access remains a product requirement. The persiste
 
 ### Search presentation quality target
 
-The unified-search experience should achieve the immediacy, clarity, visual polish, and result legibility associated with leading modern universal-search products while remaining an original GoreeCloud design rather than a copy of Apple Spotlight, Pixel search, or another product. The current product target is **Glaze UI 2.1.0 Stable**, with application-specific implementation and acceptance still evidence-gated.
+The unified-search experience should achieve the immediacy, clarity, visual polish, and result legibility associated with leading modern universal-search products while remaining an original GoreeCloud design rather than a copy of Apple Spotlight, Pixel search, or another product. The current product target is **Glaze UI 2.2.0 Stable**, with application-specific implementation and acceptance still evidence-gated.
 
 The intended Glaze UI search experience uses strong typography/hierarchy, a prominent immediately focused query field, restrained context-aware translucency/depth where useful, grouped source-aware result surfaces, clear provider/provenance cues, compact direct actions, bounded fluid motion, reduced-motion/reduced-transparency alternatives, predictable keyboard behavior, and first-class TalkBack/switch-access semantics. GoreeCloud Index owns the full result experience; Launcher owns Home invocation and any persistent Home entry affordance.
 
@@ -194,9 +194,9 @@ GoreeCloud Index PR #1 established its initial Android Development foundation an
 
 Launcher PR #57 implemented the persisted **Permanent on Home / Swipe down only** Index entry modes together with Home layout locking and its five-second Home unlock path. It merged with expected-head protection as `eca26aa28e1ec8dd18efd1fb5f3cf914be33a361`; push-triggered Android CI run `33434363744` passed both validate and the Android 16/API 36 runtime-emulator job on that exact merge commit.
 
-The repository's Glaze UI 2.1 / Theme Manager work remains bounded to the Adoption Candidate mapping and native source foundation described in `docs/glaze-ui-adoption.md`. It does not establish complete application conformance or make the Theme Manager user-reachable until the separately reviewed Settings wiring is accepted.
+The repository's Glaze UI 2.2 / Theme Manager work remains bounded to the Adoption Candidate mapping described in `docs/glaze-ui-adoption.md`. The Theme Manager is now user-reachable through Launcher Settings, but this does not establish complete application conformance, representative-device accessibility acceptance, or production eligibility.
 
-Contacts, files/documents, calendar, media, Drive, first-party app-content providers, connected devices, extensions, third-party providers, GoreeCloud Search integration, complete Glaze UI 2.1 application adoption, representative-device accessibility/gesture acceptance, production signing/deployment, and Stable qualification remain separate gates.
+Contacts, files/documents, calendar, media, Drive, first-party app-content providers, connected devices, extensions, third-party providers, GoreeCloud Search integration, complete Glaze UI 2.2 application adoption, representative-device accessibility/gesture acceptance, production signing/deployment, and Stable qualification remain separate gates.
 
 ## Official Launcher product identity specification
 
@@ -260,7 +260,7 @@ Stable qualification still requires, as applicable:
 - folders/widgets/shortcuts required by release scope;
 - mature cross-page placement editing and accessible alternatives;
 - representative-device, rotation/posture, performance, physical-interaction, universal-search gesture, five-second unlock, and accessibility acceptance;
-- complete current Glaze UI application acceptance, currently targeting Glaze UI 2.1.0 Stable;
+- complete current Glaze UI application acceptance, currently targeting Glaze UI 2.2.0 Stable;
 - accepted applicable Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, Index, Search, Sync, Backup, and continuity integrations;
 - Android process-death and schema-upgrade recovery evidence;
 - signed distribution and upgrade/recovery validation; and
