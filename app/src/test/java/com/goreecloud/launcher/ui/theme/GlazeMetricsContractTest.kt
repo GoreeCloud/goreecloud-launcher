@@ -1,9 +1,9 @@
 package com.goreecloud.launcher.ui.theme
 
 import androidx.compose.ui.unit.dp
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Test
 
 class GlazeMetricsContractTest {
     @Test
