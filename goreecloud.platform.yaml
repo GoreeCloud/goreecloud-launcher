@@ -21,7 +21,7 @@ glaze_ui:
     - launcher-glaze-source
     - launcher-glaze-validator
     - launcher-glaze-doc
-    - launcher-ci-199
+    - launcher-ci-201
 platform_systems:
   manager:
     status: "Applicable — Nonconformant"
@@ -40,17 +40,21 @@ platform_systems:
       - launcher-readme
   privacy_shield:
     status: "Applicable — Nonconformant"
-    justification: Launcher is local-first and CI enforces privacy-oriented source constraints, but current Privacy Shield integration and acceptance evidence are not established.
+    justification: Launcher is local-first and CI enforces privacy-oriented source constraints; the current portable codecs are pure in-memory transformations with no discovery, network, or persistence authority, but Privacy Shield integration and acceptance evidence are not established.
     evidence:
       - launcher-readme
-      - launcher-ci-199
+      - launcher-ci-201
+      - launcher-workspace-snapshot-doc
+      - launcher-preferences-snapshot-doc
   everkeep:
     status: "Applicable — Nonconformant"
-    justification: A bounded versioned workspace placement snapshot now exists as Development source, but complete Launcher backup/restore and authorized Everkeep continuity integration remain explicit gaps.
+    justification: Bounded versioned workspace-placement and explicit Launcher-preference snapshots now exist as Development source, but complete Launcher backup/restore and authorized Everkeep continuity integration remain explicit gaps.
     evidence:
       - launcher-readme
       - launcher-workspace-snapshot-source
       - launcher-workspace-snapshot-doc
+      - launcher-preferences-snapshot-source
+      - launcher-preferences-snapshot-doc
   mesh:
     status: "Applicable — Nonconformant"
     justification: Launcher is not yet registered through the canonical GoreeCloud Mesh platform registry and no accepted Mesh integration evidence is recorded here.
@@ -63,7 +67,7 @@ platform_systems:
       - launcher-glaze-source
       - launcher-glaze-validator
       - launcher-glaze-doc
-      - launcher-ci-199
+      - launcher-ci-201
 mesh:
   registration: required
   capabilities:
@@ -95,21 +99,27 @@ recovery:
     - README.md
     - SPECIFICATIONS.md
     - docs/development/workspace-portable-snapshot.md
+    - docs/development/launcher-portable-preferences.md
   evidence:
     - launcher-readme
     - launcher-workspace-snapshot-source
     - launcher-workspace-snapshot-doc
     - launcher-workspace-snapshot-tests
+    - launcher-preferences-snapshot-source
+    - launcher-preferences-snapshot-doc
+    - launcher-preferences-snapshot-tests
 data_portability:
   export_capability: unknown
   export_formats:
     - goreecloud-launcher-workspace-snapshot/1
+    - goreecloud-launcher-preferences/1
   last_export_validation: null
   portability_requirements:
-    - define a complete versioned Launcher-owned export scope beyond the current grid/page/placement subset
+    - define a complete versioned Launcher-owned export scope beyond the current workspace-placement and explicit-preference subsets
     - preserve workspace ordering and placement integrity
+    - preserve explicit Home grid, Drawer columns, label visibility, icon scale, layout-lock, and Index Home mode values without silently sanitizing invalid portable input
     - preserve local-first privacy boundaries during export and restore
-    - define folder, dock, widget, theme, gesture, hidden-app, search-setting, and authoritative persistence coverage
+    - define folder, dock, widget, theme, gesture, hidden-app, search-setting, and authoritative persistence coverage not represented by the current codecs
     - define Android package/profile and widget rebinding semantics
     - validate clean-target import or deterministic reconstruction where applicable
     - keep decoding separate from Room/DataStore mutation until an authorized transactional restore coordinator exists
@@ -118,6 +128,9 @@ data_portability:
     - launcher-workspace-snapshot-source
     - launcher-workspace-snapshot-doc
     - launcher-workspace-snapshot-tests
+    - launcher-preferences-snapshot-source
+    - launcher-preferences-snapshot-doc
+    - launcher-preferences-snapshot-tests
 external_dependencies:
   - id: android-platform
     purpose: Android HOME role, LauncherApps discovery, package/profile lifecycle, system wallpaper presentation, accessibility services, and application execution environment.
@@ -130,6 +143,7 @@ compatibility:
   schema_requirements:
     - goreecloud.platform/1.0
     - goreecloud-launcher-workspace-snapshot/1
+    - goreecloud-launcher-preferences/1
   component_requirements:
     - Glaze UI 2.2.0
     - GoreeCloud Index compatible invocation contract before search integration acceptance
@@ -140,22 +154,22 @@ conformance:
   declared_state: migration_required
   stable_eligible: false
   checks:
-    - {id: glaze-ui, mandatory: true, status: pending, evidence: [launcher-glaze-source, launcher-glaze-validator, launcher-glaze-doc, launcher-ci-199], note: "Glaze UI 2.2 Adoption Candidate source and exact-head CI evidence exist; complete native/rendered/accessibility/device/HVE/release acceptance remains incomplete."}
+    - {id: glaze-ui, mandatory: true, status: pending, evidence: [launcher-glaze-source, launcher-glaze-validator, launcher-glaze-doc, launcher-ci-201], note: "Glaze UI 2.2 Adoption Candidate source and exact-head CI evidence exist; complete native/rendered/accessibility/device/HVE/release acceptance remains incomplete."}
     - {id: goreecloud-identity, mandatory: true, status: pending, evidence: [launcher-readme]}
     - {id: wardveil-security, mandatory: true, status: pending, evidence: [launcher-readme]}
-    - {id: privacy-shield, mandatory: true, status: pending, evidence: [launcher-readme, launcher-ci-199], note: "Privacy-oriented source validation is not Privacy Shield platform acceptance."}
-    - {id: everkeep-recovery, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc], note: "The workspace placement snapshot is only a bounded Development serialization seam, not complete Launcher recovery or Everkeep integration."}
+    - {id: privacy-shield, mandatory: true, status: pending, evidence: [launcher-readme, launcher-ci-201, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-doc], note: "Pure local portability codecs and repository privacy validation are not Privacy Shield platform acceptance."}
+    - {id: everkeep-recovery, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-source, launcher-preferences-snapshot-doc], note: "The workspace and preference snapshots are bounded Development serialization seams, not complete Launcher recovery or Everkeep integration."}
     - {id: mesh-registration, mandatory: true, status: pending, evidence: []}
     - {id: api-compatibility, mandatory: true, status: pending, evidence: [launcher-readme], note: "The Development Index handoff exists, but coordinated release-level API compatibility is not established."}
-    - {id: accessibility, mandatory: true, status: pending, evidence: [launcher-glaze-doc, launcher-ci-199], note: "Source semantics and automated checks exist; TalkBack, Switch Access, focus, large-text/reflow, adaptive, and representative-device acceptance remain outstanding."}
+    - {id: accessibility, mandatory: true, status: pending, evidence: [launcher-glaze-doc, launcher-ci-201], note: "Source semantics and automated checks exist; TalkBack, Switch Access, focus, large-text/reflow, adaptive, and representative-device acceptance remain outstanding."}
     - {id: platform-acceptance, mandatory: true, status: pending, evidence: []}
-    - {id: backup, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc], note: "The current snapshot excludes substantial Launcher state and is not a backup implementation."}
-    - {id: restore, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc], note: "Decoding returns validated in-memory state only and cannot write Room/DataStore or rebind packages/profiles/widgets."}
-    - {id: export-portability, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc, launcher-workspace-snapshot-tests], note: "A versioned placement subset exists, but product-wide export/import scope and clean-target acceptance remain pending."}
+    - {id: backup, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-source, launcher-preferences-snapshot-doc], note: "The current codecs cover bounded workspace-placement and explicit-preference subsets while substantial Launcher state remains outside the backup scope."}
+    - {id: restore, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-source, launcher-preferences-snapshot-doc], note: "Decoding returns validated in-memory state only and cannot write Room/DataStore or rebind packages/profiles/widgets."}
+    - {id: export-portability, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc, launcher-workspace-snapshot-tests, launcher-preferences-snapshot-source, launcher-preferences-snapshot-doc, launcher-preferences-snapshot-tests], note: "Versioned workspace-placement and explicit-preference subsets exist, but product-wide export/import scope and clean-target acceptance remain pending."}
     - {id: security-validation, mandatory: true, status: pending, evidence: [launcher-readme], note: "Android authority and permission controls do not establish Wardveil Security acceptance."}
-    - {id: privacy-validation, mandatory: true, status: pending, evidence: [launcher-readme, launcher-ci-199, launcher-workspace-snapshot-doc], note: "The snapshot does not gain discovery/network/persistence authority, but repository privacy guards do not establish Privacy Shield acceptance."}
-    - {id: required-documentation, mandatory: true, status: pass, evidence: [launcher-readme, launcher-glaze-doc, launcher-workspace-snapshot-doc]}
-    - {id: required-tests, mandatory: true, status: pending, evidence: [launcher-ci-199, launcher-workspace-snapshot-tests], note: "The prior Launcher baseline passed CI, but the new snapshot source requires exact-head Android CI before this checkpoint can claim its tests passed."}
+    - {id: privacy-validation, mandatory: true, status: pending, evidence: [launcher-readme, launcher-ci-201, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-doc], note: "The codecs do not gain discovery/network/persistence authority, but repository privacy guards do not establish Privacy Shield acceptance."}
+    - {id: required-documentation, mandatory: true, status: pass, evidence: [launcher-readme, launcher-glaze-doc, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-doc]}
+    - {id: required-tests, mandatory: true, status: pending, evidence: [launcher-ci-201, launcher-workspace-snapshot-tests, launcher-preferences-snapshot-tests], note: "Exact-head Android CI #201 passed the workspace-snapshot base at 5fb72cfab3fc3770e578c9ad3b79ba76d4dc0bcd; the new portable-preference codec requires exact-head Android CI before this checkpoint can claim its tests passed."}
     - {id: release-evidence, mandatory: true, status: pending, evidence: []}
 evidence:
   acceptance:
@@ -187,13 +201,13 @@ evidence:
       observed_at: null
       producer: GoreeCloud/goreecloud-launcher
       description: Repository-local Glaze UI 2.2 adoption, System Shell classification, accessibility, authority, and outstanding acceptance record.
-    - id: launcher-ci-199
+    - id: launcher-ci-201
       kind: automated_test
-      location: https://github.com/GoreeCloud/goreecloud-launcher/actions/runs/33670347744
-      revision: 4043895afd26991d0a20461e94d002f91c890703
+      location: https://github.com/GoreeCloud/goreecloud-launcher/actions/runs/33710502911
+      revision: 5fb72cfab3fc3770e578c9ad3b79ba76d4dc0bcd
       observed_at: null
       producer: GoreeCloud/goreecloud-launcher
-      description: Exact-head Android CI #199 passed repository privacy/manifest/Identity/Glaze/Room governance checks, Android lint, JVM unit tests, debug APK assembly, Room schema cleanliness, and Android 16 Room runtime emulator testing. It does not establish platform-system, physical-device, release, or production acceptance.
+      description: Exact-head Android CI #201 passed the workspace portable snapshot base with repository privacy/manifest/Identity/Glaze/Room governance checks, Android lint, JVM unit tests, debug APK assembly, Room schema cleanliness, and Android 16 Room runtime emulator testing. It does not establish platform-system, physical-device, release, or production acceptance.
     - id: launcher-workspace-snapshot-source
       kind: source
       location: app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspacePortableSnapshot.kt
@@ -215,4 +229,25 @@ evidence:
       observed_at: null
       producer: GoreeCloud/goreecloud-launcher
       description: Unit-test source for deterministic round-trip, opaque Unicode identities, tamper rejection, invalid page ranks, placement collisions, and bounded input. Test source is not itself evidence of a successful run.
+    - id: launcher-preferences-snapshot-source
+      kind: source
+      location: app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferences.kt
+      revision: null
+      observed_at: null
+      producer: GoreeCloud/goreecloud-launcher
+      description: Versioned deterministic bounded codec for the seven existing LauncherPreferences values with strict range, enum, boolean, integer-thousandth icon-scale, exact-record, and SHA-256 integrity validation and no DataStore authority.
+    - id: launcher-preferences-snapshot-doc
+      kind: documentation
+      location: docs/development/launcher-portable-preferences.md
+      revision: null
+      observed_at: null
+      producer: GoreeCloud/goreecloud-launcher
+      description: Development scope, validation, authority, excluded-state, workspace-format relationship, and Everkeep/recovery acceptance boundaries for the explicit Launcher preference snapshot.
+    - id: launcher-preferences-snapshot-tests
+      kind: source
+      location: app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferencesTest.kt
+      revision: null
+      observed_at: null
+      producer: GoreeCloud/goreecloud-launcher
+      description: Unit-test source covering deterministic round-trip, tamper rejection, unknown-record rejection, strict out-of-range failure, noncanonical icon scale, and bounded input. Test source is not itself evidence of a successful run.
   release: []
