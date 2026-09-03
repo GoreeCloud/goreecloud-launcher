@@ -46,7 +46,7 @@ data class LauncherPreferences(
     )
 }
 
-class LauncherPreferencesRepository(private val context: Context) {
+class LauncherPreferencesRepository(private val context: Context) : LauncherPortablePreferenceWriter {
     private object Keys {
         val homeColumns = intPreferencesKey("home_columns")
         val homeRows = intPreferencesKey("home_rows")
@@ -123,6 +123,25 @@ class LauncherPreferencesRepository(private val context: Context) {
             context.launcherPreferencesStore.edit { values ->
                 values[Keys.indexHomeMode] = mode.storageValue
             }
+        }
+    }
+
+    /**
+     * Replace the complete v1 portable preference subset in one DataStore transaction.
+     *
+     * The portable codec is reused as the defensive validation authority so this path never
+     * silently clamps malformed external values through [LauncherPreferences.sanitized].
+     */
+    override suspend fun replacePortablePreferences(preferences: LauncherPreferences) {
+        LauncherPortablePreferences.encode(preferences)
+        context.launcherPreferencesStore.edit { values ->
+            values[Keys.homeColumns] = preferences.homeColumns
+            values[Keys.homeRows] = preferences.homeRows
+            values[Keys.drawerColumns] = preferences.drawerColumns
+            values[Keys.showLabels] = preferences.showLabels
+            values[Keys.iconScale] = preferences.iconScale
+            values[Keys.layoutLocked] = preferences.layoutLocked
+            values[Keys.indexHomeMode] = preferences.indexHomeMode.storageValue
         }
     }
 }
