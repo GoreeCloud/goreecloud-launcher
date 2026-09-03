@@ -145,14 +145,28 @@ def main() -> None:
         if marker not in development_text:
             fail(f"Theme Manager Development evidence is not synchronized with V1: `{marker}`")
 
-    if 'required_version: "1.0.0"' not in platform_text:
-        fail("Platform Contract must require GLAZE UI V1.0")
-    if 'implemented_version: "1.0.0"' not in platform_text:
-        fail("Platform Contract must record repository-local V1 implementation mapping")
-    if "GLAZE UI V1.0" not in platform_text:
-        fail("Platform Contract must name the current V1 product identity")
-    if "stable_eligible: false" not in platform_text:
-        fail("Platform Contract must preserve the production/Stable block")
+    platform_markers = (
+        'schema_version: "0.1"',
+        "  id: goreecloud-launcher",
+        '  glaze_ui:\n    status: partial\n    version: "1.0.0"',
+        "GLAZE UI V1.0",
+        "conformance:\n  status: nonconformant",
+        "glaze-ui==1.0.0",
+    )
+    for marker in platform_markers:
+        if marker not in platform_text:
+            fail(f"Platform Contract v0.1 is missing current V1 boundary `{marker}`")
+
+    for stale_platform_marker in (
+        'schema_version: "1.0"',
+        'required_version: "1.0.0"',
+        'implemented_version: "1.0.0"',
+        'required_version: "2.2.0"',
+        'implemented_version: "2.2.0"',
+        "stable_eligible: true",
+    ):
+        if stale_platform_marker in platform_text:
+            fail(f"Platform Contract retains superseded declaration `{stale_platform_marker}`")
 
     current_records = {
         "native metrics": metrics_text,
@@ -173,7 +187,7 @@ def main() -> None:
     print(
         "GLAZE UI V1.0 Launcher source contract passed: "
         f"target {TARGET_VERSION}, source {SOURCE_REVISION}, reset geometry/colors + "
-        "bounded Theme Manager composition + explicit production block validated; "
+        "bounded Theme Manager composition + Platform Contract v0.1 nonconformant boundary validated; "
         "rendered/accessibility/device/release acceptance remains separate."
     )
 
