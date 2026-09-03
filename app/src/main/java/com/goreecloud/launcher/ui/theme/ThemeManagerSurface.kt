@@ -37,10 +37,10 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Native Theme Manager presentation foundation for the currently implemented
- * System/Light/Dark appearance modes.
+ * System/Light/Dark appearance modes under GLAZE UI V1.0.
  *
  * This surface deliberately does not imply icon-pack discovery, icon masking,
- * Deep Dark, wallpaper palettes, expression controls, or full Glaze UI 2.2
+ * Deep Dark, wallpaper palettes, expression controls, or complete V1
  * application acceptance. Those remain separately gated capabilities.
  */
 @Composable
