@@ -128,7 +128,7 @@ def main() -> None:
         "Deep Dark is a required V1 appearance mode",
         "Historical evidence boundary",
         "Representative physical-device Theme Manager navigation/persistence",
-        "not a retired Glaze product version",
+        "Do not select a retired Glaze product version",
     ):
         if evidence not in adoption_text:
             fail(f"missing V1 adoption evidence `{evidence}`")
