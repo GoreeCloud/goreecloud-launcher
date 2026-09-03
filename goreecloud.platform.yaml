@@ -1,0 +1,182 @@
+schema_version: "1.0"
+component:
+  id: goreecloud.launcher
+  product_name: GoreeCloud Launcher
+  kind: application
+  repository: GoreeCloud/goreecloud-launcher
+  lifecycle: Development
+  version: "0.1.0-dev"
+  supported_platforms:
+    - android
+  user_facing: true
+api:
+  version: null
+  endpoints: []
+glaze_ui:
+  applicable: true
+  required_version: "2.2.0"
+  implemented_version: "2.2.0"
+  migration_status: in_progress
+  evidence:
+    - launcher-glaze-source
+    - launcher-glaze-validator
+    - launcher-glaze-doc
+    - launcher-ci-199
+platform_systems:
+  manager:
+    status: "Applicable — Nonconformant"
+    justification: Launcher is intended to participate in the unified GoreeCloud platform visibility model, but canonical Mesh registration and accepted Manager Platform Overview visibility are not established.
+    evidence:
+      - launcher-readme
+  identity:
+    status: "Applicable — Nonconformant"
+    justification: Core Launcher use is local and does not require an account, while approved cross-device and identity-aware capabilities remain separate work; accepted GoreeCloud Identity integration is not established.
+    evidence:
+      - launcher-readme
+  wardveil_security:
+    status: "Applicable — Nonconformant"
+    justification: Launcher enforces Android permission and authority boundaries, but current Wardveil Security integration and acceptance evidence are not established.
+    evidence:
+      - launcher-readme
+  privacy_shield:
+    status: "Applicable — Nonconformant"
+    justification: Launcher is local-first and CI enforces privacy-oriented source constraints, but current Privacy Shield integration and acceptance evidence are not established.
+    evidence:
+      - launcher-readme
+      - launcher-ci-199
+  everkeep:
+    status: "Applicable — Nonconformant"
+    justification: Versioned Launcher backup and restore plus authorized Everkeep continuity integration remain explicit Development gaps.
+    evidence:
+      - launcher-readme
+  mesh:
+    status: "Applicable — Nonconformant"
+    justification: Launcher is not yet registered through the canonical GoreeCloud Mesh platform registry and no accepted Mesh integration evidence is recorded here.
+    evidence:
+      - launcher-readme
+  glaze_ui:
+    status: "Applicable — Migration Required"
+    justification: Glaze UI 2.2.0 Stable geometry, theme, Theme Manager, and authority mappings are implemented as a repository-local Adoption Candidate, but complete native/rendered/accessibility/device/Human Visual Excellence/release acceptance remains outstanding.
+    evidence:
+      - launcher-glaze-source
+      - launcher-glaze-validator
+      - launcher-glaze-doc
+      - launcher-ci-199
+mesh:
+  registration: required
+  capabilities:
+    - android-home-presentation
+    - application-navigation
+    - launcher-personalization
+    - goreecloud-index-invocation
+  dependencies:
+    - goreecloud.index
+  published_events: []
+  consumed_events: []
+  evidence: []
+health:
+  liveness: []
+  readiness: []
+recovery:
+  backup_required: true
+  backup_status: required_missing
+  restore_required: true
+  restore_status: required_missing
+  last_verified_restore: null
+  recovery_dependencies:
+    - Room workspace and placement state
+    - DataStore launcher preferences
+    - theme and Home configuration
+    - Android package/profile-derived state reconstruction
+  documentation:
+    - README.md
+    - SPECIFICATIONS.md
+  evidence:
+    - launcher-readme
+data_portability:
+  export_capability: unknown
+  export_formats: []
+  last_export_validation: null
+  portability_requirements:
+    - define a versioned Launcher-owned export scope
+    - preserve workspace ordering and placement integrity
+    - preserve local-first privacy boundaries during export and restore
+    - validate clean-target import or deterministic reconstruction where applicable
+  evidence:
+    - launcher-readme
+external_dependencies:
+  - id: android-platform
+    purpose: Android HOME role, LauncherApps discovery, package/profile lifecycle, system wallpaper presentation, accessibility services, and application execution environment.
+    required: true
+    compatibility: Current source targets Android API 36 with minSdk 29; role, package-visibility, lifecycle, accessibility, and supported-device behavior require release acceptance.
+compatibility:
+  platform_releases: []
+  api_requirements:
+    - com.goreecloud.index.action.SEARCH for the current Development GoreeCloud Index handoff
+  schema_requirements:
+    - goreecloud.platform/1.0
+  component_requirements:
+    - Glaze UI 2.2.0
+    - GoreeCloud Index compatible invocation contract before search integration acceptance
+    - GoreeCloud Mesh platform registry v1 before platform visibility acceptance
+    - GoreeCloud Identity accepted integration for applicable identity-aware capabilities before Stable
+    - Privacy Shield, Wardveil Security, and Everkeep accepted integration before Stable
+conformance:
+  declared_state: migration_required
+  stable_eligible: false
+  checks:
+    - {id: glaze-ui, mandatory: true, status: pending, evidence: [launcher-glaze-source, launcher-glaze-validator, launcher-glaze-doc, launcher-ci-199], note: "Glaze UI 2.2 Adoption Candidate source and exact-head CI evidence exist; complete native/rendered/accessibility/device/HVE/release acceptance remains incomplete."}
+    - {id: goreecloud-identity, mandatory: true, status: pending, evidence: [launcher-readme]}
+    - {id: wardveil-security, mandatory: true, status: pending, evidence: [launcher-readme]}
+    - {id: privacy-shield, mandatory: true, status: pending, evidence: [launcher-readme, launcher-ci-199], note: "Privacy-oriented source validation is not Privacy Shield platform acceptance."}
+    - {id: everkeep-recovery, mandatory: true, status: pending, evidence: [launcher-readme]}
+    - {id: mesh-registration, mandatory: true, status: pending, evidence: []}
+    - {id: api-compatibility, mandatory: true, status: pending, evidence: [launcher-readme], note: "The Development Index handoff exists, but coordinated release-level API compatibility is not established."}
+    - {id: accessibility, mandatory: true, status: pending, evidence: [launcher-glaze-doc, launcher-ci-199], note: "Source semantics and automated checks exist; TalkBack, Switch Access, focus, large-text/reflow, adaptive, and representative-device acceptance remain outstanding."}
+    - {id: platform-acceptance, mandatory: true, status: pending, evidence: []}
+    - {id: backup, mandatory: true, status: pending, evidence: [launcher-readme]}
+    - {id: restore, mandatory: true, status: pending, evidence: [launcher-readme]}
+    - {id: export-portability, mandatory: true, status: pending, evidence: [launcher-readme]}
+    - {id: security-validation, mandatory: true, status: pending, evidence: [launcher-readme], note: "Android authority and permission controls do not establish Wardveil Security acceptance."}
+    - {id: privacy-validation, mandatory: true, status: pending, evidence: [launcher-readme, launcher-ci-199], note: "Repository privacy guards do not establish Privacy Shield acceptance."}
+    - {id: required-documentation, mandatory: true, status: pass, evidence: [launcher-readme, launcher-glaze-doc]}
+    - {id: required-tests, mandatory: true, status: pass, evidence: [launcher-ci-199], note: "Exact-head Android CI #199 passed repository governance checks, lint, unit tests, debug assembly, Room schema validation, and Android 16 Room runtime emulator tests."}
+    - {id: release-evidence, mandatory: true, status: pending, evidence: []}
+evidence:
+  acceptance:
+    - id: launcher-readme
+      kind: documentation
+      location: README.md
+      revision: null
+      observed_at: null
+      producer: GoreeCloud/goreecloud-launcher
+      description: Repository-local Development behavior, authority boundaries, privacy posture, platform-integration gaps, recovery gaps, and validation baseline. Documentation alone does not satisfy implementation or production gates.
+    - id: launcher-glaze-source
+      kind: source
+      location: app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
+      revision: null
+      observed_at: null
+      producer: GoreeCloud/goreecloud-launcher
+      description: Native Android mapping of the consumed Glaze UI 2.2 Stable geometry, interaction floors, source anchors, and ordinary System Glaze budget. Source mapping does not establish complete application acceptance.
+    - id: launcher-glaze-validator
+      kind: automated_test
+      location: scripts/check_glaze_ui.py
+      revision: null
+      observed_at: null
+      producer: GoreeCloud/goreecloud-launcher
+      description: Fail-closed repository contract for the bounded Glaze UI 2.2 Adoption Candidate mapping and explicit production block. Validator source is not itself a successful run.
+    - id: launcher-glaze-doc
+      kind: documentation
+      location: docs/glaze-ui-adoption.md
+      revision: null
+      observed_at: null
+      producer: GoreeCloud/goreecloud-launcher
+      description: Repository-local Glaze UI 2.2 adoption, System Shell classification, accessibility, authority, and outstanding acceptance record.
+    - id: launcher-ci-199
+      kind: automated_test
+      location: https://github.com/GoreeCloud/goreecloud-launcher/actions/runs/33670347744
+      revision: 4043895afd26991d0a20461e94d002f91c890703
+      observed_at: null
+      producer: GoreeCloud/goreecloud-launcher
+      description: Exact-head Android CI #199 passed repository privacy/manifest/Identity/Glaze/Room governance checks, Android lint, JVM unit tests, debug APK assembly, Room schema cleanliness, and Android 16 Room runtime emulator testing. It does not establish platform-system, physical-device, release, or production acceptance.
+  release: []
