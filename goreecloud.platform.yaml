@@ -14,14 +14,13 @@ api:
   endpoints: []
 glaze_ui:
   applicable: true
-  required_version: "2.2.0"
-  implemented_version: "2.2.0"
+  required_version: "1.0.0"
+  implemented_version: "1.0.0"
   migration_status: in_progress
   evidence:
     - launcher-glaze-source
     - launcher-glaze-validator
     - launcher-glaze-doc
-    - launcher-ci-201
 platform_systems:
   manager:
     status: "Applicable — Nonconformant"
@@ -62,12 +61,11 @@ platform_systems:
       - launcher-readme
   glaze_ui:
     status: "Applicable — Migration Required"
-    justification: Glaze UI 2.2.0 Stable geometry, theme, Theme Manager, and authority mappings are implemented as a repository-local Adoption Candidate, but complete native/rendered/accessibility/device/Human Visual Excellence/release acceptance remains outstanding.
+    justification: Repository-local GLAZE UI V1.0 geometry, Light/Dark foundation, Theme Manager, and authority mappings are implemented against exact canonical post-reset source revision 70909bbdccad378fb7281ae1842e2f5beed64c38, but exact-head CI plus complete native/rendered/accessibility/device/Human Visual Excellence/release acceptance remain outstanding.
     evidence:
       - launcher-glaze-source
       - launcher-glaze-validator
       - launcher-glaze-doc
-      - launcher-ci-201
 mesh:
   registration: required
   capabilities:
@@ -145,7 +143,7 @@ compatibility:
     - goreecloud-launcher-workspace-snapshot/1
     - goreecloud-launcher-preferences/1
   component_requirements:
-    - Glaze UI 2.2.0
+    - GLAZE UI V1.0 (1.0.0)
     - GoreeCloud Index compatible invocation contract before search integration acceptance
     - GoreeCloud Mesh platform registry v1 before platform visibility acceptance
     - GoreeCloud Identity accepted integration for applicable identity-aware capabilities before Stable
@@ -154,14 +152,14 @@ conformance:
   declared_state: migration_required
   stable_eligible: false
   checks:
-    - {id: glaze-ui, mandatory: true, status: pending, evidence: [launcher-glaze-source, launcher-glaze-validator, launcher-glaze-doc, launcher-ci-201], note: "Glaze UI 2.2 Adoption Candidate source and exact-head CI evidence exist; complete native/rendered/accessibility/device/HVE/release acceptance remains incomplete."}
+    - {id: glaze-ui, mandatory: true, status: pending, evidence: [launcher-glaze-source, launcher-glaze-validator, launcher-glaze-doc], note: "Repository-local GLAZE UI V1.0 source mapping exists against exact post-reset authority; exact-head CI and complete native/rendered/accessibility/device/HVE/release acceptance remain incomplete."}
     - {id: goreecloud-identity, mandatory: true, status: pending, evidence: [launcher-readme]}
     - {id: wardveil-security, mandatory: true, status: pending, evidence: [launcher-readme]}
     - {id: privacy-shield, mandatory: true, status: pending, evidence: [launcher-readme, launcher-ci-201, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-doc], note: "Pure local portability codecs and repository privacy validation are not Privacy Shield platform acceptance."}
     - {id: everkeep-recovery, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-source, launcher-preferences-snapshot-doc], note: "The workspace and preference snapshots are bounded Development serialization seams, not complete Launcher recovery or Everkeep integration."}
     - {id: mesh-registration, mandatory: true, status: pending, evidence: []}
     - {id: api-compatibility, mandatory: true, status: pending, evidence: [launcher-readme], note: "The Development Index handoff exists, but coordinated release-level API compatibility is not established."}
-    - {id: accessibility, mandatory: true, status: pending, evidence: [launcher-glaze-doc, launcher-ci-201], note: "Source semantics and automated checks exist; TalkBack, Switch Access, focus, large-text/reflow, adaptive, and representative-device acceptance remain outstanding."}
+    - {id: accessibility, mandatory: true, status: pending, evidence: [launcher-glaze-doc], note: "Source semantics and V1 geometry mapping exist; TalkBack, Switch Access, focus, large-text/reflow, adaptive, and representative-device acceptance remain outstanding."}
     - {id: platform-acceptance, mandatory: true, status: pending, evidence: []}
     - {id: backup, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-source, launcher-preferences-snapshot-doc], note: "The current codecs cover bounded workspace-placement and explicit-preference subsets while substantial Launcher state remains outside the backup scope."}
     - {id: restore, mandatory: true, status: pending, evidence: [launcher-readme, launcher-workspace-snapshot-source, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-source, launcher-preferences-snapshot-doc], note: "Decoding returns validated in-memory state only and cannot write Room/DataStore or rebind packages/profiles/widgets."}
@@ -169,7 +167,7 @@ conformance:
     - {id: security-validation, mandatory: true, status: pending, evidence: [launcher-readme], note: "Android authority and permission controls do not establish Wardveil Security acceptance."}
     - {id: privacy-validation, mandatory: true, status: pending, evidence: [launcher-readme, launcher-ci-201, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-doc], note: "The codecs do not gain discovery/network/persistence authority, but repository privacy guards do not establish Privacy Shield acceptance."}
     - {id: required-documentation, mandatory: true, status: pass, evidence: [launcher-readme, launcher-glaze-doc, launcher-workspace-snapshot-doc, launcher-preferences-snapshot-doc]}
-    - {id: required-tests, mandatory: true, status: pending, evidence: [launcher-ci-201, launcher-workspace-snapshot-tests, launcher-preferences-snapshot-tests], note: "Exact-head Android CI #201 passed the workspace-snapshot base at 5fb72cfab3fc3770e578c9ad3b79ba76d4dc0bcd; the new portable-preference codec requires exact-head Android CI before this checkpoint can claim its tests passed."}
+    - {id: required-tests, mandatory: true, status: pending, evidence: [launcher-ci-201, launcher-workspace-snapshot-tests, launcher-preferences-snapshot-tests], note: "Android CI #201 remains pre-reset repository evidence for the workspace-snapshot base. The portable-preference leaf plus this GLAZE UI V1.0 migration require fresh exact-head Android CI before current required-tests can pass."}
     - {id: release-evidence, mandatory: true, status: pending, evidence: []}
 evidence:
   acceptance:
@@ -186,28 +184,28 @@ evidence:
       revision: null
       observed_at: null
       producer: GoreeCloud/goreecloud-launcher
-      description: Native Android mapping of the consumed Glaze UI 2.2 Stable geometry, interaction floors, source anchors, and ordinary System Glaze budget. Source mapping does not establish complete application acceptance.
+      description: Native Android mapping of the consumed GLAZE UI V1.0 geometry and interaction floors pinned to exact canonical post-reset source revision 70909bbdccad378fb7281ae1842e2f5beed64c38. Source mapping does not establish complete application acceptance.
     - id: launcher-glaze-validator
       kind: automated_test
       location: scripts/check_glaze_ui.py
       revision: null
       observed_at: null
       producer: GoreeCloud/goreecloud-launcher
-      description: Fail-closed repository contract for the bounded Glaze UI 2.2 Adoption Candidate mapping and explicit production block. Validator source is not itself a successful run.
+      description: Fail-closed repository contract for the bounded GLAZE UI V1.0 mapping and explicit production block. Validator source is not itself a successful run.
     - id: launcher-glaze-doc
       kind: documentation
       location: docs/glaze-ui-adoption.md
       revision: null
       observed_at: null
       producer: GoreeCloud/goreecloud-launcher
-      description: Repository-local Glaze UI 2.2 adoption, System Shell classification, accessibility, authority, and outstanding acceptance record.
+      description: Repository-local GLAZE UI V1.0 source mapping, System Shell classification, accessibility, authority, historical-evidence boundary, and outstanding acceptance record.
     - id: launcher-ci-201
       kind: automated_test
       location: https://github.com/GoreeCloud/goreecloud-launcher/actions/runs/33710502911
       revision: 5fb72cfab3fc3770e578c9ad3b79ba76d4dc0bcd
       observed_at: null
       producer: GoreeCloud/goreecloud-launcher
-      description: Exact-head Android CI #201 passed the workspace portable snapshot base with repository privacy/manifest/Identity/Glaze/Room governance checks, Android lint, JVM unit tests, debug APK assembly, Room schema cleanliness, and Android 16 Room runtime emulator testing. It does not establish platform-system, physical-device, release, or production acceptance.
+      description: Pre-reset exact-head Android CI #201 passed the workspace portable snapshot base with repository privacy/manifest/Identity/then-current-Glaze/Room governance checks, Android lint, JVM unit tests, debug APK assembly, Room schema cleanliness, and Android 16 Room runtime emulator testing. It is historical Development evidence and does not establish GLAZE UI V1.0 acceptance.
     - id: launcher-workspace-snapshot-source
       kind: source
       location: app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspacePortableSnapshot.kt
