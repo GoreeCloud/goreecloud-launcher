@@ -10,43 +10,43 @@ import androidx.compose.ui.graphics.Color
 enum class GlazeThemeMode { SYSTEM, LIGHT, DARK }
 
 /**
- * Glaze UI 2.2 Stable Light/Dark foundation and identity mapping for the
- * Launcher surfaces currently in use. The 2.2 token contract preserves these
- * compatible foundation values while making System Shell hierarchy, material
- * budgets, component semantics, adaptive behavior, and accessibility resolution
- * part of the current application adoption contract.
+ * GLAZE UI V1.0 Light/Dark foundation mapping for the Launcher surfaces
+ * currently in use. Values are mapped from the exact post-reset V1 source
+ * revision recorded by [GlazeMetrics].
  *
- * Deep Dark remains an explicit application acceptance gap rather than being
- * approximated with an unreviewed palette. Signature/Intelligence components,
- * Material Clarity, and complete accessibility-resolution behavior are also
- * separately acceptance-gated for Launcher.
+ * Durable reading/settings surfaces remain solid while bounded interactive
+ * chrome may use the V1 panel/overlay equivalents. Deep Dark remains an
+ * explicit application acceptance and implementation gap rather than being
+ * approximated from a pre-reset palette. Complete Reduced Transparency,
+ * Increased Contrast, Forced Colors/native equivalents, and adaptive behavior
+ * remain separately acceptance-gated for Launcher.
  */
 private val light = lightColorScheme(
-    primary = Color(0xFF366CF6),
+    primary = Color(0xFF3478F6),
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0x2E366CF6),
-    onPrimaryContainer = Color(0xFF172033),
-    secondary = Color(0xFF7C5CFF),
-    background = Color(0xFFEEF3F9),
-    onBackground = Color(0xFF172033),
-    surface = Color(0xC2FFFFFF),
-    onSurface = Color(0xFF172033),
-    surfaceVariant = Color(0xDBF4F7FB),
-    onSurfaceVariant = Color(0xFF67748A),
+    primaryContainer = Color(0x1F3478F6),
+    onPrimaryContainer = Color(0xFF151A23),
+    secondary = Color(0xFF7657F6),
+    background = Color(0xFFF5F7FA),
+    onBackground = Color(0xFF151A23),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF151A23),
+    surfaceVariant = Color(0xE0FFFFFF),
+    onSurfaceVariant = Color(0xFF5D6675),
 )
 
 private val dark = darkColorScheme(
-    primary = Color(0xFF7AA2FF),
-    onPrimary = Color(0xFF0B1020),
-    primaryContainer = Color(0x3D7AA2FF),
-    onPrimaryContainer = Color(0xFFF3F6FB),
-    secondary = Color(0xFFA594FF),
-    background = Color(0xFF0D1119),
-    onBackground = Color(0xFFF3F6FB),
-    surface = Color(0xC719202D),
-    onSurface = Color(0xFFF3F6FB),
-    surfaceVariant = Color(0xDB1F2736),
-    onSurfaceVariant = Color(0xFFA1AEC0),
+    primary = Color(0xFF8DB5FF),
+    onPrimary = Color(0xFF0B0D11),
+    primaryContainer = Color(0x1F8DB5FF),
+    onPrimaryContainer = Color(0xFFF5F7FA),
+    secondary = Color(0xFFA990FF),
+    background = Color(0xFF0B0D11),
+    onBackground = Color(0xFFF5F7FA),
+    surface = Color(0xFF12151B),
+    onSurface = Color(0xFFF5F7FA),
+    surfaceVariant = Color(0xDB181D26),
+    onSurfaceVariant = Color(0xFFB0B7C3),
 )
 
 @Composable
