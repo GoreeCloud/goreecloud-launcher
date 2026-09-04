@@ -34,7 +34,7 @@ class LauncherPortableRestoreImportTest {
         showLabels = true,
         iconScale = 1.0f,
         layoutLocked = false,
-        indexHomeMode = GoreeCloudIndexHomeMode.STANDARD,
+        indexHomeMode = GoreeCloudIndexHomeMode.PERMANENT,
     )
 
     private data class Write(
