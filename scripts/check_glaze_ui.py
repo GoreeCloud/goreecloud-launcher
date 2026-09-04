@@ -14,6 +14,7 @@ PLATFORM = ROOT / "goreecloud.platform.yaml"
 
 TARGET_VERSION = "1.0.0"
 SOURCE_REVISION = "70909bbdccad378fb7281ae1842e2f5beed64c38"
+CURRENT_REQUIRED_VERSION = "1.1.0"
 
 EXPECTED_METRICS = {
     "space1": 4,
@@ -54,7 +55,7 @@ EXPECTED_THEME_MARKERS = [
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"GLAZE UI V1.0 Launcher contract failed: {message}")
+    raise SystemExit(f"GLAZE UI V1.0 source / Platform Contract v0.2 boundary failed: {message}")
 
 
 def read(path: Path, label: str) -> str:
@@ -146,19 +147,26 @@ def main() -> None:
             fail(f"Theme Manager Development evidence is not synchronized with V1: `{marker}`")
 
     platform_markers = (
-        'schema_version: "0.1"',
+        'schema_version: "0.2"',
         "  id: goreecloud-launcher",
-        '  glaze_ui:\n    status: partial\n    version: "1.0.0"',
-        "GLAZE UI V1.0",
+        '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.0.0"',
+        "current Stable GLAZE UI V1.1 / 1.1.0",
+        '  platform_contract: "0.2"',
+        f'  glaze_ui_required: "{CURRENT_REQUIRED_VERSION}"',
+        "goreecloud-platform-contract==0.2",
+        "glaze-ui==1.1.0",
         "conformance:\n  status: nonconformant",
-        "glaze-ui==1.0.0",
     )
     for marker in platform_markers:
         if marker not in platform_text:
-            fail(f"Platform Contract v0.1 is missing current V1 boundary `{marker}`")
+            fail(f"Platform Contract v0.2 is missing the V1 source / V1.1 required boundary `{marker}`")
 
     for stale_platform_marker in (
+        'schema_version: "0.1"',
         'schema_version: "1.0"',
+        '  glaze_ui:\n    status: partial',
+        "goreecloud-platform-contract>=0.1",
+        "glaze-ui==1.0.0",
         'required_version: "1.0.0"',
         'implemented_version: "1.0.0"',
         'required_version: "2.2.0"',
@@ -185,10 +193,9 @@ def main() -> None:
         fail("superseded 44 dp general target floor remains in active V1 mapping")
 
     print(
-        "GLAZE UI V1.0 Launcher source contract passed: "
-        f"target {TARGET_VERSION}, source {SOURCE_REVISION}, reset geometry/colors + "
-        "bounded Theme Manager composition + Platform Contract v0.1 nonconformant boundary validated; "
-        "rendered/accessibility/device/release acceptance remains separate."
+        "GLAZE UI V1.0 Launcher source mapping passed: "
+        f"source target {TARGET_VERSION}, source {SOURCE_REVISION}; Platform Contract v0.2 requires {CURRENT_REQUIRED_VERSION} "
+        "and remains migration-required/nonconformant; rendered/accessibility/device/release acceptance remains separate."
     )
 
 
