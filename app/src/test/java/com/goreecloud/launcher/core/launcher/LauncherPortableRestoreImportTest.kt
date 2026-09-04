@@ -54,7 +54,7 @@ class LauncherPortableRestoreImportTest {
     }
 
     @Test
-    fun twoValidSnapshotsProduceExactlyOneCombinedWrite() = runBlocking {
+    fun twoValidCompatibleSnapshotsProduceExactlyOneCombinedWrite() = runBlocking {
         val writer = RecordingWriter()
 
         val result = LauncherPortableRestoreImport.apply(
@@ -100,6 +100,24 @@ class LauncherPortableRestoreImportTest {
         assertTrue(result is LauncherPortableRestoreImport.ApplyResult.Rejected)
         val rejected = result as LauncherPortableRestoreImport.ApplyResult.Rejected
         assertEquals(LauncherPortableRestoreImport.RejectionSource.PREFERENCES, rejected.source)
+        assertTrue(writer.writes.isEmpty())
+    }
+
+    @Test
+    fun individuallyValidButIncompatibleHomeGridsPerformZeroCombinedWrites() = runBlocking {
+        val writer = RecordingWriter()
+        val incompatiblePreferences = preferences.copy(homeColumns = 5)
+
+        val result = LauncherPortableRestoreImport.apply(
+            workspaceEncoded = WorkspacePortableSnapshot.encode(workspace),
+            preferencesEncoded = LauncherPortablePreferences.encode(incompatiblePreferences),
+            writer = writer,
+        )
+
+        assertTrue(result is LauncherPortableRestoreImport.ApplyResult.Rejected)
+        val rejected = result as LauncherPortableRestoreImport.ApplyResult.Rejected
+        assertEquals(LauncherPortableRestoreImport.RejectionSource.COMPATIBILITY, rejected.source)
+        assertTrue(rejected.reason.contains("does not match portable Home grid"))
         assertTrue(writer.writes.isEmpty())
     }
 
