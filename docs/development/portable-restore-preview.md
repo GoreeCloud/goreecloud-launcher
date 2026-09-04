@@ -4,7 +4,9 @@ Status: Development source candidate.
 
 `LauncherPortableRestorePreview` is a read-only preflight for the two currently reviewed Launcher portability formats: the workspace placement snapshot and the seven-field Launcher preference snapshot.
 
-Both complete payloads must pass their existing strict decoders before a preview is returned. Invalid, tampered, expanded, unsupported, or noncanonical input is rejected with the same workspace/preferences source distinction used by the combined restore coordinator.
+Both complete payloads must pass their existing strict decoders and the same pair-level compatibility validation used by `LauncherPortableRestoreImport` before a preview is returned. Invalid, tampered, expanded, unsupported, noncanonical, or mutually incompatible input is rejected with a workspace/preferences/compatibility source distinction.
+
+For the current combined contract, the workspace grid columns and rows must exactly match the Home-grid columns and rows in the portable preference snapshot. This prevents a preview from presenting two individually valid payloads as restorable when they would create contradictory Home geometry.
 
 The preview exposes only:
 
@@ -16,4 +18,4 @@ It intentionally does not expose page IDs, item IDs, package names, Android prof
 
 The preview has no `LauncherPortableRestoreWriter`, Room, DataStore, package/profile discovery, widget, HOME-role, or persistence authority. A successful preview is therefore not a restore, backup, Everkeep recovery, migration, or proof that the target device can materialize every referenced application item.
 
-A later user-facing restore workflow must still establish explicit user confirmation, a concrete atomic writer, failure/rollback behavior, target-device compatibility, provenance/recovery lineage where required, and representative acceptance before product restore can be claimed.
+A later user-facing restore workflow must still establish explicit user confirmation, a concrete transactional writer, failure/rollback behavior, target-device compatibility, provenance/recovery lineage where required, and representative acceptance before product restore can be claimed.
