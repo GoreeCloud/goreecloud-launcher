@@ -48,14 +48,18 @@ platform_systems:
     notes: Versioned workspace-placement and explicit preference snapshots plus a validation-before-write combined restore seam exist, but no concrete transactional Room/DataStore writer, complete clean-target recovery, or accepted Everkeep integration exists.
   glaze_ui:
     result: applicable-migration-required
-    version: "1.0.0"
+    version: "1.1.0"
     evidence:
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeAtmosphere.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalog.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/ThemeManagerSurface.kt
+      - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeMetricsContractTest.kt
+      - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: Repository-local source targets historical GLAZE UI V1.0. Migration and application-specific acceptance against current Stable GLAZE UI V1.1 / 1.1.0 remain required.
+    notes: Repository-local Development source now explicitly targets current Stable GLAZE UI V1.1 / 1.1.0, including Deep Dark and bounded non-semantic atmosphere mapping, but complete rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain required.
   mesh:
     result: applicable-blocked
     version: null
@@ -132,7 +136,7 @@ conformance:
     - docs/development/launcher-portable-preferences.md
     - docs/development/portable-restore-coordinator.md
   blockers:
-    - GLAZE UI V1.1 / 1.1.0 migration and application-specific rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain outstanding.
+    - GLAZE UI V1.1 / 1.1.0 source mapping now exists, but complete application-specific rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain outstanding.
     - GoreeCloud Identity integration and acceptance are not established.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.

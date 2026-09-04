@@ -7,19 +7,17 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-enum class GlazeThemeMode { SYSTEM, LIGHT, DARK }
+enum class GlazeThemeMode { SYSTEM, LIGHT, DARK, DEEP_DARK }
 
 /**
- * GLAZE UI V1.0 Light/Dark foundation mapping for the Launcher surfaces
- * currently in use. Values are mapped from the exact post-reset V1 source
- * revision recorded by [GlazeMetrics].
+ * GLAZE UI V1.1 structural appearance mapping for the Launcher surfaces
+ * currently in use. V1.1 preserves the inherited V1 Light/Dark foundation and
+ * adds an explicit Deep Dark structural appearance.
  *
- * Durable reading/settings surfaces remain solid while bounded interactive
- * chrome may use the V1 panel/overlay equivalents. Deep Dark remains an
- * explicit application acceptance and implementation gap rather than being
- * approximated from a pre-reset palette. Complete Reduced Transparency,
- * Increased Contrast, Forced Colors/native equivalents, and adaptive behavior
- * remain separately acceptance-gated for Launcher.
+ * Deep Teal and Soft Amber are atmospheric presentation primitives rather than
+ * semantic state colors, so they remain outside this Material color-scheme
+ * authority. Protected semantics, focus, selection, accessibility resolution,
+ * and producer-owned state always take precedence over atmosphere.
  */
 private val light = lightColorScheme(
     primary = Color(0xFF3478F6),
@@ -49,12 +47,27 @@ private val dark = darkColorScheme(
     onSurfaceVariant = Color(0xFFB0B7C3),
 )
 
+private val deepDark = darkColorScheme(
+    primary = Color(0xFF8DB5FF),
+    onPrimary = Color(0xFF05070A),
+    primaryContainer = Color(0x1F8DB5FF),
+    onPrimaryContainer = Color(0xFFF5F7FA),
+    secondary = Color(0xFFA990FF),
+    background = Color(0xFF05070A),
+    onBackground = Color(0xFFF5F7FA),
+    surface = Color(0xFF0D1015),
+    onSurface = Color(0xFFF5F7FA),
+    surfaceVariant = Color(0xE612161D),
+    onSurfaceVariant = Color(0xFFABB4C2),
+)
+
 @Composable
 fun GlazeTheme(mode: GlazeThemeMode, content: @Composable () -> Unit) {
-    val useDark = when (mode) {
-        GlazeThemeMode.SYSTEM -> isSystemInDarkTheme()
-        GlazeThemeMode.LIGHT -> false
-        GlazeThemeMode.DARK -> true
+    val scheme = when (mode) {
+        GlazeThemeMode.SYSTEM -> if (isSystemInDarkTheme()) dark else light
+        GlazeThemeMode.LIGHT -> light
+        GlazeThemeMode.DARK -> dark
+        GlazeThemeMode.DEEP_DARK -> deepDark
     }
-    MaterialTheme(colorScheme = if (useDark) dark else light, content = content)
+    MaterialTheme(colorScheme = scheme, content = content)
 }

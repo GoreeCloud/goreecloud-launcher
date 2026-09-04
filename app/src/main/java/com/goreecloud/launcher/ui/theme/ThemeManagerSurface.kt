@@ -37,11 +37,11 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Native Theme Manager presentation foundation for the currently implemented
- * System/Light/Dark appearance modes under GLAZE UI V1.0.
+ * System/Light/Dark/Deep Dark appearance modes under GLAZE UI V1.1.
  *
  * This surface deliberately does not imply icon-pack discovery, icon masking,
- * Deep Dark, wallpaper palettes, expression controls, or complete V1
- * application acceptance. Those remain separately gated capabilities.
+ * wallpaper sampling, environmental color memory, expression controls, or
+ * complete V1.1 application acceptance. Those remain separately gated.
  */
 @Composable
 fun ThemeManagerSurface(
@@ -102,7 +102,7 @@ fun ThemeManagerSurface(
                 ) {
                     Text("Theme Manager foundation", fontWeight = FontWeight.SemiBold)
                     Text(
-                        "System, Light and Dark use the current native Glaze mapping. Icon packs, masking, Deep Dark, wallpaper-derived palettes and advanced expression controls remain separate Development work.",
+                        "System, Light, Dark and Deep Dark use the current V1.1 structural mapping. The preview includes only bounded non-semantic atmosphere. Icon packs, masking, wallpaper-derived palettes, environmental sampling and advanced expression controls remain separate Development work.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -167,15 +167,15 @@ private fun ThemeChoiceCard(
                         Column(Modifier.weight(1f)) {
                             Text("GoreeCloud", fontWeight = FontWeight.SemiBold)
                             Text(
-                                "Canvas, surface and identity preview",
+                                "Structural appearance with restrained V1.1 atmosphere",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Surface(
                             modifier = Modifier.size(24.dp),
-                            shape = RoundedCornerShape(GlazeMetrics.radiusSmall),
-                            color = MaterialTheme.colorScheme.secondary,
+                            shape = RoundedCornerShape(GlazeMetrics.opticalMicro),
+                            color = GlazeAtmosphere.softAmber,
                             content = {},
                         )
                     }
