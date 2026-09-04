@@ -1,4 +1,4 @@
-schema_version: "0.1"
+schema_version: "0.2"
 
 component:
   type: application
@@ -18,36 +18,36 @@ api:
 
 platform_systems:
   manager:
-    status: planned
+    result: applicable-blocked
     version: null
     evidence:
       - README.md
-    notes: Launcher is intended to participate in unified GoreeCloud platform visibility, but canonical Mesh registration and accepted Manager platform visibility are not established.
+    notes: Canonical Mesh registration and accepted GoreeCloud Manager platform visibility are not established for Launcher.
   privacy_shield:
-    status: planned
+    result: applicable-blocked
     version: null
     evidence:
       - README.md
       - docs/development/workspace-portable-snapshot.md
       - docs/development/launcher-portable-preferences.md
       - docs/development/portable-restore-coordinator.md
-    notes: Launcher is local-first and its current portable codecs remain bounded. The combined restore coordinator validates both current formats before one persistence call and gains no package/profile/widget discovery authority, but accepted Privacy Shield integration and production privacy validation are not established.
+    notes: Launcher is local-first and the current portable codecs remain bounded, but accepted Privacy Shield integration and production privacy validation are not established.
   wardveil_security:
-    status: planned
+    result: applicable-blocked
     version: null
     evidence:
       - README.md
     notes: Launcher preserves Android permission and authority boundaries, but accepted Wardveil Security integration and validation are not established.
   everkeep:
-    status: planned
+    result: applicable-blocked
     version: null
     evidence:
       - docs/development/workspace-portable-snapshot.md
       - docs/development/launcher-portable-preferences.md
       - docs/development/portable-restore-coordinator.md
-    notes: Versioned workspace-placement and explicit Launcher-preference snapshots plus a validation-before-write combined restore seam exist as bounded Development portability foundations, but no concrete transactional Room/DataStore writer, complete backup/restore, clean-target reconstruction, or accepted Everkeep integration exists.
+    notes: Versioned workspace-placement and explicit preference snapshots plus a validation-before-write combined restore seam exist, but no concrete transactional Room/DataStore writer, complete clean-target recovery, or accepted Everkeep integration exists.
   glaze_ui:
-    status: partial
+    result: applicable-migration-required
     version: "1.0.0"
     evidence:
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
@@ -55,9 +55,9 @@ platform_systems:
       - app/src/main/java/com/goreecloud/launcher/ui/theme/ThemeManagerSurface.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: Repository-local GLAZE UI V1.0 geometry, Light/Dark foundation, Theme Manager, and authority mapping are implemented against exact canonical post-reset source revision 70909bbdccad378fb7281ae1842e2f5beed64c38. Exact-head V1 validation passed on the parent source line, but Deep Dark, complete rendered/accessibility/device/Human Visual Excellence, release, and production acceptance remain incomplete.
+    notes: Repository-local source targets historical GLAZE UI V1.0. Migration and application-specific acceptance against current Stable GLAZE UI V1.1 / 1.1.0 remain required.
   mesh:
-    status: planned
+    result: applicable-blocked
     version: null
     evidence: []
     notes: Canonical GoreeCloud Mesh registration, capability publication, producer evidence, and runtime acceptance are not established for Launcher.
@@ -66,11 +66,11 @@ platform_systems:
     published_events: []
     consumed_events: []
   identity:
-    status: planned
+    result: applicable-blocked
     version: null
     evidence:
       - README.md
-    notes: Core Launcher use is local and does not require a GoreeCloud account. Accepted GoreeCloud Identity integration for any future identity-aware or synchronized capabilities is not established.
+    notes: Core Launcher use is local and does not require an account, but accepted GoreeCloud Identity integration for future identity-aware or synchronized capabilities is not established.
 
 health:
   health_endpoint: null
@@ -86,7 +86,7 @@ continuity:
     required: true
     requirements:
       - Preserve validation of both current portable formats before the combined LauncherPortableRestoreWriter receives one complete persistence call.
-      - Implement a concrete authorized transactional Room/DataStore writer with rollback/failure semantics before the combined seam can be treated as persistence-backed recovery.
+      - Implement a concrete authorized transactional Room/DataStore writer with rollback and failure semantics before the combined seam can be treated as persistence-backed recovery.
       - Define clean-target Android package, profile, folder, dock, widget, and provider rebinding or deterministic reconstruction behavior before restore is claimed.
   export:
     required: true
@@ -103,15 +103,22 @@ external_dependencies:
   - name: Android platform
     purpose: Android HOME role, LauncherApps discovery, package/profile lifecycle, wallpaper presentation, accessibility services, and application execution environment.
     required: true
+    version_constraint: ">=29"
 
 compatibility:
+  platform_contract: "0.2"
+  glaze_ui_required: "1.1.0"
   requires:
-    - goreecloud-platform-contract>=0.1
-    - glaze-ui==1.0.0
+    - goreecloud-platform-contract==0.2
+    - glaze-ui==1.1.0
     - android-api>=29
   provides:
     - goreecloud-launcher-workspace-snapshot/1
     - goreecloud-launcher-preferences/1
+
+evidence:
+  acceptance_tests: []
+  release: []
 
 conformance:
   status: nonconformant
@@ -121,20 +128,16 @@ conformance:
     - SPECIFICATIONS.md
     - docs/glaze-ui-adoption.md
     - scripts/check_glaze_ui.py
-    - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
-    - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
     - docs/development/workspace-portable-snapshot.md
     - docs/development/launcher-portable-preferences.md
-    - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreImport.kt
     - docs/development/portable-restore-coordinator.md
   blockers:
-    - GLAZE UI V1.0 application acceptance is incomplete; Deep Dark, complete component/state mapping, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain outstanding.
+    - GLAZE UI V1.1 / 1.1.0 migration and application-specific rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain outstanding.
     - GoreeCloud Identity integration and acceptance are not established.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.
     - Everkeep integration plus complete Launcher backup and clean-target restore acceptance are incomplete; the combined restore seam has no concrete transactional Room/DataStore writer yet.
     - GoreeCloud Mesh registration, capability publication, and runtime acceptance are not established.
     - Manager platform visibility and administrative integration acceptance are not established.
-    - Product-wide export/import scope remains incomplete beyond the bounded workspace-placement and explicit-preference formats.
+    - Product-wide export and import scope remains incomplete beyond the bounded workspace-placement and explicit-preference formats.
     - Production signing, distribution, deployment, release approval, and Stable qualification remain outstanding.
-    - Platform Contract adoption and Android CI do not by themselves authorize production or Stable qualification.
