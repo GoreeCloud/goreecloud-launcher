@@ -31,13 +31,15 @@ platform_systems:
       - docs/development/workspace-portable-snapshot.md
       - docs/development/launcher-portable-preferences.md
       - docs/development/portable-restore-coordinator.md
-    notes: Launcher is local-first and the current portable codecs remain bounded, but accepted Privacy Shield integration and production privacy validation are not established.
+      - docs/development/portable-restore-preview.md
+    notes: Launcher is local-first and the current portable codecs and read-only aggregate preview remain bounded, but accepted Privacy Shield integration and production privacy validation are not established.
   wardveil_security:
     result: applicable-blocked
     version: null
     evidence:
       - README.md
-    notes: Launcher preserves Android permission and authority boundaries, but accepted Wardveil Security integration and validation are not established.
+      - docs/development/portable-restore-preview.md
+    notes: Launcher preserves Android permission and authority boundaries, and restore preview performs no persistence or package/profile lookup, but accepted Wardveil Security integration and validation are not established.
   everkeep:
     result: applicable-blocked
     version: null
@@ -45,7 +47,8 @@ platform_systems:
       - docs/development/workspace-portable-snapshot.md
       - docs/development/launcher-portable-preferences.md
       - docs/development/portable-restore-coordinator.md
-    notes: Versioned workspace-placement and explicit preference snapshots plus a validation-before-write combined restore seam exist, but no concrete transactional Room/DataStore writer, complete clean-target recovery, or accepted Everkeep integration exists.
+      - docs/development/portable-restore-preview.md
+    notes: Versioned workspace-placement and explicit preference snapshots, a validation-before-write combined restore seam, and a read-only aggregate preview exist, but no concrete transactional Room/DataStore writer, complete clean-target recovery, or accepted Everkeep integration exists.
   glaze_ui:
     result: applicable-migration-required
     version: "1.1.0"
@@ -89,7 +92,8 @@ continuity:
   restore:
     required: true
     requirements:
-      - Preserve validation of both current portable formats before the combined LauncherPortableRestoreWriter receives one complete persistence call.
+      - Preserve validation of both current portable formats before either read-only preview or the combined LauncherPortableRestoreWriter path proceeds.
+      - Keep preview output limited to aggregate workspace geometry/counts plus the seven reviewed preference values, without page/item identities, package/profile state, widget bindings, or persistence authority.
       - Implement a concrete authorized transactional Room/DataStore writer with rollback and failure semantics before the combined seam can be treated as persistence-backed recovery.
       - Define clean-target Android package, profile, folder, dock, widget, and provider rebinding or deterministic reconstruction behavior before restore is claimed.
   export:
@@ -101,6 +105,7 @@ continuity:
     required: true
     requirements:
       - Preserve workspace ordering, placement integrity, and the explicit Launcher preference values represented by the current versioned codecs.
+      - Keep read-only preflight separate from restore persistence authority.
       - Validate complete product scope, clean-target import or deterministic reconstruction, and conflict behavior before product-wide portability is claimed.
 
 external_dependencies:
@@ -135,12 +140,13 @@ conformance:
     - docs/development/workspace-portable-snapshot.md
     - docs/development/launcher-portable-preferences.md
     - docs/development/portable-restore-coordinator.md
+    - docs/development/portable-restore-preview.md
   blockers:
     - GLAZE UI V1.1 / 1.1.0 source mapping now exists, but complete application-specific rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain outstanding.
     - GoreeCloud Identity integration and acceptance are not established.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.
-    - Everkeep integration plus complete Launcher backup and clean-target restore acceptance are incomplete; the combined restore seam has no concrete transactional Room/DataStore writer yet.
+    - Everkeep integration plus complete Launcher backup and clean-target restore acceptance are incomplete; the combined restore seam has no concrete transactional Room/DataStore writer yet and the preview is read-only only.
     - GoreeCloud Mesh registration, capability publication, and runtime acceptance are not established.
     - Manager platform visibility and administrative integration acceptance are not established.
     - Product-wide export and import scope remains incomplete beyond the bounded workspace-placement and explicit-preference formats.
