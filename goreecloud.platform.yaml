@@ -30,7 +30,8 @@ platform_systems:
       - README.md
       - docs/development/workspace-portable-snapshot.md
       - docs/development/launcher-portable-preferences.md
-    notes: Launcher is local-first and its current portable codecs are pure in-memory transformations with no discovery, network, or persistence authority, but accepted Privacy Shield integration and production privacy validation are not established.
+      - docs/development/portable-restore-coordinator.md
+    notes: Launcher is local-first and its current portable codecs remain bounded. The combined restore coordinator validates both current formats before one persistence call and gains no package/profile/widget discovery authority, but accepted Privacy Shield integration and production privacy validation are not established.
   wardveil_security:
     status: planned
     version: null
@@ -43,7 +44,8 @@ platform_systems:
     evidence:
       - docs/development/workspace-portable-snapshot.md
       - docs/development/launcher-portable-preferences.md
-    notes: Versioned workspace-placement and explicit Launcher-preference snapshots exist as bounded Development portability foundations, but complete backup, restore, clean-target reconstruction, and accepted Everkeep integration remain incomplete.
+      - docs/development/portable-restore-coordinator.md
+    notes: Versioned workspace-placement and explicit Launcher-preference snapshots plus a validation-before-write combined restore seam exist as bounded Development portability foundations, but no concrete transactional Room/DataStore writer, complete backup/restore, clean-target reconstruction, or accepted Everkeep integration exists.
   glaze_ui:
     status: partial
     version: "1.0.0"
@@ -53,7 +55,7 @@ platform_systems:
       - app/src/main/java/com/goreecloud/launcher/ui/theme/ThemeManagerSurface.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: Repository-local GLAZE UI V1.0 geometry, Light/Dark foundation, Theme Manager, and authority mapping are implemented against exact canonical post-reset source revision 70909bbdccad378fb7281ae1842e2f5beed64c38. Android CI #206 passed the repaired V1 source line, but Deep Dark, complete rendered/accessibility/device/Human Visual Excellence, release, and production acceptance remain incomplete.
+    notes: Repository-local GLAZE UI V1.0 geometry, Light/Dark foundation, Theme Manager, and authority mapping are implemented against exact canonical post-reset source revision 70909bbdccad378fb7281ae1842e2f5beed64c38. Exact-head V1 validation passed on the parent source line, but Deep Dark, complete rendered/accessibility/device/Human Visual Excellence, release, and production acceptance remain incomplete.
   mesh:
     status: planned
     version: null
@@ -83,7 +85,8 @@ continuity:
   restore:
     required: true
     requirements:
-      - Implement an authorized transactional restore coordinator for approved Room and DataStore state.
+      - Preserve validation of both current portable formats before the combined LauncherPortableRestoreWriter receives one complete persistence call.
+      - Implement a concrete authorized transactional Room/DataStore writer with rollback/failure semantics before the combined seam can be treated as persistence-backed recovery.
       - Define clean-target Android package, profile, folder, dock, widget, and provider rebinding or deterministic reconstruction behavior before restore is claimed.
   export:
     required: true
@@ -122,12 +125,14 @@ conformance:
     - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
     - docs/development/workspace-portable-snapshot.md
     - docs/development/launcher-portable-preferences.md
+    - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreImport.kt
+    - docs/development/portable-restore-coordinator.md
   blockers:
     - GLAZE UI V1.0 application acceptance is incomplete; Deep Dark, complete component/state mapping, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain outstanding.
     - GoreeCloud Identity integration and acceptance are not established.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.
-    - Everkeep integration plus complete Launcher backup and clean-target restore acceptance are incomplete.
+    - Everkeep integration plus complete Launcher backup and clean-target restore acceptance are incomplete; the combined restore seam has no concrete transactional Room/DataStore writer yet.
     - GoreeCloud Mesh registration, capability publication, and runtime acceptance are not established.
     - Manager platform visibility and administrative integration acceptance are not established.
     - Product-wide export/import scope remains incomplete beyond the bounded workspace-placement and explicit-preference formats.
