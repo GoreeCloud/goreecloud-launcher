@@ -29,7 +29,8 @@ class GlazeThemeRepository(private val context: Context) {
         val next = when (current) {
             GlazeThemeMode.SYSTEM -> GlazeThemeMode.LIGHT
             GlazeThemeMode.LIGHT -> GlazeThemeMode.DARK
-            GlazeThemeMode.DARK -> GlazeThemeMode.SYSTEM
+            GlazeThemeMode.DARK -> GlazeThemeMode.DEEP_DARK
+            GlazeThemeMode.DEEP_DARK -> GlazeThemeMode.SYSTEM
         }
         setMode(next)
     }
