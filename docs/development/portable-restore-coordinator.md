@@ -9,16 +9,23 @@ Status: **Development source boundary only**
 - `goreecloud-launcher-workspace-snapshot/1`
 - `goreecloud-launcher-preferences/1`
 
-The coordinator decodes and validates both complete inputs before it grants any persistence call. A writer receives the validated workspace snapshot and the validated seven-field preference record together through one `replacePortableState(...)` call.
+The coordinator decodes and validates both complete inputs, then validates their shared Home-grid contract before it grants any persistence call. A writer receives the validated workspace snapshot and the validated seven-field preference record together through one `replacePortableState(...)` call.
 
 This is intended to let a future concrete Room/DataStore adapter provide a real transaction boundary without giving the codec or coordinator broader Android authority.
+
+## Pair compatibility
+
+The workspace format is deliberately framework-independent and permits a broader bounded grid domain than the current Launcher preference format. Two payloads can therefore be individually valid while still describing contradictory Launcher state.
+
+For a combined restore, the workspace grid columns and rows must exactly match the portable Home-grid columns and rows in the preference snapshot. A mismatch is rejected as `COMPATIBILITY` before any writer call. The same validation path is reused by the read-only restore preview so preview and apply cannot disagree about whether a pair is acceptable.
 
 ## Fail-closed behavior
 
 The combined writer is not invoked when:
 
-- the workspace snapshot is malformed, tampered, oversized, expanded, unsupported, or fails grid/page/placement validation; or
-- the preference snapshot is malformed, tampered, expanded, unsupported, or contains an out-of-range value.
+- the workspace snapshot is malformed, tampered, oversized, expanded, unsupported, or fails grid/page/placement validation;
+- the preference snapshot is malformed, tampered, expanded, unsupported, or contains an out-of-range value; or
+- both snapshots are individually valid but their Home-grid dimensions disagree.
 
 A persistence exception is allowed to propagate. The coordinator therefore cannot label a failed storage commit as an applied restore.
 
@@ -41,4 +48,4 @@ The current workspace format remains framework-independent placement state, and 
 
 ## Recovery status
 
-The combined one-call seam is stronger than two independent writes, but it is still not product recovery. A later recovery implementation must define the complete approved Launcher-owned state inventory, concrete transactional persistence, clean-target behavior, package/profile/widget rebinding policy, rollback after persistence failure, provenance, user control, Privacy Shield review, Everkeep integration, representative-device acceptance, and production recovery evidence.
+Pair-level compatibility validation closes one contradiction path before persistence, but the combined one-call seam is still not product recovery. A later recovery implementation must define the complete approved Launcher-owned state inventory, concrete transactional persistence, clean-target behavior, package/profile/widget rebinding policy, rollback after persistence failure, provenance, user control, Privacy Shield review, Everkeep integration, representative-device acceptance, and production recovery evidence.
