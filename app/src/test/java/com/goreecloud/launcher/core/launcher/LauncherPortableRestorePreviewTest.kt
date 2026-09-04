@@ -10,9 +10,9 @@ import org.junit.Test
 
 class LauncherPortableRestorePreviewTest {
     @Test
-    fun validSnapshotsReturnAggregateWorkspaceAndReviewedPreferences() {
+    fun validCompatibleSnapshotsReturnAggregateWorkspaceAndReviewedPreferences() {
         val workspace = WorkspacePortableSnapshot.Snapshot(
-            grid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5),
+            grid = WorkspaceGridPlacement.Grid(columns = 5, rows = 6),
             pages = listOf(
                 WorkspacePagedPlacement.Page(
                     pageId = "page-a",
@@ -48,8 +48,8 @@ class LauncherPortableRestorePreviewTest {
 
         assertTrue(result is LauncherPortableRestorePreview.Result.Ready)
         val summary = (result as LauncherPortableRestorePreview.Result.Ready).summary
-        assertEquals(4, summary.gridColumns)
-        assertEquals(5, summary.gridRows)
+        assertEquals(5, summary.gridColumns)
+        assertEquals(6, summary.gridRows)
         assertEquals(2, summary.pageCount)
         assertEquals(3, summary.itemCount)
         assertEquals(5, summary.homeColumns)
@@ -92,6 +92,24 @@ class LauncherPortableRestorePreviewTest {
             LauncherPortableRestoreImport.RejectionSource.PREFERENCES,
             (result as LauncherPortableRestorePreview.Result.Rejected).source,
         )
+    }
+
+    @Test
+    fun individuallyValidButMismatchedHomeGridsAreRejectedBeforePreview() {
+        val workspace = WorkspacePortableSnapshot.Snapshot(
+            grid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5),
+            pages = listOf(WorkspacePagedPlacement.Page("page-a", 0, emptyList())),
+        )
+        val preferences = LauncherPreferences(homeColumns = 5, homeRows = 5)
+
+        val result = LauncherPortableRestorePreview.inspect(
+            WorkspacePortableSnapshot.encode(workspace),
+            LauncherPortablePreferences.encode(preferences),
+        )
+
+        assertTrue(result is LauncherPortableRestorePreview.Result.Rejected)
+        val rejected = result as LauncherPortableRestorePreview.Result.Rejected
+        assertEquals(LauncherPortableRestoreImport.RejectionSource.COMPATIBILITY, rejected.source)
     }
 
     @Test
