@@ -68,7 +68,7 @@ platform_systems:
       - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: Repository-local Development source explicitly targets current Stable GLAZE UI V1.1 / 1.1.0, including Deep Dark and bounded non-semantic atmosphere mapping, but complete rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain required.
+    notes: Repository-local Development source now explicitly targets current Stable GLAZE UI V1.1 / 1.1.0, including Deep Dark and bounded non-semantic atmosphere mapping, but complete rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain required.
   mesh:
     result: applicable-blocked
     version: null
@@ -137,8 +137,7 @@ compatibility:
     - goreecloud-launcher-preferences/1
 
 evidence:
-  acceptance_tests:
-    - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
+  acceptance_tests: []
   release: []
 
 conformance:
