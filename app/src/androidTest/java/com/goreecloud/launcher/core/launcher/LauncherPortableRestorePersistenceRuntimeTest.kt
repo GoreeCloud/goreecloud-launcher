@@ -47,10 +47,12 @@ class LauncherPortableRestorePersistenceRuntimeTest {
     }
 
     @After
-    fun tearDown() = runBlocking {
-        preferencesRepository.replacePortablePreferences(originalPreferences)
-        database.close()
-        context.deleteDatabase(DATABASE_NAME)
+    fun tearDown() {
+        runBlocking {
+            preferencesRepository.replacePortablePreferences(originalPreferences)
+            database.close()
+            context.deleteDatabase(DATABASE_NAME)
+        }
     }
 
     @Test
