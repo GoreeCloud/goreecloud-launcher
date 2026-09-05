@@ -5,14 +5,15 @@ import com.goreecloud.launcher.core.workspace.WorkspacePagedPlacement
 import com.goreecloud.launcher.core.workspace.WorkspacePortableSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LauncherPortableRestorePreviewTest {
     @Test
-    fun validSnapshotsReturnAggregateWorkspaceAndReviewedPreferences() {
+    fun validCompatibleSnapshotsReturnAggregateWorkspaceAndReviewedPreferences() {
         val workspace = WorkspacePortableSnapshot.Snapshot(
-            grid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5),
+            grid = WorkspaceGridPlacement.Grid(columns = 5, rows = 6),
             pages = listOf(
                 WorkspacePagedPlacement.Page(
                     pageId = "page-a",
@@ -47,9 +48,10 @@ class LauncherPortableRestorePreviewTest {
         )
 
         assertTrue(result is LauncherPortableRestorePreview.Result.Ready)
-        val summary = (result as LauncherPortableRestorePreview.Result.Ready).summary
-        assertEquals(4, summary.gridColumns)
-        assertEquals(5, summary.gridRows)
+        val ready = result as LauncherPortableRestorePreview.Result.Ready
+        val summary = ready.summary
+        assertEquals(5, summary.gridColumns)
+        assertEquals(6, summary.gridRows)
         assertEquals(2, summary.pageCount)
         assertEquals(3, summary.itemCount)
         assertEquals(5, summary.homeColumns)
@@ -59,6 +61,28 @@ class LauncherPortableRestorePreviewTest {
         assertEquals(1.1f, summary.iconScale)
         assertTrue(summary.layoutLocked)
         assertEquals(GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY, summary.indexHomeMode)
+        assertTrue(ready.reviewToken.matches(Regex("[0-9a-f]{64}")))
+    }
+
+    @Test
+    fun reviewTokenChangesWhenAReviewedValidPreferenceChanges() {
+        val workspace = WorkspacePortableSnapshot.Snapshot(
+            grid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5),
+            pages = listOf(WorkspacePagedPlacement.Page("page-a", 0, emptyList())),
+        )
+        val workspaceEncoded = WorkspacePortableSnapshot.encode(workspace)
+        val first = LauncherPortableRestorePreview.inspect(
+            workspaceEncoded,
+            LauncherPortablePreferences.encode(LauncherPreferences(homeColumns = 4, homeRows = 5)),
+        ) as LauncherPortableRestorePreview.Result.Ready
+        val second = LauncherPortableRestorePreview.inspect(
+            workspaceEncoded,
+            LauncherPortablePreferences.encode(
+                LauncherPreferences(homeColumns = 4, homeRows = 5, drawerColumns = 6),
+            ),
+        ) as LauncherPortableRestorePreview.Result.Ready
+
+        assertNotEquals(first.reviewToken, second.reviewToken)
     }
 
     @Test
@@ -92,6 +116,24 @@ class LauncherPortableRestorePreviewTest {
             LauncherPortableRestoreImport.RejectionSource.PREFERENCES,
             (result as LauncherPortableRestorePreview.Result.Rejected).source,
         )
+    }
+
+    @Test
+    fun individuallyValidButMismatchedHomeGridsAreRejectedBeforePreview() {
+        val workspace = WorkspacePortableSnapshot.Snapshot(
+            grid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5),
+            pages = listOf(WorkspacePagedPlacement.Page("page-a", 0, emptyList())),
+        )
+        val preferences = LauncherPreferences(homeColumns = 5, homeRows = 5)
+
+        val result = LauncherPortableRestorePreview.inspect(
+            WorkspacePortableSnapshot.encode(workspace),
+            LauncherPortablePreferences.encode(preferences),
+        )
+
+        assertTrue(result is LauncherPortableRestorePreview.Result.Rejected)
+        val rejected = result as LauncherPortableRestorePreview.Result.Rejected
+        assertEquals(LauncherPortableRestoreImport.RejectionSource.COMPATIBILITY, rejected.source)
     }
 
     @Test
