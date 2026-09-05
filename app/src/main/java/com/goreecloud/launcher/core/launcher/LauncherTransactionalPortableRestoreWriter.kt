@@ -27,8 +27,16 @@ class LauncherTransactionalPortableRestoreWriter(
         workspace: WorkspacePortableSnapshot.Snapshot,
         preferences: LauncherPreferences,
     ) {
-        // Validate the complete preference value before any Room state is changed.
+        // Defend the concrete persistence seam as well as the higher-level import coordinator.
+        WorkspacePortableSnapshot.encode(workspace)
         LauncherPortablePreferences.encode(preferences)
+        check(
+            workspace.grid.columns == preferences.homeColumns &&
+                workspace.grid.rows == preferences.homeRows
+        ) {
+            "portable workspace grid must match the portable Home-grid preferences"
+        }
+
         val previousPreferences = preferencesRepository.readPortablePreferences()
         val roomCommit = workspaceDao.replacePortableHomePlacements(workspace)
 
