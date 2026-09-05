@@ -32,24 +32,29 @@ platform_systems:
       - docs/development/launcher-portable-preferences.md
       - docs/development/portable-restore-coordinator.md
       - docs/development/portable-restore-preview.md
-    notes: Launcher is local-first and the current portable codecs, pair-compatibility validation, and read-only aggregate preview remain bounded, but accepted Privacy Shield integration and production privacy validation are not established.
+    notes: Launcher is local-first and the current portable codecs, pair-compatibility validation, reviewed-apply guard, and bounded persistence path remain privacy-minimized, but accepted Privacy Shield integration and production privacy validation are not established.
   wardveil_security:
     result: applicable-blocked
     version: null
     evidence:
       - README.md
+      - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherTransactionalPortableRestoreWriter.kt
+      - app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
       - docs/development/portable-restore-coordinator.md
       - docs/development/portable-restore-preview.md
-    notes: Launcher preserves Android permission and authority boundaries; restore validation now fails closed before persistence when the two reviewed payloads disagree on Home geometry, but accepted Wardveil Security integration and validation are not established.
+    notes: Launcher restore validation fails closed on incompatible payloads and unsupported target identity state, and guarded rollback refuses to overwrite concurrent changes, but accepted Wardveil Security integration and validation are not established.
   everkeep:
     result: applicable-blocked
     version: null
     evidence:
+      - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherTransactionalPortableRestoreWriter.kt
+      - app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
+      - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
       - docs/development/workspace-portable-snapshot.md
       - docs/development/launcher-portable-preferences.md
       - docs/development/portable-restore-coordinator.md
       - docs/development/portable-restore-preview.md
-    notes: Versioned workspace-placement and explicit preference snapshots, validation-before-write with pair-level Home-grid compatibility, and a read-only aggregate preview exist, but no concrete transactional Room/DataStore writer, complete clean-target recovery, or accepted Everkeep integration exists.
+    notes: Versioned workspace-placement and explicit preference snapshots now have validation-before-write, pair-level Home-grid compatibility, a reviewed-apply guard, a concrete Room/DataStore Development writer, readback verification, guarded compensation, and emulator coverage. Complete clean-target reconstruction, crash/interruption recovery, full Launcher-owned recovery scope, and accepted Everkeep integration remain incomplete.
   glaze_ui:
     result: applicable-migration-required
     version: "1.1.0"
@@ -63,7 +68,7 @@ platform_systems:
       - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: Repository-local Development source now explicitly targets current Stable GLAZE UI V1.1 / 1.1.0, including Deep Dark and bounded non-semantic atmosphere mapping, but complete rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain required.
+    notes: Repository-local Development source explicitly targets current Stable GLAZE UI V1.1 / 1.1.0, including Deep Dark and bounded non-semantic atmosphere mapping, but complete rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain required.
   mesh:
     result: applicable-blocked
     version: null
@@ -95,9 +100,11 @@ continuity:
     requirements:
       - Preserve strict validation of both current portable formats before either read-only preview or the combined LauncherPortableRestoreWriter path proceeds.
       - Reject a combined pair before preview or persistence when workspace grid columns/rows do not exactly match the portable Home-grid preference columns/rows.
-      - Keep preview output limited to aggregate workspace geometry/counts plus the seven reviewed preference values, without page/item identities, package/profile state, widget bindings, or persistence authority.
-      - Implement a concrete authorized transactional Room/DataStore writer with rollback and failure semantics before the combined seam can be treated as persistence-backed recovery.
-      - Define clean-target Android package, profile, folder, dock, widget, and provider rebinding or deterministic reconstruction behavior before restore is claimed.
+      - Keep preview output limited to aggregate workspace geometry/counts plus the seven reviewed preference values and opaque review token, without page/item identities, package/profile state, widget bindings, or persistence authority.
+      - Preserve the current concrete bounded Room/DataStore writer's readback verification and fail-closed guarded rollback semantics without representing its compensation model as crash atomicity.
+      - Keep the current workspace restore limited to the exact already-resolved HOME APP identity set; do not invent package/profile/folder/shortcut/widget rebinding from a format that does not carry those identities.
+      - Define and validate clean-target Android package, profile, folder, shortcut, dock, widget, and provider rebinding or deterministic reconstruction behavior before complete restore is claimed.
+      - Establish crash/interruption recovery, accepted Everkeep integration, representative-device acceptance, and production recovery evidence before recovery qualification.
   export:
     required: true
     requirements:
@@ -108,7 +115,8 @@ continuity:
     requirements:
       - Preserve workspace ordering, placement integrity, and the explicit Launcher preference values represented by the current versioned codecs.
       - Require pair-level Home-grid consistency whenever the two current formats are treated as one restore candidate.
-      - Keep read-only preflight separate from restore persistence authority.
+      - Preserve review/apply consistency when a user-facing preview precedes persistence.
+      - Keep clean-target/cross-device identity reconstruction fail-closed until a separately approved format and rebinding policy can express the necessary Android identities.
       - Validate complete product scope, clean-target import or deterministic reconstruction, and conflict behavior before product-wide portability is claimed.
 
 external_dependencies:
@@ -129,7 +137,8 @@ compatibility:
     - goreecloud-launcher-preferences/1
 
 evidence:
-  acceptance_tests: []
+  acceptance_tests:
+    - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
   release: []
 
 conformance:
@@ -144,13 +153,17 @@ conformance:
     - docs/development/launcher-portable-preferences.md
     - docs/development/portable-restore-coordinator.md
     - docs/development/portable-restore-preview.md
+    - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherTransactionalPortableRestoreWriter.kt
+    - app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
+    - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
   blockers:
-    - GLAZE UI V1.1 / 1.1.0 source mapping now exists, but complete application-specific rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain outstanding.
+    - GLAZE UI V1.1 / 1.1.0 source mapping exists, but complete application-specific rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain outstanding.
     - GoreeCloud Identity integration and acceptance are not established.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.
-    - Everkeep integration plus complete Launcher backup and clean-target restore acceptance are incomplete; pair-level compatibility validation exists but the combined restore seam still has no concrete transactional Room/DataStore writer and the preview remains read-only only.
+    - Everkeep integration plus complete Launcher backup and clean-target restore acceptance remain incomplete; bounded Room/DataStore persistence and guarded compensation exist, but cross-device identity reconstruction and crash/interruption recovery are not established.
     - GoreeCloud Mesh registration, capability publication, and runtime acceptance are not established.
     - Manager platform visibility and administrative integration acceptance are not established.
     - Product-wide export and import scope remains incomplete beyond the bounded workspace-placement and explicit-preference formats.
+    - Signed representative-device HOME-role, lifecycle, accessibility, restore, rollback, upgrade, and release-candidate acceptance remain outstanding.
     - Production signing, distribution, deployment, release approval, and Stable qualification remain outstanding.
