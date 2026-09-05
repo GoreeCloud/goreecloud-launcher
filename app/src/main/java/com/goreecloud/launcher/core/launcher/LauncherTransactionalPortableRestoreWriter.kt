@@ -4,17 +4,22 @@ import android.content.Context
 import com.goreecloud.launcher.core.workspace.WorkspacePortableSnapshot
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceDao
+import com.goreecloud.launcher.core.workspace.db.WorkspacePortableHomeStateFingerprint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 /**
  * Concrete Development persistence authority for the currently approved Launcher portability pair.
  *
- * Room and Preferences DataStore cannot share one crash-atomic transaction. This writer therefore
- * gives Room a real transaction boundary, performs the DataStore replacement immediately after it,
- * verifies DataStore readback, and uses guarded compensating rollback if the second store fails.
- * It deliberately does not claim Everkeep recovery, cross-device rebinding, or crash atomicity.
+ * Room and Preferences DataStore cannot share one transaction. This writer therefore records a
+ * strict device-local recovery journal before the Room mutation, applies an exact precomputed Room
+ * plan, then atomically writes target portable preferences and clears the matching journal. A later
+ * process can reconcile the bounded interrupted operation without guessing which store committed.
+ *
+ * This remains same-resolved-identity recovery. It does not establish Everkeep recovery,
+ * cross-device rebinding, provenance, or complete clean-target reconstruction.
  */
 class LauncherTransactionalPortableRestoreWriter(
     private val workspaceDao: WorkspaceDao,
@@ -40,25 +45,73 @@ class LauncherTransactionalPortableRestoreWriter(
             "portable workspace grid must match the portable Home-grid preferences"
         }
 
-        val previousPreferences = preferencesRepository.readPortablePreferences()
-        val roomCommit = workspaceDao.replacePortableHomePlacements(workspace)
+        when (
+            val recovery = LauncherPortableRestoreRecoveryCoordinator(
+                workspaceDao = workspaceDao,
+                preferencesRepository = preferencesRepository,
+            ).reconcile()
+        ) {
+            is LauncherPortableRestoreRecoveryCoordinator.Result.RecoveryRequired -> {
+                throw LauncherPortableRestoreRecoveryRequiredException(
+                    "portable Launcher restore cannot start while prior recovery remains unresolved: ${recovery.reason}",
+                )
+            }
+            else -> Unit
+        }
 
+        val previousPreferences = preferencesRepository.readPortablePreferences()
+        val roomCommit = workspaceDao.planPortableHomePlacements(workspace)
+        val journal = LauncherPortableRestoreJournal(
+            transactionId = UUID.randomUUID().toString(),
+            previousWorkspaceFingerprint = WorkspacePortableHomeStateFingerprint.of(
+                roomCommit.previousPages,
+                roomCommit.previousItems,
+            ),
+            appliedWorkspaceFingerprint = WorkspacePortableHomeStateFingerprint.of(
+                roomCommit.appliedPages,
+                roomCommit.appliedItems,
+            ),
+            previousPreferences = previousPreferences,
+            targetPreferences = preferences,
+        )
+
+        check(preferencesRepository.beginPortableRestoreJournal(journal)) {
+            "portable Launcher restore cannot start because a recovery journal already exists"
+        }
+
+        var workspaceApplied = false
         try {
-            preferencesRepository.replacePortablePreferences(preferences)
+            workspaceDao.applyPortableHomeRestoreCommit(roomCommit)
+            workspaceApplied = true
+
+            check(preferencesRepository.finalizePortableRestoreJournal(journal)) {
+                "portable Launcher preference finalization refused because journal or preferences changed"
+            }
             check(preferencesRepository.readPortablePreferences() == preferences) {
                 "portable Launcher preference readback verification failed"
+            }
+            check(
+                preferencesRepository.readPortableRestoreJournal() ==
+                    LauncherPortableRestoreJournalReadResult.Absent
+            ) {
+                "portable Launcher restore journal remained after successful finalization"
             }
         } catch (applyFailure: Throwable) {
             finishPortableRestoreFailure(
                 applyFailure = applyFailure,
                 rollbackWorkspace = {
-                    workspaceDao.rollbackPortableHomePlacements(roomCommit)
+                    if (workspaceApplied) {
+                        workspaceDao.rollbackPortableHomePlacements(roomCommit)
+                    }
                 },
                 rollbackPreferences = {
                     preferencesRepository.rollbackPortablePreferencesAfterFailedApply(
                         expectedApplied = preferences,
                         previous = previousPreferences,
                     )
+                },
+                clearJournal = {
+                    preferencesRepository.clearPortableRestoreJournalIfMatches(journal)
                 },
             )
         }
@@ -71,13 +124,14 @@ class LauncherTransactionalPortableRestoreWriter(
  * Cancellation can arrive after the Room commit but before the DataStore stage finishes. Running
  * rollback in the cancelled context would let the first suspension abort compensation and strand a
  * split cross-store state. NonCancellable is intentionally scoped only to the bounded rollback.
- * Once rollback verifies, the original CancellationException is rethrown unchanged so callers keep
- * normal structured-concurrency semantics rather than receiving a misleading ordinary apply error.
+ * The durable journal is cleared only after both workspace and preference rollback are verified; a
+ * rollback failure deliberately leaves recovery evidence in place for later reconciliation.
  */
 internal suspend fun finishPortableRestoreFailure(
     applyFailure: Throwable,
     rollbackWorkspace: suspend () -> Unit,
     rollbackPreferences: suspend () -> Boolean,
+    clearJournal: suspend () -> Boolean = { true },
 ): Nothing {
     val rollbackFailures = withContext(NonCancellable) {
         buildList {
@@ -93,6 +147,17 @@ internal suspend fun finishPortableRestoreFailure(
                 }
             } catch (rollbackFailure: Throwable) {
                 add(rollbackFailure)
+            }
+
+            // Preserve the journal when either rollback failed; it is the durable recovery evidence.
+            if (isEmpty()) {
+                try {
+                    check(clearJournal()) {
+                        "portable restore journal cleanup refused because journal state changed"
+                    }
+                } catch (rollbackFailure: Throwable) {
+                    add(rollbackFailure)
+                }
             }
         }
     }
@@ -125,3 +190,7 @@ class LauncherPortableRestoreRollbackException(
     message: String,
     cause: Throwable,
 ) : IllegalStateException(message, cause)
+
+class LauncherPortableRestoreRecoveryRequiredException(
+    message: String,
+) : IllegalStateException(message)
