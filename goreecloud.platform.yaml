@@ -77,7 +77,7 @@ platform_systems:
       - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: Repository-local Development source targets GLAZE UI V1.1 / 1.1.0 source semantics, but the known immutable 1.1.0 import-closure defect still requires a corrected governed immutable Stable release, explicit Launcher re-pin, and fresh rendered/accessibility/adaptive/representative-device/Human Visual Excellence acceptance before current application conformance can be claimed.
+    notes: Repository-local Development source now explicitly targets current Stable GLAZE UI V1.1 / 1.1.0 source semantics, but the known immutable 1.1.0 import-closure defect still requires a corrected governed immutable Stable release, explicit Launcher re-pin, and fresh rendered/accessibility/adaptive/representative-device/Human Visual Excellence acceptance before current application conformance can be claimed.
   mesh:
     result: applicable-blocked
     version: null
