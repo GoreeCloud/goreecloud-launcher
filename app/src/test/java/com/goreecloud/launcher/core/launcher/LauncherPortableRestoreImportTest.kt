@@ -68,6 +68,49 @@ class LauncherPortableRestoreImportTest {
     }
 
     @Test
+    fun reviewedApplyUsesExactReviewedInputPair() = runBlocking {
+        val writer = RecordingWriter()
+        val workspaceEncoded = WorkspacePortableSnapshot.encode(workspace)
+        val preferencesEncoded = LauncherPortablePreferences.encode(preferences)
+        val validation = LauncherPortableRestoreImport.validate(workspaceEncoded, preferencesEncoded)
+        assertTrue(validation is LauncherPortableRestoreImport.ValidationResult.Ready)
+        val reviewToken = (validation as LauncherPortableRestoreImport.ValidationResult.Ready).reviewToken
+
+        val result = LauncherPortableRestoreImport.applyReviewed(
+            workspaceEncoded = workspaceEncoded,
+            preferencesEncoded = preferencesEncoded,
+            expectedReviewToken = reviewToken,
+            writer = writer,
+        )
+
+        assertTrue(result is LauncherPortableRestoreImport.ApplyResult.Applied)
+        assertEquals(listOf(Write(workspace, preferences)), writer.writes)
+    }
+
+    @Test
+    fun reviewedApplyRejectsDifferentValidPairWithoutWriting() = runBlocking {
+        val writer = RecordingWriter()
+        val workspaceEncoded = WorkspacePortableSnapshot.encode(workspace)
+        val preferencesEncoded = LauncherPortablePreferences.encode(preferences)
+        val validation = LauncherPortableRestoreImport.validate(workspaceEncoded, preferencesEncoded)
+            as LauncherPortableRestoreImport.ValidationResult.Ready
+        val changedPreferences = preferences.copy(drawerColumns = 6)
+
+        val result = LauncherPortableRestoreImport.applyReviewed(
+            workspaceEncoded = workspaceEncoded,
+            preferencesEncoded = LauncherPortablePreferences.encode(changedPreferences),
+            expectedReviewToken = validation.reviewToken,
+            writer = writer,
+        )
+
+        assertTrue(result is LauncherPortableRestoreImport.ApplyResult.Rejected)
+        val rejected = result as LauncherPortableRestoreImport.ApplyResult.Rejected
+        assertEquals(LauncherPortableRestoreImport.RejectionSource.REVIEW_CHANGED, rejected.source)
+        assertTrue(rejected.reason.contains("changed after review"))
+        assertTrue(writer.writes.isEmpty())
+    }
+
+    @Test
     fun invalidWorkspacePerformsZeroCombinedWrites() = runBlocking {
         val writer = RecordingWriter()
         val tamperedWorkspace = WorkspacePortableSnapshot.encode(workspace)
