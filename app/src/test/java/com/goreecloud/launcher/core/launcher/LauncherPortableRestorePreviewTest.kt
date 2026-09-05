@@ -5,6 +5,7 @@ import com.goreecloud.launcher.core.workspace.WorkspacePagedPlacement
 import com.goreecloud.launcher.core.workspace.WorkspacePortableSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -47,7 +48,8 @@ class LauncherPortableRestorePreviewTest {
         )
 
         assertTrue(result is LauncherPortableRestorePreview.Result.Ready)
-        val summary = (result as LauncherPortableRestorePreview.Result.Ready).summary
+        val ready = result as LauncherPortableRestorePreview.Result.Ready
+        val summary = ready.summary
         assertEquals(5, summary.gridColumns)
         assertEquals(6, summary.gridRows)
         assertEquals(2, summary.pageCount)
@@ -59,6 +61,28 @@ class LauncherPortableRestorePreviewTest {
         assertEquals(1.1f, summary.iconScale)
         assertTrue(summary.layoutLocked)
         assertEquals(GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY, summary.indexHomeMode)
+        assertTrue(ready.reviewToken.matches(Regex("[0-9a-f]{64}")))
+    }
+
+    @Test
+    fun reviewTokenChangesWhenAReviewedValidPreferenceChanges() {
+        val workspace = WorkspacePortableSnapshot.Snapshot(
+            grid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5),
+            pages = listOf(WorkspacePagedPlacement.Page("page-a", 0, emptyList())),
+        )
+        val workspaceEncoded = WorkspacePortableSnapshot.encode(workspace)
+        val first = LauncherPortableRestorePreview.inspect(
+            workspaceEncoded,
+            LauncherPortablePreferences.encode(LauncherPreferences(homeColumns = 4, homeRows = 5)),
+        ) as LauncherPortableRestorePreview.Result.Ready
+        val second = LauncherPortableRestorePreview.inspect(
+            workspaceEncoded,
+            LauncherPortablePreferences.encode(
+                LauncherPreferences(homeColumns = 4, homeRows = 5, drawerColumns = 6),
+            ),
+        ) as LauncherPortableRestorePreview.Result.Ready
+
+        assertNotEquals(first.reviewToken, second.reviewToken)
     }
 
     @Test
