@@ -1,6 +1,8 @@
 package com.goreecloud.launcher.core.launcher
 
 import com.goreecloud.launcher.core.workspace.WorkspacePortableSnapshot
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 
 /**
  * Minimal combined persistence authority for the two currently approved Launcher portability
@@ -19,16 +21,20 @@ interface LauncherPortableRestoreWriter {
 }
 
 object LauncherPortableRestoreImport {
+    private const val REVIEW_TOKEN_DOMAIN = "goreecloud-launcher-portable-restore-review/1"
+
     enum class RejectionSource {
         WORKSPACE,
         PREFERENCES,
         COMPATIBILITY,
+        REVIEW_CHANGED,
     }
 
     sealed interface ValidationResult {
         data class Ready(
             val workspace: WorkspacePortableSnapshot.Snapshot,
             val preferences: LauncherPreferences,
+            val reviewToken: String,
         ) : ValidationResult
 
         data class Rejected(
@@ -53,10 +59,9 @@ object LauncherPortableRestoreImport {
      * Decode both complete snapshots and validate their shared Home-grid contract before any
      * persistence authority is granted.
      *
-     * The workspace codec intentionally supports a broad framework-independent grid bound while
-     * the current Launcher preference format supports the product's reviewed Home grid range. A
-     * combined restore must therefore reject two individually valid payloads when their Home-grid
-     * dimensions disagree instead of allowing persistence to create contradictory state.
+     * The returned review token binds the exact validated workspace/preference byte pair to a
+     * privacy-minimized opaque SHA-256 value. It is not authenticity or provenance evidence; it is
+     * only a local review/apply consistency guard.
      */
     fun validate(
         workspaceEncoded: String,
@@ -87,16 +92,20 @@ object LauncherPortableRestoreImport {
             )
         }
 
-        return ValidationResult.Ready(workspace, preferences)
+        return ValidationResult.Ready(
+            workspace = workspace,
+            preferences = preferences,
+            reviewToken = reviewToken(workspaceEncoded, preferencesEncoded),
+        )
     }
 
     /**
      * Validate both complete snapshots and their shared contract before granting any persistence
      * call.
      *
-     * If either input is malformed, tampered, expanded, unsupported, or pair-incompatible, the
-     * writer is never invoked. Storage failures deliberately propagate so callers cannot report a
-     * partial or failed commit as an applied restore.
+     * This method remains the non-reviewed Development apply seam. A future user-facing workflow
+     * that shows [LauncherPortableRestorePreview] must use [applyReviewed] with the token returned
+     * by that preview so changed inputs fail closed before the writer is invoked.
      */
     suspend fun apply(
         workspaceEncoded: String,
@@ -104,9 +113,63 @@ object LauncherPortableRestoreImport {
         writer: LauncherPortableRestoreWriter,
     ): ApplyResult = when (val validation = validate(workspaceEncoded, preferencesEncoded)) {
         is ValidationResult.Rejected -> ApplyResult.Rejected(validation.source, validation.reason)
+        is ValidationResult.Ready -> applyValidated(validation, writer)
+    }
+
+    /**
+     * Apply only when the exact validated input pair is still the pair that was reviewed.
+     *
+     * The review token is deliberately not a signature, ownership proof, or Everkeep provenance
+     * claim. It closes only the local time-of-review/time-of-apply substitution gap.
+     */
+    suspend fun applyReviewed(
+        workspaceEncoded: String,
+        preferencesEncoded: String,
+        expectedReviewToken: String,
+        writer: LauncherPortableRestoreWriter,
+    ): ApplyResult = when (val validation = validate(workspaceEncoded, preferencesEncoded)) {
+        is ValidationResult.Rejected -> ApplyResult.Rejected(validation.source, validation.reason)
         is ValidationResult.Ready -> {
-            writer.replacePortableState(validation.workspace, validation.preferences)
-            ApplyResult.Applied(validation.workspace, validation.preferences)
+            if (!constantTimeEquals(validation.reviewToken, expectedReviewToken)) {
+                ApplyResult.Rejected(
+                    RejectionSource.REVIEW_CHANGED,
+                    "portable restore input changed after review",
+                )
+            } else {
+                applyValidated(validation, writer)
+            }
         }
     }
+
+    private suspend fun applyValidated(
+        validation: ValidationResult.Ready,
+        writer: LauncherPortableRestoreWriter,
+    ): ApplyResult {
+        writer.replacePortableState(validation.workspace, validation.preferences)
+        return ApplyResult.Applied(validation.workspace, validation.preferences)
+    }
+
+    private fun reviewToken(workspaceEncoded: String, preferencesEncoded: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        updateLengthDelimited(digest, REVIEW_TOKEN_DOMAIN)
+        updateLengthDelimited(digest, workspaceEncoded)
+        updateLengthDelimited(digest, preferencesEncoded)
+        return digest.digest().joinToString(separator = "") { byte ->
+            "%02x".format(byte.toInt() and 0xff)
+        }
+    }
+
+    private fun updateLengthDelimited(digest: MessageDigest, value: String) {
+        val bytes = value.toByteArray(StandardCharsets.UTF_8)
+        digest.update(bytes.size.toString().toByteArray(StandardCharsets.US_ASCII))
+        digest.update(0)
+        digest.update(bytes)
+        digest.update(0)
+    }
+
+    private fun constantTimeEquals(actual: String, expected: String): Boolean =
+        MessageDigest.isEqual(
+            actual.toByteArray(StandardCharsets.US_ASCII),
+            expected.toByteArray(StandardCharsets.US_ASCII),
+        )
 }
