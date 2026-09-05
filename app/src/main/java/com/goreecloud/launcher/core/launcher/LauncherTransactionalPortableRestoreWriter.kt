@@ -4,6 +4,9 @@ import android.content.Context
 import com.goreecloud.launcher.core.workspace.WorkspacePortableSnapshot
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceDao
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /**
  * Concrete Development persistence authority for the currently approved Launcher portability pair.
@@ -46,42 +49,71 @@ class LauncherTransactionalPortableRestoreWriter(
                 "portable Launcher preference readback verification failed"
             }
         } catch (applyFailure: Throwable) {
-            val rollbackFailures = mutableListOf<Throwable>()
-
-            try {
-                workspaceDao.rollbackPortableHomePlacements(roomCommit)
-            } catch (rollbackFailure: Throwable) {
-                rollbackFailures += rollbackFailure
-            }
-
-            try {
-                check(
+            finishPortableRestoreFailure(
+                applyFailure = applyFailure,
+                rollbackWorkspace = {
+                    workspaceDao.rollbackPortableHomePlacements(roomCommit)
+                },
+                rollbackPreferences = {
                     preferencesRepository.rollbackPortablePreferencesAfterFailedApply(
                         expectedApplied = preferences,
                         previous = previousPreferences,
                     )
-                ) {
-                    "portable preference rollback refused because preferences changed after restore apply"
-                }
-            } catch (rollbackFailure: Throwable) {
-                rollbackFailures += rollbackFailure
-            }
-
-            if (rollbackFailures.isNotEmpty()) {
-                val failure = LauncherPortableRestoreRollbackException(
-                    message = "portable Launcher restore failed and compensating rollback could not be fully verified",
-                    cause = applyFailure,
-                )
-                rollbackFailures.forEach(failure::addSuppressed)
-                throw failure
-            }
-
-            throw LauncherPortableRestoreApplyException(
-                message = "portable Launcher restore failed; the previously persisted portable state was restored",
-                cause = applyFailure,
+                },
             )
         }
     }
+}
+
+/**
+ * Complete compensating rollback even when the apply coroutine has already been cancelled.
+ *
+ * Cancellation can arrive after the Room commit but before the DataStore stage finishes. Running
+ * rollback in the cancelled context would let the first suspension abort compensation and strand a
+ * split cross-store state. NonCancellable is intentionally scoped only to the bounded rollback.
+ * Once rollback verifies, the original CancellationException is rethrown unchanged so callers keep
+ * normal structured-concurrency semantics rather than receiving a misleading ordinary apply error.
+ */
+internal suspend fun finishPortableRestoreFailure(
+    applyFailure: Throwable,
+    rollbackWorkspace: suspend () -> Unit,
+    rollbackPreferences: suspend () -> Boolean,
+): Nothing {
+    val rollbackFailures = withContext(NonCancellable) {
+        buildList {
+            try {
+                rollbackWorkspace()
+            } catch (rollbackFailure: Throwable) {
+                add(rollbackFailure)
+            }
+
+            try {
+                check(rollbackPreferences()) {
+                    "portable preference rollback refused because preferences changed after restore apply"
+                }
+            } catch (rollbackFailure: Throwable) {
+                add(rollbackFailure)
+            }
+        }
+    }
+
+    if (rollbackFailures.isNotEmpty()) {
+        val failure = LauncherPortableRestoreRollbackException(
+            message = "portable Launcher restore failed and compensating rollback could not be fully verified",
+            cause = applyFailure,
+        )
+        rollbackFailures.forEach(failure::addSuppressed)
+        throw failure
+    }
+
+    if (applyFailure is CancellationException) {
+        throw applyFailure
+    }
+
+    throw LauncherPortableRestoreApplyException(
+        message = "portable Launcher restore failed; the previously persisted portable state was restored",
+        cause = applyFailure,
+    )
 }
 
 class LauncherPortableRestoreApplyException(
