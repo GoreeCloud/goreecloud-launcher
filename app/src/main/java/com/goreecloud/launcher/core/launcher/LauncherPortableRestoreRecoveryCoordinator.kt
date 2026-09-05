@@ -25,6 +25,7 @@ class LauncherPortableRestoreRecoveryCoordinator(
 
     enum class RecoveryReason {
         JOURNAL_INVALID,
+        PREFERENCES_INVALID,
         STATE_MISMATCH,
         OPERATION_FAILED,
     }
@@ -62,7 +63,11 @@ class LauncherPortableRestoreRecoveryCoordinator(
             pages = workspace.pages,
             items = workspace.items,
         )
-        val preferences = preferencesRepository.readPortablePreferences()
+        val preferences = when (val read = preferencesRepository.readPortablePreferencesForRecovery()) {
+            is LauncherPortableRecoveryPreferenceReadResult.Success -> read.preferences
+            is LauncherPortableRecoveryPreferenceReadResult.Invalid ->
+                return Result.RecoveryRequired(RecoveryReason.PREFERENCES_INVALID)
+        }
 
         return when {
             workspaceFingerprint == journal.previousWorkspaceFingerprint &&
@@ -112,7 +117,11 @@ class LauncherPortableRestoreRecoveryCoordinator(
         val workspace = workspaceDao.readPortableHomeState()
         val fingerprint = WorkspacePortableHomeStateFingerprint.of(workspace.pages, workspace.items)
         if (fingerprint != expectedWorkspaceFingerprint) return false
-        if (preferencesRepository.readPortablePreferences() != expectedPreferences) return false
+        val preferences = when (val read = preferencesRepository.readPortablePreferencesForRecovery()) {
+            is LauncherPortableRecoveryPreferenceReadResult.Success -> read.preferences
+            is LauncherPortableRecoveryPreferenceReadResult.Invalid -> return false
+        }
+        if (preferences != expectedPreferences) return false
         return preferencesRepository.readPortableRestoreJournal() ==
             LauncherPortableRestoreJournalReadResult.Absent
     }

@@ -127,6 +127,22 @@ class LauncherPreferencesRepository(
 
     suspend fun readPortablePreferences(): LauncherPreferences = preferences.first()
 
+    /**
+     * Strict recovery-only read of the seven persisted portable preferences.
+     *
+     * Ordinary UI reads intentionally sanitize legacy/out-of-range local values for resilience.
+     * Recovery cannot use that behavior as evidence: an interrupted restore may be finalized or
+     * cleared only when the raw persisted values are already inside the canonical portable domain.
+     */
+    suspend fun readPortablePreferencesForRecovery(): LauncherPortableRecoveryPreferenceReadResult {
+        return when (val decoded = portableRecoveryPreferencesFrom(dataStore.data.first())) {
+            is LauncherPortableStoredPreferencePolicy.DecodeResult.Success ->
+                LauncherPortableRecoveryPreferenceReadResult.Success(decoded.preferences)
+            is LauncherPortableStoredPreferencePolicy.DecodeResult.Invalid ->
+                LauncherPortableRecoveryPreferenceReadResult.Invalid(decoded.reason)
+        }
+    }
+
     suspend fun readPortableRestoreJournal(): LauncherPortableRestoreJournalReadResult {
         val raw = dataStore.data.first()[Keys.portableRestoreJournal]
             ?: return LauncherPortableRestoreJournalReadResult.Absent
@@ -157,16 +173,19 @@ class LauncherPreferencesRepository(
     /**
      * Atomically write the target portable preferences and clear the exact matching journal.
      *
-     * Finalization is refused if either the journal changed or the current portable preferences no
-     * longer equal the journal's previous state, protecting a concurrent preference edit.
+     * Finalization is refused if either the journal changed or the raw current portable preferences
+     * are not canonically equal to the journal's previous state, protecting both concurrent edits
+     * and recovery from silently sanitized/corrupted persisted values.
      */
     suspend fun finalizePortableRestoreJournal(journal: LauncherPortableRestoreJournal): Boolean {
         val encoded = LauncherPortableRestoreJournalCodec.encode(journal)
         var finalized = false
         dataStore.edit { values ->
+            val current = portableRecoveryPreferencesFrom(values)
             if (
                 values[Keys.portableRestoreJournal] == encoded &&
-                portablePreferencesFrom(values) == journal.previousPreferences
+                current is LauncherPortableStoredPreferencePolicy.DecodeResult.Success &&
+                current.preferences == journal.previousPreferences
             ) {
                 writePortablePreferences(values, journal.targetPreferences)
                 values.remove(Keys.portableRestoreJournal)
@@ -246,6 +265,22 @@ class LauncherPreferencesRepository(
             layoutLocked = values[Keys.layoutLocked] ?: defaults.layoutLocked,
             indexHomeMode = GoreeCloudIndexHomeMode.fromStorage(values[Keys.indexHomeMode]),
         ).sanitized()
+
+    private fun portableRecoveryPreferencesFrom(
+        values: Preferences,
+    ): LauncherPortableStoredPreferencePolicy.DecodeResult =
+        LauncherPortableStoredPreferencePolicy.decode(
+            stored = LauncherPortableStoredPreferences(
+                homeColumns = values[Keys.homeColumns],
+                homeRows = values[Keys.homeRows],
+                drawerColumns = values[Keys.drawerColumns],
+                showLabels = values[Keys.showLabels],
+                iconScale = values[Keys.iconScale],
+                layoutLocked = values[Keys.layoutLocked],
+                indexHomeMode = values[Keys.indexHomeMode],
+            ),
+            defaults = defaults,
+        )
 
     private fun writePortablePreferences(
         values: MutablePreferences,
