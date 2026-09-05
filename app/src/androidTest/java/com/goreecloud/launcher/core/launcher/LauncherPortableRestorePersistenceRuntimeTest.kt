@@ -13,6 +13,8 @@ import com.goreecloud.launcher.core.workspace.db.WorkspaceContainerType
 import com.goreecloud.launcher.core.workspace.db.WorkspaceItemEntity
 import com.goreecloud.launcher.core.workspace.db.WorkspaceItemType
 import com.goreecloud.launcher.core.workspace.db.WorkspacePageEntity
+import com.goreecloud.launcher.core.workspace.db.WorkspacePortableHomeRestoreCommit
+import com.goreecloud.launcher.core.workspace.db.WorkspacePortableHomeStateFingerprint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -43,12 +45,14 @@ class LauncherPortableRestorePersistenceRuntimeTest {
             .setQueryCoroutineContext(Dispatchers.IO)
             .build()
         preferencesRepository = LauncherPreferencesRepository(context.applicationContext)
+        clearAnyValidJournal()
         originalPreferences = preferencesRepository.readPortablePreferences()
     }
 
     @After
     fun tearDown() {
         runBlocking {
+            clearAnyValidJournal()
             preferencesRepository.replacePortablePreferences(originalPreferences)
             database.close()
             context.deleteDatabase(DATABASE_NAME)
@@ -80,6 +84,27 @@ class LauncherPortableRestorePersistenceRuntimeTest {
     }
 
     @Test
+    fun plannedRestoreRefusesWorkspaceChangedBeforeApply() = runBlocking {
+        val dao = database.workspaceDao()
+        seedTwoHomeAppsAndDock()
+        val plan = dao.planPortableHomePlacements(restoredWorkspace())
+        val original = dao.readItemsByContainer(WorkspaceContainerType.HOME).first { it.itemId == APP_A }
+        dao.upsertItems(listOf(original.copy(cellX = 3)))
+
+        try {
+            dao.applyPortableHomeRestoreCommit(plan)
+            fail("a planned restore must not overwrite HOME state changed after planning")
+        } catch (expected: IllegalStateException) {
+            assertTrue(expected.message.orEmpty().contains("changed after restore planning"))
+        }
+
+        assertEquals(
+            3,
+            dao.readItemsByContainer(WorkspaceContainerType.HOME).first { it.itemId == APP_A }.cellX,
+        )
+    }
+
+    @Test
     fun cleanTargetCannotInventMissingAppIdentityRebinding() = runBlocking {
         val dao = database.workspaceDao()
         dao.upsertPages(
@@ -104,33 +129,132 @@ class LauncherPortableRestorePersistenceRuntimeTest {
     }
 
     @Test
-    fun concreteWriterAppliesCompatibleRoomAndDataStorePair() = runBlocking {
+    fun concreteWriterAppliesCompatibleRoomAndDataStorePairAndClearsJournal() = runBlocking {
         val dao = database.workspaceDao()
         seedTwoHomeAppsAndDock()
-        val before = LauncherPreferences(
-            homeColumns = 4,
-            homeRows = 5,
-            drawerColumns = 5,
-            showLabels = true,
-            iconScale = 1.0f,
-            layoutLocked = false,
-            indexHomeMode = GoreeCloudIndexHomeMode.PERMANENT,
-        )
-        val target = before.copy(
-            drawerColumns = 4,
-            showLabels = false,
-            iconScale = 0.95f,
-            layoutLocked = true,
-            indexHomeMode = GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
-        )
+        val before = basePreferences()
+        val target = targetPreferences()
         preferencesRepository.replacePortablePreferences(before)
 
         LauncherTransactionalPortableRestoreWriter(dao, preferencesRepository)
             .replacePortableState(restoredWorkspace(), target)
 
         assertEquals(target, preferencesRepository.readPortablePreferences())
+        assertEquals(
+            LauncherPortableRestoreJournalReadResult.Absent,
+            preferencesRepository.readPortableRestoreJournal(),
+        )
         assertEquals(listOf("restored:0"), dao.readPagesByContainer(WorkspaceContainerType.HOME).map { it.pageId })
         assertEquals(listOf(APP_B, APP_A), dao.readItemsByContainer(WorkspaceContainerType.HOME).map { it.itemId })
+    }
+
+    @Test
+    fun recoveryAbandonsJournalWhenRoomNeverApplied() = runBlocking {
+        val dao = database.workspaceDao()
+        seedTwoHomeAppsAndDock()
+        val before = basePreferences()
+        val target = targetPreferences()
+        preferencesRepository.replacePortablePreferences(before)
+        val plan = dao.planPortableHomePlacements(restoredWorkspace())
+        val journal = journalFor(plan, before, target)
+        assertTrue(preferencesRepository.beginPortableRestoreJournal(journal))
+
+        val result = LauncherPortableRestoreRecoveryCoordinator(dao, preferencesRepository).reconcile()
+
+        assertEquals(
+            LauncherPortableRestoreRecoveryCoordinator.Result.AbandonedBeforeWorkspaceApply,
+            result,
+        )
+        assertEquals(before, preferencesRepository.readPortablePreferences())
+        assertEquals(
+            plan.previousPages,
+            dao.readPagesByContainer(WorkspaceContainerType.HOME),
+        )
+        assertEquals(
+            LauncherPortableRestoreJournalReadResult.Absent,
+            preferencesRepository.readPortableRestoreJournal(),
+        )
+    }
+
+    @Test
+    fun recoveryFinalizesPreferencesWhenRoomAppliedBeforeProcessLoss() = runBlocking {
+        val dao = database.workspaceDao()
+        seedTwoHomeAppsAndDock()
+        val before = basePreferences()
+        val target = targetPreferences()
+        preferencesRepository.replacePortablePreferences(before)
+        val plan = dao.planPortableHomePlacements(restoredWorkspace())
+        val journal = journalFor(plan, before, target)
+        assertTrue(preferencesRepository.beginPortableRestoreJournal(journal))
+        dao.applyPortableHomeRestoreCommit(plan)
+
+        val result = LauncherPortableRestoreRecoveryCoordinator(dao, preferencesRepository).reconcile()
+
+        assertEquals(
+            LauncherPortableRestoreRecoveryCoordinator.Result.FinalizedAfterWorkspaceApply,
+            result,
+        )
+        assertEquals(target, preferencesRepository.readPortablePreferences())
+        assertEquals(plan.appliedPages, dao.readPagesByContainer(WorkspaceContainerType.HOME))
+        assertEquals(
+            LauncherPortableRestoreJournalReadResult.Absent,
+            preferencesRepository.readPortableRestoreJournal(),
+        )
+    }
+
+    @Test
+    fun recoveryConfirmsAlreadyAppliedPairAndClearsMatchingJournal() = runBlocking {
+        val dao = database.workspaceDao()
+        seedTwoHomeAppsAndDock()
+        val before = basePreferences()
+        val target = targetPreferences()
+        preferencesRepository.replacePortablePreferences(before)
+        val plan = dao.planPortableHomePlacements(restoredWorkspace())
+        val journal = journalFor(plan, before, target)
+        assertTrue(preferencesRepository.beginPortableRestoreJournal(journal))
+        dao.applyPortableHomeRestoreCommit(plan)
+        // Simulate target preferences becoming visible while the matching journal remains durable.
+        preferencesRepository.replacePortablePreferences(target)
+
+        val result = LauncherPortableRestoreRecoveryCoordinator(dao, preferencesRepository).reconcile()
+
+        assertEquals(LauncherPortableRestoreRecoveryCoordinator.Result.ConfirmedCommitted, result)
+        assertEquals(target, preferencesRepository.readPortablePreferences())
+        assertEquals(
+            LauncherPortableRestoreJournalReadResult.Absent,
+            preferencesRepository.readPortableRestoreJournal(),
+        )
+    }
+
+    @Test
+    fun recoveryRefusesConcurrentThirdPreferenceStateAndPreservesJournal() = runBlocking {
+        val dao = database.workspaceDao()
+        seedTwoHomeAppsAndDock()
+        val before = basePreferences()
+        val target = targetPreferences()
+        val concurrent = before.copy(drawerColumns = 6, iconScale = 1.1f)
+        preferencesRepository.replacePortablePreferences(before)
+        val plan = dao.planPortableHomePlacements(restoredWorkspace())
+        val journal = journalFor(plan, before, target)
+        assertTrue(preferencesRepository.beginPortableRestoreJournal(journal))
+        dao.applyPortableHomeRestoreCommit(plan)
+        preferencesRepository.replacePortablePreferences(concurrent)
+
+        val result = LauncherPortableRestoreRecoveryCoordinator(dao, preferencesRepository).reconcile()
+
+        assertEquals(
+            LauncherPortableRestoreRecoveryCoordinator.Result.RecoveryRequired(
+                LauncherPortableRestoreRecoveryCoordinator.RecoveryReason.STATE_MISMATCH,
+            ),
+            result,
+        )
+        assertEquals(concurrent, preferencesRepository.readPortablePreferences())
+        assertTrue(
+            preferencesRepository.readPortableRestoreJournal() is
+                LauncherPortableRestoreJournalReadResult.Present,
+        )
+        // Test cleanup only; the recovery coordinator deliberately did not erase this evidence.
+        assertTrue(preferencesRepository.clearPortableRestoreJournalIfMatches(journal))
     }
 
     @Test
@@ -153,6 +277,18 @@ class LauncherPortableRestorePersistenceRuntimeTest {
 
         assertEquals(beforePages, dao.readPagesByContainer(WorkspaceContainerType.HOME))
         assertEquals(beforeItems, dao.readItemsByContainer(WorkspaceContainerType.HOME))
+    }
+
+    private suspend fun clearAnyValidJournal() {
+        when (val pending = preferencesRepository.readPortableRestoreJournal()) {
+            LauncherPortableRestoreJournalReadResult.Absent -> Unit
+            is LauncherPortableRestoreJournalReadResult.Present -> {
+                check(preferencesRepository.clearPortableRestoreJournalIfMatches(pending.journal))
+            }
+            is LauncherPortableRestoreJournalReadResult.Invalid -> {
+                fail("runtime test encountered an invalid pre-existing restore journal")
+            }
+        }
     }
 
     private suspend fun seedTwoHomeAppsAndDock() {
@@ -196,6 +332,42 @@ class LauncherPortableRestorePersistenceRuntimeTest {
             )
         )
     }
+
+    private fun journalFor(
+        plan: WorkspacePortableHomeRestoreCommit,
+        previous: LauncherPreferences,
+        target: LauncherPreferences,
+    ): LauncherPortableRestoreJournal = LauncherPortableRestoreJournal(
+        transactionId = "runtime-test-restore",
+        previousWorkspaceFingerprint = WorkspacePortableHomeStateFingerprint.of(
+            plan.previousPages,
+            plan.previousItems,
+        ),
+        appliedWorkspaceFingerprint = WorkspacePortableHomeStateFingerprint.of(
+            plan.appliedPages,
+            plan.appliedItems,
+        ),
+        previousPreferences = previous,
+        targetPreferences = target,
+    )
+
+    private fun basePreferences(): LauncherPreferences = LauncherPreferences(
+        homeColumns = 4,
+        homeRows = 5,
+        drawerColumns = 5,
+        showLabels = true,
+        iconScale = 1.0f,
+        layoutLocked = false,
+        indexHomeMode = GoreeCloudIndexHomeMode.PERMANENT,
+    )
+
+    private fun targetPreferences(): LauncherPreferences = basePreferences().copy(
+        drawerColumns = 4,
+        showLabels = false,
+        iconScale = 0.95f,
+        layoutLocked = true,
+        indexHomeMode = GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
+    )
 
     private fun restoredWorkspace(): WorkspacePortableSnapshot.Snapshot =
         WorkspacePortableSnapshot.Snapshot(
