@@ -47,6 +47,52 @@ class LauncherPortableRestoreStartupSequenceTest {
     }
 
     @Test
+    fun unexpectedRecoveryFailureBecomesExplicitFailClosedStateAndSkipsWorkspace() = runBlocking {
+        var workspaceRan = false
+
+        val result = LauncherPortableRestoreStartupSequence.reconcileBeforeMutation(
+            recoverPortableRestore = {
+                error("portable recovery failed unexpectedly")
+            },
+            reconcileWorkspace = {
+                workspaceRan = true
+            },
+        )
+
+        assertTrue(result is LauncherPortableRestoreRecoveryCoordinator.Result.RecoveryRequired)
+        result as LauncherPortableRestoreRecoveryCoordinator.Result.RecoveryRequired
+        assertEquals(
+            LauncherPortableRestoreRecoveryCoordinator.RecoveryReason.OPERATION_FAILED,
+            result.reason,
+        )
+        assertEquals(IllegalStateException::class.java.name, result.failureType)
+        assertFalse(workspaceRan)
+        assertFalse(LauncherPortableRestoreStartupGate.allowsMutations(result))
+    }
+
+    @Test
+    fun recoveryCancellationStillPropagates() = runBlocking {
+        var cancellationObserved = false
+        var workspaceRan = false
+
+        try {
+            LauncherPortableRestoreStartupSequence.reconcileBeforeMutation(
+                recoverPortableRestore = {
+                    throw CancellationException("cancel recovery")
+                },
+                reconcileWorkspace = {
+                    workspaceRan = true
+                },
+            )
+        } catch (cancellation: CancellationException) {
+            cancellationObserved = cancellation.message == "cancel recovery"
+        }
+
+        assertTrue(cancellationObserved)
+        assertFalse(workspaceRan)
+    }
+
+    @Test
     fun workspaceFailureBecomesExplicitFailClosedRecoveryState() = runBlocking {
         val result = LauncherPortableRestoreStartupSequence.reconcileBeforeMutation(
             recoverPortableRestore = {
