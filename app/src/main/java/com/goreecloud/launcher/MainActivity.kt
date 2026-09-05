@@ -80,8 +80,14 @@ class MainActivity : ComponentActivity() {
             },
         )
         lifecycleScope.launch {
-            portableRestoreRecoveryResult.value =
-                LauncherPortableRestoreRecoveryCoordinator(this@MainActivity).reconcile()
+            val recovery = LauncherPortableRestoreRecoveryCoordinator(this@MainActivity).reconcile()
+            if (LauncherPortableRestoreStartupGate.allowsMutations(recovery)) {
+                // onResume may have run while recovery was still pending and correctly skipped
+                // workspace reconciliation. Finish that deferred startup work before opening the
+                // normal mutation surface so recovery completion cannot strand Room activation.
+                workspaceRuntimeCoordinator.reconcileAndActivate()
+            }
+            portableRestoreRecoveryResult.value = recovery
         }
         refreshHomeRoleState()
 
