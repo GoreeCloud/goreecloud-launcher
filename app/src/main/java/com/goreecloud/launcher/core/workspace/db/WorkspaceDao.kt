@@ -10,16 +10,21 @@ import com.goreecloud.launcher.core.workspace.WorkspacePortableSnapshot
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Opaque rollback checkpoint for the bounded portable HOME placement writer.
+ * Opaque rollback/recovery checkpoint for the bounded portable HOME placement writer.
  *
- * Both sides are retained so a compensating rollback can refuse to overwrite a workspace that was
- * changed after the portable restore write completed.
+ * The constructor is internal so external callers cannot manufacture an arbitrary applied state;
+ * plans are produced by [WorkspaceDao.planPortableHomePlacements] after current-state validation.
  */
-data class WorkspacePortableHomeRestoreCommit(
+class WorkspacePortableHomeRestoreCommit internal constructor(
     val previousPages: List<WorkspacePageEntity>,
     val previousItems: List<WorkspaceItemEntity>,
     val appliedPages: List<WorkspacePageEntity>,
     val appliedItems: List<WorkspaceItemEntity>,
+)
+
+data class WorkspacePortableHomeState(
+    val pages: List<WorkspacePageEntity>,
+    val items: List<WorkspaceItemEntity>,
 )
 
 @Dao
@@ -79,120 +84,68 @@ abstract class WorkspaceDao {
         if (items.isNotEmpty()) upsertItems(items)
     }
 
+    /** Read the complete current HOME page/item state in one Room transaction. */
+    @Transaction
+    open suspend fun readPortableHomeState(): WorkspacePortableHomeState = WorkspacePortableHomeState(
+        pages = readPagesByContainer(WorkspaceContainerType.HOME),
+        items = readItemsByContainer(WorkspaceContainerType.HOME).canonicalItems(),
+    )
+
+    /**
+     * Validate and plan the currently supported same-resolved-identity HOME placement restore
+     * without mutating Room. A later apply rechecks this exact previous state before writing.
+     */
+    @Transaction
+    open suspend fun planPortableHomePlacements(
+        snapshot: WorkspacePortableSnapshot.Snapshot,
+    ): WorkspacePortableHomeRestoreCommit = planPortableHomePlacementsUnsafe(snapshot)
+
+    /**
+     * Apply an already validated plan only if the complete HOME state still exactly matches the
+     * plan's previous state. This closes the plan/journal/apply concurrency window fail closed.
+     */
+    @Transaction
+    open suspend fun applyPortableHomeRestoreCommit(
+        commit: WorkspacePortableHomeRestoreCommit,
+    ) {
+        applyPortableHomeRestoreCommitUnsafe(commit)
+    }
+
     /**
      * Replace the currently supported portable HOME placement subset in one Room transaction.
      *
-     * The v1 workspace snapshot does not carry app package/profile metadata, shortcut payloads,
-     * folder contents, or widget binding information. For that reason this method never creates a
-     * new item identity and never performs rebinding. Every imported item id must already resolve to
-     * the exact current HOME item set, and that set is intentionally limited to installed APP rows
-     * with an existing appKey. A non-empty clean target therefore fails closed instead of inventing
-     * restore semantics that the format cannot prove.
-     *
-     * Page identities and placements may be replaced because those are the complete semantics of
-     * the approved workspace portability format. DOCK pages and all non-HOME state are untouched.
+     * This preserves the original one-call behavior while reusing the same planning and exact-state
+     * apply paths used by the crash-recovery-aware cross-store writer.
      */
     @Transaction
     open suspend fun replacePortableHomePlacements(
         snapshot: WorkspacePortableSnapshot.Snapshot,
     ): WorkspacePortableHomeRestoreCommit {
-        // Reuse the codec as the defensive structural/geometry validation authority even for direct
-        // callers that did not arrive through LauncherPortableRestoreImport.
-        WorkspacePortableSnapshot.encode(snapshot)
-
-        val previousPages = readPagesByContainer(WorkspaceContainerType.HOME)
-        val previousItems = readItemsByContainer(WorkspaceContainerType.HOME).canonicalItems()
-        val currentById = previousItems.associateBy { it.itemId }
-        check(currentById.size == previousItems.size) {
-            "current HOME workspace contains duplicate item identities"
-        }
-
-        val orderedPages = WorkspacePagedPlacement.ordered(snapshot.pages)
-        val targetPlacements = orderedPages.flatMap { page ->
-            page.placements.map { placement -> page to placement }
-        }
-        val targetItemIds = targetPlacements.map { (_, placement) -> placement.itemId }
-        check(targetItemIds.size == targetItemIds.distinct().size) {
-            "portable HOME snapshot contains duplicate item identities"
-        }
-        check(targetItemIds.toSet() == currentById.keys) {
-            "portable HOME snapshot cannot be rebound: item identities must exactly match the current HOME app set"
-        }
-        check(
-            previousItems.all {
-                it.itemType == WorkspaceItemType.APP && !it.appKey.isNullOrBlank()
-            }
-        ) {
-            "portable HOME restore does not yet support shortcut, folder, widget, or unresolved app rebinding"
-        }
-
-        val nonHomePageIds = readAllPages()
-            .asSequence()
-            .filter { it.containerType != WorkspaceContainerType.HOME }
-            .map { it.pageId }
-            .toSet()
-        check(orderedPages.none { it.pageId in nonHomePageIds }) {
-            "portable HOME snapshot page identity collides with non-HOME state"
-        }
-
-        val appliedPages = orderedPages.map { page ->
-            WorkspacePageEntity(
-                pageId = page.pageId,
-                containerType = WorkspaceContainerType.HOME,
-                rank = page.rank,
-            )
-        }
-        val appliedItems = orderedPages.flatMap { page ->
-            page.placements
-                .sortedWith(portablePlacementOrder)
-                .mapIndexed { rank, placement ->
-                    checkNotNull(currentById[placement.itemId]).copy(
-                        pageId = page.pageId,
-                        rank = rank,
-                        cellX = placement.cellX,
-                        cellY = placement.cellY,
-                        spanX = placement.spanX,
-                        spanY = placement.spanY,
-                    )
-                }
-        }.canonicalItems()
-
-        replaceHomeStateUnsafe(appliedPages, appliedItems)
-        check(readPagesByContainer(WorkspaceContainerType.HOME) == appliedPages) {
-            "portable HOME page readback verification failed"
-        }
-        check(readItemsByContainer(WorkspaceContainerType.HOME).canonicalItems() == appliedItems) {
-            "portable HOME item readback verification failed"
-        }
-
-        return WorkspacePortableHomeRestoreCommit(
-            previousPages = previousPages,
-            previousItems = previousItems,
-            appliedPages = appliedPages,
-            appliedItems = appliedItems,
-        )
+        val commit = planPortableHomePlacementsUnsafe(snapshot)
+        applyPortableHomeRestoreCommitUnsafe(commit)
+        return commit
     }
 
     /**
      * Compensate a failed cross-store restore only while the HOME state is still exactly the state
-     * written by [replacePortableHomePlacements]. A concurrent workspace mutation makes rollback
+     * written by [applyPortableHomeRestoreCommit]. A concurrent workspace mutation makes rollback
      * fail closed rather than silently deleting newer user state.
      */
     @Transaction
     open suspend fun rollbackPortableHomePlacements(
         commit: WorkspacePortableHomeRestoreCommit,
     ) {
-        val currentPages = readPagesByContainer(WorkspaceContainerType.HOME)
-        val currentItems = readItemsByContainer(WorkspaceContainerType.HOME).canonicalItems()
-        check(currentPages == commit.appliedPages && currentItems == commit.appliedItems) {
+        val current = readPortableHomeStateUnsafe()
+        check(current.pages == commit.appliedPages && current.items == commit.appliedItems) {
             "portable HOME rollback refused because workspace changed after restore apply"
         }
 
         replaceHomeStateUnsafe(commit.previousPages, commit.previousItems)
-        check(readPagesByContainer(WorkspaceContainerType.HOME) == commit.previousPages) {
+        val restored = readPortableHomeStateUnsafe()
+        check(restored.pages == commit.previousPages) {
             "portable HOME rollback page verification failed"
         }
-        check(readItemsByContainer(WorkspaceContainerType.HOME).canonicalItems() == commit.previousItems) {
+        check(restored.items == commit.previousItems) {
             "portable HOME rollback item verification failed"
         }
     }
@@ -313,6 +266,110 @@ abstract class WorkspaceDao {
         upsertItems(listOf(updatedItem))
         return true
     }
+
+    private suspend fun planPortableHomePlacementsUnsafe(
+        snapshot: WorkspacePortableSnapshot.Snapshot,
+    ): WorkspacePortableHomeRestoreCommit {
+        // Reuse the codec as the defensive structural/geometry validation authority even for direct
+        // callers that did not arrive through LauncherPortableRestoreImport.
+        WorkspacePortableSnapshot.encode(snapshot)
+
+        val previousPages = readPagesByContainer(WorkspaceContainerType.HOME)
+        val previousItems = readItemsByContainer(WorkspaceContainerType.HOME).canonicalItems()
+        val currentById = previousItems.associateBy { it.itemId }
+        check(currentById.size == previousItems.size) {
+            "current HOME workspace contains duplicate item identities"
+        }
+
+        val orderedPages = WorkspacePagedPlacement.ordered(snapshot.pages)
+        val targetPlacements = orderedPages.flatMap { page ->
+            page.placements.map { placement -> page to placement }
+        }
+        val targetItemIds = targetPlacements.map { (_, placement) -> placement.itemId }
+        check(targetItemIds.size == targetItemIds.distinct().size) {
+            "portable HOME snapshot contains duplicate item identities"
+        }
+        check(targetItemIds.toSet() == currentById.keys) {
+            "portable HOME snapshot cannot be rebound: item identities must exactly match the current HOME app set"
+        }
+        check(
+            previousItems.all {
+                it.itemType == WorkspaceItemType.APP && !it.appKey.isNullOrBlank()
+            }
+        ) {
+            "portable HOME restore does not yet support shortcut, folder, widget, or unresolved app rebinding"
+        }
+
+        val nonHomePageIds = readAllPages()
+            .asSequence()
+            .filter { it.containerType != WorkspaceContainerType.HOME }
+            .map { it.pageId }
+            .toSet()
+        check(orderedPages.none { it.pageId in nonHomePageIds }) {
+            "portable HOME snapshot page identity collides with non-HOME state"
+        }
+
+        val appliedPages = orderedPages.map { page ->
+            WorkspacePageEntity(
+                pageId = page.pageId,
+                containerType = WorkspaceContainerType.HOME,
+                rank = page.rank,
+            )
+        }
+        val appliedItems = orderedPages.flatMap { page ->
+            page.placements
+                .sortedWith(portablePlacementOrder)
+                .mapIndexed { rank, placement ->
+                    checkNotNull(currentById[placement.itemId]).copy(
+                        pageId = page.pageId,
+                        rank = rank,
+                        cellX = placement.cellX,
+                        cellY = placement.cellY,
+                        spanX = placement.spanX,
+                        spanY = placement.spanY,
+                    )
+                }
+        }.canonicalItems()
+
+        return WorkspacePortableHomeRestoreCommit(
+            previousPages = previousPages,
+            previousItems = previousItems,
+            appliedPages = appliedPages,
+            appliedItems = appliedItems,
+        )
+    }
+
+    private suspend fun applyPortableHomeRestoreCommitUnsafe(
+        commit: WorkspacePortableHomeRestoreCommit,
+    ) {
+        val current = readPortableHomeStateUnsafe()
+        check(current.pages == commit.previousPages && current.items == commit.previousItems) {
+            "portable HOME apply refused because workspace changed after restore planning"
+        }
+
+        val nonHomePageIds = readAllPages()
+            .asSequence()
+            .filter { it.containerType != WorkspaceContainerType.HOME }
+            .map { it.pageId }
+            .toSet()
+        check(commit.appliedPages.none { it.pageId in nonHomePageIds }) {
+            "portable HOME apply refused because a target page identity now collides with non-HOME state"
+        }
+
+        replaceHomeStateUnsafe(commit.appliedPages, commit.appliedItems)
+        val applied = readPortableHomeStateUnsafe()
+        check(applied.pages == commit.appliedPages) {
+            "portable HOME page readback verification failed"
+        }
+        check(applied.items == commit.appliedItems) {
+            "portable HOME item readback verification failed"
+        }
+    }
+
+    private suspend fun readPortableHomeStateUnsafe(): WorkspacePortableHomeState = WorkspacePortableHomeState(
+        pages = readPagesByContainer(WorkspaceContainerType.HOME),
+        items = readItemsByContainer(WorkspaceContainerType.HOME).canonicalItems(),
+    )
 
     private suspend fun replaceHomeStateUnsafe(
         pages: List<WorkspacePageEntity>,
