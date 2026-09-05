@@ -26,6 +26,7 @@ import com.goreecloud.launcher.core.launcher.GoreeCloudIndexIntegration
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
+import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
@@ -80,13 +81,18 @@ class MainActivity : ComponentActivity() {
             },
         )
         lifecycleScope.launch {
-            val recovery = LauncherPortableRestoreRecoveryCoordinator(this@MainActivity).reconcile()
-            if (LauncherPortableRestoreStartupGate.allowsMutations(recovery)) {
-                // onResume may have run while recovery was still pending and correctly skipped
-                // workspace reconciliation. Finish that deferred startup work before opening the
-                // normal mutation surface so recovery completion cannot strand Room activation.
-                workspaceRuntimeCoordinator.reconcileAndActivate()
-            }
+            val recovery = LauncherPortableRestoreStartupSequence.reconcileBeforeMutation(
+                recoverPortableRestore = {
+                    LauncherPortableRestoreRecoveryCoordinator(this@MainActivity).reconcile()
+                },
+                reconcileWorkspace = {
+                    // onResume may have run while recovery was still pending and correctly skipped
+                    // workspace reconciliation. Finish that deferred startup work before opening the
+                    // normal mutation surface so recovery completion cannot strand Room activation.
+                    workspaceRuntimeCoordinator.reconcileAndActivate()
+                    Unit
+                },
+            )
             portableRestoreRecoveryResult.value = recovery
         }
         refreshHomeRoleState()
