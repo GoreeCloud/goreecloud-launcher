@@ -63,7 +63,7 @@ platform_systems:
       - docs/development/launcher-portable-preferences.md
       - docs/development/portable-restore-coordinator.md
       - docs/development/portable-restore-preview.md
-    notes: Versioned workspace-placement and explicit preference snapshots have validation-before-write, pair-level Home-grid compatibility, reviewed apply, concrete Room/DataStore persistence, a durable pre-Room device-local recovery journal, exact-state interrupted-operation reconciliation, readback verification, guarded compensation, and emulator-targeted recovery tests. This remains partial Development recovery: the coordinator is not yet an accepted production startup gate, clean-target/cross-device identity reconstruction and complete Launcher-owned recovery scope remain incomplete, and accepted Everkeep integration is not established.
+    notes: Versioned workspace-placement and explicit preference snapshots have validation-before-write, pair-level Home-grid compatibility, reviewed apply, concrete Room/DataStore persistence, a durable pre-Room device-local recovery journal, exact-state interrupted-operation reconciliation, readback verification, guarded compensation, and emulator-targeted recovery tests. This remains partial Development recovery; the coordinator is not yet an accepted production startup gate, clean-target/cross-device identity reconstruction and complete Launcher-owned recovery scope remain incomplete, and accepted Everkeep integration is not established.
   glaze_ui:
     result: applicable-migration-required
     version: "1.1.0"
