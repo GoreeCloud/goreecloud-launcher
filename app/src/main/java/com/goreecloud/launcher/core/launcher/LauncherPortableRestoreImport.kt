@@ -162,9 +162,9 @@ object LauncherPortableRestoreImport {
     private fun updateLengthDelimited(digest: MessageDigest, value: String) {
         val bytes = value.toByteArray(StandardCharsets.UTF_8)
         digest.update(bytes.size.toString().toByteArray(StandardCharsets.US_ASCII))
-        digest.update(0)
+        digest.update(0.toByte())
         digest.update(bytes)
-        digest.update(0)
+        digest.update(0.toByte())
     }
 
     private fun constantTimeEquals(actual: String, expected: String): Boolean =
