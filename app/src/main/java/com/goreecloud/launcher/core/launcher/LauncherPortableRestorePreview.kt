@@ -5,7 +5,8 @@ package com.goreecloud.launcher.core.launcher
  *
  * This object has no Room, DataStore, package/profile, widget, HOME, or writer authority. It uses
  * the same complete decode and pair-compatibility validation as [LauncherPortableRestoreImport]
- * and exposes only aggregate workspace geometry/counts plus the seven reviewed preference values.
+ * and exposes aggregate workspace geometry/counts, the seven reviewed preference values, and one
+ * opaque review token that can bind a later apply to the exact reviewed input pair.
  */
 object LauncherPortableRestorePreview {
     data class Summary(
@@ -23,7 +24,10 @@ object LauncherPortableRestorePreview {
     )
 
     sealed interface Result {
-        data class Ready(val summary: Summary) : Result
+        data class Ready(
+            val summary: Summary,
+            val reviewToken: String,
+        ) : Result
 
         data class Rejected(
             val source: LauncherPortableRestoreImport.RejectionSource,
@@ -49,7 +53,7 @@ object LauncherPortableRestorePreview {
             val workspace = validation.workspace
             val preferences = validation.preferences
             Result.Ready(
-                Summary(
+                summary = Summary(
                     gridColumns = workspace.grid.columns,
                     gridRows = workspace.grid.rows,
                     pageCount = workspace.pages.size,
@@ -61,7 +65,8 @@ object LauncherPortableRestorePreview {
                     iconScale = preferences.iconScale,
                     layoutLocked = preferences.layoutLocked,
                     indexHomeMode = preferences.indexHomeMode,
-                )
+                ),
+                reviewToken = validation.reviewToken,
             )
         }
     }
