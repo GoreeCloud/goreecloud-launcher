@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -23,6 +24,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexIntegration
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
+import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
+import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
@@ -54,6 +57,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var workspaceRepository: WorkspaceRepository
     private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
     private val defaultHomeState = MutableStateFlow(false)
+    private val portableRestoreRecoveryResult =
+        MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
 
     private val homeRoleRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -74,14 +79,33 @@ class MainActivity : ComponentActivity() {
                 LauncherDatabaseProvider.get(this).workspaceDao()
             },
         )
+        lifecycleScope.launch {
+            portableRestoreRecoveryResult.value =
+                LauncherPortableRestoreRecoveryCoordinator(this@MainActivity).reconcile()
+        }
         refreshHomeRoleState()
 
         setContent {
+            val themeMode by themeRepository.themeMode.collectAsState(initial = themeRepository.defaultMode)
+            val portableRestoreRecovery by portableRestoreRecoveryResult.collectAsStateWithLifecycle()
+
+            if (!LauncherPortableRestoreStartupGate.allowsMutations(portableRestoreRecovery)) {
+                GlazeTheme(themeMode) {
+                    Box(
+                        modifier = Modifier
+                            .statusBarsPadding()
+                            .padding(24.dp),
+                    ) {
+                        Text(LauncherPortableRestoreStartupGate.userMessage(portableRestoreRecovery))
+                    }
+                }
+                return@setContent
+            }
+
             val apps by appsRepository.apps.collectAsStateWithLifecycle(initialValue = emptyList())
             val launcherPreferences by launcherPreferencesRepository.preferences.collectAsStateWithLifecycle(
                 initialValue = launcherPreferencesRepository.defaults,
             )
-            val themeMode by themeRepository.themeMode.collectAsState(initial = themeRepository.defaultMode)
             val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
                 initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
             )
@@ -315,7 +339,10 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshHomeRoleState()
-        if (::workspaceRuntimeCoordinator.isInitialized) {
+        if (
+            ::workspaceRuntimeCoordinator.isInitialized &&
+            LauncherPortableRestoreStartupGate.allowsMutations(portableRestoreRecoveryResult.value)
+        ) {
             lifecycleScope.launch {
                 workspaceRuntimeCoordinator.reconcileAndActivate()
             }
