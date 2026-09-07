@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -26,16 +26,22 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
  * Native Theme Manager presentation foundation for the currently implemented
- * System/Light/Dark appearance modes.
+ * System/Light/Dark/Deep Dark appearance modes under GLAZE UI V1.1.
  *
  * This surface deliberately does not imply icon-pack discovery, icon masking,
- * Deep Dark, wallpaper palettes, expression controls, or full Glaze UI 2.1
- * application acceptance. Those remain separately gated capabilities.
+ * wallpaper sampling, environmental color memory, expression controls, or
+ * complete V1.1 application acceptance. Those remain separately gated.
  */
 @Composable
 fun ThemeManagerSurface(
@@ -69,7 +75,10 @@ fun ThemeManagerSurface(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = onBack) { Text("Done") }
+                TextButton(
+                    onClick = onBack,
+                    modifier = Modifier.heightIn(min = GlazeMetrics.touchAssistanceTarget),
+                ) { Text("Done") }
             }
 
             GlazeThemeManagerCatalog.choices.forEach { choice ->
@@ -93,7 +102,7 @@ fun ThemeManagerSurface(
                 ) {
                     Text("Theme Manager foundation", fontWeight = FontWeight.SemiBold)
                     Text(
-                        "System, Light and Dark use the current native Glaze mapping. Icon packs, masking, Deep Dark, wallpaper-derived palettes and advanced expression controls remain separate Development work.",
+                        "System, Light, Dark and Deep Dark use the current V1.1 structural mapping. The preview includes only bounded non-semantic atmosphere. Icon packs, masking, wallpaper-derived palettes, environmental sampling and advanced expression controls remain separate Development work.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -129,7 +138,11 @@ private fun ThemeChoiceCard(
 
             GlazeTheme(choice.mode) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clearAndSetSemantics {
+                            contentDescription = choice.previewAccessibilityLabel
+                        },
                     shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
                     color = MaterialTheme.colorScheme.background,
                 ) {
@@ -154,15 +167,15 @@ private fun ThemeChoiceCard(
                         Column(Modifier.weight(1f)) {
                             Text("GoreeCloud", fontWeight = FontWeight.SemiBold)
                             Text(
-                                "Canvas, surface and identity preview",
+                                "Structural appearance with restrained V1.1 atmosphere",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Surface(
                             modifier = Modifier.size(24.dp),
-                            shape = RoundedCornerShape(GlazeMetrics.radiusSmall),
-                            color = MaterialTheme.colorScheme.secondary,
+                            shape = RoundedCornerShape(GlazeMetrics.opticalMicro),
+                            color = GlazeAtmosphere.softAmber,
                             content = {},
                         )
                     }
@@ -170,11 +183,29 @@ private fun ThemeChoiceCard(
             }
 
             if (selected) {
-                FilledTonalButton(onClick = onSelect, modifier = Modifier.fillMaxWidth()) {
-                    Text("Selected")
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = GlazeMetrics.touchAssistanceTarget)
+                        .semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            stateDescription = choice.selectedAccessibilityState
+                        },
+                    shape = RoundedCornerShape(GlazeMetrics.radiusControl),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("Selected", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             } else {
-                OutlinedButton(onClick = onSelect, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = onSelect,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = GlazeMetrics.touchAssistanceTarget),
+                ) {
                     Text("Use ${choice.title}")
                 }
             }

@@ -1,96 +1,105 @@
-# Glaze UI Adoption — GoreeCloud Launcher
+# GLAZE UI V1.1 Migration — GoreeCloud Launcher
 
-## Target baseline
+Status: **Migration in progress / Development**  
+Official target: **GLAZE UI V1.1 (`1.1.0`)**  
+Canonical repository: `GoreeCloud/goreecloud-glaze-ui`  
+Exact Stable release source authority: `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`  
+Stable release tag: `v1.1.0`  
+Production eligible on the Glaze UI gate: **no**  
+Adoption mode: native Android semantic/structural mapping with bounded optical refinement  
+Automated contract: `scripts/check_glaze_ui.py`
 
-- Canonical design system: `GoreeCloud/goreecloud-glaze-ui`
-- Target: Glaze UI 2.1 Stable
-- Canonical token version reviewed: 2.1.0
-- Reviewed canonical revision: `c49113eb8b93c267613fdf1bbca1f814495acad7`
-- Adoption state: Adoption Candidate
-- Production eligible on Glaze UI gate: no
-- Adoption mode: native Android semantic mapping
-- Automated contract: `scripts/check_glaze_ui.py`
+GLAZE UI V1.1 is the sole current GoreeCloud design-system adoption target. This record defines Launcher’s repository-local V1.1 Development mapping. It does **not** establish complete V1.1 consumer conformance, rendered/accessibility/device acceptance, production approval, release approval, or Stable qualification. No V1.0 or pre-reset acceptance is inherited as V1.1 acceptance.
 
-The reviewed revision is the canonical Stable release anchor for Glaze UI 2.1.0. This adoption record establishes current-Stable migration work in Launcher; it does not certify the application for production or imply complete Glaze UI 2.1 conformance.
+## Authority boundary
 
-## Implemented 2.1 mapping
+The implementation-facing authority is the exact Stable V1.1 release above, including `GLAZE_UI_V1_1.md`, `contracts/v1.1/optical-refinement.json`, `tokens/glaze-v1.1-atmosphere.json`, `css/glaze-v1.1-appearance.css`, `acceptance/v1.1-stable.md`, and the current V1 validator.
 
-GoreeCloud Launcher maps the Glaze UI semantics it consumes into Jetpack Compose rather than importing a web or third-party UI runtime.
+Launcher maps applicable V1.1 contracts into first-party Jetpack Compose code. It does not embed a remote UI runtime or create a competing design-system authority.
 
-The current 2.1 Adoption Candidate mapping includes:
+## Implemented V1.1 source mapping
 
-- the canonical spacing token keys `space.1`, `space.2`, `space.3`, `space.4`, `space.5`, `space.6`, `space.8`, `space.10`, `space.12`, and `space.16`, mapped respectively to 4/8/12/16/20/24/32/40/48/64 dp;
-- `radius.sm`, `radius.md`, `radius.control`, `radius.lg`, `radius.xl`, `radius.2xl`, and `radius.pill`, mapped to 10/14/16/22/28/32/999 dp;
-- the 48 dp current-contract general interaction floor from `currentContract.touchMinimum`;
-- a mapped 56 dp touch-assistance target from `currentContract.touchAssistanceMinimum` for later accessibility-resolution integration;
-- Light and Dark foundation/identity colors retained by the promoted 2.1 token map;
-- Canvas/Surface-oriented content presentation through native Material 3 surfaces;
-- native Android buttons, fields, dialogs, and explicit move controls for deterministic accessibility paths;
-- direct persisted System/Light/Dark theme selection support in the native theme repository; and
-- a native Theme Manager surface/catalog foundation with bounded previews for the currently implemented appearance modes.
+The current Development branch:
 
-The canonical token map also retains the historical compatibility token `target.minimum=44`. Launcher does not use that compatibility value to lower the current 2.1 mobile interaction contract: the active mapped floor remains 48 dp because the 2.1 `currentContract.touchMinimum` is authoritative for migrated current-contract interaction.
+- pins machine version `1.1.0` and exact Stable release revision `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`;
+- preserves inherited V1 spacing values 4/8/12/16/20/24/32/48/64 dp where directly consumed;
+- preserves inherited V1 structural radius tiers of 12 dp small, 20 dp standard, 28 dp soft/panel, and pill;
+- records V1.1 optical geometry references of 8/16/24/32 dp plus capsule separately from structural radii;
+- preserves the 48 dp normal touch-oriented interaction floor and 56 dp Touch Assistance / far-view target;
+- preserves the inherited Light/Dark structural appearance values;
+- adds the explicit V1.1 Deep Dark structural appearance using canvas `#05070A`, base `#0D1015`, panel-equivalent `rgba(18,22,29,0.90)`, primary text `#F5F7FA`, and secondary text `#ABB4C2`;
+- exposes System, Light, Dark, and Deep Dark through the existing device-local Theme Manager persistence path; and
+- records the V1.1 Deep Teal + Soft Amber atmospheric primitives separately from Material semantic colors.
 
-The native metric mapping lives in `app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt`. The Light/Dark color mapping lives in `app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt`. The native Theme Manager foundation lives in `GlazeThemeManagerCatalog.kt` and `ThemeManagerSurface.kt`.
+`GlazeAtmosphere.kt` is deliberately non-semantic. Teal/amber atmosphere cannot establish protected, privacy, identity, recovery, availability, focus, selection, or other authoritative state. The current Theme Manager preview uses only a small static Soft Amber decorative counter-light. It does not implement content sampling, persistent Environmental Color Memory, animated atmosphere, or remote color derivation.
 
-The Theme Manager surface is source foundation in this slice and is not yet wired into Launcher Settings navigation. Existing Settings continues to expose its current appearance control until a separately reviewed wiring slice is accepted.
+`space10` remains a Launcher-owned 40 dp layout convenience and is not claimed as a canonical Glaze token.
 
-## 2.1 material and accessibility boundary
+## V1.1 authority resolution
 
-Glaze UI 2.1 keeps the material hierarchy Canvas → Surface → Soft Glaze → Glaze → Deep Glaze → Live Glaze and adds stronger Material Clarity, density, performance-profile, material-budget, and deterministic Accessibility Resolution Matrix requirements.
+Launcher preserves the V1.1 priority order: producer-authoritative protected semantics, forced-color/native accessibility resolution, Reduced Motion, Reduced Transparency, Increased Contrast/show-boundaries, large text/Touch Assistance, material clarity/platform capability, and only then atmospheric/application expression.
 
-Launcher has migrated its bounded spacing, shape, target, and Light/Dark foundation mapping, but this Adoption Candidate does not yet claim complete material-role coverage, clarity-mode behavior, material budgeting, density adaptation, performance fallback, or accessibility-resolution integration across every Home, Dock, Apps, settings, dialog, gesture, and search surface.
+Atmosphere is therefore removable. Meaning, actions, focus, state, and hierarchy must remain intact without it.
 
-Reduced transparency must resolve to Solid where required by the 2.1 contract. Touch-assistance behavior must apply the 56 dp resolution target where applicable. Large text/reflow, forced colors/system semantic authority, increased contrast, reduced motion, and assistive-technology behavior remain application-specific acceptance work rather than being inferred from token presence.
+## System Shell classification
 
-## Theme Manager foundation boundary
+Launcher Home is a **Workspace** presentation surface. Launcher Settings and Theme Manager are **Application** surfaces. These classifications affect presentation and interaction only; they grant no operating-system, window-manager, Control Center, notification, authentication, search-indexing, or other system authority.
 
-The native Theme Manager foundation currently represents only the persisted System, Light, and Dark modes that Launcher already implements. It adds stable user-facing metadata, bounded native previews, and direct `setMode` persistence so future Settings wiring does not depend on cycling through unrelated modes.
+GoreeCloud Index remains the universal-search/indexing authority. Theme Manager is not Universal Search, Control Center, a Critical System surface, Signature, or Intelligence merely because Glaze defines those concepts.
 
-This does not implement or claim Deep Dark, wallpaper-derived/user-selected palettes, expression controls, third-party icon-pack discovery, icon-pack application, icon masking, per-app icon replacement, optical normalization beyond the existing bounded icon-size preference, or complete Glaze Theme Engine behavior.
+## Presentation rule
 
-## Ordering interaction decision
+Launcher follows the inherited V1 rule: **Solid where users read or make explicit critical decisions. Glazed where users interact with transient navigation, command, search, control, or feedback chrome.**
 
-Launcher retains explicit move-earlier/move-later controls as the deterministic non-drag accessibility path for ordering. Direct workspace manipulation must call the same application-owned ordering/mutation authority rather than becoming authoritative for workspace truth. Cancellation must leave workspace state unchanged.
+Durable settings, explanatory content, and destructive or security-sensitive decisions remain certainty-first. V1.1 atmosphere must never manufacture authorization, privacy, security, backup, recovery, identity, or trust state owned by another GoreeCloud system or Android.
 
-A separate test-only Glaze Motion evaluation may map Experimental motion semantics onto existing domain operations. Glaze Motion remains Experimental and is not a production dependency, does not replace the Stable Glaze UI 2.1 contract, and cannot satisfy the Launcher production gate.
+## Theme Manager boundary
 
-## Appearance boundary
+The reachable Theme Manager now supports System, Light, Dark, and Deep Dark. Settings navigation remains saveable, unknown/stale destination values fail closed to Settings root, and only a different appearance choice may invoke caller-owned persistence.
 
-Light and Dark use the promoted Glaze UI 2.1 Stable token values consumed by Launcher. System follows Android system Light/Dark state. Deep Dark is not approximated with an invented palette and remains an explicit application acceptance gap until a reviewed native mapping is implemented.
+Deep Dark is now implemented as a source-level structural appearance instead of being approximated from a retired palette. This does not prove Deep Dark rendered contrast/accessibility acceptance. Calm/Balanced/Expressive profiles, wallpaper-derived/user-selected palettes, icon-pack discovery/application, icon masking, per-app icon replacement, Environmental Color Memory, and broader Theme Engine behavior remain separate work.
 
-Launcher personalization does not yet claim complete Appearance, Accent Seed, Material Clarity, Expression, or density preference support.
+## Accessibility and resilience boundary
 
-## Form-factor and accessibility boundary
+The V1.1 source migration does not by itself establish:
 
-This mapping does not constitute phone/tablet/foldable Glaze UI 2.1 acceptance. Representative rendered/native accessibility and real-device review remain required. Tablet and large-screen composition must not become a stretched phone surface; workspace, Theme Manager, Index, and settings surfaces require appropriate window/posture-aware composition where applicable.
+- Reduced Motion behavior across all Launcher surfaces;
+- Reduced Transparency / solid fallback resolution;
+- Increased Contrast and forced-colors/native equivalents;
+- 200% text/reflow;
+- RTL/localization;
+- platform Touch Assistance preference resolution;
+- TalkBack, Switch Access, keyboard/D-pad focus and announcement timing;
+- phone/tablet/foldable adaptive composition;
+- performance/power fallback behavior;
+- complete V1.1 atmospheric degradation behavior; or
+- Human Visual Excellence acceptance.
 
-The current mapping also does not establish complete reduced-transparency, increased-contrast, large-text/reflow, forced-colors, TalkBack, switch-access, touch-assistance, haptic, or reduced-motion acceptance. These requirements remain mandatory before Launcher can be considered aligned-current-stable and production eligible on the Glaze UI gate.
+The 48/56 dp target mapping is source evidence only. Theme Manager uses the 56 dp target conservatively for primary appearance actions; that does not prove platform Touch Assistance detection or complete accessibility acceptance.
 
-## Historical migration evidence
+## Motion boundary
 
-The prior Glaze UI 2.0 Adoption Candidate and earlier 1.x migrations remain historical implementation/migration evidence only. They do not satisfy the current 2.1 Stable requirement and must not be used as a current production-conformance claim.
+Glaze Motion remains separately Experimental. This migration introduces no Glaze Motion production dependency and no animated atmospheric requirement.
 
-## Not yet claimed
+## Historical evidence boundary
 
-- Full Glaze UI 2.1 conformance.
-- Aligned-current-stable production acceptance.
-- Complete Soft Glaze/Glaze/Deep Glaze/Live Glaze role mapping.
-- Complete Material Clarity or material-budget behavior.
-- Complete density/performance profile adaptation.
-- Deep Dark appearance acceptance.
-- Accent Seed and expression-mode personalization.
-- Theme Manager navigation integration into current Launcher Settings.
-- Third-party icon-pack discovery/application or icon masking.
-- Complete 2.1 motion-token mapping or reduced-motion acceptance.
-- Complete Accessibility Resolution Matrix integration.
-- Complete increased-contrast or reduced-transparency acceptance.
-- Large-text/reflow or forced-colors acceptance.
-- Touch-assistance runtime acceptance despite the mapped 56 dp target token.
-- Complete phone/tablet/foldable adaptive-layout acceptance.
-- TalkBack or switch-access acceptance.
-- Phone/tablet rendered/native visual acceptance.
-- Representative physical-device launcher acceptance.
-- Glaze Motion Candidate, Stable, or production adoption.
+V1.0 and pre-reset Glaze UI 2.x adoption commits, pull requests, CI runs, and discussion remain immutable development history. They may explain implementation ancestry, but they do not define the current target and do not satisfy V1.1 application acceptance.
 
-These remain application-specific gates even though Glaze UI 2.1 itself is Stable.
+## Acceptance still required
+
+- Complete V1.1 component/state/material mapping applicable to Launcher.
+- Rendered review of Light, Dark, and Deep Dark across Home, Apps, Settings, Theme Manager, dialogs, and workspace editing.
+- Reduced Motion, Reduced Transparency, Increased Contrast, forced-color/native-equivalent behavior, and degradation-order validation.
+- 200% text/reflow, RTL/localization, and Touch Assistance resolution.
+- TalkBack, Switch Access, keyboard/D-pad/focus-order, and spoken-announcement acceptance.
+- Representative phone/tablet/foldable adaptive composition.
+- Representative physical-device Theme Manager navigation/persistence and Home/Apps/Settings acceptance.
+- Performance/power fallback evidence and Human Visual Excellence review.
+- Required Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, Manager, and Index integration acceptance.
+- Exact-head CI, production signing/distribution, release approval, and Stable qualification.
+
+Passing source, unit, build, schema, emulator, or registry checks remains Development evidence only.
+
+## Rollback
+
+If this migration causes a regression, revert the exact Launcher V1.1 migration candidate to the prior validated V1.0 Development head. That is a source rollback boundary, not authority to relabel V1.0 as the current design-system target. Do not weaken the canonical V1.1 contract to preserve a local implementation.
