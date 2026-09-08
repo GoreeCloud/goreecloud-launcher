@@ -6,49 +6,16 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -68,11 +35,7 @@ import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
 import com.goreecloud.launcher.ui.theme.GlazeThemeMode
 
-enum class LauncherSurfaceMode {
-    HOME,
-    DRAWER,
-    SETTINGS,
-}
+enum class LauncherSurfaceMode { HOME, DRAWER, SETTINGS }
 
 @Composable
 fun LauncherBetaRoot(
@@ -117,7 +80,6 @@ fun LauncherBetaRoot(
             onOpenDrawer = { surfaceModeName = LauncherSurfaceMode.DRAWER.name },
             onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
         )
-
         LauncherSurfaceMode.DRAWER -> AppDrawerSurface(
             apps = apps,
             preferences = preferences,
@@ -126,7 +88,6 @@ fun LauncherBetaRoot(
             onHome = { surfaceModeName = LauncherSurfaceMode.HOME.name },
             onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
         )
-
         LauncherSurfaceMode.SETTINGS -> LauncherSettingsSurface(
             preferences = preferences,
             themeMode = themeMode,
@@ -177,15 +138,34 @@ private fun HomeSurface(
     val dockApps = remember(appsByKey, workspace.dockKeys) {
         workspace.dockKeys.mapNotNull(appsByKey::get).take(MAX_DOCK_ITEMS)
     }
-    val universalSearchSwipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
+    val swipeThreshold = with(LocalDensity.current) { 64.dp.toPx() }
 
-    // MainActivity uses FLAG_SHOW_WALLPAPER. Keep Home translucent so Android renders the
-    // user's actual wallpaper behind this window without wallpaper/storage permissions.
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(onOpenUniversalSearch, onOpenDrawer, swipeThreshold) {
+                var drag = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { drag = 0f },
+                    onDragCancel = { drag = 0f },
+                    onDragEnd = {
+                        when {
+                            drag >= swipeThreshold -> onOpenUniversalSearch()
+                            drag <= -swipeThreshold -> onOpenDrawer()
+                        }
+                        drag = 0f
+                    },
+                    onVerticalDrag = { change, amount ->
+                        change.consume()
+                        drag += amount
+                    },
+                )
+            },
+    ) {
         Box(
             Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.08f))
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.045f))
         )
 
         Column(
@@ -193,128 +173,91 @@ private fun HomeSurface(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = GlazeMetrics.space4),
+                .padding(horizontal = 14.dp, vertical = 8.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(72.dp)
-                    .pointerInput(onOpenUniversalSearch, universalSearchSwipeThreshold) {
-                        var downwardDistance = 0f
-                        detectVerticalDragGestures(
-                            onDragStart = { downwardDistance = 0f },
-                            onDragCancel = { downwardDistance = 0f },
-                            onDragEnd = {
-                                if (downwardDistance >= universalSearchSwipeThreshold) {
-                                    onOpenUniversalSearch()
-                                }
-                                downwardDistance = 0f
-                            },
-                            onVerticalDrag = { _, dragAmount ->
-                                if (dragAmount > 0f) {
-                                    downwardDistance += dragAmount
-                                }
-                            },
-                        )
-                    }
-            )
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (!isDefaultHome) {
+                    Surface(
+                        onClick = onRequestHomeRole,
+                        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.76f),
+                        tonalElevation = 2.dp,
+                    ) {
+                        Text(
+                            "Set as Home",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                } else {
+                    Spacer(Modifier.width(1.dp))
+                }
+
                 Surface(
-                    shape = RoundedCornerShape(GlazeMetrics.radiusControl),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
-                    tonalElevation = 2.dp,
+                    onClick = onOpenSettings,
+                    shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
                 ) {
-                    TextButton(onClick = onOpenSettings) { Text("Launcher settings") }
+                    Text(
+                        "•••",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
                 }
             }
 
             if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) {
-                Spacer(Modifier.height(GlazeMetrics.space2))
+                Spacer(Modifier.height(10.dp))
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-                    tonalElevation = 3.dp,
                     onClick = onOpenUniversalSearch,
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget)
-                            .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
-                    ) {
-                        Text(
-                            "Search GoreeCloud",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            "Apps, files, people, calendar and more with GoreeCloud Index",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-
-            if (!isDefaultHome) {
-                Spacer(Modifier.height(GlazeMetrics.space3))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.94f)
-                    ),
+                    shape = RoundedCornerShape(22.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+                    tonalElevation = 2.dp,
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space4),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Use GoreeCloud as Home", fontWeight = FontWeight.SemiBold)
-                            Text(
-                                "Set it as your default launcher to test the full Home experience.",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                        Spacer(Modifier.width(GlazeMetrics.space3))
-                        Button(onClick = onRequestHomeRole) { Text("Set default") }
+                        Text("⌕", style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            "Search GoreeCloud",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
 
-            Spacer(Modifier.height(GlazeMetrics.space3))
+            Spacer(Modifier.height(10.dp))
 
             BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 if (favoriteApps.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Surface(
-                            shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
-                        ) {
-                            Text(
-                                "Your Home is empty. Open Apps, long-press an app, and add it to Home.",
-                                modifier = Modifier.padding(GlazeMetrics.space5),
-                                textAlign = TextAlign.Center,
-                            )
-                        }
+                        Text(
+                            "Swipe up for apps",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 } else {
-                    val tileHeight = (maxHeight / preferences.homeRows.toFloat()).coerceAtLeast(76.dp)
+                    val tileHeight = (maxHeight / preferences.homeRows.toFloat()).coerceAtLeast(72.dp)
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(preferences.homeColumns),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = GlazeMetrics.space2),
-                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                        contentPadding = PaddingValues(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         items(favoriteApps, key = { it.workspaceKey() }) { app ->
                             LauncherAppTile(
@@ -324,7 +267,6 @@ private fun HomeSurface(
                                 onClick = { onLaunchApp(app) },
                                 onLongClick = { onManageApp(app) },
                                 modifier = Modifier.height(tileHeight),
-                                translucentLabel = true,
                             )
                         }
                     }
@@ -334,15 +276,12 @@ private fun HomeSurface(
             if (dockApps.isNotEmpty()) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.80f),
+                    shape = RoundedCornerShape(26.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
                     tonalElevation = 3.dp,
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(
-                            horizontal = GlazeMetrics.space2,
-                            vertical = GlazeMetrics.space2,
-                        ),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -353,34 +292,22 @@ private fun HomeSurface(
                                 showLabel = false,
                                 onClick = { onLaunchApp(app) },
                                 onLongClick = { onManageApp(app) },
-                                modifier = Modifier.width(68.dp).height(72.dp),
-                                translucentLabel = true,
+                                modifier = Modifier.width(68.dp).height(68.dp),
                             )
                         }
                     }
                 }
-                Spacer(Modifier.height(GlazeMetrics.space2))
             }
 
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(GlazeMetrics.radiusControl),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-                tonalElevation = 3.dp,
-                onClick = onOpenDrawer,
-            ) {
-                Text(
-                    "Apps",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = GlazeMetrics.comfortableTarget)
-                        .padding(vertical = GlazeMetrics.space3),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
+            Spacer(Modifier.height(7.dp))
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Surface(
+                    modifier = Modifier.width(42.dp).height(4.dp),
+                    shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f),
+                ) {}
             }
-            Spacer(Modifier.height(GlazeMetrics.space2))
+            Spacer(Modifier.height(3.dp))
         }
     }
 }
@@ -396,74 +323,84 @@ private fun AppDrawerSurface(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val filteredApps = remember(apps, query) {
-        val normalized = query.trim().lowercase()
-        if (normalized.isEmpty()) apps
-        else apps.filter { app ->
-            app.label.toString().lowercase().contains(normalized) ||
-                app.componentName.packageName.lowercase().contains(normalized)
+        val needle = query.trim().lowercase()
+        if (needle.isEmpty()) apps else apps.filter {
+            it.label.toString().lowercase().contains(needle) ||
+                it.componentName.packageName.lowercase().contains(needle)
         }
     }
+    val dismissThreshold = with(LocalDensity.current) { 64.dp.toPx() }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .pointerInput(onHome, dismissThreshold) {
+                    var drag = 0f
+                    detectVerticalDragGestures(
+                        onDragStart = { drag = 0f },
+                        onDragCancel = { drag = 0f },
+                        onDragEnd = {
+                            if (drag >= dismissThreshold) onHome()
+                            drag = 0f
+                        },
+                        onVerticalDrag = { _, amount -> drag += amount },
+                    )
+                },
         ) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Surface(
+                    modifier = Modifier.width(38.dp).height(4.dp),
+                    shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                ) {}
+            }
+            Spacer(Modifier.height(10.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Apps", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        "${apps.size} installed app${if (apps.size == 1) "" else "s"}",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                Text("Apps", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Row {
+                    TextButton(onClick = onOpenSettings) { Text("Settings") }
+                    TextButton(onClick = onHome) { Text("Done") }
                 }
-                TextButton(onClick = onOpenSettings) { Text("Settings") }
-                TextButton(onClick = onHome) { Text("Home") }
             }
 
-            Spacer(Modifier.height(GlazeMetrics.space3))
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("Search apps") },
-                placeholder = { Text("Name or package") },
-                shape = RoundedCornerShape(GlazeMetrics.radiusControl),
+                placeholder = { Text("Search apps") },
+                shape = RoundedCornerShape(22.dp),
             )
-            Spacer(Modifier.height(GlazeMetrics.space3))
+            Spacer(Modifier.height(10.dp))
 
-            if (filteredApps.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No apps found", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(preferences.drawerColumns),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = GlazeMetrics.space6),
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                ) {
-                    items(filteredApps, key = { it.workspaceKey() }) { app ->
-                        LauncherAppTile(
-                            app = app,
-                            iconScale = preferences.iconScale,
-                            showLabel = preferences.showLabels,
-                            onClick = { onLaunchApp(app) },
-                            onLongClick = { onManageApp(app) },
-                            modifier = Modifier.height(104.dp),
-                            translucentLabel = false,
-                        )
-                    }
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(preferences.drawerColumns),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(filteredApps, key = { it.workspaceKey() }) { app ->
+                    LauncherAppTile(
+                        app = app,
+                        iconScale = preferences.iconScale,
+                        showLabel = preferences.showLabels,
+                        onClick = { onLaunchApp(app) },
+                        onLongClick = { onManageApp(app) },
+                        modifier = Modifier.height(96.dp),
+                    )
                 }
             }
         }
@@ -492,240 +429,104 @@ private fun LauncherSettingsSurface(
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = GlazeMetrics.space5, vertical = GlazeMetrics.space4),
-            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space4),
+                .padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Launcher settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text("Home, Apps and appearance", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                Text("Launcher", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 TextButton(onClick = onBack) { Text("Done") }
             }
 
             SettingsCard("Home screen") {
-                Text("Grid", fontWeight = FontWeight.SemiBold)
-                Text(
-                    "${preferences.homeColumns} × ${preferences.homeRows}",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(GlazeMetrics.space2))
-                GridPresetRow(
-                    options = listOf(4 to 5, 4 to 6, 5 to 5, 5 to 6),
-                    selected = preferences.homeColumns to preferences.homeRows,
-                    onSelect = { (columns, rows) -> onSetHomeGrid(columns, rows) },
-                )
-                GridPresetRow(
-                    options = listOf(6 to 5, 6 to 6, 6 to 7),
-                    selected = preferences.homeColumns to preferences.homeRows,
-                    onSelect = { (columns, rows) -> onSetHomeGrid(columns, rows) },
-                )
-                Spacer(Modifier.height(GlazeMetrics.space3))
-                HorizontalDivider()
-                Spacer(Modifier.height(GlazeMetrics.space2))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Lock Home screen layout", fontWeight = FontWeight.SemiBold)
-                        Text(
-                            if (preferences.layoutLocked) {
-                                "Placement changes are blocked. Unlock here or hold the Home lock control for 5 seconds."
-                            } else {
-                                "Keep apps and other supported Home items in place until you unlock the layout."
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                Text("Grid: ${preferences.homeColumns} × ${preferences.homeRows}")
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(4 to 5, 4 to 6, 5 to 6).forEach { option ->
+                        OutlinedButton(onClick = { onSetHomeGrid(option.first, option.second) }) {
+                            Text("${option.first}×${option.second}")
+                        }
                     }
-                    Spacer(Modifier.width(GlazeMetrics.space3))
-                    Switch(
-                        checked = preferences.layoutLocked,
-                        onCheckedChange = onSetLayoutLocked,
-                    )
+                }
+                SettingSwitch("Lock layout", preferences.layoutLocked, onSetLayoutLocked)
+            }
+
+            SettingsCard("Apps") {
+                Text("Drawer columns: ${preferences.drawerColumns}")
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(4, 5, 6).forEach { columns ->
+                        OutlinedButton(onClick = { onSetDrawerColumns(columns) }) { Text(columns.toString()) }
+                    }
+                }
+                SettingSwitch("Show app labels", preferences.showLabels, onSetShowLabels)
+            }
+
+            SettingsCard("Icon size") {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("Small" to 0.85f, "Medium" to 1f, "Large" to 1.15f).forEach { (label, value) ->
+                        OutlinedButton(onClick = { onSetIconScale(value) }) { Text(label) }
+                    }
                 }
             }
 
-            SettingsCard("GoreeCloud Index") {
-                Text("Home search entry", fontWeight = FontWeight.SemiBold)
+            SettingsCard("GoreeCloud Search") {
                 Text(
-                    "Swipe down always opens GoreeCloud Index. Choose whether the Search GoreeCloud control also stays visible on Home.",
+                    "Swipe down always opens GoreeCloud Index.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.height(GlazeMetrics.space2))
-                if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) {
-                    FilledTonalButton(
-                        onClick = { onSetIndexHomeMode(GoreeCloudIndexHomeMode.PERMANENT) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Permanent on Home") }
-                } else {
-                    OutlinedButton(
-                        onClick = { onSetIndexHomeMode(GoreeCloudIndexHomeMode.PERMANENT) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Permanent on Home") }
-                }
-                if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY) {
-                    FilledTonalButton(
-                        onClick = { onSetIndexHomeMode(GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Swipe down only") }
-                } else {
-                    OutlinedButton(
-                        onClick = { onSetIndexHomeMode(GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Swipe down only") }
-                }
-            }
-
-            SettingsCard("Apps screen") {
-                Text("Columns", fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(GlazeMetrics.space2))
-                ChoiceRow(
-                    labels = listOf("4", "5", "6"),
-                    selectedIndex = (preferences.drawerColumns - 4).coerceIn(0, 2),
-                    onSelected = { onSetDrawerColumns(it + 4) },
-                )
-            }
-
-            SettingsCard("Icons and labels") {
-                Text("Icon size", fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(GlazeMetrics.space2))
-                ChoiceRow(
-                    labels = listOf("Small", "Medium", "Large"),
-                    selectedIndex = when {
-                        preferences.iconScale < 0.95f -> 0
-                        preferences.iconScale > 1.05f -> 2
-                        else -> 1
-                    },
-                    onSelected = { onSetIconScale(listOf(0.85f, 1.0f, 1.15f)[it]) },
-                )
-                Spacer(Modifier.height(GlazeMetrics.space3))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("App labels", fontWeight = FontWeight.SemiBold)
-                        Text(
-                            "Show names under app icons",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(onClick = { onSetIndexHomeMode(GoreeCloudIndexHomeMode.PERMANENT) }) {
+                        Text("Show pill")
                     }
-                    Switch(checked = preferences.showLabels, onCheckedChange = onSetShowLabels)
+                    OutlinedButton(onClick = { onSetIndexHomeMode(GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY) }) {
+                        Text("Swipe only")
+                    }
                 }
             }
 
             SettingsCard("Appearance") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Theme", fontWeight = FontWeight.SemiBold)
-                        Text(
-                            themeMode.name.lowercase().replaceFirstChar { it.uppercase() },
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    FilledTonalButton(onClick = { onCycleTheme(themeMode) }) { Text("Change") }
-                }
+                Text("Theme: ${themeMode.name.lowercase().replaceFirstChar { it.uppercase() }}")
+                FilledTonalButton(onClick = { onCycleTheme(themeMode) }) { Text("Change theme") }
             }
 
-            SettingsCard("Default Home app") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        if (isDefaultHome) "GoreeCloud Launcher is your current Home app."
-                        else "GoreeCloud Launcher is not your current Home app.",
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (!isDefaultHome) {
-                        Spacer(Modifier.width(GlazeMetrics.space3))
-                        Button(onClick = onRequestHomeRole) { Text("Set default") }
-                    }
+            if (!isDefaultHome) {
+                Button(onClick = onRequestHomeRole, modifier = Modifier.fillMaxWidth()) {
+                    Text("Set GoreeCloud as default Home")
                 }
             }
-            Spacer(Modifier.height(GlazeMetrics.space4))
         }
     }
 }
 
 @Composable
 private fun SettingsCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space4),
-            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            HorizontalDivider(Modifier.padding(vertical = GlazeMetrics.space2))
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             content()
         }
     }
 }
 
 @Composable
-private fun GridPresetRow(
-    options: List<Pair<Int, Int>>,
-    selected: Pair<Int, Int>,
-    onSelect: (Pair<Int, Int>) -> Unit,
-) {
+private fun SettingSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        options.forEach { option ->
-            if (option == selected) {
-                FilledTonalButton(
-                    onClick = { onSelect(option) },
-                    modifier = Modifier.weight(1f),
-                ) { Text("${option.first}×${option.second}") }
-            } else {
-                OutlinedButton(
-                    onClick = { onSelect(option) },
-                    modifier = Modifier.weight(1f),
-                ) { Text("${option.first}×${option.second}") }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ChoiceRow(labels: List<String>, selectedIndex: Int, onSelected: (Int) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-    ) {
-        labels.forEachIndexed { index, label ->
-            if (index == selectedIndex) {
-                FilledTonalButton(
-                    onClick = { onSelected(index) },
-                    modifier = Modifier.weight(1f),
-                ) { Text(label) }
-            } else {
-                OutlinedButton(
-                    onClick = { onSelected(index) },
-                    modifier = Modifier.weight(1f),
-                ) { Text(label) }
-            }
-        }
+        Text(label)
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -738,7 +539,6 @@ private fun LauncherAppTile(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier,
-    translucentLabel: Boolean,
 ) {
     val icon = remember(app.componentName, app.user) {
         runCatching { app.getBadgedIcon(0).toBitmap(128, 128).asImageBitmap() }.getOrNull()
@@ -748,7 +548,7 @@ private fun LauncherAppTile(
     Column(
         modifier = modifier
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = GlazeMetrics.space1, vertical = GlazeMetrics.space1),
+            .padding(horizontal = 2.dp, vertical = 3.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -761,7 +561,7 @@ private fun LauncherAppTile(
         } else {
             Surface(
                 modifier = Modifier.size(iconSize),
-                shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -771,24 +571,15 @@ private fun LauncherAppTile(
         }
 
         if (showLabel) {
-            Spacer(Modifier.height(GlazeMetrics.space1))
-            Surface(
-                color = if (translucentLabel) {
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
-                } else {
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0f)
-                },
-                shape = RoundedCornerShape(GlazeMetrics.radiusControl),
-            ) {
-                Text(
-                    app.label.toString(),
-                    modifier = Modifier.padding(horizontal = GlazeMetrics.space1),
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                app.label.toString(),
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -813,107 +604,36 @@ private fun AppPlacementDialog(
 
     AlertDialog(
         onDismissRequest = onClose,
-        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
         title = { Text(app.label.toString()) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3)) {
-                Text(
-                    if (layoutLocked) {
-                        "Home screen layout is locked. Unlock it in Launcher settings or hold the Home lock control for 5 seconds before changing placement."
-                    } else {
-                        "Choose where this app appears. Long-press an icon to manage it again."
-                    },
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                PlacementSection(
-                    title = "Home screen",
-                    isMember = isFavorite,
-                    position = favoriteIndex,
-                    count = workspace.favoriteKeys.size,
-                    toggleLabel = if (isFavorite) "Remove" else "Add to Home",
-                    controlsEnabled = !layoutLocked,
-                    toggleEnabled = !layoutLocked,
-                    onToggle = onToggleFavorite,
-                    onMoveEarlier = { onMoveFavorite(WorkspaceMoveDirection.EARLIER) },
-                    onMoveLater = { onMoveFavorite(WorkspaceMoveDirection.LATER) },
-                )
-                PlacementSection(
-                    title = "Dock",
-                    isMember = isDocked,
-                    position = dockIndex,
-                    count = workspace.dockKeys.size,
-                    toggleLabel = when {
-                        isDocked -> "Remove"
-                        dockFull -> "Dock full"
-                        else -> "Add to Dock"
-                    },
-                    controlsEnabled = !layoutLocked,
-                    toggleEnabled = !layoutLocked && !dockFull,
-                    onToggle = onToggleDock,
-                    onMoveEarlier = { onMoveDock(WorkspaceMoveDirection.EARLIER) },
-                    onMoveLater = { onMoveDock(WorkspaceMoveDirection.LATER) },
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (layoutLocked) {
+                    Text("Home layout is locked.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                OutlinedButton(
+                    onClick = onToggleFavorite,
+                    enabled = !layoutLocked,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(if (isFavorite) "Remove from Home" else "Add to Home") }
+                OutlinedButton(
+                    onClick = onToggleDock,
+                    enabled = !layoutLocked && !dockFull,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(if (isDocked) "Remove from Dock" else "Add to Dock") }
+                if (isFavorite && !layoutLocked) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { onMoveFavorite(WorkspaceMoveDirection.EARLIER) }) { Text("Earlier") }
+                        TextButton(onClick = { onMoveFavorite(WorkspaceMoveDirection.LATER) }) { Text("Later") }
+                    }
+                }
+                if (isDocked && !layoutLocked) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { onMoveDock(WorkspaceMoveDirection.EARLIER) }) { Text("Dock left") }
+                        TextButton(onClick = { onMoveDock(WorkspaceMoveDirection.LATER) }) { Text("Dock right") }
+                    }
+                }
             }
         },
         confirmButton = { TextButton(onClick = onClose) { Text("Done") } },
     )
-}
-
-@Composable
-private fun PlacementSection(
-    title: String,
-    isMember: Boolean,
-    position: Int,
-    count: Int,
-    toggleLabel: String,
-    controlsEnabled: Boolean,
-    toggleEnabled: Boolean,
-    onToggle: () -> Unit,
-    onMoveEarlier: () -> Unit,
-    onMoveLater: () -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-    ) {
-        Column(Modifier.fillMaxWidth().padding(GlazeMetrics.space3)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(title, fontWeight = FontWeight.SemiBold)
-                    if (isMember) {
-                        Text(
-                            "Position ${position + 1} of $count",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                FilledTonalButton(onClick = onToggle, enabled = toggleEnabled) {
-                    Text(toggleLabel)
-                }
-            }
-            if (isMember && count > 1) {
-                Spacer(Modifier.height(GlazeMetrics.space2))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                ) {
-                    OutlinedButton(
-                        onClick = onMoveEarlier,
-                        enabled = controlsEnabled && position > 0,
-                        modifier = Modifier.weight(1f),
-                    ) { Text("Earlier") }
-                    OutlinedButton(
-                        onClick = onMoveLater,
-                        enabled = controlsEnabled && position < count - 1,
-                        modifier = Modifier.weight(1f),
-                    ) { Text("Later") }
-                }
-            }
-        }
-    }
 }
