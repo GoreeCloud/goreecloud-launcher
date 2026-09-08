@@ -41,51 +41,53 @@ class HomeIntentPrimaryResetRuntimeTest {
     }
 
     @Test
-    fun homeButtonReturnsExistingSingleTaskInstanceFromSettingsToPrimaryHome() = runBlocking {
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val context = instrumentation.targetContext
-        val roleManager = context.getSystemService(RoleManager::class.java)
-        val alreadyDefaultHome =
-            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+    fun homeButtonReturnsExistingSingleTaskInstanceFromSettingsToPrimaryHome() {
+        runBlocking {
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            val context = instrumentation.targetContext
+            val roleManager = context.getSystemService(RoleManager::class.java)
+            val alreadyDefaultHome =
+                roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
 
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
-
-        try {
-            val scenario = ActivityScenario.launch(MainActivity::class.java)
-            try {
-                waitForText("•••")
-                composeRule.onNodeWithText("•••").performClick()
-                waitForText("Home screen")
-
-                // Exercise Android's real HOME dispatch while GoreeCloud is the HOME role holder.
-                // This must return to the existing singleTask instance and drive onNewIntent,
-                // rather than starting a test-owned explicit activity that ActivityScenario tracks
-                // as a separate lifecycle transition.
-                runShellCommand("input keyevent KEYCODE_HOME")
-
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule.onAllNodesWithText("Home screen", useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isEmpty()
-                }
-                composeRule.onNodeWithText("•••").assertIsDisplayed()
-            } finally {
-                scenario.close()
-            }
-        } finally {
             if (!alreadyDefaultHome) {
                 runShellCommand(
-                    "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+                    "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
                 )
+                withTimeout(10_000) {
+                    while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                        delay(100)
+                    }
+                }
+            }
+
+            try {
+                val scenario = ActivityScenario.launch(MainActivity::class.java)
+                try {
+                    waitForText("•••")
+                    composeRule.onNodeWithText("•••").performClick()
+                    waitForText("Home screen")
+
+                    // Exercise Android's real HOME dispatch while GoreeCloud is the HOME role holder.
+                    // This must return to the existing singleTask instance and drive onNewIntent,
+                    // rather than starting a test-owned explicit activity that ActivityScenario tracks
+                    // as a separate lifecycle transition.
+                    runShellCommand("input keyevent KEYCODE_HOME")
+
+                    composeRule.waitUntil(timeoutMillis = 15_000) {
+                        composeRule.onAllNodesWithText("Home screen", useUnmergedTree = true)
+                            .fetchSemanticsNodes()
+                            .isEmpty()
+                    }
+                    composeRule.onNodeWithText("•••").assertIsDisplayed()
+                } finally {
+                    scenario.close()
+                }
+            } finally {
+                if (!alreadyDefaultHome) {
+                    runShellCommand(
+                        "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+                    )
+                }
             }
         }
     }
