@@ -66,7 +66,7 @@ platform_systems:
     notes: Versioned workspace-placement and explicit preference snapshots have validation-before-write, pair-level Home-grid compatibility, reviewed apply, concrete Room/DataStore persistence, a durable pre-Room device-local recovery journal, exact-state interrupted-operation reconciliation, readback verification, guarded compensation, and emulator-targeted recovery tests. This remains partial Development recovery; the coordinator is not yet an accepted production startup gate, clean-target/cross-device identity reconstruction and complete Launcher-owned recovery scope remain incomplete, and accepted Everkeep integration is not established.
   glaze_ui:
     result: applicable-migration-required
-    version: "1.2.0"
+    version: "1.3.0"
     evidence:
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeAtmosphere.kt
@@ -79,7 +79,7 @@ platform_systems:
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
       - docs/development/saveable-theme-manager-settings-composition.md
-    notes: Repository-local Development source now targets current Stable GLAZE UI V1.2 / 1.2.0 at exact promotion revision f285b9145e27e6e7027b075c37299d101945c272. Active Launcher material follows Frosted Neutral and retires the prior teal/amber aura substrate, while color remains bounded to accent use. Complete rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain required before application conformance can be claimed.
+    notes: Repository-local Development source targets current Stable GLAZE UI V1.3 / 1.3.0 — Adaptive Resonance at exact Stable integration revision fc7cc91d2eace8da2371371c2855c24cbcb326a1. Launcher retains the inherited V1.2 Frosted Neutral material foundation and 48/56 dp target floors while adding the V1.3 adaptive-contract provenance and keeping color bounded to accent use. Typed or semantic product truth is never derived from decorative adaptation. V1.2.0 is the rollback baseline. Complete rendered, accessibility, adaptive, representative-device, Human Visual Excellence, rollback, release, and production acceptance remain required before application conformance can be claimed.
   mesh:
     result: applicable-blocked
     version: null
@@ -140,10 +140,10 @@ external_dependencies:
 
 compatibility:
   platform_contract: "0.2"
-  glaze_ui_required: "1.2.0"
+  glaze_ui_required: "1.3.0"
   requires:
     - goreecloud-platform-contract==0.2
-    - glaze-ui==1.2.0
+    - glaze-ui==1.3.0
     - android-api>=29
   provides:
     - goreecloud-launcher-workspace-snapshot/1
@@ -174,7 +174,7 @@ conformance:
     - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
     - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
   blockers:
-    - GLAZE UI V1.2 / 1.2.0 source mapping now exists, but complete application-specific rendered, accessibility, adaptive, representative-device, Human Visual Excellence, release, and production acceptance remain outstanding.
+    - GLAZE UI V1.3 / 1.3.0 source mapping now exists, but complete application-specific rendered, accessibility, adaptive, representative-device, Human Visual Excellence, rollback, release, and production acceptance remain outstanding.
     - GoreeCloud Identity integration and acceptance are not established for future identity-aware capabilities.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.
