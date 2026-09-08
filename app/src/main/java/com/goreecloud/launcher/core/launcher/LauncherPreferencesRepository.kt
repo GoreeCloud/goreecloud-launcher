@@ -1,6 +1,9 @@
 package com.goreecloud.launcher.core.launcher
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
@@ -12,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -46,7 +50,11 @@ data class LauncherPreferences(
     )
 }
 
-class LauncherPreferencesRepository(private val context: Context) : LauncherPortablePreferenceWriter {
+class LauncherPreferencesRepository(
+    private val dataStore: DataStore<Preferences>,
+) : LauncherPortablePreferenceWriter {
+    constructor(context: Context) : this(context.launcherPreferencesStore)
+
     private object Keys {
         val homeColumns = intPreferencesKey("home_columns")
         val homeRows = intPreferencesKey("home_rows")
@@ -55,29 +63,20 @@ class LauncherPreferencesRepository(private val context: Context) : LauncherPort
         val iconScale = floatPreferencesKey("icon_scale")
         val layoutLocked = booleanPreferencesKey("layout_locked")
         val indexHomeMode = stringPreferencesKey("index_home_mode")
+        val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     val defaults = LauncherPreferences()
 
-    val preferences: Flow<LauncherPreferences> = context.launcherPreferencesStore.data
-        .map { values ->
-            LauncherPreferences(
-                homeColumns = values[Keys.homeColumns] ?: defaults.homeColumns,
-                homeRows = values[Keys.homeRows] ?: defaults.homeRows,
-                drawerColumns = values[Keys.drawerColumns] ?: defaults.drawerColumns,
-                showLabels = values[Keys.showLabels] ?: defaults.showLabels,
-                iconScale = values[Keys.iconScale] ?: defaults.iconScale,
-                layoutLocked = values[Keys.layoutLocked] ?: defaults.layoutLocked,
-                indexHomeMode = GoreeCloudIndexHomeMode.fromStorage(values[Keys.indexHomeMode]),
-            ).sanitized()
-        }
+    val preferences: Flow<LauncherPreferences> = dataStore.data
+        .map(::portablePreferencesFrom)
         .distinctUntilChanged()
 
     fun setHomeGrid(columns: Int, rows: Int) {
         val normalized = LauncherPreferences(homeColumns = columns, homeRows = rows).sanitized()
         scope.launch {
-            context.launcherPreferencesStore.edit { values ->
+            dataStore.edit { values ->
                 values[Keys.homeColumns] = normalized.homeColumns
                 values[Keys.homeRows] = normalized.homeRows
             }
@@ -87,7 +86,7 @@ class LauncherPreferencesRepository(private val context: Context) : LauncherPort
     fun setDrawerColumns(columns: Int) {
         val normalized = columns.coerceIn(4, 6)
         scope.launch {
-            context.launcherPreferencesStore.edit { values ->
+            dataStore.edit { values ->
                 values[Keys.drawerColumns] = normalized
             }
         }
@@ -95,7 +94,7 @@ class LauncherPreferencesRepository(private val context: Context) : LauncherPort
 
     fun setShowLabels(show: Boolean) {
         scope.launch {
-            context.launcherPreferencesStore.edit { values ->
+            dataStore.edit { values ->
                 values[Keys.showLabels] = show
             }
         }
@@ -104,7 +103,7 @@ class LauncherPreferencesRepository(private val context: Context) : LauncherPort
     fun setIconScale(scale: Float) {
         val normalized = scale.coerceIn(0.85f, 1.15f)
         scope.launch {
-            context.launcherPreferencesStore.edit { values ->
+            dataStore.edit { values ->
                 values[Keys.iconScale] = normalized
             }
         }
@@ -112,7 +111,7 @@ class LauncherPreferencesRepository(private val context: Context) : LauncherPort
 
     fun setLayoutLocked(locked: Boolean) {
         scope.launch {
-            context.launcherPreferencesStore.edit { values ->
+            dataStore.edit { values ->
                 values[Keys.layoutLocked] = locked
             }
         }
@@ -120,10 +119,80 @@ class LauncherPreferencesRepository(private val context: Context) : LauncherPort
 
     fun setIndexHomeMode(mode: GoreeCloudIndexHomeMode) {
         scope.launch {
-            context.launcherPreferencesStore.edit { values ->
+            dataStore.edit { values ->
                 values[Keys.indexHomeMode] = mode.storageValue
             }
         }
+    }
+
+    suspend fun readPortablePreferences(): LauncherPreferences = preferences.first()
+
+    suspend fun readPortableRestoreJournal(): LauncherPortableRestoreJournalReadResult {
+        val raw = dataStore.data.first()[Keys.portableRestoreJournal]
+            ?: return LauncherPortableRestoreJournalReadResult.Absent
+        return when (val decoded = LauncherPortableRestoreJournalCodec.decode(raw)) {
+            is LauncherPortableRestoreJournalCodec.DecodeResult.Success ->
+                LauncherPortableRestoreJournalReadResult.Present(decoded.journal)
+            is LauncherPortableRestoreJournalCodec.DecodeResult.Invalid ->
+                LauncherPortableRestoreJournalReadResult.Invalid(decoded.reason)
+        }
+    }
+
+    /**
+     * Persist one recovery journal before Room mutation. Any pre-existing journal fails closed so a
+     * new restore cannot hide unresolved recovery evidence from an earlier attempt.
+     */
+    suspend fun beginPortableRestoreJournal(journal: LauncherPortableRestoreJournal): Boolean {
+        val encoded = LauncherPortableRestoreJournalCodec.encode(journal)
+        var stored = false
+        dataStore.edit { values ->
+            if (values[Keys.portableRestoreJournal] == null) {
+                values[Keys.portableRestoreJournal] = encoded
+                stored = true
+            }
+        }
+        return stored
+    }
+
+    /**
+     * Atomically write the target portable preferences and clear the exact matching journal.
+     *
+     * Finalization is refused if either the journal changed or the current portable preferences no
+     * longer equal the journal's previous state, protecting a concurrent preference edit.
+     */
+    suspend fun finalizePortableRestoreJournal(journal: LauncherPortableRestoreJournal): Boolean {
+        val encoded = LauncherPortableRestoreJournalCodec.encode(journal)
+        var finalized = false
+        dataStore.edit { values ->
+            if (
+                values[Keys.portableRestoreJournal] == encoded &&
+                portablePreferencesFrom(values) == journal.previousPreferences
+            ) {
+                writePortablePreferences(values, journal.targetPreferences)
+                values.remove(Keys.portableRestoreJournal)
+                finalized = true
+            }
+        }
+        return finalized
+    }
+
+    /** Remove only the caller's exact journal. An absent journal is already a safe cleared state. */
+    suspend fun clearPortableRestoreJournalIfMatches(
+        journal: LauncherPortableRestoreJournal,
+    ): Boolean {
+        val encoded = LauncherPortableRestoreJournalCodec.encode(journal)
+        var safe = false
+        dataStore.edit { values ->
+            when (values[Keys.portableRestoreJournal]) {
+                null -> safe = true
+                encoded -> {
+                    values.remove(Keys.portableRestoreJournal)
+                    safe = true
+                }
+                else -> safe = false
+            }
+        }
+        return safe
     }
 
     /**
@@ -134,14 +203,60 @@ class LauncherPreferencesRepository(private val context: Context) : LauncherPort
      */
     override suspend fun replacePortablePreferences(preferences: LauncherPreferences) {
         LauncherPortablePreferences.encode(preferences)
-        context.launcherPreferencesStore.edit { values ->
-            values[Keys.homeColumns] = preferences.homeColumns
-            values[Keys.homeRows] = preferences.homeRows
-            values[Keys.drawerColumns] = preferences.drawerColumns
-            values[Keys.showLabels] = preferences.showLabels
-            values[Keys.iconScale] = preferences.iconScale
-            values[Keys.layoutLocked] = preferences.layoutLocked
-            values[Keys.indexHomeMode] = preferences.indexHomeMode.storageValue
+        dataStore.edit { values ->
+            writePortablePreferences(values, preferences)
         }
+    }
+
+    /**
+     * Compensate a failed Room/DataStore restore without overwriting a concurrent preference edit.
+     *
+     * The rollback is safe when the store still contains either the just-applied portable value or
+     * the original value (for example when the failed DataStore edit never committed). Any third
+     * state is treated as a concurrent change and is left untouched.
+     */
+    suspend fun rollbackPortablePreferencesAfterFailedApply(
+        expectedApplied: LauncherPreferences,
+        previous: LauncherPreferences,
+    ): Boolean {
+        LauncherPortablePreferences.encode(expectedApplied)
+        LauncherPortablePreferences.encode(previous)
+
+        var safe = false
+        dataStore.edit { values ->
+            when (portablePreferencesFrom(values)) {
+                previous -> safe = true
+                expectedApplied -> {
+                    writePortablePreferences(values, previous)
+                    safe = true
+                }
+                else -> safe = false
+            }
+        }
+        return safe
+    }
+
+    private fun portablePreferencesFrom(values: Preferences): LauncherPreferences =
+        LauncherPreferences(
+            homeColumns = values[Keys.homeColumns] ?: defaults.homeColumns,
+            homeRows = values[Keys.homeRows] ?: defaults.homeRows,
+            drawerColumns = values[Keys.drawerColumns] ?: defaults.drawerColumns,
+            showLabels = values[Keys.showLabels] ?: defaults.showLabels,
+            iconScale = values[Keys.iconScale] ?: defaults.iconScale,
+            layoutLocked = values[Keys.layoutLocked] ?: defaults.layoutLocked,
+            indexHomeMode = GoreeCloudIndexHomeMode.fromStorage(values[Keys.indexHomeMode]),
+        ).sanitized()
+
+    private fun writePortablePreferences(
+        values: MutablePreferences,
+        preferences: LauncherPreferences,
+    ) {
+        values[Keys.homeColumns] = preferences.homeColumns
+        values[Keys.homeRows] = preferences.homeRows
+        values[Keys.drawerColumns] = preferences.drawerColumns
+        values[Keys.showLabels] = preferences.showLabels
+        values[Keys.iconScale] = preferences.iconScale
+        values[Keys.layoutLocked] = preferences.layoutLocked
+        values[Keys.indexHomeMode] = preferences.indexHomeMode.storageValue
     }
 }
