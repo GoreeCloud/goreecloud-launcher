@@ -8,7 +8,7 @@ root = Path(__file__).resolve().parents[1]
 
 CANONICAL_REPOSITORY = "GoreeCloud/goreecloud-branding-assets"
 CANONICAL_PATH = "products/launcher/app-icon.svg"
-CANONICAL_BLOB = "d6768114e689058f1c911beca4050f33c96bd7c2"
+CANONICAL_BLOB = "68ea82c4657253a1396376f715d3582f1417b9ac"
 LOCAL_SOURCE = root / "branding/source/goreecloud-launcher-icon.svg"
 
 required = [
@@ -75,19 +75,24 @@ if application.attrib.get(ns + "roundIcon") != "@mipmap/ic_launcher_round":
     sys.exit(1)
 
 background = (root / "app/src/main/res/drawable/ic_launcher_background.xml").read_text(encoding="utf-8")
-for required_token in ("#FF38BDF8", "#FF6366F1"):
+for required_token in ("#FF3B82F6", "#FF174EA6"):
     if required_token not in background:
-        print("Launcher icon background lost canonical source color:", required_token)
+        print("Launcher icon background lost canonical GoreeCloud color:", required_token)
         sys.exit(1)
 
-for derivative_name in ("ic_launcher_foreground.xml", "ic_launcher_monochrome.xml"):
-    derivative = (root / "app/src/main/res/drawable" / derivative_name).read_text(encoding="utf-8")
-    if derivative.count("android:pathData=") != 4:
-        print(f"{derivative_name} must preserve the four-cell canonical identity geometry.")
+foreground = (root / "app/src/main/res/drawable/ic_launcher_foreground.xml").read_text(encoding="utf-8")
+if foreground.count("android:pathData=") != 5:
+    print("Launcher foreground must preserve four tiles plus the center accent.")
+    sys.exit(1)
+for required_token in ("#F7FFFFFF", "#EEFFFFFF", "#E2FFFFFF", "#FF8EC5FF"):
+    if required_token not in foreground:
+        print("Launcher foreground lost canonical mobile icon token:", required_token)
         sys.exit(1)
-    if derivative.count('android:strokeColor="#FFFFFFFF"') != 4:
-        print(f"{derivative_name} must preserve the four white outlined cells.")
-        sys.exit(1)
+
+monochrome = (root / "app/src/main/res/drawable/ic_launcher_monochrome.xml").read_text(encoding="utf-8")
+if monochrome.count("android:pathData=") != 4:
+    print("Launcher monochrome icon must preserve the four-tile identity geometry.")
+    sys.exit(1)
 
 for path in (
     root / "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
