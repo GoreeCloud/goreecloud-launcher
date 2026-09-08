@@ -10,8 +10,8 @@ import androidx.compose.ui.graphics.Color
 enum class GlazeThemeMode { SYSTEM, LIGHT, DARK, DEEP_DARK }
 
 /**
- * GLAZE UI V1.1 structural appearance mapping for the Launcher surfaces
- * currently in use. V1.1 preserves the inherited V1 Light/Dark foundation and
+ * GLAZE UI V1.2 structural appearance mapping for the Launcher surfaces
+ * currently in use. V1.2 preserves the inherited V1 Light/Dark foundation and
  * adds an explicit Deep Dark structural appearance.
  *
  * Deep Teal and Soft Amber are atmospheric presentation primitives rather than
