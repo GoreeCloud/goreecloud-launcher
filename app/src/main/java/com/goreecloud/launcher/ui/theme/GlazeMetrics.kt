@@ -4,15 +4,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Native Android mapping of the GLAZE UI V1.1 geometry, inherited V1 spacing,
+ * Native Android mapping of the GLAZE UI V1.2 geometry, inherited V1 spacing,
  * and interaction-target subset currently consumed by GoreeCloud Launcher.
  *
  * Current design-system authority:
- * - product identity: GLAZE UI V1.1
- * - machine version: 1.1.0
- * - Stable release source revision: 15cc76d2bcd4065552dc31c77145b63f34d9e7b2
+ * - product identity: GLAZE UI V1.2
+ * - machine version: 1.2.0
+ * - Stable release source revision: f285b9145e27e6e7027b075c37299d101945c272
  *
- * V1.1 preserves the V1 structural spacing/radius contract while adding
+ * V1.2 preserves the V1 structural spacing/radius contract while adding
  * optical geometry references of 8/16/24/32 dp plus capsule geometry.
  * `space10` remains a Launcher-owned 40 dp layout convenience and is not
  * claimed as a canonical Glaze token.
@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.dp
  * production acceptance for Launcher.
  */
 object GlazeMetrics {
-    const val targetVersion = "1.1.0"
-    const val sourceRevision = "15cc76d2bcd4065552dc31c77145b63f34d9e7b2"
+    const val targetVersion = "1.2.0"
+    const val sourceRevision = "f285b9145e27e6e7027b075c37299d101945c272"
 
     val space1: Dp = 4.dp
     val space2: Dp = 8.dp
@@ -46,7 +46,7 @@ object GlazeMetrics {
     val radius2ExtraLarge: Dp = 28.dp
     val radiusPill: Dp = 999.dp
 
-    // V1.1 optical geometry references. These do not replace structural radii.
+    // V1.2 optical geometry references. These do not replace structural radii.
     val opticalMicro: Dp = 8.dp
     val opticalControl: Dp = 16.dp
     val opticalContainer: Dp = 24.dp
