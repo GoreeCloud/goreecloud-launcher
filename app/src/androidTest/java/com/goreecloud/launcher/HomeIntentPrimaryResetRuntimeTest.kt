@@ -38,7 +38,9 @@ class HomeIntentPrimaryResetRuntimeTest {
         val scenario = ActivityScenario.launch(MainActivity::class.java)
         try {
             waitForText("•••")
-            composeRule.onNodeWithText("•••", useUnmergedTree = true).performClick()
+            // Use the merged semantics node so the text label resolves to the clickable
+            // FilledIconButton rather than its non-clickable Text child.
+            composeRule.onNodeWithText("•••").performClick()
             waitForText("Home screen")
 
             scenario.onActivity { activity ->
@@ -55,7 +57,7 @@ class HomeIntentPrimaryResetRuntimeTest {
                     .fetchSemanticsNodes()
                     .isEmpty()
             }
-            composeRule.onNodeWithText("•••", useUnmergedTree = true).assertIsDisplayed()
+            composeRule.onNodeWithText("•••").assertIsDisplayed()
         } finally {
             scenario.close()
         }
@@ -67,6 +69,6 @@ class HomeIntentPrimaryResetRuntimeTest {
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }
-        composeRule.onNodeWithText(text, useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText(text).assertIsDisplayed()
     }
 }
