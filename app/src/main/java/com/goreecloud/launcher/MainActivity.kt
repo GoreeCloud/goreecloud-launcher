@@ -86,9 +86,6 @@ class MainActivity : ComponentActivity() {
                     LauncherPortableRestoreRecoveryCoordinator(this@MainActivity).reconcile()
                 },
                 reconcileWorkspace = {
-                    // onResume may have run while recovery was still pending and correctly skipped
-                    // workspace reconciliation. Finish that deferred startup work before opening the
-                    // normal mutation surface so recovery completion cannot strand Room activation.
                     workspaceRuntimeCoordinator.reconcileAndActivate()
                     Unit
                 },
@@ -288,7 +285,9 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    val showPageSwitcher = renderedPages.isNotEmpty() && showingHome
+                    // Keep the primary homescreen visually quiet. Page-management chrome only
+                    // appears after navigating to an additional page, where it is actually needed.
+                    val showPageSwitcher = renderedPages.size > 1 && showingHome && !onPrimaryPage
                     if (showPageSwitcher) {
                         HomePageSwitcher(
                             pages = renderedPages,
@@ -333,7 +332,10 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    if (launcherPreferences.layoutLocked && showingHome) {
+                    // The layout-lock affordance is intentionally absent from the primary Home
+                    // surface. It remains available from Launcher settings without permanently
+                    // occupying wallpaper space.
+                    if (launcherPreferences.layoutLocked && showingHome && !onPrimaryPage) {
                         LayoutLockHoldControl(
                             locked = true,
                             onUnlock = { launcherPreferencesRepository.setLayoutLocked(false) },
