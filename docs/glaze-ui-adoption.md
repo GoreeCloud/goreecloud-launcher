@@ -31,7 +31,7 @@ The current Development branch:
 - uses neutral separator lines for degraded/effects-free presentation; and
 - limits the current Theme Manager preview to one bounded Ice Blue decorative accent.
 
-The governing V1.2 material rule is: **Neutral glass is the material; color is an accent.** Decorative color must never establish protection, privacy, identity, recovery, availability, focus, selection, or other authoritative state.
+The governing V1.2 material rule is: **Neutral glass is the material; color is an accent.** Decorative color can never establish protection, privacy, identity, recovery, availability, focus, selection, or other authoritative state.
 
 `space10` remains a Launcher-owned 40 dp layout convenience and is not claimed as a canonical Glaze token.
 
