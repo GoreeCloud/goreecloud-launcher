@@ -230,9 +230,10 @@ class LauncherPreferencesRepository(
     /**
      * Compensate a failed Room/DataStore restore without overwriting a concurrent preference edit.
      *
-     * The rollback is safe when the store still contains either the just-applied portable value or
-     * the original value (for example when the failed DataStore edit never committed). Any third
-     * state is treated as a concurrent change and is left untouched.
+     * The rollback is safe only when the raw persisted portable subset is canonical and still
+     * equals either the just-applied value or the original value. Invalid persisted state and any
+     * third canonical state are left untouched so compensation cannot normalize corruption while
+     * deciding whether recovery evidence still matches.
      */
     suspend fun rollbackPortablePreferencesAfterFailedApply(
         expectedApplied: LauncherPreferences,
@@ -243,13 +244,18 @@ class LauncherPreferencesRepository(
 
         var safe = false
         dataStore.edit { values ->
-            when (portablePreferencesFrom(values)) {
-                previous -> safe = true
-                expectedApplied -> {
-                    writePortablePreferences(values, previous)
-                    safe = true
+            when (val current = portableRecoveryPreferencesFrom(values)) {
+                is LauncherPortableStoredPreferencePolicy.DecodeResult.Invalid -> safe = false
+                is LauncherPortableStoredPreferencePolicy.DecodeResult.Success -> {
+                    when (current.preferences) {
+                        previous -> safe = true
+                        expectedApplied -> {
+                            writePortablePreferences(values, previous)
+                            safe = true
+                        }
+                        else -> safe = false
+                    }
                 }
-                else -> safe = false
             }
         }
         return safe
