@@ -59,7 +59,9 @@ class LauncherTransactionalPortableRestoreWriter(
             else -> Unit
         }
 
-        val previousPreferences = preferencesRepository.readPortablePreferences()
+        val previousPreferences = requireCanonicalPortableRestoreBaseline(
+            preferencesRepository.readPortablePreferencesForRecovery(),
+        )
         val roomCommit = workspaceDao.planPortableHomePlacements(workspace)
         val journal = LauncherPortableRestoreJournal(
             transactionId = UUID.randomUUID().toString(),
@@ -116,6 +118,21 @@ class LauncherTransactionalPortableRestoreWriter(
             )
         }
     }
+}
+
+/**
+ * Require an exact canonical persisted preference baseline before any new restore planning or
+ * recovery journal can begin. Ordinary UI reads intentionally sanitize legacy values, but recovery
+ * evidence must represent the bytes that are actually persisted rather than a normalized view.
+ */
+internal fun requireCanonicalPortableRestoreBaseline(
+    readResult: LauncherPortableRecoveryPreferenceReadResult,
+): LauncherPreferences = when (readResult) {
+    is LauncherPortableRecoveryPreferenceReadResult.Success -> readResult.preferences
+    is LauncherPortableRecoveryPreferenceReadResult.Invalid ->
+        throw LauncherPortableRestoreRecoveryRequiredException(
+            "portable Launcher restore cannot start from noncanonical persisted preferences: ${readResult.reason}",
+        )
 }
 
 /**
