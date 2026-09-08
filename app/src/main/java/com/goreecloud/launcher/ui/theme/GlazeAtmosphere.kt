@@ -3,14 +3,16 @@ package com.goreecloud.launcher.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Bounded GLAZE UI V1.2 Frosted Neutral presentation primitives.
+ * Bounded GLAZE UI V1.3 Adaptive Resonance presentation primitives using the
+ * inherited V1.2 Frosted Neutral material foundation.
  *
  * Neutral glass is the material; color is an accent. These values never establish protection, privacy, identity,
  * recovery, availability, focus, selection, or other authoritative state.
  * Accessibility and producer-owned semantics always take precedence over decorative treatment.
+ * Launcher does not derive adaptive material color from wallpaper, application content, or other producer truth.
  */
 object GlazeAtmosphere {
-    // Neutral frosted material references used by native fallbacks/previews.
+    // Neutral frosted material references inherited by the V1.3 native mapping.
     val frostWhite = Color(0xA8FFFFFF)
     val frostWhiteDense = Color(0xD9FFFFFF)
     val frostGraphite = Color(0xA61C1D20)
