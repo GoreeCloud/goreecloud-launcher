@@ -6,9 +6,9 @@ import org.junit.Test
 
 class GlazeMetricsContractTest {
     @Test
-    fun `launcher targets exact GLAZE UI V1_1 Stable release`() {
-        assertEquals("1.1.0", GlazeMetrics.targetVersion)
-        assertEquals("15cc76d2bcd4065552dc31c77145b63f34d9e7b2", GlazeMetrics.sourceRevision)
+    fun `launcher targets exact GLAZE UI V1_2 Stable release`() {
+        assertEquals("1.2.0", GlazeMetrics.targetVersion)
+        assertEquals("f285b9145e27e6e7027b075c37299d101945c272", GlazeMetrics.sourceRevision)
     }
 
     @Test
@@ -41,7 +41,7 @@ class GlazeMetricsContractTest {
     }
 
     @Test
-    fun `v1_1 optical geometry is separate from structural radii`() {
+    fun `v1_2 optical geometry is separate from structural radii`() {
         assertEquals(8.dp, GlazeMetrics.opticalMicro)
         assertEquals(16.dp, GlazeMetrics.opticalControl)
         assertEquals(24.dp, GlazeMetrics.opticalContainer)
