@@ -15,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -246,56 +245,55 @@ class MainActivity : ComponentActivity() {
                             },
                         )
                     } else {
-                        key(homeReturnGeneration) {
-                            LauncherBetaRoot(
-                                apps = apps,
-                                workspace = workspace,
-                                preferences = launcherPreferences,
-                                isDefaultHome = isDefaultHome,
-                                onRequestHomeRole = ::requestHomeRole,
-                                onLaunchApp = appsRepository::launch,
-                                onOpenUniversalSearch = ::openUniversalSearch,
-                                onToggleFavorite = { app ->
-                                    if (!launcherPreferences.layoutLocked) {
-                                        lifecycleScope.launch {
-                                            workspaceRuntimeCoordinator.toggleFavorite(app.workspaceKey())
-                                        }
+                        LauncherBetaRoot(
+                            apps = apps,
+                            workspace = workspace,
+                            preferences = launcherPreferences,
+                            isDefaultHome = isDefaultHome,
+                            onRequestHomeRole = ::requestHomeRole,
+                            onLaunchApp = appsRepository::launch,
+                            onOpenUniversalSearch = ::openUniversalSearch,
+                            onToggleFavorite = { app ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.toggleFavorite(app.workspaceKey())
                                     }
-                                },
-                                onToggleDock = { app ->
-                                    if (!launcherPreferences.layoutLocked) {
-                                        lifecycleScope.launch {
-                                            workspaceRuntimeCoordinator.toggleDock(app.workspaceKey())
-                                        }
+                                }
+                            },
+                            onToggleDock = { app ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.toggleDock(app.workspaceKey())
                                     }
-                                },
-                                onMoveFavorite = { app, direction ->
-                                    if (!launcherPreferences.layoutLocked) {
-                                        lifecycleScope.launch {
-                                            workspaceRuntimeCoordinator.moveFavorite(app.workspaceKey(), direction)
-                                        }
+                                }
+                            },
+                            onMoveFavorite = { app, direction ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.moveFavorite(app.workspaceKey(), direction)
                                     }
-                                },
-                                onMoveDock = { app, direction ->
-                                    if (!launcherPreferences.layoutLocked) {
-                                        lifecycleScope.launch {
-                                            workspaceRuntimeCoordinator.moveDock(app.workspaceKey(), direction)
-                                        }
+                                }
+                            },
+                            onMoveDock = { app, direction ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.moveDock(app.workspaceKey(), direction)
                                     }
-                                },
-                                themeMode = themeMode,
-                                onCycleTheme = themeRepository::cycleMode,
-                                onSetHomeGrid = launcherPreferencesRepository::setHomeGrid,
-                                onSetDrawerColumns = launcherPreferencesRepository::setDrawerColumns,
-                                onSetShowLabels = launcherPreferencesRepository::setShowLabels,
-                                onSetIconScale = launcherPreferencesRepository::setIconScale,
-                                onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,
-                                onSetIndexHomeMode = launcherPreferencesRepository::setIndexHomeMode,
-                                onSurfaceModeChanged = { mode ->
-                                    primarySurfaceModeName = mode.name
-                                },
-                            )
-                        }
+                                }
+                            },
+                            themeMode = themeMode,
+                            onCycleTheme = themeRepository::cycleMode,
+                            onSetHomeGrid = launcherPreferencesRepository::setHomeGrid,
+                            onSetDrawerColumns = launcherPreferencesRepository::setDrawerColumns,
+                            onSetShowLabels = launcherPreferencesRepository::setShowLabels,
+                            onSetIconScale = launcherPreferencesRepository::setIconScale,
+                            onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,
+                            onSetIndexHomeMode = launcherPreferencesRepository::setIndexHomeMode,
+                            onSurfaceModeChanged = { mode ->
+                                primarySurfaceModeName = mode.name
+                            },
+                            homeResetGeneration = homeReturnGeneration,
+                        )
                     }
 
                     // Keep the primary homescreen visually quiet. Page-management chrome only
