@@ -1,6 +1,7 @@
 package com.goreecloud.launcher.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -61,13 +62,23 @@ private val deepDark = darkColorScheme(
     onSurfaceVariant = Color(0xFFABB4C2),
 )
 
-@Composable
-fun GlazeTheme(mode: GlazeThemeMode, content: @Composable () -> Unit) {
-    val scheme = when (mode) {
-        GlazeThemeMode.SYSTEM -> if (isSystemInDarkTheme()) dark else light
+/**
+ * Pure structural appearance resolver used by the Compose wrapper and unit
+ * tests. Keeping SYSTEM resolution explicit lets recovery/restore tests verify
+ * both system states without requiring a rendered composition.
+ */
+internal fun glazeColorSchemeFor(mode: GlazeThemeMode, systemDark: Boolean): ColorScheme =
+    when (mode) {
+        GlazeThemeMode.SYSTEM -> if (systemDark) dark else light
         GlazeThemeMode.LIGHT -> light
         GlazeThemeMode.DARK -> dark
         GlazeThemeMode.DEEP_DARK -> deepDark
     }
-    MaterialTheme(colorScheme = scheme, content = content)
+
+@Composable
+fun GlazeTheme(mode: GlazeThemeMode, content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = glazeColorSchemeFor(mode, systemDark = isSystemInDarkTheme()),
+        content = content,
+    )
 }
