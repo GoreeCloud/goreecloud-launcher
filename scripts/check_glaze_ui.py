@@ -13,8 +13,9 @@ ADOPTION = ROOT / "docs/glaze-ui-adoption.md"
 DEVELOPMENT = ROOT / "docs/development/saveable-theme-manager-settings-composition.md"
 PLATFORM = ROOT / "goreecloud.platform.yaml"
 
-TARGET_VERSION = "1.2.0"
-SOURCE_REVISION = "f285b9145e27e6e7027b075c37299d101945c272"
+TARGET_VERSION = "1.3.0"
+SOURCE_REVISION = "fc7cc91d2eace8da2371371c2855c24cbcb326a1"
+ROLLBACK_VERSION = "1.2.0"
 
 EXPECTED_METRICS = {
     "space1": 4,
@@ -57,7 +58,8 @@ EXPECTED_FROSTED_NEUTRAL = (
 )
 
 EXPECTED_THEME_MARKERS = (
-    "GLAZE UI V1.2 Frosted Neutral",
+    "GLAZE UI V1.3 Adaptive Resonance",
+    "inherited V1.2 Frosted Neutral material foundation",
     "Neutral glass is the material",
     "surface = Color(0x94FFFFFF)",
     "surfaceVariant = Color(0xD9FFFFFF)",
@@ -71,7 +73,7 @@ EXPECTED_THEME_MARKERS = (
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"GLAZE UI V1.2 source / Platform Contract v0.2 boundary failed: {message}")
+    raise SystemExit(f"GLAZE UI V1.3 source / Platform Contract v0.2 boundary failed: {message}")
 
 
 def read(path: Path, label: str) -> str:
@@ -82,23 +84,28 @@ def read(path: Path, label: str) -> str:
 
 def main() -> None:
     metrics_text = read(METRICS, "native metric map")
-    atmosphere_text = read(ATMOSPHERE, "Frosted Neutral token map")
+    atmosphere_text = read(ATMOSPHERE, "Adaptive Resonance / Frosted Neutral token map")
     theme_text = read(THEME, "native theme map")
     repository_text = read(THEME_REPOSITORY, "theme persistence repository")
     manager_text = read(THEME_MANAGER, "native Theme Manager surface")
     catalog_text = read(THEME_CATALOG, "native Theme Manager catalog")
     settings_text = read(SETTINGS_SURFACE, "Launcher Settings composition")
-    adoption_text = read(ADOPTION, "V1.2 adoption evidence")
+    adoption_text = read(ADOPTION, "V1.3 adoption evidence")
     development_text = read(DEVELOPMENT, "Theme Manager development evidence")
     platform_text = read(PLATFORM, "Platform Contract declaration")
 
     for marker in (
         f'const val targetVersion = "{TARGET_VERSION}"',
+        'const val releaseTheme = "Adaptive Resonance"',
         f'const val sourceRevision = "{SOURCE_REVISION}"',
-        "Frosted Neutral",
+        'const val adaptiveContract = "contracts/v1.3/adaptive-resonance.plan.json"',
+        'const val stableWebEntrypoint = "css/glaze-v1.3.0.css"',
+        'const val stableRuntimeEntrypoint = "js/glaze-v1.3.0.mjs"',
+        f'const val rollbackBaselineVersion = "{ROLLBACK_VERSION}"',
+        "inherited Frosted Neutral material foundation",
     ):
         if marker not in metrics_text:
-            fail(f"missing exact V1.2 provenance marker `{marker}`")
+            fail(f"missing exact V1.3 provenance marker `{marker}`")
 
     for name, value in EXPECTED_METRICS.items():
         expected = f"val {name}: Dp = {value}.dp"
@@ -110,7 +117,7 @@ def main() -> None:
 
     for marker in EXPECTED_FROSTED_NEUTRAL:
         if marker not in atmosphere_text:
-            fail(f"missing V1.2 Frosted Neutral evidence `{marker}`")
+            fail(f"missing inherited Frosted Neutral evidence `{marker}`")
 
     for retired in (
         "deepTeal",
@@ -125,16 +132,19 @@ def main() -> None:
             fail(f"retired chromatic material/aura marker remains active: `{retired}`")
 
     for authority_marker in (
+        "GLAZE UI V1.3 Adaptive Resonance",
+        "inherited V1.2 Frosted Neutral material foundation",
         "Neutral glass is the material; color is an accent",
         "never establish protection, privacy, identity",
         "Accessibility and producer-owned semantics always take precedence",
+        "does not derive adaptive material color from wallpaper",
     ):
         if authority_marker not in atmosphere_text:
-            fail(f"Frosted Neutral authority boundary missing `{authority_marker}`")
+            fail(f"V1.3 authority boundary missing `{authority_marker}`")
 
     for marker in EXPECTED_THEME_MARKERS:
         if marker not in theme_text:
-            fail(f"missing V1.2 appearance evidence `{marker}`")
+            fail(f"missing V1.3 appearance evidence `{marker}`")
 
     combined_manager = repository_text + "\n" + manager_text + "\n" + catalog_text + "\n" + settings_text
     for marker in (
@@ -144,59 +154,67 @@ def main() -> None:
         "GlazeThemeManagerCatalog",
         "mode = GlazeThemeMode.DEEP_DARK",
         'title = "Deep Dark"',
+        "GLAZE UI V1.3",
+        "inherited Frosted Neutral material",
         "GlazeAtmosphere.iceBlueAccent",
-        "Frosted Neutral foundation",
         "fun ThemeManagerSurface(",
         "fun LauncherSettingsSurface(",
         "LauncherSettingsDestinationHost",
     ):
         if marker not in combined_manager:
-            fail(f"missing bounded Theme Manager/Settings V1.2 evidence `{marker}`")
+            fail(f"missing bounded Theme Manager/Settings V1.3 evidence `{marker}`")
 
     for retired_manager_marker in ("GlazeAtmosphere.softAmber", "restrained V1.1 atmosphere"):
         if retired_manager_marker in manager_text:
-            fail(f"Theme Manager retains retired V1.1 visual marker `{retired_manager_marker}`")
+            fail(f"Theme Manager retains retired visual marker `{retired_manager_marker}`")
 
     for evidence in (
-        "# GLAZE UI V1.2 Migration — GoreeCloud Launcher",
-        "Official target: **GLAZE UI V1.2 (`1.2.0`)**",
-        f"Exact Stable release source authority: `{SOURCE_REVISION}`",
+        "# GLAZE UI V1.3 Migration — GoreeCloud Launcher",
+        "Official target: **GLAZE UI V1.3 (`1.3.0`) — Adaptive Resonance**",
+        f"Exact Stable integration source authority: `{SOURCE_REVISION}`",
+        "V1.2 (`1.2.0`) is the rollback baseline",
         "Neutral glass is the material; color is an accent",
         "Production eligible on the Glaze UI gate: **no**",
         "Representative physical-device Theme Manager navigation/persistence",
     ):
         if evidence not in adoption_text:
-            fail(f"missing V1.2 adoption evidence `{evidence}`")
+            fail(f"missing V1.3 adoption evidence `{evidence}`")
 
     for marker in (
-        "Status: Development — GLAZE UI V1.2 migration in progress",
+        "Status: Development — GLAZE UI V1.3 migration in progress",
         f"`{SOURCE_REVISION}`",
         "System/Light/Dark/Deep Dark",
-        "Frosted Neutral",
+        "Adaptive Resonance",
+        "inherited V1.2 Frosted Neutral",
         "48 dp normal interaction floor",
         "56 dp Touch Assistance / far-view target",
         "Theme Manager is **Application** settings content",
+        "V1.2 (`1.2.0`) is the rollback baseline",
     ):
         if marker not in development_text:
-            fail(f"Theme Manager Development evidence is not synchronized with V1.2: `{marker}`")
+            fail(f"Theme Manager Development evidence is not synchronized with V1.3: `{marker}`")
 
     platform_markers = (
         'schema_version: "0.2"',
         "  id: goreecloud-launcher",
-        '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.2.0"',
-        "current Stable GLAZE UI V1.2 / 1.2.0",
+        '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.3.0"',
+        "current Stable GLAZE UI V1.3 / 1.3.0",
+        f"exact Stable integration revision {SOURCE_REVISION}",
+        "V1.2.0 is the rollback baseline",
         '  platform_contract: "0.2"',
-        '  glaze_ui_required: "1.2.0"',
+        '  glaze_ui_required: "1.3.0"',
         "goreecloud-platform-contract==0.2",
-        "glaze-ui==1.2.0",
+        "glaze-ui==1.3.0",
         "conformance:\n  status: nonconformant",
     )
     for marker in platform_markers:
         if marker not in platform_text:
-            fail(f"Platform Contract v0.2 is missing V1.2 Development boundary `{marker}`")
+            fail(f"Platform Contract v0.2 is missing V1.3 Development boundary `{marker}`")
 
     for stale_platform_marker in (
-        '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.1.0"',
+        '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.2.0"',
+        '  glaze_ui_required: "1.2.0"',
+        "glaze-ui==1.2.0",
         '  glaze_ui_required: "1.1.0"',
         "glaze-ui==1.1.0",
         "stable_eligible: true",
@@ -205,9 +223,10 @@ def main() -> None:
             fail(f"Platform Contract retains superseded declaration `{stale_platform_marker}`")
 
     print(
-        "GLAZE UI V1.2 Launcher source mapping passed: "
-        f"target {TARGET_VERSION}, source {SOURCE_REVISION}; Platform Contract v0.2 remains "
-        "migration-required/nonconformant until rendered/accessibility/device/release acceptance."
+        "GLAZE UI V1.3 Launcher source mapping passed: "
+        f"target {TARGET_VERSION}, source {SOURCE_REVISION}, rollback {ROLLBACK_VERSION}; "
+        "Platform Contract v0.2 remains migration-required/nonconformant until "
+        "rendered/accessibility/adaptive/device/rollback/release acceptance."
     )
 
 
