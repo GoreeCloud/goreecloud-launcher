@@ -6,7 +6,7 @@ GoreeCloud Launcher is GoreeCloud's privacy-first, original Android HOME applica
 
 **Development — advancing toward Release Candidate; not a signed production or Stable release.**
 
-The repository contains a usable native daily-launcher foundation, rebuilt Home / Apps / Launcher Settings surfaces, guarded Room-authority multi-page workspace foundations, a Development Launcher-to-Index universal-search handoff, bounded portable restore/recovery work, and an active **GLAZE UI V1.2 (`1.2.0`) Frosted Neutral migration candidate**. The current native Theme Manager supports System, Light, Dark, and Deep Dark. Passing source, CI, JVM, emulator, or repository contract checks does not establish rendered/native accessibility, representative physical-device acceptance, complete GoreeCloud platform integration, production signing, Release Candidate qualification, or Stable qualification.
+The repository contains a usable native daily-launcher foundation, rebuilt Home / Apps / Launcher Settings surfaces, guarded Room-authority multi-page workspace foundations, a Development Launcher-to-Index universal-search handoff, bounded portable restore/recovery work, and an active **GLAZE UI V1.3 (`1.3.0`) Adaptive Resonance migration candidate** using the inherited V1.2 Frosted Neutral material foundation. The current native Theme Manager supports System, Light, Dark, and Deep Dark. Passing source, CI, JVM, emulator, or repository contract checks does not establish rendered/native accessibility, representative physical-device acceptance, complete GoreeCloud platform integration, production signing, Release Candidate qualification, or Stable qualification.
 
 The complete approved target capability inventory is maintained in [FEATURES.md](FEATURES.md). Target capabilities are not implementation claims unless separately identified as current Development behavior and supported by repository evidence.
 
@@ -54,33 +54,35 @@ Current Development source includes:
 - a **Search GoreeCloud** Home affordance in Permanent mode;
 - one-finger downward Home gesture wired to the same Index handoff;
 - bounded package visibility for the Index search action without broad package access;
-- GLAZE UI V1.2 Stable provenance, inherited geometry/target mapping, Frosted Neutral material primitives, and native Theme Manager migration work;
+- GLAZE UI V1.3 Stable integration provenance, inherited geometry/target mapping, inherited Frosted Neutral material primitives, Adaptive Resonance contract provenance, and native Theme Manager migration work;
 - a reachable Settings → Theme Manager path with saveable/fail-closed sub-destination restoration, direct persisted four-mode theme selection, concise preview semantics, and a non-actionable selected-state surface;
 - bounded local portable workspace/preference validation, persistence, and interruption-recovery foundations; and
 - Android system wallpaper presentation through the native window-wallpaper mechanism without requesting wallpaper/storage privileges.
 
-## GLAZE UI V1.2 design boundary
+## GLAZE UI V1.3 design boundary
 
-Launcher targets **GLAZE UI V1.2 / `1.2.0` Stable** at exact Stable promotion revision `f285b9145e27e6e7027b075c37299d101945c272`.
+Launcher targets **GLAZE UI V1.3 / `1.3.0` Stable — Adaptive Resonance** at exact Stable integration revision `fc7cc91d2eace8da2371371c2855c24cbcb326a1`. **V1.2 / `1.2.0` is the rollback baseline.**
 
-The current migration follows the V1.2 material rule:
+The current migration preserves the inherited V1.2 material rule:
 
 > **Neutral glass is the material; color is an accent.**
 
 The active native mapping:
 
+- records the V1.3 Adaptive Resonance contract and Stable aggregate entrypoints;
 - retains inherited structural spacing/radius semantics and 8/16/24/32 dp optical geometry references;
 - retains the 48 dp ordinary interaction floor and 56 dp Touch Assistance/far-view target;
 - supports System, Light, Dark, and Deep Dark structural appearances;
 - uses translucent Frost White for light neutral material;
 - uses neutral graphite/deep-neutral material for Dark and Deep Dark;
 - uses neutral separator lines for degradation/effects-free presentation;
-- removes the earlier Deep Teal + Soft Amber aura substrate from active presentation; and
-- restricts current Theme Manager decorative color to a bounded Ice Blue accent.
+- keeps chromatic color out of the default material substrate;
+- restricts current Theme Manager decorative color to a bounded Ice Blue accent; and
+- does not derive adaptive material color or semantic state from wallpaper, application content, privacy/security state, or other producer truth.
 
 GLAZE UI governs presentation and interaction only. It cannot manufacture privacy, security, identity, recovery, authorization, availability, or platform state owned by another GoreeCloud system or Android.
 
-Current V1.2 source mapping remains **Development evidence**. Complete rendered visual review, Reduced Motion, Reduced Transparency, Increased Contrast, forced-color/native-equivalent behavior, large-text/reflow, RTL/localization, runtime Touch Assistance resolution, TalkBack/Switch Access, responsive phone/tablet/foldable composition, performance fallback, representative physical-device validation, and Human Visual Excellence remain acceptance gates.
+Current V1.3 source mapping remains **Development evidence**. Complete rendered visual review, Reduced Motion, Reduced Transparency, Increased Contrast, forced-color/native-equivalent behavior, large-text/reflow, RTL/localization, runtime Touch Assistance resolution, TalkBack/Switch Access, responsive phone/tablet/foldable composition and reachability, performance fallback, representative physical-device validation, verified V1.2 rollback, and Human Visual Excellence remain acceptance gates.
 
 See [docs/glaze-ui-adoption.md](docs/glaze-ui-adoption.md).
 
@@ -138,11 +140,12 @@ All GoreeCloud Launcher logos, icons, symbols, illustrations, and artwork are ca
 
 Release Candidate qualification still requires closure and evidence for applicable gates, including:
 
-- complete V1.2 component/state/material application mapping and rendered acceptance;
+- complete V1.3 component/state/material/adaptive application mapping and rendered acceptance;
 - representative phone/tablet/foldable visual and interaction validation;
 - TalkBack, Switch Access, keyboard/D-pad, large-text/reflow, RTL/localization, Reduced Motion, Reduced Transparency, Increased Contrast, and Touch Assistance acceptance;
 - mature core workspace editing and recovery behavior required by approved RC scope;
 - representative physical-device default-HOME, lifecycle, universal-search gesture, restore/recovery, and performance acceptance;
+- verified V1.2 rollback on the Launcher integration path;
 - applicable Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, and Manager integration/acceptance;
 - production signing/provenance and release packaging; and
 - canonical Drive acceptance/changelog reconciliation.
@@ -156,7 +159,7 @@ A version label alone is not RC evidence.
 - [FEATURES.md](FEATURES.md) — implemented Development behavior plus approved target scope.
 - [BENEFITS.md](BENEFITS.md) — current and intended benefits.
 - [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — product completeness objectives.
-- [Glaze UI adoption](docs/glaze-ui-adoption.md) — current V1.2 migration and acceptance boundary.
+- [Glaze UI adoption](docs/glaze-ui-adoption.md) — current V1.3 migration and acceptance boundary.
 - `docs/` — architecture, persistence, design-system, validation, and implementation records.
 
 Canonical project specifications and acceptance/change records are maintained in the authorized GoreeCloud Google Drive project hierarchy.
