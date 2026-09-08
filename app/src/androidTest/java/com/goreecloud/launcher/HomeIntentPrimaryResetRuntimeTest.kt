@@ -42,8 +42,9 @@ class HomeIntentPrimaryResetRuntimeTest {
             waitForText("Home screen")
 
             scenario.onActivity { activity ->
-                activity.onNewIntent(
+                activity.startActivity(
                     Intent(Intent.ACTION_MAIN).apply {
+                        setClass(activity, MainActivity::class.java)
                         addCategory(Intent.CATEGORY_HOME)
                     }
                 )
