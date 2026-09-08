@@ -10,9 +10,44 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class LauncherPortableRestoreFailureCompensationTest {
+    @Test
+    fun strictRestoreBaselineReturnsExactCanonicalPreferences() {
+        val expected = LauncherPreferences(
+            homeColumns = 5,
+            homeRows = 6,
+            drawerColumns = 4,
+            showLabels = false,
+            iconScale = 0.95f,
+            layoutLocked = true,
+            indexHomeMode = GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
+        )
+
+        val actual = requireCanonicalPortableRestoreBaseline(
+            LauncherPortableRecoveryPreferenceReadResult.Success(expected),
+        )
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun strictRestoreBaselineRejectsNoncanonicalPersistedPreferences() {
+        val reason = "stored portable preferences are outside the canonical recovery domain"
+
+        try {
+            requireCanonicalPortableRestoreBaseline(
+                LauncherPortableRecoveryPreferenceReadResult.Invalid(reason),
+            )
+            fail("expected recovery-required failure")
+        } catch (failure: LauncherPortableRestoreRecoveryRequiredException) {
+            assertTrue(failure.message.orEmpty().contains("noncanonical persisted preferences"))
+            assertTrue(failure.message.orEmpty().contains(reason))
+        }
+    }
+
     @Test
     fun cancelledApplyCompletesSuspendingRollbackAndRethrowsOriginalCancellation() = runBlocking {
         var workspaceRolledBack = false
