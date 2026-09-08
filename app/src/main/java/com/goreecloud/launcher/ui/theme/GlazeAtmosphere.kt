@@ -5,9 +5,8 @@ import androidx.compose.ui.graphics.Color
 /**
  * Bounded GLAZE UI V1.2 Frosted Neutral presentation primitives.
  *
- * Neutral glass is the material; color is an accent. These values never
- * establish protection, privacy, identity, recovery, availability, focus,
- * selection, or other authoritative state. Accessibility and producer-owned
+ * Neutral glass is the material; color is an accent. These values never establish protection, privacy, identity,
+ * recovery, availability, focus, selection, or other authoritative state. Accessibility and producer-owned
  * semantics always take precedence over decorative treatment.
  */
 object GlazeAtmosphere {
