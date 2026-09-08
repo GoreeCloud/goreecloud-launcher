@@ -4,30 +4,27 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Native Android mapping of the official GLAZE UI V1.0 foundation geometry,
- * spacing, and interaction-target subset currently consumed by GoreeCloud Launcher.
+ * Native Android mapping of the GLAZE UI V1.1 geometry, inherited V1 spacing,
+ * and interaction-target subset currently consumed by GoreeCloud Launcher.
  *
  * Current design-system authority:
- * - product identity: GLAZE UI V1.0
- * - machine version: 1.0.0
- * - canonical source revision: 70909bbdccad378fb7281ae1842e2f5beed64c38
+ * - product identity: GLAZE UI V1.1
+ * - machine version: 1.1.0
+ * - Stable release source revision: 15cc76d2bcd4065552dc31c77145b63f34d9e7b2
  *
- * Canonical V1 spacing consumed directly here is 4/8/12/16/20/24/32/48/64 dp.
- * `space10` remains a Launcher-owned 40 dp layout convenience and is not claimed as
- * a canonical V1 token.
+ * V1.1 preserves the V1 structural spacing/radius contract while adding
+ * optical geometry references of 8/16/24/32 dp plus capsule geometry.
+ * `space10` remains a Launcher-owned 40 dp layout convenience and is not
+ * claimed as a canonical Glaze token.
  *
- * V1 foundation radii are 12 dp small, 20 dp standard, 28 dp soft/panel, and pill.
- * The existing Launcher property names are retained as source-compatible semantic
- * aliases while mapping only to those V1 foundation tiers.
- *
- * V1 keeps a 48 dp normal touch-oriented target floor and a 56 dp Touch Assistance
- * / far-view target where applicable. This mapping is Development evidence only;
- * it does not establish rendered, accessibility, representative-device, release,
- * or production acceptance for Launcher.
+ * The 48 dp normal touch-oriented floor and 56 dp Touch Assistance / far-view
+ * target remain preserved. This mapping is Development evidence only; it does
+ * not establish rendered, accessibility, representative-device, release, or
+ * production acceptance for Launcher.
  */
 object GlazeMetrics {
-    const val targetVersion = "1.0.0"
-    const val sourceRevision = "70909bbdccad378fb7281ae1842e2f5beed64c38"
+    const val targetVersion = "1.1.0"
+    const val sourceRevision = "15cc76d2bcd4065552dc31c77145b63f34d9e7b2"
 
     val space1: Dp = 4.dp
     val space2: Dp = 8.dp
@@ -40,6 +37,7 @@ object GlazeMetrics {
     val space12: Dp = 48.dp
     val space16: Dp = 64.dp
 
+    // Inherited V1 structural radius tiers.
     val radiusSmall: Dp = 12.dp
     val radiusMedium: Dp = 20.dp
     val radiusControl: Dp = 12.dp
@@ -47,6 +45,13 @@ object GlazeMetrics {
     val radiusExtraLarge: Dp = 28.dp
     val radius2ExtraLarge: Dp = 28.dp
     val radiusPill: Dp = 999.dp
+
+    // V1.1 optical geometry references. These do not replace structural radii.
+    val opticalMicro: Dp = 8.dp
+    val opticalControl: Dp = 16.dp
+    val opticalContainer: Dp = 24.dp
+    val opticalHero: Dp = 32.dp
+    val opticalCapsule: Dp = 999.dp
 
     val minimumTarget: Dp = 48.dp
     val comfortableTarget: Dp = 48.dp

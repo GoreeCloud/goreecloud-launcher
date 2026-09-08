@@ -26,14 +26,17 @@ class GlazeThemeRepository(private val context: Context) {
     }
 
     fun cycleMode(current: GlazeThemeMode) {
-        val next = when (current) {
-            GlazeThemeMode.SYSTEM -> GlazeThemeMode.LIGHT
-            GlazeThemeMode.LIGHT -> GlazeThemeMode.DARK
-            GlazeThemeMode.DARK -> GlazeThemeMode.SYSTEM
-        }
-        setMode(next)
+        setMode(nextGlazeThemeMode(current))
     }
 }
+
+internal fun nextGlazeThemeMode(current: GlazeThemeMode): GlazeThemeMode =
+    when (current) {
+        GlazeThemeMode.SYSTEM -> GlazeThemeMode.LIGHT
+        GlazeThemeMode.LIGHT -> GlazeThemeMode.DARK
+        GlazeThemeMode.DARK -> GlazeThemeMode.DEEP_DARK
+        GlazeThemeMode.DEEP_DARK -> GlazeThemeMode.SYSTEM
+    }
 
 internal object GlazeThemeModeCodec {
     fun decode(value: String?, fallback: GlazeThemeMode = GlazeThemeMode.SYSTEM): GlazeThemeMode =

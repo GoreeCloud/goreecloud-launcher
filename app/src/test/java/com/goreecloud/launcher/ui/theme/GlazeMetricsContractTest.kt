@@ -6,9 +6,9 @@ import org.junit.Test
 
 class GlazeMetricsContractTest {
     @Test
-    fun `launcher targets exact GLAZE UI V1 reset baseline`() {
-        assertEquals("1.0.0", GlazeMetrics.targetVersion)
-        assertEquals("70909bbdccad378fb7281ae1842e2f5beed64c38", GlazeMetrics.sourceRevision)
+    fun `launcher targets exact GLAZE UI V1_1 Stable release`() {
+        assertEquals("1.1.0", GlazeMetrics.targetVersion)
+        assertEquals("15cc76d2bcd4065552dc31c77145b63f34d9e7b2", GlazeMetrics.sourceRevision)
     }
 
     @Test
@@ -20,7 +20,7 @@ class GlazeMetricsContractTest {
     }
 
     @Test
-    fun `launcher maps canonical v1 spacing and foundation radius tiers`() {
+    fun `launcher preserves inherited v1 spacing and structural radius tiers`() {
         assertEquals(4.dp, GlazeMetrics.space1)
         assertEquals(8.dp, GlazeMetrics.space2)
         assertEquals(12.dp, GlazeMetrics.space3)
@@ -41,7 +41,16 @@ class GlazeMetricsContractTest {
     }
 
     @Test
-    fun `launcher owned 40dp convenience is not used as a v1 provenance marker`() {
+    fun `v1_1 optical geometry is separate from structural radii`() {
+        assertEquals(8.dp, GlazeMetrics.opticalMicro)
+        assertEquals(16.dp, GlazeMetrics.opticalControl)
+        assertEquals(24.dp, GlazeMetrics.opticalContainer)
+        assertEquals(32.dp, GlazeMetrics.opticalHero)
+        assertEquals(999.dp, GlazeMetrics.opticalCapsule)
+    }
+
+    @Test
+    fun `launcher owned 40dp convenience is not used as a Glaze provenance marker`() {
         assertEquals(40.dp, GlazeMetrics.space10)
     }
 }
