@@ -2,9 +2,9 @@
   "schema": "goreecloud.visual-asset-provenance/v1",
   "product": "GoreeCloud Launcher",
   "canonical_repository": "GoreeCloud/goreecloud-branding-assets",
-  "canonical_repository_commit": "e8dba369cd7bbaf2c2f97ed740caf0def1c2c0ee",
+  "canonical_repository_commit": "94442024149fc347923dd6176aa5b124cd9ffac6",
   "canonical_path": "products/launcher/app-icon.svg",
-  "canonical_blob_sha": "d6768114e689058f1c911beca4050f33c96bd7c2",
+  "canonical_blob_sha": "68ea82c4657253a1396376f715d3582f1417b9ac",
   "consumer_repository": "GoreeCloud/goreecloud-launcher",
   "consumer_role": "platform-specific derivative only",
   "derivatives": [
