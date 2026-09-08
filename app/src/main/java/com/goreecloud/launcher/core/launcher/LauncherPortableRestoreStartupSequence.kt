@@ -1,12 +1,16 @@
 package com.goreecloud.launcher.core.launcher
 
+import kotlinx.coroutines.CancellationException
+
 /**
  * Orders the bounded portable-restore recovery check ahead of deferred workspace reconciliation.
  *
  * MainActivity must not publish a gate-opening recovery result until this sequence returns. If
  * portable recovery requires attention, workspace reconciliation is skipped. If workspace
- * reconciliation fails after a normally gate-opening recovery result, the failure propagates and
- * no successful result is returned for publication, preserving the startup mutation barrier.
+ * reconciliation fails after a normally gate-opening recovery result, the failure is converted to
+ * an explicit fail-closed RecoveryRequired result so the startup surface can report that recovery
+ * needs attention instead of remaining indefinitely in the pending state. Coroutine cancellation
+ * still propagates and is never converted into application recovery evidence.
  */
 object LauncherPortableRestoreStartupSequence {
     suspend fun reconcileBeforeMutation(
@@ -14,8 +18,19 @@ object LauncherPortableRestoreStartupSequence {
         reconcileWorkspace: suspend () -> Unit,
     ): LauncherPortableRestoreRecoveryCoordinator.Result {
         val recovery = recoverPortableRestore()
-        if (LauncherPortableRestoreStartupGate.allowsMutations(recovery)) {
+        if (!LauncherPortableRestoreStartupGate.allowsMutations(recovery)) {
+            return recovery
+        }
+
+        try {
             reconcileWorkspace()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Exception) {
+            return LauncherPortableRestoreRecoveryCoordinator.Result.RecoveryRequired(
+                reason = LauncherPortableRestoreRecoveryCoordinator.RecoveryReason.OPERATION_FAILED,
+                failureType = failure::class.java.name,
+            )
         }
         return recovery
     }

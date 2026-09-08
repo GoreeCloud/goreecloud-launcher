@@ -1,5 +1,6 @@
 package com.goreecloud.launcher.core.launcher
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -46,25 +47,43 @@ class LauncherPortableRestoreStartupSequenceTest {
     }
 
     @Test
-    fun workspaceFailurePreventsSuccessfulGateResultFromReturning() = runBlocking {
-        var returned = false
-        var failed = false
+    fun workspaceFailureBecomesExplicitFailClosedRecoveryState() = runBlocking {
+        val result = LauncherPortableRestoreStartupSequence.reconcileBeforeMutation(
+            recoverPortableRestore = {
+                LauncherPortableRestoreRecoveryCoordinator.Result.ConfirmedCommitted
+            },
+            reconcileWorkspace = {
+                error("workspace reconciliation failed")
+            },
+        )
+
+        assertTrue(result is LauncherPortableRestoreRecoveryCoordinator.Result.RecoveryRequired)
+        result as LauncherPortableRestoreRecoveryCoordinator.Result.RecoveryRequired
+        assertEquals(
+            LauncherPortableRestoreRecoveryCoordinator.RecoveryReason.OPERATION_FAILED,
+            result.reason,
+        )
+        assertEquals(IllegalStateException::class.java.name, result.failureType)
+        assertFalse(LauncherPortableRestoreStartupGate.allowsMutations(result))
+    }
+
+    @Test
+    fun workspaceCancellationStillPropagates() = runBlocking {
+        var cancellationObserved = false
 
         try {
             LauncherPortableRestoreStartupSequence.reconcileBeforeMutation(
                 recoverPortableRestore = {
-                    LauncherPortableRestoreRecoveryCoordinator.Result.ConfirmedCommitted
+                    LauncherPortableRestoreRecoveryCoordinator.Result.Clean
                 },
                 reconcileWorkspace = {
-                    error("workspace reconciliation failed")
+                    throw CancellationException("cancel startup")
                 },
             )
-            returned = true
-        } catch (failure: IllegalStateException) {
-            failed = failure.message == "workspace reconciliation failed"
+        } catch (cancellation: CancellationException) {
+            cancellationObserved = cancellation.message == "cancel startup"
         }
 
-        assertTrue(failed)
-        assertFalse(returned)
+        assertTrue(cancellationObserved)
     }
 }
