@@ -1,6 +1,7 @@
 package com.goreecloud.launcher
 
 import android.app.role.RoleManager
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -60,6 +61,7 @@ class MainActivity : ComponentActivity() {
     private val defaultHomeState = MutableStateFlow(false)
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
+    private val homeReturnRequestGeneration = MutableStateFlow(0L)
 
     private val homeRoleRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -97,6 +99,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeMode by themeRepository.themeMode.collectAsState(initial = themeRepository.defaultMode)
             val portableRestoreRecovery by portableRestoreRecoveryResult.collectAsStateWithLifecycle()
+            val homeReturnGeneration by homeReturnRequestGeneration.collectAsStateWithLifecycle()
 
             if (!LauncherPortableRestoreStartupGate.allowsMutations(portableRestoreRecovery)) {
                 GlazeTheme(themeMode) {
@@ -149,6 +152,13 @@ class MainActivity : ComponentActivity() {
             val primarySurfaceMode = runCatching {
                 LauncherSurfaceMode.valueOf(primarySurfaceModeName)
             }.getOrDefault(LauncherSurfaceMode.HOME)
+
+            LaunchedEffect(homeReturnGeneration) {
+                if (homeReturnGeneration > 0L) {
+                    selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                    primarySurfaceModeName = LauncherSurfaceMode.HOME.name
+                }
+            }
 
             LaunchedEffect(renderedPages) {
                 if (renderedPages.isNotEmpty() && renderedPages.none { it.pageId == selectedHomePageId }) {
@@ -282,6 +292,7 @@ class MainActivity : ComponentActivity() {
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
                             },
+                            homeResetGeneration = homeReturnGeneration,
                         )
                     }
 
@@ -350,6 +361,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.isHomeReturnIntent()) {
+            homeReturnRequestGeneration.value += 1L
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         refreshHomeRoleState()
@@ -386,3 +405,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+internal fun Intent.isHomeReturnIntent(): Boolean =
+    action == Intent.ACTION_MAIN && hasCategory(Intent.CATEGORY_HOME)
