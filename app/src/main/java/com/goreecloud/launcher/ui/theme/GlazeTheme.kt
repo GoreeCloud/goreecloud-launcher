@@ -10,7 +10,8 @@ import androidx.compose.ui.graphics.Color
 enum class GlazeThemeMode { SYSTEM, LIGHT, DARK, DEEP_DARK }
 
 /**
- * GLAZE UI V1.2 Frosted Neutral structural appearance mapping for Launcher.
+ * GLAZE UI V1.3 Adaptive Resonance structural appearance mapping for Launcher,
+ * retaining the inherited V1.2 Frosted Neutral material foundation.
  * Neutral glass is the material and color remains a bounded accent.
  *
  * The translucent neutral surface roles intentionally remain independent of
