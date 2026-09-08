@@ -60,12 +60,19 @@ fun LauncherBetaRoot(
     onSetLayoutLocked: (Boolean) -> Unit,
     onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
+    homeResetGeneration: Long = 0L,
 ) {
     var surfaceModeName by rememberSaveable { mutableStateOf(LauncherSurfaceMode.HOME.name) }
     val surfaceMode = runCatching { LauncherSurfaceMode.valueOf(surfaceModeName) }
         .getOrDefault(LauncherSurfaceMode.HOME)
     var selectedApp by remember { mutableStateOf<LauncherActivityInfo?>(null) }
 
+    LaunchedEffect(homeResetGeneration) {
+        if (homeResetGeneration > 0L) {
+            surfaceModeName = LauncherSurfaceMode.HOME.name
+            selectedApp = null
+        }
+    }
     LaunchedEffect(surfaceMode) { onSurfaceModeChanged(surfaceMode) }
 
     when (surfaceMode) {
