@@ -3,7 +3,6 @@ package com.goreecloud.launcher
 import android.app.role.RoleManager
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -29,6 +28,7 @@ import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoor
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
+import com.goreecloud.launcher.core.launcher.UniversalSearchRouter
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
     private val homeReturnRequestGeneration = MutableStateFlow(0L)
+    private val localSearchFallbackRequestGeneration = MutableStateFlow(0L)
 
     private val homeRoleRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -100,6 +101,8 @@ class MainActivity : ComponentActivity() {
             val themeMode by themeRepository.themeMode.collectAsState(initial = themeRepository.defaultMode)
             val portableRestoreRecovery by portableRestoreRecoveryResult.collectAsStateWithLifecycle()
             val homeReturnGeneration by homeReturnRequestGeneration.collectAsStateWithLifecycle()
+            val localSearchFallbackGeneration by
+                localSearchFallbackRequestGeneration.collectAsStateWithLifecycle()
 
             if (!LauncherPortableRestoreStartupGate.allowsMutations(portableRestoreRecovery)) {
                 GlazeTheme(themeMode) {
@@ -293,6 +296,7 @@ class MainActivity : ComponentActivity() {
                                 primarySurfaceModeName = mode.name
                             },
                             homeResetGeneration = homeReturnGeneration,
+                            localSearchFallbackGeneration = localSearchFallbackGeneration,
                         )
                     }
 
@@ -396,13 +400,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openUniversalSearch() {
-        if (!indexIntegration.openSearch()) {
-            Toast.makeText(
-                this,
-                "GoreeCloud Index is not installed yet",
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
+        UniversalSearchRouter(
+            openIndexSearch = { indexIntegration.openSearch() },
+            openLocalAppSearch = {
+                localSearchFallbackRequestGeneration.value += 1L
+            },
+        ).open()
     }
 }
 
