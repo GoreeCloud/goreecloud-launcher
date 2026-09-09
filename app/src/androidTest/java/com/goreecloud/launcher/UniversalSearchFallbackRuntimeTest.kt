@@ -45,9 +45,11 @@ class UniversalSearchFallbackRuntimeTest {
 
     private fun waitForText(text: String) {
         composeRule.waitUntil(timeoutMillis = 15_000) {
-            composeRule.onAllNodesWithText(text, useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
+            runCatching {
+                composeRule.onAllNodesWithText(text, useUnmergedTree = true)
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
+            }.getOrDefault(false)
         }
     }
 
