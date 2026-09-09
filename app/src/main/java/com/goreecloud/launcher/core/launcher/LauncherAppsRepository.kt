@@ -17,6 +17,9 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
 
+internal fun launcherLabelSortKey(label: CharSequence): String =
+    label.toString().lowercase(Locale.ROOT)
+
 class LauncherAppsRepository(context: Context) {
     private val launcherApps = context.getSystemService(LauncherApps::class.java)
     private val callbackHandler = Handler(Looper.getMainLooper())
@@ -73,7 +76,7 @@ class LauncherAppsRepository(context: Context) {
             .distinctBy { app -> "${app.user.hashCode()}:${app.componentName.flattenToString()}" }
             .sortedWith(
                 compareBy(
-                    { it.label.toString().lowercase(Locale.ROOT) },
+                    { launcherLabelSortKey(it.label) },
                     { it.componentName.packageName },
                     { it.componentName.className },
                 )
