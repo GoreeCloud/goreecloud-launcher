@@ -8,43 +8,58 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.UserHandle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.launch
 
 class LauncherAppsRepository(context: Context) {
     private val launcherApps = context.getSystemService(LauncherApps::class.java)
     private val callbackHandler = Handler(Looper.getMainLooper())
 
     val apps: Flow<List<LauncherActivityInfo>> = callbackFlow {
-        fun publish() {
-            trySend(loadApps())
+        val refreshRequests = Channel<Unit>(Channel.CONFLATED)
+        val refreshWorker = launch(Dispatchers.IO) {
+            for (ignored in refreshRequests) {
+                val snapshot = runCatching { loadApps() }.getOrNull() ?: continue
+                trySend(snapshot)
+            }
+        }
+
+        fun requestRefresh() {
+            refreshRequests.trySend(Unit)
         }
 
         val callback = object : LauncherApps.Callback() {
-            override fun onPackageRemoved(packageName: String, user: UserHandle) = publish()
-            override fun onPackageAdded(packageName: String, user: UserHandle) = publish()
-            override fun onPackageChanged(packageName: String, user: UserHandle) = publish()
+            override fun onPackageRemoved(packageName: String, user: UserHandle) = requestRefresh()
+            override fun onPackageAdded(packageName: String, user: UserHandle) = requestRefresh()
+            override fun onPackageChanged(packageName: String, user: UserHandle) = requestRefresh()
             override fun onPackagesAvailable(
                 packageNames: Array<out String>,
                 user: UserHandle,
                 replacing: Boolean,
-            ) = publish()
+            ) = requestRefresh()
 
             override fun onPackagesUnavailable(
                 packageNames: Array<out String>,
                 user: UserHandle,
                 replacing: Boolean,
-            ) = publish()
+            ) = requestRefresh()
 
-            override fun onPackagesSuspended(packageNames: Array<out String>, user: UserHandle) = publish()
-            override fun onPackagesUnsuspended(packageNames: Array<out String>, user: UserHandle) = publish()
+            override fun onPackagesSuspended(packageNames: Array<out String>, user: UserHandle) = requestRefresh()
+            override fun onPackagesUnsuspended(packageNames: Array<out String>, user: UserHandle) = requestRefresh()
         }
 
         launcherApps.registerCallback(callback, callbackHandler)
-        publish()
-        awaitClose { launcherApps.unregisterCallback(callback) }
+        requestRefresh()
+        awaitClose {
+            launcherApps.unregisterCallback(callback)
+            refreshRequests.close()
+            refreshWorker.cancel()
+        }
     }.conflate()
 
     fun launch(app: LauncherActivityInfo) {
