@@ -5,6 +5,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -20,8 +22,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,8 +38,57 @@ import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeThemeMode
+import kotlin.math.abs
 
 enum class LauncherSurfaceMode { HOME, DRAWER, SETTINGS }
+
+internal enum class HomeVerticalGesture { NONE, OPEN_DRAWER, OPEN_SEARCH }
+
+internal fun classifyHomeVerticalGesture(
+    deltaX: Float,
+    deltaY: Float,
+    threshold: Float,
+): HomeVerticalGesture {
+    if (threshold <= 0f || abs(deltaY) < threshold || abs(deltaY) <= abs(deltaX)) {
+        return HomeVerticalGesture.NONE
+    }
+    return if (deltaY < 0f) HomeVerticalGesture.OPEN_DRAWER else HomeVerticalGesture.OPEN_SEARCH
+}
+
+private fun Modifier.observeHomeVerticalGestures(
+    swipeThreshold: Float,
+    onOpenDrawer: () -> Unit,
+    onOpenUniversalSearch: () -> Unit,
+): Modifier = pointerInput(swipeThreshold, onOpenDrawer, onOpenUniversalSearch) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        val start = down.position
+
+        while (true) {
+            val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+            if (!change.pressed) break
+
+            when (
+                classifyHomeVerticalGesture(
+                    deltaX = change.position.x - start.x,
+                    deltaY = change.position.y - start.y,
+                    threshold = swipeThreshold,
+                )
+            ) {
+                HomeVerticalGesture.OPEN_DRAWER -> {
+                    onOpenDrawer()
+                    break
+                }
+                HomeVerticalGesture.OPEN_SEARCH -> {
+                    onOpenUniversalSearch()
+                    break
+                }
+                HomeVerticalGesture.NONE -> Unit
+            }
+        }
+    }
+}
 
 @Composable
 fun LauncherBetaRoot(
@@ -151,24 +203,11 @@ private fun HomeSurface(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(onOpenUniversalSearch, onOpenDrawer, swipeThreshold) {
-                var drag = 0f
-                detectVerticalDragGestures(
-                    onDragStart = { drag = 0f },
-                    onDragCancel = { drag = 0f },
-                    onDragEnd = {
-                        when {
-                            drag >= swipeThreshold -> onOpenUniversalSearch()
-                            drag <= -swipeThreshold -> onOpenDrawer()
-                        }
-                        drag = 0f
-                    },
-                    onVerticalDrag = { change, amount ->
-                        change.consume()
-                        drag += amount
-                    },
-                )
-            },
+            .observeHomeVerticalGestures(
+                swipeThreshold = swipeThreshold,
+                onOpenDrawer = onOpenDrawer,
+                onOpenUniversalSearch = onOpenUniversalSearch,
+            ),
     ) {
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.02f)))
 
