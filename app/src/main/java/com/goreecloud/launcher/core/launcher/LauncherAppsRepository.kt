@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.UserHandle
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
@@ -72,7 +73,7 @@ class LauncherAppsRepository(context: Context) {
             .distinctBy { app -> "${app.user.hashCode()}:${app.componentName.flattenToString()}" }
             .sortedWith(
                 compareBy(
-                    { it.label.toString().lowercase() },
+                    { it.label.toString().lowercase(Locale.ROOT) },
                     { it.componentName.packageName },
                     { it.componentName.className },
                 )
