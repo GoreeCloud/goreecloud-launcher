@@ -74,9 +74,11 @@ class HomeIntentPrimaryResetRuntimeTest {
                     runShellCommand("input keyevent KEYCODE_HOME")
 
                     composeRule.waitUntil(timeoutMillis = 15_000) {
-                        composeRule.onAllNodesWithText("Home screen", useUnmergedTree = true)
-                            .fetchSemanticsNodes()
-                            .isEmpty()
+                        runCatching {
+                            composeRule.onAllNodesWithText("Home screen", useUnmergedTree = true)
+                                .fetchSemanticsNodes()
+                                .isEmpty()
+                        }.getOrDefault(false)
                     }
                     composeRule.onNodeWithText("•••").assertIsDisplayed()
                 } finally {
@@ -94,9 +96,11 @@ class HomeIntentPrimaryResetRuntimeTest {
 
     private fun waitForText(text: String) {
         composeRule.waitUntil(timeoutMillis = 15_000) {
-            composeRule.onAllNodesWithText(text, useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
+            runCatching {
+                composeRule.onAllNodesWithText(text, useUnmergedTree = true)
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
+            }.getOrDefault(false)
         }
         composeRule.onNodeWithText(text).assertIsDisplayed()
     }
