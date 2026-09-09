@@ -73,12 +73,11 @@ class HomeIntentPrimaryResetRuntimeTest {
                     // as a separate lifecycle transition.
                     runShellCommand("input keyevent KEYCODE_HOME")
 
-                    composeRule.waitUntil(timeoutMillis = 15_000) {
-                        composeRule.onAllNodesWithText("Home screen", useUnmergedTree = true)
-                            .fetchSemanticsNodes()
-                            .isEmpty()
-                    }
-                    composeRule.onNodeWithText("•••").assertIsDisplayed()
+                    // HOME can briefly leave no active Compose hierarchy while Android moves the
+                    // existing singleTask instance back to the foreground. Treat that transition as
+                    // "not ready yet" rather than failing the poll before the Activity resumes.
+                    waitForText("•••")
+                    assertFalse(hasText("Home screen"))
                 } finally {
                     scenario.close()
                 }
@@ -94,12 +93,17 @@ class HomeIntentPrimaryResetRuntimeTest {
 
     private fun waitForText(text: String) {
         composeRule.waitUntil(timeoutMillis = 15_000) {
-            composeRule.onAllNodesWithText(text, useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
+            hasText(text)
         }
         composeRule.onNodeWithText(text).assertIsDisplayed()
     }
+
+    private fun hasText(text: String): Boolean =
+        runCatching {
+            composeRule.onAllNodesWithText(text, useUnmergedTree = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }.getOrDefault(false)
 
     private fun runShellCommand(command: String) {
         val descriptor: ParcelFileDescriptor =
