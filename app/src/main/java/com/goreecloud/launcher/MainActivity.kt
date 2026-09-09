@@ -252,7 +252,8 @@ class MainActivity : ComponentActivity() {
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
-                            onOpenUniversalSearch = ::openUniversalSearch,
+                            isIndexSearchAvailable = indexIntegration.isAvailable(),
+                            onOpenIndexSearch = ::openUniversalSearch,
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
@@ -395,11 +396,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun openUniversalSearch() {
-        if (!indexIntegration.openSearch()) {
+    private fun openUniversalSearch(query: String? = null) {
+        if (!indexIntegration.openSearch(query)) {
             Toast.makeText(
                 this,
-                "GoreeCloud Index is not installed yet",
+                "GoreeCloud Index is unavailable. Installed-app search remains local.",
                 Toast.LENGTH_SHORT,
             ).show()
         }
