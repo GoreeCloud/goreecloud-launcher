@@ -61,6 +61,7 @@ fun LauncherBetaRoot(
     onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
     homeResetGeneration: Long = 0L,
+    localSearchFallbackGeneration: Long = 0L,
 ) {
     var surfaceModeName by rememberSaveable { mutableStateOf(LauncherSurfaceMode.HOME.name) }
     val surfaceMode = runCatching { LauncherSurfaceMode.valueOf(surfaceModeName) }
@@ -70,6 +71,12 @@ fun LauncherBetaRoot(
     LaunchedEffect(homeResetGeneration) {
         if (homeResetGeneration > 0L) {
             surfaceModeName = LauncherSurfaceMode.HOME.name
+            selectedApp = null
+        }
+    }
+    LaunchedEffect(localSearchFallbackGeneration) {
+        if (localSearchFallbackGeneration > 0L) {
+            surfaceModeName = LauncherSurfaceMode.DRAWER.name
             selectedApp = null
         }
     }
@@ -466,7 +473,7 @@ private fun LauncherSettingsSurface(
 
             SettingsSection("GoreeCloud Search") {
                 Text(
-                    "Swipe down always opens GoreeCloud Index.",
+                    "Swipe down opens GoreeCloud Index; if Index cannot open, Launcher falls back to local app search.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
