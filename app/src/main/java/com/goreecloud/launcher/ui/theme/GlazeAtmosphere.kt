@@ -3,29 +3,30 @@ package com.goreecloud.launcher.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Bounded GLAZE UI V1.1 atmospheric primitives used only for non-semantic
- * presentation. These colors never establish protection, privacy, identity,
+ * Bounded GLAZE UI V1.3 Adaptive Resonance presentation primitives using the
+ * inherited V1.2 Frosted Neutral material foundation.
+ *
+ * Neutral glass is the material; color is an accent. These values never establish protection, privacy, identity,
  * recovery, availability, focus, selection, or other authoritative state.
+ * Accessibility and producer-owned semantics always take precedence over decorative treatment.
+ * Launcher does not derive adaptive material color from wallpaper, application content, or other producer truth.
  */
 object GlazeAtmosphere {
-    val canvasBlack = Color(0xFF081016)
-    val deepGraphite = Color(0xFF101A20)
-    val slateGraphite = Color(0xFF18252B)
-    val deepTeal = Color(0xFF0F6B6F)
-    val mineralTeal = Color(0xFF1C8A8D)
-    val softAqua = Color(0xFF8FD6D2)
-    val softAmber = Color(0xFFD9A35F)
-    val champagneGold = Color(0xFFE7C78A)
-    val warmGlow = Color(0xFFF2D7A6)
+    // Neutral frosted material references inherited by the V1.3 native mapping.
+    val frostWhite = Color(0xA8FFFFFF)
+    val frostWhiteDense = Color(0xD9FFFFFF)
+    val frostGraphite = Color(0xA61C1D20)
+    val frostGraphiteDense = Color(0xD91A1C21)
+    val frostDeepDark = Color(0xB012151A)
 
-    const val lightTealAuraMaxAlpha = 0.08f
-    const val lightAmberAuraMaxAlpha = 0.04f
-    const val darkTealAuraMaxAlpha = 0.12f
-    const val darkAmberAuraMaxAlpha = 0.06f
-    const val deepDarkTealAuraMaxAlpha = 0.16f
-    const val deepDarkAmberAuraMaxAlpha = 0.08f
+    // Accent is deliberately bounded and never used as the material substrate.
+    val iceBlueAccent = Color(0xFF78A7FF)
+    val violetAccent = Color(0xFF9B8CFF)
 
-    const val defaultAuraFieldsMax = 2
-    const val defaultTealFieldsMax = 1
-    const val defaultAmberFieldsMax = 1
+    // Neutral outlines preserve separation when transparency/effects degrade.
+    val lightNeutralLine = Color(0x1A505050)
+    val darkNeutralLine = Color(0x1AFFFFFF)
+
+    const val decorativeAccentMaxAlpha = 0.12f
+    const val defaultAccentFieldsMax = 1
 }
