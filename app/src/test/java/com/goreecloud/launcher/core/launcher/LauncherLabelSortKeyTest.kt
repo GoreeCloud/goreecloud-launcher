@@ -17,4 +17,12 @@ class LauncherLabelSortKeyTest {
             Locale.setDefault(original)
         }
     }
+
+    @Test
+    fun canonicallyEquivalentLabelsShareOneSortKey() {
+        assertEquals(
+            launcherLabelSortKey("Café"),
+            launcherLabelSortKey("Cafe\u0301"),
+        )
+    }
 }
