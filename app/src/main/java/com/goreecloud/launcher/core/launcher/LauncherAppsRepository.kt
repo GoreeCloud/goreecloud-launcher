@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.UserHandle
+import java.text.Normalizer
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -18,7 +19,7 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
 
 internal fun launcherLabelSortKey(label: CharSequence): String =
-    label.toString().lowercase(Locale.ROOT)
+    Normalizer.normalize(label.toString(), Normalizer.Form.NFC).lowercase(Locale.ROOT)
 
 class LauncherAppsRepository(context: Context) {
     private val launcherApps = context.getSystemService(LauncherApps::class.java)
