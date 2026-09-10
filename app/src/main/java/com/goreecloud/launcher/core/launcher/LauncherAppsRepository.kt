@@ -124,6 +124,7 @@ class LauncherAppsRepository(context: Context) {
             user: UserHandle,
             change: LauncherInventoryChange,
         ) {
+            LauncherAppIconCache.invalidatePackage(packageName, user)
             if (launcherInventoryRefreshScope(change) != LauncherInventoryRefreshScope.PACKAGE) {
                 refreshRequests.trySend(LauncherInventoryRefreshRequest.Full)
                 return
@@ -153,13 +154,23 @@ class LauncherAppsRepository(context: Context) {
                 packageNames: Array<out String>,
                 user: UserHandle,
                 replacing: Boolean,
-            ) = requestFullRefresh()
+            ) {
+                packageNames.forEach { packageName ->
+                    LauncherAppIconCache.invalidatePackage(packageName, user)
+                }
+                requestFullRefresh()
+            }
 
             override fun onPackagesUnavailable(
                 packageNames: Array<out String>,
                 user: UserHandle,
                 replacing: Boolean,
-            ) = requestFullRefresh()
+            ) {
+                packageNames.forEach { packageName ->
+                    LauncherAppIconCache.invalidatePackage(packageName, user)
+                }
+                requestFullRefresh()
+            }
 
             override fun onPackagesSuspended(packageNames: Array<out String>, user: UserHandle) {
                 packageNames.forEach { packageName ->
@@ -185,7 +196,10 @@ class LauncherAppsRepository(context: Context) {
                     Intent.ACTION_PROFILE_REMOVED,
                     Intent.ACTION_PROFILE_AVAILABLE,
                     Intent.ACTION_PROFILE_UNAVAILABLE,
-                    -> requestFullRefresh()
+                    -> {
+                        LauncherAppIconCache.clear()
+                        requestFullRefresh()
+                    }
                 }
             }
         }

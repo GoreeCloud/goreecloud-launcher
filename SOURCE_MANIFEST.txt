@@ -22,6 +22,7 @@ app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceStar
 app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/GoreeCloudIndexIntegration.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppIconCache.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPreferencesRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthority.kt
@@ -47,6 +48,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalR
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifier.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlacementRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceStartupReconciler.kt
+app/src/main/java/com/goreecloud/launcher/ui/LauncherAppIcon.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherBetaRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/LayoutLockHoldControl.kt
