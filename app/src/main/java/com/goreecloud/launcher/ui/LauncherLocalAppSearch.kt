@@ -1,5 +1,6 @@
 package com.goreecloud.launcher.ui
 
+import java.text.Normalizer
 import java.util.Locale
 
 /**
@@ -14,19 +15,25 @@ internal fun matchesLauncherAppSearch(
     className: String,
     query: String,
 ): Boolean {
-    val terms = query
-        .trim()
-        .lowercase(Locale.ROOT)
-        .split(Regex("\\s+"))
+    val terms = normalizeLauncherSearchText(query)
+        .split(LAUNCHER_SEARCH_WHITESPACE)
         .filter(String::isNotEmpty)
+        .distinct()
     if (terms.isEmpty()) return true
 
     val searchable = buildString {
-        append(label.lowercase(Locale.ROOT))
+        append(normalizeLauncherSearchText(label))
         append(' ')
-        append(packageName.lowercase(Locale.ROOT))
+        append(normalizeLauncherSearchText(packageName))
         append(' ')
-        append(className.lowercase(Locale.ROOT))
+        append(normalizeLauncherSearchText(className))
     }
     return terms.all(searchable::contains)
 }
+
+private fun normalizeLauncherSearchText(value: String): String =
+    Normalizer.normalize(value, Normalizer.Form.NFC).lowercase(Locale.ROOT)
+
+// Keep pasted Unicode separators such as NBSP and em space equivalent to ordinary local-search
+// term boundaries. Kotlin/JVM's default regex whitespace class does not cover every separator.
+private val LAUNCHER_SEARCH_WHITESPACE = Regex("[\\s\\p{Z}]+")
