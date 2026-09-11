@@ -8,8 +8,10 @@ import android.util.LruCache
 import androidx.core.graphics.drawable.toBitmap
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 internal const val LAUNCHER_ICON_DECODE_SIZE_PX = 144
 internal const val LAUNCHER_ICON_CACHE_MAX_KIB = 8 * 1024
@@ -35,6 +37,39 @@ private data class LauncherIconLoadKey(
 )
 
 /**
+ * Owns one shared asynchronous operation per key independently from any individual UI waiter.
+ *
+ * A Compose surface can leave composition and cancel its own await without cancelling the shared
+ * work another Launcher surface is already waiting for. The supplied scope owns the shared work;
+ * callers only await the result.
+ */
+internal class LauncherIconSingleFlightLoader<K : Any, V>(
+    private val scope: CoroutineScope,
+) {
+    private val inFlight = ConcurrentHashMap<K, CompletableDeferred<V>>()
+
+    suspend fun load(key: K, block: suspend () -> V): V {
+        val candidate = CompletableDeferred<V>()
+        val existing = inFlight.putIfAbsent(key, candidate)
+        if (existing != null) {
+            return existing.await()
+        }
+
+        scope.launch {
+            try {
+                candidate.complete(block())
+            } catch (failure: Throwable) {
+                candidate.completeExceptionally(failure)
+            } finally {
+                inFlight.remove(key, candidate)
+            }
+        }
+
+        return candidate.await()
+    }
+}
+
+/**
  * Process-local cache for launcher-owned presentation of Android-provided badged app icons.
  *
  * LauncherApps remains authoritative for activity/profile visibility. This cache stores only
@@ -45,7 +80,8 @@ internal object LauncherAppIconCache {
     private val stateLock = Any()
     private var profileTopologyGeneration = 0L
     private val packageGenerations = mutableMapOf<LauncherIconPackageKey, Long>()
-    private val inFlight = ConcurrentHashMap<LauncherIconLoadKey, CompletableDeferred<Bitmap?>>()
+    private val loadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val singleFlight = LauncherIconSingleFlightLoader<LauncherIconLoadKey, Bitmap?>(loadScope)
 
     private val cache = object : LruCache<LauncherIconCacheKey, Bitmap>(LAUNCHER_ICON_CACHE_MAX_KIB) {
         override fun sizeOf(key: LauncherIconCacheKey, value: Bitmap): Int =
@@ -66,28 +102,21 @@ internal object LauncherAppIconCache {
             stampFor(app)
         }
         val loadKey = LauncherIconLoadKey(cacheKey = key, stamp = requestedStamp)
-        val candidate = CompletableDeferred<Bitmap?>()
-        val existingLoad = inFlight.putIfAbsent(loadKey, candidate)
-        if (existingLoad != null) {
-            return existingLoad.await()
-        }
 
-        try {
+        return singleFlight.load(loadKey) {
             val cachedAfterClaim = synchronized(stateLock) {
                 if (stampFor(app) == requestedStamp) cache.get(key) else null
             }
-            val result = when {
+            when {
                 cachedAfterClaim != null -> cachedAfterClaim
                 !isCurrentStamp(app, requestedStamp) -> null
                 else -> {
-                    val decoded = withContext(Dispatchers.IO) {
-                        runCatching {
-                            app.getBadgedIcon(0).toBitmap(
-                                width = LAUNCHER_ICON_DECODE_SIZE_PX,
-                                height = LAUNCHER_ICON_DECODE_SIZE_PX,
-                            )
-                        }.getOrNull()
-                    }
+                    val decoded = runCatching {
+                        app.getBadgedIcon(0).toBitmap(
+                            width = LAUNCHER_ICON_DECODE_SIZE_PX,
+                            height = LAUNCHER_ICON_DECODE_SIZE_PX,
+                        )
+                    }.getOrNull()
                     if (decoded == null) {
                         null
                     } else {
@@ -101,13 +130,6 @@ internal object LauncherAppIconCache {
                     }
                 }
             }
-            candidate.complete(result)
-            return result
-        } catch (failure: Throwable) {
-            candidate.completeExceptionally(failure)
-            throw failure
-        } finally {
-            inFlight.remove(loadKey, candidate)
         }
     }
 
