@@ -100,6 +100,7 @@ class LauncherAppsRepository(context: Context) {
                     val snapshot = runCatching { loadApps() }.getOrNull() ?: continue
                     currentSnapshot = snapshot
                     initialized = true
+                    LauncherAppIconCache.preload(snapshot)
                     trySend(snapshot)
                     continue
                 }
@@ -114,6 +115,7 @@ class LauncherAppsRepository(context: Context) {
 
                 if (refreshedAnyScope) {
                     currentSnapshot = normalizeSnapshot(nextSnapshot)
+                    LauncherAppIconCache.preload(currentSnapshot)
                     trySend(currentSnapshot)
                 }
             }
