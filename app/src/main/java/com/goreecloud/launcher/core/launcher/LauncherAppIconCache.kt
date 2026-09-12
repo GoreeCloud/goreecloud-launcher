@@ -15,6 +15,12 @@ import kotlinx.coroutines.launch
 
 internal const val LAUNCHER_ICON_DECODE_SIZE_PX = 144
 internal const val LAUNCHER_ICON_CACHE_MAX_KIB = 8 * 1024
+internal const val LAUNCHER_ICON_PRELOAD_LIMIT = 24
+
+internal fun <T> launcherIconPreloadWindow(
+    items: List<T>,
+    limit: Int = LAUNCHER_ICON_PRELOAD_LIMIT,
+): List<T> = if (limit <= 0) emptyList() else items.take(limit)
 
 internal data class LauncherIconCacheKey(
     val user: UserHandle,
@@ -93,6 +99,25 @@ internal object LauncherAppIconCache {
 
     fun peek(app: LauncherActivityInfo): Bitmap? = synchronized(stateLock) {
         cache.get(app.cacheKey())
+    }
+
+    /**
+     * Warms only the leading bounded inventory window and never delays inventory delivery.
+     *
+     * The repository snapshot is already sorted in app-drawer order, so the first window is the
+     * highest-value cold-start target. Preloading uses the same process-owned single-flight path as
+     * demand loading: if Compose requests an icon while it is warming, both callers share one
+     * generation-stamped decode. Package/profile invalidation therefore remains authoritative.
+     */
+    fun preload(apps: List<LauncherActivityInfo>) {
+        val targets = launcherIconPreloadWindow(apps).filter { app -> peek(app) == null }
+        if (targets.isEmpty()) return
+
+        loadScope.launch {
+            targets.forEach { app ->
+                runCatching { load(app) }
+            }
+        }
     }
 
     suspend fun load(app: LauncherActivityInfo): Bitmap? {
