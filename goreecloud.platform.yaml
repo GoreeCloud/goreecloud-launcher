@@ -66,18 +66,21 @@ platform_systems:
     notes: Versioned workspace-placement and explicit preference snapshots have validation-before-write, pair-level Home-grid compatibility, reviewed apply, concrete Room/DataStore persistence, a durable pre-Room device-local recovery journal, exact-state interrupted-operation reconciliation, readback verification, guarded compensation, and emulator-targeted recovery tests. This remains partial Development recovery; the coordinator is not yet an accepted production startup gate, clean-target/cross-device identity reconstruction and complete Launcher-owned recovery scope remain incomplete, and accepted Everkeep integration is not established.
   glaze_ui:
     result: applicable-migration-required
-    version: "1.1.0"
+    version: "1.4.0"
     evidence:
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeAtmosphere.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeOpticalV14.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalog.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/ThemeManagerSurface.kt
       - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeMetricsContractTest.kt
       - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
+      - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeOpticalV14Test.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: Repository-local Development source now explicitly targets current Stable GLAZE UI V1.1 / 1.1.0 source semantics, but the known immutable 1.1.0 import-closure defect still requires a corrected governed immutable Stable release, explicit Launcher re-pin, and fresh rendered/accessibility/adaptive/representative-device/Human Visual Excellence acceptance before current application conformance can be claimed.
+      - docs/development/saveable-theme-manager-settings-composition.md
+    notes: Repository-local Development source now explicitly targets current Stable GLAZE UI V1.4 / 1.4.0 at merged source revision 84cb3db4884042f0fa25ed6d475a127fb110f596. Native Optical Intelligence is bounded, deterministic, local, accessibility-first, and non-collecting. Complete rendered/accessibility/adaptive/representative-device/application acceptance remains required. Human/manual/physical-device/subjective optical qualification assigned to shared Glaze UI V1.4.1 is not represented as passed V1.4.0 evidence.
   mesh:
     result: applicable-blocked
     version: null
@@ -138,10 +141,10 @@ external_dependencies:
 
 compatibility:
   platform_contract: "0.2"
-  glaze_ui_required: "1.1.0"
+  glaze_ui_required: "1.4.0"
   requires:
     - goreecloud-platform-contract==0.2
-    - glaze-ui==1.1.0
+    - glaze-ui==1.4.0
     - android-api>=29
   provides:
     - goreecloud-launcher-workspace-snapshot/1
@@ -158,7 +161,10 @@ conformance:
     - README.md
     - SPECIFICATIONS.md
     - docs/glaze-ui-adoption.md
+    - docs/development/saveable-theme-manager-settings-composition.md
     - scripts/check_glaze_ui.py
+    - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeOpticalV14.kt
+    - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeOpticalV14Test.kt
     - docs/development/workspace-portable-snapshot.md
     - docs/development/launcher-portable-preferences.md
     - docs/development/portable-restore-coordinator.md
@@ -172,11 +178,11 @@ conformance:
     - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
     - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
   blockers:
-    - GLAZE UI V1.1 / 1.1.0 source mapping exists, but the known immutable 1.1.0 defect still requires a corrected immutable Stable release, explicit Launcher re-pin, and complete application-specific rendered/accessibility/adaptive/representative-device/Human Visual Excellence acceptance.
+    - GLAZE UI V1.4 / 1.4.0 source mapping and native optical invariants exist, but complete application-specific rendered/accessibility/adaptive/representative-device acceptance and applicable V1.4.1 human-validation work remain outstanding.
     - GoreeCloud Identity integration and acceptance are not established for future identity-aware capabilities.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.
-    - Everkeep integration plus complete Launcher backup and clean-target restore acceptance remain incomplete. Bounded same-resolved-identity interruption journaling/reconciliation now exists in Development source, but production startup sequencing, cross-device identity reconstruction, complete recovery scope, representative-device failure injection, and production recovery acceptance remain outstanding.
+    - Everkeep integration plus complete Launcher backup and clean-target restore acceptance remain incomplete. Bounded same-resolved-identity interruption journaling/reconciliation exists in Development source, but production startup sequencing, cross-device identity reconstruction, complete recovery scope, representative-device failure injection, and production recovery acceptance remain outstanding.
     - GoreeCloud Mesh registration, capability publication, and runtime acceptance are not established.
     - Manager platform visibility and administrative integration acceptance are not established.
     - Product-wide export and import scope remains incomplete beyond the bounded workspace-placement and explicit-preference formats.
