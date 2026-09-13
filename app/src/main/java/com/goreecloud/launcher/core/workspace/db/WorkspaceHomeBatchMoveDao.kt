@@ -23,9 +23,10 @@ data class WorkspaceHomeBatchMoveCommit internal constructor(
 )
 
 /**
- * Transaction boundary dedicated to all-or-nothing secondary HOME batch movement and exact-state
- * rollback. It deliberately does not broaden the portable backup schema or create a second
- * workspace authority: Room remains the only post-cutover source of truth.
+ * Transaction boundary dedicated to all-or-nothing secondary HOME batch movement, exact-state
+ * rollback, and bounded secondary-page compaction. It deliberately does not broaden the portable
+ * backup schema or create a second workspace authority: Room remains the only post-cutover source
+ * of truth.
  */
 @Dao
 abstract class WorkspaceHomeBatchMoveDao {
@@ -97,6 +98,71 @@ abstract class WorkspaceHomeBatchMoveDao {
         val restoredReadback = readItemsByContainer(WorkspaceContainerType.HOME).canonicalBatchItems()
         check(restoredReadback == commit.previousItems.canonicalBatchItems()) {
             "atomic HOME batch move rollback readback verification failed"
+        }
+        return true
+    }
+
+    /**
+     * Apply a complete deterministic replacement of one secondary HOME page's item placements only
+     * while the complete HOME page/item snapshot still matches what the caller planned against.
+     * This keeps page cleanup atomic and fail-closed without introducing a second history store.
+     */
+    @Transaction
+    open suspend fun compactPageIfSnapshotMatches(
+        pageId: String,
+        expectedPages: List<WorkspacePageEntity>,
+        expectedItems: List<WorkspaceItemEntity>,
+        compactedItems: List<WorkspaceItemEntity>,
+    ): Boolean {
+        if (pageId.isBlank() || pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) return false
+        if (compactedItems.isEmpty()) return false
+        if (expectedPages.isEmpty()) return false
+        if (expectedPages.map { it.rank } != expectedPages.indices.toList()) return false
+        if (expectedPages.firstOrNull()?.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID) return false
+        if (expectedPages.none { it.pageId == pageId }) return false
+
+        val currentPages = readPagesByContainer(WorkspaceContainerType.HOME)
+        if (currentPages != expectedPages) return false
+        val currentItems = readItemsByContainer(WorkspaceContainerType.HOME).canonicalBatchItems()
+        val expectedCanonical = expectedItems.canonicalBatchItems()
+        if (currentItems != expectedCanonical) return false
+
+        val previousPageItems = expectedCanonical.filter { it.pageId == pageId }
+        val previousById = previousPageItems.associateBy { it.itemId }
+        val compactedById = compactedItems.associateBy { it.itemId }
+        if (
+            previousById.size != previousPageItems.size ||
+            compactedById.size != compactedItems.size ||
+            previousById.keys != compactedById.keys
+        ) {
+            return false
+        }
+        if (
+            compactedItems.any {
+                it.pageId != pageId ||
+                    it.itemType != WorkspaceItemType.APP ||
+                    it.appKey.isNullOrBlank() ||
+                    it.cellX == null ||
+                    it.cellY == null ||
+                    checkNotNull(it.cellX) < 0 ||
+                    checkNotNull(it.cellY) < 0 ||
+                    it.spanX != 1 ||
+                    it.spanY != 1 ||
+                    it.rank < 0
+            }
+        ) {
+            return false
+        }
+        if (compactedItems.map { it.rank }.distinct().size != compactedItems.size) return false
+
+        val applied = expectedCanonical.map { item -> compactedById[item.itemId] ?: item }.canonicalBatchItems()
+        if (applied == expectedCanonical) return false
+
+        upsertItems(compactedItems)
+
+        val appliedReadback = readItemsByContainer(WorkspaceContainerType.HOME).canonicalBatchItems()
+        check(appliedReadback == applied) {
+            "secondary HOME page compaction readback verification failed"
         }
         return true
     }
