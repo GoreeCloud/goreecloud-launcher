@@ -78,6 +78,7 @@ fun HomeOverviewEditSurface(
     onMovePage: (String, Int) -> Unit,
     onCreatePage: () -> Unit,
     onDeletePage: (String) -> Unit,
+    onCompactPage: (String) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -115,7 +116,7 @@ fun HomeOverviewEditSurface(
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        "Select, reorder, add, or safely remove Home pages.",
+                        "Select, reorder, add, compact, or safely remove Home pages.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -133,7 +134,7 @@ fun HomeOverviewEditSurface(
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.86f),
                 ) {
                     Text(
-                        "Layout is locked. Page selection stays available, but add, reorder, and delete controls are disabled until the layout is unlocked in Launcher settings.",
+                        "Layout is locked. Page selection stays available, but structural layout controls are disabled until the layout is unlocked in Launcher settings.",
                         modifier = Modifier.padding(GlazeMetrics.space3),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -185,6 +186,14 @@ fun HomeOverviewEditSurface(
                             primaryRankHealthy = primaryRankHealthy,
                             layoutLocked = layoutLocked,
                         )
+                        val gridCapacity = homeColumns.toLong() * homeRows.toLong()
+                        val canCompact =
+                            !isPrimary &&
+                                primaryRankHealthy &&
+                                !layoutLocked &&
+                                page.appKeys.isNotEmpty() &&
+                                page.unsupportedItemCount == 0 &&
+                                page.appKeys.size.toLong() <= gridCapacity
 
                         HomeOverviewPageCard(
                             page = page,
@@ -196,10 +205,12 @@ fun HomeOverviewEditSurface(
                             canMoveEarlier = actions.canMoveEarlier,
                             canMoveLater = actions.canMoveLater,
                             canDelete = actions.canDelete,
+                            canCompact = canCompact,
                             onSelect = { onSelectPage(page.pageId) },
                             onMoveEarlier = { onMovePage(page.pageId, index - 1) },
                             onMoveLater = { onMovePage(page.pageId, index + 1) },
                             onDelete = { deleteCandidateId = page.pageId },
+                            onCompact = { onCompactPage(page.pageId) },
                         )
                     }
                 }
@@ -217,7 +228,7 @@ fun HomeOverviewEditSurface(
             }
 
             Text(
-                "Delete is offered only for a non-primary page containing no apps and no unsupported workspace items. Preview cells show item count, not authoritative Room cell coordinates.",
+                "Compact apps is limited to non-primary pages containing only 1×1 app items that fit the current Home grid; it preserves page order and app rank order. Delete is offered only for a non-primary page containing no apps and no unsupported workspace items. Preview cells summarize item count and do not claim authoritative Room coordinates.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -276,10 +287,12 @@ private fun HomeOverviewPageCard(
     canMoveEarlier: Boolean,
     canMoveLater: Boolean,
     canDelete: Boolean,
+    canCompact: Boolean,
     onSelect: () -> Unit,
     onMoveEarlier: () -> Unit,
     onMoveLater: () -> Unit,
     onDelete: () -> Unit,
+    onCompact: () -> Unit,
 ) {
     val itemCount = page.appKeys.size + page.unsupportedItemCount
     val label = if (isPrimary) "Primary Home" else "Page $pageNumber"
@@ -360,6 +373,17 @@ private fun HomeOverviewPageCard(
                         enabled = canMoveLater,
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     ) { Text("Later") }
+                }
+
+                FilledTonalButton(
+                    onClick = onCompact,
+                    enabled = canCompact,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .semantics { contentDescription = "Compact apps on $label into row-major Home grid cells" },
+                ) {
+                    Text(if (canCompact) "Compact apps" else "Compact unavailable")
                 }
 
                 TextButton(
