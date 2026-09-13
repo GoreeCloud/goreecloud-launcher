@@ -53,11 +53,17 @@ fun HomeMultiSelectEditControl(
 ) {
     if (page == null) return
 
+    // Only currently resolved LauncherApps entries are selectable. Room can legitimately retain
+    // unresolved application identities across package removal/reinstall, but this edit surface
+    // must not present those identities as launchable apps or mutate them through an app picker.
+    val selectablePage = remember(page, appLabelsByKey) {
+        page.copy(appKeys = page.appKeys.filter { it in appLabelsByKey })
+    }
     val targetPages = remember(pages, page.pageId) {
         WorkspaceHomeMultiSelectPolicy.targetPages(pages, page.pageId)
     }
     val canSelect = WorkspaceHomeMultiSelectPolicy.canSelectApps(
-        page = page,
+        page = selectablePage,
         pages = pages,
         layoutLocked = layoutLocked,
     )
@@ -65,9 +71,9 @@ fun HomeMultiSelectEditControl(
     var targetOpen by remember(page.pageId) { mutableStateOf(false) }
     var selectedKeys by remember(page.pageId) { mutableStateOf(emptySet<String>()) }
 
-    LaunchedEffect(page.appKeys, layoutLocked, targetPages) {
-        selectedKeys = selectedKeys.intersect(page.appKeys.toSet())
-        if (layoutLocked || targetPages.isEmpty()) {
+    LaunchedEffect(selectablePage.appKeys, layoutLocked, targetPages) {
+        selectedKeys = selectedKeys.intersect(selectablePage.appKeys.toSet())
+        if (layoutLocked || targetPages.isEmpty() || selectablePage.appKeys.isEmpty()) {
             selectionOpen = false
             targetOpen = false
             selectedKeys = emptySet()
@@ -110,11 +116,11 @@ fun HomeMultiSelectEditControl(
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
                     Text(
-                        "Choose one or more apps from this secondary Home page. Selection order follows the current page order.",
+                        "Choose one or more installed apps from this secondary Home page. Selection order follows the current page order.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    page.appKeys.distinct().forEach { appKey ->
+                    selectablePage.appKeys.distinct().forEach { appKey ->
                         val checked = appKey in selectedKeys
                         Row(
                             modifier = Modifier
@@ -140,23 +146,13 @@ fun HomeMultiSelectEditControl(
                                     }
                                 },
                             )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = appLabelsByKey[appKey] ?: "Unavailable app",
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                if (appLabelsByKey[appKey] == null) {
-                                    Text(
-                                        text = appKey,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                            }
+                            Text(
+                                text = checkNotNull(appLabelsByKey[appKey]),
+                                modifier = Modifier.weight(1f),
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
                 }
@@ -184,7 +180,7 @@ fun HomeMultiSelectEditControl(
     }
 
     if (targetOpen) {
-        val orderedSelection = WorkspaceHomeMultiSelectPolicy.orderedSelection(page, selectedKeys)
+        val orderedSelection = WorkspaceHomeMultiSelectPolicy.orderedSelection(selectablePage, selectedKeys)
         val orderedPages = remember(pages) { pages.sortedBy { it.rank } }
         AlertDialog(
             onDismissRequest = { targetOpen = false },
