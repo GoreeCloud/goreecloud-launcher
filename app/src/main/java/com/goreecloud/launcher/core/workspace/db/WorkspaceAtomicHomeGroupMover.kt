@@ -77,7 +77,16 @@ class WorkspaceAtomicHomeGroupMover(
 
             val items = dao.readItems(pages.map { it.pageId })
             val spatialItems = items.filterNot { it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID }
-            if (spatialItems.any { it.cellX == null || it.cellY == null }) {
+            if (
+                spatialItems.any {
+                    it.cellX == null ||
+                        it.cellY == null ||
+                        it.cellX < 0 ||
+                        it.cellY < 0 ||
+                        it.spanX <= 0 ||
+                        it.spanY <= 0
+                }
+            ) {
                 return WorkspaceAtomicHomeGroupMoveResult.InvalidWorkspace
             }
 
@@ -94,6 +103,7 @@ class WorkspaceAtomicHomeGroupMover(
             }
 
             val grid = deriveGrid(spatialItems, sources)
+                ?: return WorkspaceAtomicHomeGroupMoveResult.InvalidWorkspace
             val selectedIds = sources.map { it.itemId }.toSet()
             val occupied = spatialItems
                 .filter { it.pageId == targetPageId && it.itemId !in selectedIds }
@@ -104,11 +114,14 @@ class WorkspaceAtomicHomeGroupMover(
                 .filter { it.pageId == targetPageId && it.itemId !in selectedIds }
                 .maxOfOrNull { it.rank }
                 ?.let {
-                    if (it == Int.MAX_VALUE) {
-                        return WorkspaceAtomicHomeGroupMoveResult.Failed("TargetRankOverflow")
+                    if (it < 0 || it == Int.MAX_VALUE) {
+                        return WorkspaceAtomicHomeGroupMoveResult.InvalidWorkspace
                     }
                     it + 1
                 } ?: 0
+            if (targetRankStart.toLong() + sources.lastIndex > Int.MAX_VALUE.toLong()) {
+                return WorkspaceAtomicHomeGroupMoveResult.InvalidWorkspace
+            }
 
             val updatedItems = sources.mapIndexed { index, source ->
                 val placement = firstAvailablePlacement(grid, occupied, source)
@@ -148,14 +161,21 @@ class WorkspaceAtomicHomeGroupMover(
     private fun deriveGrid(
         items: List<WorkspaceItemEntity>,
         sources: List<WorkspaceItemEntity>,
-    ): WorkspaceGridPlacement.Grid {
-        val existingColumns = items.maxOfOrNull { checkNotNull(it.cellX) + it.spanX } ?: 0
-        val existingRows = items.maxOfOrNull { checkNotNull(it.cellY) + it.spanY } ?: 0
-        val maxSourceSpanX = sources.maxOfOrNull { it.spanX } ?: 1
-        val additionalRows = sources.sumOf { it.spanY }
+    ): WorkspaceGridPlacement.Grid? {
+        val existingColumns = items.maxOfOrNull {
+            checkNotNull(it.cellX).toLong() + it.spanX.toLong()
+        } ?: 0L
+        val existingRows = items.maxOfOrNull {
+            checkNotNull(it.cellY).toLong() + it.spanY.toLong()
+        } ?: 0L
+        val maxSourceSpanX = sources.maxOfOrNull { it.spanX }?.toLong() ?: 1L
+        val additionalRows = sources.sumOf { it.spanY.toLong() }
+        val columns = maxOf(MIN_HOME_COLUMNS.toLong(), existingColumns, maxSourceSpanX)
+        val rows = maxOf(1L, existingRows + additionalRows)
+        if (columns > Int.MAX_VALUE || rows > Int.MAX_VALUE) return null
         return WorkspaceGridPlacement.Grid(
-            columns = maxOf(MIN_HOME_COLUMNS, existingColumns, maxSourceSpanX),
-            rows = maxOf(1, existingRows + additionalRows),
+            columns = columns.toInt(),
+            rows = rows.toInt(),
         )
     }
 
@@ -164,8 +184,9 @@ class WorkspaceAtomicHomeGroupMover(
         occupied: List<WorkspaceGridPlacement.Placement>,
         source: WorkspaceItemEntity,
     ): WorkspaceGridPlacement.Placement? {
-        for (cellY in 0..grid.rows - source.spanY) {
-            for (cellX in 0..grid.columns - source.spanX) {
+        if (source.spanX > grid.columns || source.spanY > grid.rows) return null
+        for (cellY in 0..(grid.rows - source.spanY)) {
+            for (cellX in 0..(grid.columns - source.spanX)) {
                 val candidate = WorkspaceGridPlacement.Placement(
                     itemId = source.itemId,
                     cellX = cellX,
