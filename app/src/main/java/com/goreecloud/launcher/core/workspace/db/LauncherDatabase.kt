@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 )
 abstract class LauncherDatabase : RoomDatabase() {
     abstract fun workspaceDao(): WorkspaceDao
+    abstract fun workspaceHomeBatchMoveDao(): WorkspaceHomeBatchMoveDao
 }
 
 object LauncherDatabaseProvider {
