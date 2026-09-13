@@ -6,9 +6,11 @@ import org.junit.Test
 
 class GlazeMetricsContractTest {
     @Test
-    fun `launcher targets exact GLAZE UI V1_1 Stable release`() {
-        assertEquals("1.1.0", GlazeMetrics.targetVersion)
-        assertEquals("15cc76d2bcd4065552dc31c77145b63f34d9e7b2", GlazeMetrics.sourceRevision)
+    fun `launcher targets exact GLAZE UI V1_4 Stable release`() {
+        assertEquals("1.4.0", GlazeMetrics.targetVersion)
+        assertEquals("84cb3db4884042f0fa25ed6d475a127fb110f596", GlazeMetrics.sourceRevision)
+        assertEquals(GlazeOpticalV14.targetVersion, GlazeMetrics.targetVersion)
+        assertEquals(GlazeOpticalV14.stableSourceRevision, GlazeMetrics.sourceRevision)
     }
 
     @Test
@@ -20,7 +22,7 @@ class GlazeMetricsContractTest {
     }
 
     @Test
-    fun `launcher preserves inherited v1 spacing and structural radius tiers`() {
+    fun `launcher preserves inherited stable spacing and structural radius tiers`() {
         assertEquals(4.dp, GlazeMetrics.space1)
         assertEquals(8.dp, GlazeMetrics.space2)
         assertEquals(12.dp, GlazeMetrics.space3)
@@ -41,7 +43,7 @@ class GlazeMetricsContractTest {
     }
 
     @Test
-    fun `v1_1 optical geometry is separate from structural radii`() {
+    fun `optical geometry remains separate from structural radii`() {
         assertEquals(8.dp, GlazeMetrics.opticalMicro)
         assertEquals(16.dp, GlazeMetrics.opticalControl)
         assertEquals(24.dp, GlazeMetrics.opticalContainer)
