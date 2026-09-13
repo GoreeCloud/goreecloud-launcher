@@ -267,6 +267,40 @@ abstract class WorkspaceDao {
         return true
     }
 
+    /**
+     * Applies a complete set of planned HOME item placements atomically when the exact page/item
+     * snapshot observed by the planner is still current. Duplicate, missing, or cross-container
+     * identities fail closed before any write. Because validation and the bulk upsert execute inside
+     * one Room transaction, callers never observe a partially applied group move.
+     */
+    @Transaction
+    open suspend fun replaceItemPlacementsIfSnapshotMatches(
+        containerType: String,
+        expectedPages: List<WorkspacePageEntity>,
+        expectedItems: List<WorkspaceItemEntity>,
+        updatedItems: List<WorkspaceItemEntity>,
+    ): Boolean {
+        if (updatedItems.isEmpty()) return false
+        if (updatedItems.any { it.itemId.isBlank() || it.pageId.isBlank() }) return false
+        val updatedIds = updatedItems.map { it.itemId }
+        if (updatedIds.size != updatedIds.distinct().size) return false
+
+        val currentPages = readPagesByContainer(containerType)
+        if (currentPages != expectedPages) return false
+        val currentPageIds = currentPages.map { it.pageId }
+        if (updatedItems.any { it.pageId !in currentPageIds }) return false
+
+        val currentItems = readItems(currentPageIds)
+        val currentById = currentItems.associateBy { it.itemId }
+        val expectedById = expectedItems.associateBy { it.itemId }
+        if (currentById.size != currentItems.size || expectedById.size != expectedItems.size) return false
+        if (currentById != expectedById) return false
+        if (updatedIds.any { it !in currentById }) return false
+
+        upsertItems(updatedItems)
+        return true
+    }
+
     private suspend fun planPortableHomePlacementsUnsafe(
         snapshot: WorkspacePortableSnapshot.Snapshot,
     ): WorkspacePortableHomeRestoreCommit {
