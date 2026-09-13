@@ -15,6 +15,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,8 +40,8 @@ import com.goreecloud.launcher.ui.theme.GlazeMetrics
  * Explicit, accessible entry point for bounded multi-select editing of secondary HOME apps.
  *
  * The control intentionally lives inside Home overview/edit mode instead of changing normal
- * launcher tap/long-press behavior. Group moves are delegated to the activity/runtime layer, which
- * preserves Room as the only post-cutover workspace mutation authority.
+ * launcher tap/long-press behavior. Group moves and one-level undo are delegated to the activity/
+ * runtime layer, preserving Room as the only post-cutover workspace mutation authority.
  */
 @Composable
 fun HomeMultiSelectEditControl(
@@ -48,7 +49,9 @@ fun HomeMultiSelectEditControl(
     pages: List<WorkspaceRenderedHomePage>,
     appLabelsByKey: Map<String, String>,
     layoutLocked: Boolean,
+    undoAvailable: Boolean,
     onMoveSelectedApps: (sourcePageId: String, appKeys: List<String>, targetPageId: String) -> Unit,
+    onUndoLastMove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (page == null) return
@@ -80,7 +83,7 @@ fun HomeMultiSelectEditControl(
         }
     }
 
-    if (!canSelect) return
+    if (!canSelect && !undoAvailable) return
 
     Surface(
         modifier = modifier
@@ -90,15 +93,49 @@ fun HomeMultiSelectEditControl(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
         tonalElevation = 4.dp,
     ) {
-        FilledTonalButton(
-            onClick = { selectionOpen = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .padding(GlazeMetrics.space2)
-                .semantics { contentDescription = "Select multiple apps on this Home page" },
+        Column(
+            modifier = Modifier.padding(GlazeMetrics.space2),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
         ) {
-            Text("Select apps on this page")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            ) {
+                if (canSelect) {
+                    FilledTonalButton(
+                        onClick = { selectionOpen = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp)
+                            .semantics { contentDescription = "Select multiple apps on this Home page" },
+                    ) {
+                        Text("Select apps")
+                    }
+                }
+                if (undoAvailable) {
+                    OutlinedButton(
+                        onClick = onUndoLastMove,
+                        enabled = !layoutLocked,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp)
+                            .semantics { contentDescription = "Undo the last multi-app Home move" },
+                    ) {
+                        Text("Undo last move")
+                    }
+                }
+            }
+            if (undoAvailable) {
+                Text(
+                    text = if (layoutLocked) {
+                        "Unlock the layout to undo the last move."
+                    } else {
+                        "Undo is available for the last move in this Launcher session while Home remains unchanged."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 
