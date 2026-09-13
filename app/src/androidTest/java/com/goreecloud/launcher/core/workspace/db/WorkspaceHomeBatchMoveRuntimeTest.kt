@@ -88,6 +88,12 @@ class WorkspaceHomeBatchMoveRuntimeTest {
         assertEquals(listOf(0, 0), sourceRestored.map { it.cellY })
         val targetRestored = database.workspaceDao().readItems(listOf(TARGET_PAGE)).sortedBy { it.rank }
         assertEquals(listOf(APP_FOUR), targetRestored.map { it.appKey })
+
+        // The same exact checkpoint cannot be replayed after it has already restored the before-state.
+        assertEquals(
+            WorkspaceHomeBatchMoveResult.StoredWorkspaceChanged,
+            service.undo(commit),
+        )
     }
 
     @Test

@@ -37,6 +37,7 @@ import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
+import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeBatchMoveCommit
 import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeBatchMoveResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeBatchMoveService
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
@@ -71,6 +72,7 @@ class MainActivity : ComponentActivity() {
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
     private val homeReturnRequestGeneration = MutableStateFlow(0L)
+    private val homeBatchUndoCommit = MutableStateFlow<WorkspaceHomeBatchMoveCommit?>(null)
 
     private val homeRoleRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -118,6 +120,7 @@ class MainActivity : ComponentActivity() {
             val themeMode by themeRepository.themeMode.collectAsState(initial = themeRepository.defaultMode)
             val portableRestoreRecovery by portableRestoreRecoveryResult.collectAsStateWithLifecycle()
             val homeReturnGeneration by homeReturnRequestGeneration.collectAsStateWithLifecycle()
+            val undoCommit by homeBatchUndoCommit.collectAsStateWithLifecycle()
 
             if (!LauncherPortableRestoreStartupGate.allowsMutations(portableRestoreRecovery)) {
                 GlazeTheme(themeMode) {
@@ -439,6 +442,7 @@ class MainActivity : ComponentActivity() {
                             pages = renderedPages,
                             appLabelsByKey = apps.associate { it.workspaceKey() to it.label.toString() },
                             layoutLocked = launcherPreferences.layoutLocked,
+                            undoAvailable = undoCommit != null,
                             onMoveSelectedApps = { sourcePageId, appKeys, targetPageId ->
                                 if (!launcherPreferences.layoutLocked && appKeys.isNotEmpty()) {
                                     lifecycleScope.launch {
@@ -450,18 +454,19 @@ class MainActivity : ComponentActivity() {
                                             )
                                         ) {
                                             is WorkspaceHomeBatchMoveResult.Applied -> {
+                                                homeBatchUndoCommit.value = result.commit
                                                 selectedHomePageId = result.commit.targetPageId
                                                 val movedCount = result.commit.movedItemIds.size
                                                 Toast.makeText(
                                                     this@MainActivity,
-                                                    "Moved $movedCount app${if (movedCount == 1) "" else "s"} atomically.",
+                                                    "Moved $movedCount app${if (movedCount == 1) "" else "s"}.",
                                                     Toast.LENGTH_SHORT,
                                                 ).show()
                                             }
                                             WorkspaceHomeBatchMoveResult.StoredWorkspaceChanged -> {
                                                 Toast.makeText(
                                                     this@MainActivity,
-                                                    "No apps were moved. Home changed before the atomic move could commit.",
+                                                    "No apps were moved because Home changed before the move finished.",
                                                     Toast.LENGTH_LONG,
                                                 ).show()
                                             }
@@ -469,6 +474,40 @@ class MainActivity : ComponentActivity() {
                                                 Toast.makeText(
                                                     this@MainActivity,
                                                     "No apps were moved. The selection or destination could not be applied safely.",
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            onUndoLastMove = {
+                                val pending = homeBatchUndoCommit.value
+                                if (!launcherPreferences.layoutLocked && pending != null) {
+                                    lifecycleScope.launch {
+                                        when (val result = homeBatchMoveService.undo(pending)) {
+                                            is WorkspaceHomeBatchMoveResult.Undone -> {
+                                                homeBatchUndoCommit.value = null
+                                                selectedHomePageId = result.commit.sourcePageId
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Last Home move undone.",
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                            }
+                                            WorkspaceHomeBatchMoveResult.StoredWorkspaceChanged -> {
+                                                homeBatchUndoCommit.value = null
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Undo is no longer available because Home changed after that move.",
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
+                                            }
+                                            else -> {
+                                                homeBatchUndoCommit.value = null
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Undo is no longer available. Home could not be restored safely.",
                                                     Toast.LENGTH_LONG,
                                                 ).show()
                                             }

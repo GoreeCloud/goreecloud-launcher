@@ -73,14 +73,17 @@ class ActivatedHomeLifecycleRuntimeTest {
 
             val scenario = ActivityScenario.launch(MainActivity::class.java)
             try {
-                withTimeout(15_000) {
+                // This is a lifecycle/reactivity correctness test, not a startup-latency benchmark.
+                // Hosted API 36 emulators can spend well over 15 seconds scheduling the Activity,
+                // Room reconciliation, and Compose semantics after a cold boot or recreation.
+                withTimeout(LIFECYCLE_SETTLE_TIMEOUT_MS) {
                     repository.state.first { it.authority == WorkspaceAuthority.ROOM }
                 }
                 waitForDisplayedLabel(firstApp.label.toString())
 
                 scenario.recreate()
 
-                withTimeout(15_000) {
+                withTimeout(LIFECYCLE_SETTLE_TIMEOUT_MS) {
                     repository.state.first { it.authority == WorkspaceAuthority.ROOM }
                 }
                 waitForDisplayedLabel(firstApp.label.toString())
@@ -109,7 +112,7 @@ class ActivatedHomeLifecycleRuntimeTest {
     }
 
     private fun waitForDisplayedLabel(label: String) {
-        composeRule.waitUntil(timeoutMillis = 15_000) {
+        composeRule.waitUntil(timeoutMillis = LIFECYCLE_SETTLE_TIMEOUT_MS) {
             composeRule.onAllNodesWithText(label, useUnmergedTree = true)
                 .fetchSemanticsNodes()
                 .isNotEmpty()
@@ -124,5 +127,9 @@ class ActivatedHomeLifecycleRuntimeTest {
             input.readBytes()
         }
         descriptor.close()
+    }
+
+    private companion object {
+        const val LIFECYCLE_SETTLE_TIMEOUT_MS = 30_000L
     }
 }
