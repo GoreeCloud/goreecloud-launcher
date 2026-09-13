@@ -3,9 +3,13 @@ package com.goreecloud.launcher.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Bounded GLAZE UI V1.1 atmospheric primitives used only for non-semantic
+ * Bounded GLAZE UI V1.4 atmospheric primitives used only for non-semantic
  * presentation. These colors never establish protection, privacy, identity,
  * recovery, availability, focus, selection, or other authoritative state.
+ *
+ * V1.4 Optical Intelligence may vary frost, warmth, depth, and decorative tint
+ * through `GlazeOpticalV14`, but semantic meaning and accessibility always take
+ * precedence over atmosphere.
  */
 object GlazeAtmosphere {
     val canvasBlack = Color(0xFF081016)

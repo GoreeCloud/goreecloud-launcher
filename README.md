@@ -6,7 +6,9 @@ GoreeCloud Launcher is GoreeCloud's privacy-first, original Android HOME applica
 
 **Development — not a signed production/Stable release.**
 
-The current repository contains a usable native daily-launcher foundation, a rebuilt Home / Apps / Launcher Settings product shell, guarded Room-authority multi-page workspace foundations, a Development Launcher-to-Index universal-search handoff, and a bounded **Glaze UI 2.2.0 Adoption Candidate** with a reachable native Theme Manager for the implemented System / Light / Dark appearance modes. Passing CI/emulator tests does not establish complete rendered/native/accessibility or physical-device acceptance, signed release, complete platform integration, or Stable qualification.
+The repository contains a usable native daily-launcher foundation, rebuilt Home / Apps / Launcher Settings product shell, guarded Room-authority multi-page workspace foundations, a Development Launcher-to-Index universal-search handoff, and a repository-local **GLAZE UI V1.4 (`1.4.0`) migration** with System / Light / Dark / Deep Dark appearance support and bounded native Optical Intelligence.
+
+Passing source, CI, unit, build, schema, or emulator checks does not establish complete rendered/native/accessibility, representative physical-device, platform-integration, signed-release, or Stable qualification.
 
 The complete approved target capability inventory is maintained in [FEATURES.md](FEATURES.md). Target capabilities are not implementation claims unless separately identified as current Development behavior and supported by repository evidence.
 
@@ -28,7 +30,7 @@ Launcher intelligence and personalization should remain transparent and user-con
 - No broad `QUERY_ALL_PACKAGES` access for ordinary launcher discovery.
 - Universal search is delegated to GoreeCloud Index rather than duplicated as a hidden Launcher-owned index/ranking engine.
 - All GoreeCloud logos/icons/artwork are canonical in `GoreeCloud/goreecloud-branding-assets`; this repository carries only traceable Android derivatives required by Launcher.
-- Glaze UI is the Design Center authority for applicable interface behavior.
+- **GLAZE UI V1.4 is the current design-system target for Launcher.**
 - Privacy Shield, Wardveil Security, Everkeep, GoreeCloud Identity, and GoreeCloud Mesh govern their applicable platform boundaries.
 - A platform integration is not considered implemented merely because it appears in approved scope or UI copy.
 
@@ -40,27 +42,55 @@ Current Development source includes:
 - lifecycle-aware default-HOME status;
 - scoped Android package visibility for `MAIN` + `LAUNCHER` activities and `LauncherApps` discovery across available profiles;
 - package/profile lifecycle refresh and stable launcher-item deduplication;
-- a distinct wallpaper-backed **Home** surface rather than an engineering Favorites screen;
-- a separate **Apps** surface with local label/package filtering and launching;
-- a separate scrollable **Launcher Settings** surface;
-- locally persisted Home grid presets, Apps-grid columns, app-label visibility, icon-size preference, System / Light / Dark appearance, Home layout-lock state, and GoreeCloud Index Home-entry mode;
-- ordered persisted Home Favorites and a five-item Dock;
+- wallpaper-backed **Home**, separate **Apps**, and scrollable **Launcher Settings** surfaces;
+- locally persisted Home grid presets, Apps-grid columns, app-label visibility, icon-size preference, System / Light / Dark / Deep Dark appearance, Home layout-lock state, and GoreeCloud Index Home-entry mode;
+- ordered persisted Home Favorites and Dock;
 - long-press placement management with accessible earlier/later controls;
-- a persisted **Lock Home screen layout** policy that blocks current Favorite, Dock, secondary-app, Home-page create/delete/reorder, and secondary spatial mutation callbacks while leaving app launching and page selection available;
-- a visible locked-state Home control that can unlock the layout after an intentional five-second hold with progress feedback, while the Settings switch remains the deterministic accessible unlock path;
+- a persisted **Lock Home screen layout** policy that blocks current placement/page mutations while preserving app launching, page selection, Apps navigation, and Settings access;
 - terminal-Room multi-page HOME observation, page selection, protected-primary/secondary-page reordering, empty-page creation/deletion, and secondary application pages;
-- a compact/lazy Home page selector with authoritative accessibility context;
-- secondary-page icons rendered as normal launcher tiles, with movement/cell controls moved behind long-press management instead of permanently shown beneath every app;
-- bounded secondary-to-secondary page movement, nearest-free-cell movement, and guarded exact one-cell movement;
-- persisted GoreeCloud Index Home entry choices for **Permanent on Home** and **Swipe down only**;
+- secondary-page nearest-free-cell and guarded exact one-cell movement;
+- GoreeCloud Index Home-entry choices for **Permanent on Home** and **Swipe down only**;
 - a **Search GoreeCloud** Home affordance when Permanent mode is selected;
-- the one-finger downward Home gesture wired to the same Index handoff in both entry modes;
-- bounded package visibility for the Index search action without broad package access;
-- Glaze UI 2.2.0 Stable token/geometry/target mapping as an application Adoption Candidate, including the 48 dp general floor, mapped 56 dp Touch Assistance target, and ordinary System Glaze composition budget;
-- a reachable Settings → Theme Manager path with saveable/fail-closed sub-destination restoration, direct persisted System/Light/Dark theme selection, concise preview semantics, and a non-actionable selected-state surface; and
+- a one-finger downward Home gesture wired to the same Index handoff;
+- bounded package visibility for Index search without broad package access;
+- a reachable Settings → Theme Manager path with saveable/fail-closed sub-destination restoration and direct persisted System/Light/Dark/Deep Dark selection;
+- native GLAZE UI V1.4 spacing, geometry, interaction-target, structural appearance, and Optical Intelligence mappings; and
 - Android system wallpaper presentation through the native window-wallpaper mechanism without requesting wallpaper/storage privileges.
 
-The current Theme Manager remains deliberately bounded to System, Light, and Dark. Deep Dark, icon-pack discovery/application, masking, wallpaper-derived palettes, expression controls, and complete Glaze Theme Engine behavior remain separate implementation and acceptance work.
+## GLAZE UI V1.4 boundary
+
+Launcher targets **GLAZE UI V1.4 — Optical Intelligence / `1.4.0`** at exact merged Stable Glaze source revision `84cb3db4884042f0fa25ed6d475a127fb110f596`.
+
+The native mapping includes:
+
+- inherited spacing, radius, and interaction-target behavior;
+- System, Light, Dark, and Deep Dark structural appearances;
+- bounded Deep Teal + Soft Amber non-semantic atmosphere;
+- a deterministic native `GlazeOpticalV14` resolver;
+- Content-Aware Frost based on already-derived background complexity/luminance inputs;
+- Semantic Blur Protection;
+- bounded chromatic depth and daypart warmth;
+- Environmental Color Memory influence capped at 8%;
+- Reduced Transparency and Forced Colors fail-closed to solid-accessible treatment; and
+- Increased Contrast suppression of decorative warmth/tint.
+
+The optical resolver does **not** collect telemetry, camera data, wallpaper pixels, analytics, or remote context. Any future context adapter remains separately governed by Launcher privacy/security authority, Privacy Shield, Wardveil Security, and Android permissions/capability boundaries.
+
+This migration does **not** make Launcher Glaze-conformant or production-eligible. The Platform Contract remains `nonconformant` until Launcher-specific rendered, accessibility, adaptive, representative-device, platform-integration, release, and production acceptance is complete.
+
+### V1.4.1 human-validation boundary
+
+Shared Glaze UI human/manual/physical-device/subjective optical validation is assigned to the V1.4.1 hardening track and is not represented as passed V1.4.0 evidence. Launcher-specific product acceptance may remain stricter and is not waived by that shared deferral.
+
+See [docs/glaze-ui-adoption.md](docs/glaze-ui-adoption.md) for the exact migration and acceptance boundary.
+
+## Theme Manager
+
+The reachable Theme Manager supports System, Light, Dark, and Deep Dark. Settings navigation remains saveable; unknown/stale destinations fail closed to Settings root. Only selecting a different appearance invokes caller-owned persistence.
+
+Theme preview atmosphere is decorative only and cannot establish privacy, security, identity, recovery, availability, selection, or other authoritative state.
+
+Still separate from the current bounded implementation: icon-pack discovery/application, icon masking, per-app icon replacement, user/wallpaper palette systems, expression controls, approved contextual optical adapters, and broader Theme Engine behavior.
 
 ## Complete app discovery boundary
 
@@ -76,59 +106,49 @@ Home uses the system wallpaper behind the launcher-owned surface, renders the cu
 
 The one-finger downward Home gesture invokes GoreeCloud Index in both supported entry modes. **Permanent on Home** additionally keeps the Search GoreeCloud control visible; **Swipe down only** removes that permanent control without replacing Index or changing search authority. If Index is unavailable, Launcher reports that state instead of silently substituting a rival universal search engine.
 
-When Home layout lock is enabled, current placement/page mutation callbacks are rejected at the Launcher composition boundary. Normal app launching, page selection, Apps navigation, and Settings access remain usable. The lock can be disabled from Launcher Settings or by intentionally holding the visible locked-state Home control for five seconds. The hold path has progress feedback; Settings remains the non-gesture accessible path.
-
 ### Apps
 
-Apps presents the launchable application inventory in a configurable 4/5/6-column grid and supports a narrow local filter by label/package. This **Search apps** filter is a Launcher navigation feature, not GoreeCloud universal search and not an alternative Index provider/ranking pipeline.
-
-Long-press placement management remains discoverable while the layout is locked, but current placement controls are disabled and explain that the user must unlock Home first.
+Apps presents the launchable application inventory in a configurable grid and supports a narrow local filter by label/package. This **Search apps** filter is a Launcher navigation feature, not GoreeCloud universal search and not an alternative Index provider/ranking pipeline.
 
 ### Launcher Settings
 
-Current persisted settings include supported Home-grid presets, Apps columns, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and GoreeCloud Index Home entry mode. The Index setting controls only Launcher-owned invocation presentation; it does not move provider/index/ranking authority out of GoreeCloud Index.
-
-Launcher Settings now routes Appearance into the native Theme Manager through the saveable Settings destination model. Stale/unknown restored destination values fail closed to Settings root. The selected appearance is presented as status rather than another persistence action; only a different System/Light/Dark choice can invoke caller-owned theme persistence. Icon-pack selection, masking, Deep Dark, wallpaper-derived palettes, and expression controls remain separate work.
+Current persisted settings include supported Home-grid presets, Apps columns, icon presentation, app-label visibility, System/Light/Dark/Deep Dark appearance, Home layout lock, and GoreeCloud Index Home-entry mode. The Index setting controls only Launcher-owned invocation presentation; it does not move provider/index/ranking authority out of GoreeCloud Index.
 
 ## Multi-page Room boundary
 
 When terminal Room authority is active, Launcher can expose page selection, create empty pages, delete only revalidated empty non-primary pages, reorder secondary pages while keeping the protected primary page at rank zero, render secondary application pages, and request supported secondary spatial moves.
 
-Room writes continue to verify the protected primary compatibility projection and re-read the complete HOME page/item snapshot so concurrent changes, malformed placement, collisions, invalid bounds, or attempts to use primary Home as a secondary spatial source/target fail closed.
+Room writes continue to verify protected placement invariants and re-read authoritative state so concurrent changes, malformed placement, collisions, invalid bounds, or unsupported primary/secondary moves fail closed.
 
-The Home layout lock is an additional Launcher mutation policy over these authoritative operations. It does not create a second workspace persistence authority. This remains a Development editing bridge, not a complete multi-page drag/drop editor.
+The Home layout lock is an additional Launcher mutation policy over these authoritative operations. It does not create a second workspace persistence authority.
 
 ## GoreeCloud Index universal search integration
 
-**GoreeCloud Index is the canonical unified/universal first-party search and indexing authority.** Launcher is a first-party invocation/presentation surface and a potential provider of Launcher-owned application/action/settings/folder/widget context. Launcher does not own a separate cross-provider index, result normalization system, or universal ranking engine.
+**GoreeCloud Index is the canonical unified/universal first-party search and indexing authority.** Launcher is an invocation/presentation surface and potential provider of Launcher-owned application/action/settings/folder/widget context. Launcher does not own a separate cross-provider index, result-normalization system, or universal ranking engine.
 
-The current Development integration uses the explicit action contract `com.goreecloud.index.action.SEARCH`. Launcher can resolve both the production package identity `com.goreecloud.index` and the Development package identity `com.goreecloud.index.dev` while testing. Both Home entry modes use this same handoff; only the presence of the permanent Home affordance changes.
-
-The first Index Android slice currently targets installed applications only. Broader provider classes remain separate Index work, including contacts, calendar, files/documents, media, first-party GoreeCloud application content, Drive, connected devices, extensions, optional third-party services, and Web/current-information results.
+The current Development integration uses `com.goreecloud.index.action.SEARCH` and supports both production and Development Index package identities while testing.
 
 **GoreeCloud Search is the Internet/Web/current-information provider**, reached through Index when enabled and authorized. Neither Launcher nor Index should upload unrelated local result payloads merely to obtain local search results.
 
-Sensitive and permissioned providers remain governed by their own Android and GoreeCloud authority boundaries. Android scoped-storage, media, profile, package-visibility, Privacy Shield, Wardveil Security, Identity, Mesh, and Everkeep requirements are not bypassed by universal search.
+Sensitive and permissioned providers remain governed by their own Android and GoreeCloud authority boundaries.
 
 ## Official Launcher identity
 
 All GoreeCloud Launcher logos, icons, symbols, illustrations, and artwork are canonical only in **`GoreeCloud/goreecloud-branding-assets`**. The current canonical Launcher asset is `products/launcher/app-icon.svg`. This repository is a consumer and may carry only traceable synchronized/generated/packaged Android derivatives required to build Launcher.
 
-`branding/provenance.json` pins the canonical repository, asset path, and source blob used for the current Android derivatives. The previous Launcher-local portal-style artwork source has been removed so it cannot become a competing source of truth. Any future visual revision must be authored, reviewed, and approved in `goreecloud-branding-assets` first.
-
-The Development APK currently uses adaptive, round, and Android 13+ monochrome derivatives synchronized from the canonical four-cell cyan-to-indigo Launcher asset. The existence of those derivatives does not by itself establish production visual-identity acceptance or Stable qualification.
+`branding/provenance.json` pins the canonical repository, asset path, and source blob used for the current Android derivatives. Any future visual revision must be authored, reviewed, and approved in `goreecloud-branding-assets` first.
 
 ## Privacy and search architecture
 
-Core Launcher behavior remains local-first. Universal provider participation is controlled by GoreeCloud Index and the applicable source authority rather than by Launcher scraping other applications' private storage. Contacts require explicit authorization. Media must use scoped Android APIs. Files/documents must use supported document/provider access. Work/private profiles must remain appropriately isolated.
+Core Launcher behavior remains local-first. Universal provider participation is controlled by GoreeCloud Index and the applicable source authority rather than by Launcher scraping other applications' private storage. Contacts require explicit authorization. Media must use scoped Android APIs. Files/documents must use supported provider access. Work/private profiles must remain appropriately isolated.
 
-Index search history, provider controls, contextual ranking, and remote-provider behavior must remain transparent and user-controlled under the applicable platform contracts. There is no sponsored or paid ranking.
+There is no sponsored or paid ranking.
 
-## Glaze UI boundary
+## Continuity and restore boundary
 
-Launcher carries repository-level **Glaze UI 2.2.0 Adoption Candidate** evidence anchored to Stable promotion head `fb5ecde4a8258503789ffde08ac46a2e524ef71e`, Stable release merge `6731098b28dd0393faa878c70d989a221d714a20`, and tag `v2.2.0`. The bounded native mapping covers the currently consumed spacing/shape/target semantics, Light/Dark foundations, the ordinary System Glaze composition budget, direct persisted theme selection, and the reachable Theme Manager Settings composition. Historical Glaze Motion evaluation remains Experimental/test-only.
+Launcher contains bounded Development workspace-placement and preference portability plus guarded restore/recovery work. This includes versioned formats, validation-before-write, review/apply consistency, recovery journaling, readback verification, and fail-closed handling of unsupported identity/rebinding states.
 
-This does **not** make Launcher Glaze UI 2.2 conformant, `aligned-current-stable`, or production-eligible. Deep Dark, complete component/state mapping, complete System Glaze/material-budget review, density/performance adaptation, deterministic accessibility-resolution behavior, Reduced Transparency/Solid resolution, large-text/reflow, forced-colors/native equivalents, runtime Touch Assistance preference resolution, Reduced Motion, Increased Contrast, TalkBack/Switch Access, responsive phone/tablet/foldable composition, rendered/native visual review, representative physical-device Theme Manager behavior, and Human Visual Excellence remain separate evidence requirements.
+This is not complete product recovery qualification. Clean-target/cross-device application/profile/folder/shortcut/widget identity reconstruction, complete Launcher-owned backup scope, accepted Everkeep integration, production startup sequencing, representative-device failure injection, and production recovery acceptance remain outstanding.
 
 ## Current limitations
 
@@ -138,21 +158,19 @@ Still incomplete or separately gated:
 - primary compatibility-page grid migration and primary↔secondary spatial movement;
 - populated-page deletion with confirmation/recovery/undo;
 - folders, shortcuts, widgets/AppWidgetHost, and richer workspace editing;
-- complete Theme Manager behavior, icon-pack discovery/application, icon masking, Deep Dark, wallpaper palettes, expression controls, and broader configurable gestures;
-- representative-device Theme Manager navigation/persistence/accessibility, focus order, and spoken-announcement timing acceptance;
-- layout-lock coverage for future folders/shortcuts/widgets once those item types are implemented, plus representative physical-device five-second-hold acceptance;
+- complete Theme Engine behavior, icon-pack support, masking, palette systems, and expression controls;
+- approved V1.4 contextual optical-signal adapters where beneficial;
+- complete Reduced Motion / Reduced Transparency / Increased Contrast / native forced-color integration across all surfaces;
+- 200% text/reflow, RTL/localization, Touch Assistance preference resolution, TalkBack, Switch Access, and keyboard/D-pad acceptance;
+- representative phone/tablet/foldable and physical-device acceptance;
+- V1.4.1 human optical/polish validation applicable to Launcher;
 - embedded/polished Index result presentation beyond the current activity handoff;
-- Index providers for files/photos/documents/contacts/calendar and first-party searchable-content contracts;
-- GoreeCloud Search provider implementation in Index;
-- versioned local Launcher backup/restore plus later authorized continuity integrations;
-- complete production Launcher identity acceptance;
-- complete Glaze Theme Engine behavior;
+- Index providers for broader first-party/local content and GoreeCloud Search current-information integration;
 - accepted cross-device Sync/Mesh/Identity continuity;
-- complete Privacy Shield, Wardveil Security, and Everkeep integration acceptance;
-- Android OS process-death/schema-upgrade recovery acceptance;
-- representative physical-device default-HOME and universal-search gesture/accessibility acceptance;
+- complete Privacy Shield, Wardveil Security, Everkeep, and Manager integration acceptance;
+- Android process-death/schema-upgrade recovery acceptance;
 - signed release packaging/distribution; and
-- production/Stable qualification.
+- production/Stable Launcher qualification.
 
 ## Documentation
 
@@ -161,7 +179,6 @@ Still incomplete or separately gated:
 - [FEATURES.md](FEATURES.md) — implemented Development behavior plus approved target scope.
 - [BENEFITS.md](BENEFITS.md) — current and intended benefits.
 - [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — product completeness objectives.
-- [Rendered HOME page navigation](docs/rendered-home-page-navigation.md) — terminal-Room page behavior.
 - [Glaze UI adoption](docs/glaze-ui-adoption.md) — exact current-Stable migration and application acceptance boundary.
 - `docs/` — architecture, persistence, design-system, validation, and implementation records.
 
