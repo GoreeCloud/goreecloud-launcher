@@ -43,6 +43,8 @@ import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResul
 import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
+import com.goreecloud.launcher.ui.HomeEditEntryControl
+import com.goreecloud.launcher.ui.HomeOverviewEditSurface
 import com.goreecloud.launcher.ui.HomePageSwitcher
 import com.goreecloud.launcher.ui.LayoutLockHoldControl
 import com.goreecloud.launcher.ui.LauncherBetaRoot
@@ -161,6 +163,7 @@ class MainActivity : ComponentActivity() {
             var primarySurfaceModeName by rememberSaveable {
                 mutableStateOf(LauncherSurfaceMode.HOME.name)
             }
+            var homeOverviewOpen by rememberSaveable { mutableStateOf(false) }
             val primarySurfaceMode = runCatching {
                 LauncherSurfaceMode.valueOf(primarySurfaceModeName)
             }.getOrDefault(LauncherSurfaceMode.HOME)
@@ -169,11 +172,14 @@ class MainActivity : ComponentActivity() {
                 if (homeReturnGeneration > 0L) {
                     selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
                     primarySurfaceModeName = LauncherSurfaceMode.HOME.name
+                    homeOverviewOpen = false
                 }
             }
 
             LaunchedEffect(renderedPages) {
-                if (renderedPages.isNotEmpty() && renderedPages.none { it.pageId == selectedHomePageId }) {
+                if (renderedPages.isEmpty()) {
+                    homeOverviewOpen = false
+                } else if (renderedPages.none { it.pageId == selectedHomePageId }) {
                     selectedHomePageId = renderedPages
                         .firstOrNull { it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID }
                         ?.pageId
@@ -208,6 +214,38 @@ class MainActivity : ComponentActivity() {
                     val onPrimaryPage = selectedPage == null ||
                         selectedPage.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
                     val showingHome = !onPrimaryPage || primarySurfaceMode == LauncherSurfaceMode.HOME
+
+                    val moveHomePage: (String, Int) -> Unit = { pageId, targetRank ->
+                        if (!launcherPreferences.layoutLocked) {
+                            lifecycleScope.launch {
+                                workspaceRuntimeCoordinator.moveHomePage(pageId, targetRank)
+                            }
+                        }
+                    }
+                    val createHomePage: () -> Unit = {
+                        if (!launcherPreferences.layoutLocked) {
+                            val pageId = "home:user:${UUID.randomUUID()}"
+                            lifecycleScope.launch {
+                                val result = workspaceRuntimeCoordinator.createHomePage(pageId)
+                                if (result is WorkspacePagedRoomMutationResult.CreatedPage) {
+                                    selectedHomePageId = result.pageId
+                                }
+                            }
+                        }
+                    }
+                    val deleteHomePage: (String) -> Unit = { pageId ->
+                        if (!launcherPreferences.layoutLocked) {
+                            lifecycleScope.launch {
+                                val result = workspaceRuntimeCoordinator.deleteEmptyHomePage(pageId)
+                                if (
+                                    result is WorkspacePagedRoomMutationResult.DeletedPage &&
+                                    selectedHomePageId == result.pageId
+                                ) {
+                                    selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                                }
+                            }
+                        }
+                    }
 
                     if (!onPrimaryPage && selectedPage != null) {
                         ReadOnlyPagedHomeSurface(
@@ -315,45 +353,33 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // Keep the primary homescreen visually quiet. Page-management chrome only
-                    // appears after navigating to an additional page, where it is actually needed.
-                    val showPageSwitcher = renderedPages.size > 1 && showingHome && !onPrimaryPage
+                    if (
+                        showingHome &&
+                        onPrimaryPage &&
+                        renderedPages.isNotEmpty() &&
+                        !homeOverviewOpen
+                    ) {
+                        HomeEditEntryControl(
+                            onOpenOverview = { homeOverviewOpen = true },
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .statusBarsPadding()
+                                .padding(start = 12.dp, top = 6.dp),
+                        )
+                    }
+
+                    // Keep the primary Home page visually quiet outside explicit edit mode.
+                    // Additional pages retain the compact page switcher for navigation.
+                    val showPageSwitcher =
+                        renderedPages.size > 1 && showingHome && !onPrimaryPage && !homeOverviewOpen
                     if (showPageSwitcher) {
                         HomePageSwitcher(
                             pages = renderedPages,
                             selectedPageId = selectedHomePageId,
                             onSelectPage = { selectedHomePageId = it },
-                            onMovePage = { pageId, targetRank ->
-                                if (!launcherPreferences.layoutLocked) {
-                                    lifecycleScope.launch {
-                                        workspaceRuntimeCoordinator.moveHomePage(pageId, targetRank)
-                                    }
-                                }
-                            },
-                            onCreatePage = {
-                                if (!launcherPreferences.layoutLocked) {
-                                    val pageId = "home:user:${UUID.randomUUID()}"
-                                    lifecycleScope.launch {
-                                        val result = workspaceRuntimeCoordinator.createHomePage(pageId)
-                                        if (result is WorkspacePagedRoomMutationResult.CreatedPage) {
-                                            selectedHomePageId = result.pageId
-                                        }
-                                    }
-                                }
-                            },
-                            onDeletePage = { pageId ->
-                                if (!launcherPreferences.layoutLocked) {
-                                    lifecycleScope.launch {
-                                        val result = workspaceRuntimeCoordinator.deleteEmptyHomePage(pageId)
-                                        if (
-                                            result is WorkspacePagedRoomMutationResult.DeletedPage &&
-                                            selectedHomePageId == result.pageId
-                                        ) {
-                                            selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
-                                        }
-                                    }
-                                }
-                            },
+                            onMovePage = moveHomePage,
+                            onCreatePage = createHomePage,
+                            onDeletePage = deleteHomePage,
                             layoutLocked = launcherPreferences.layoutLocked,
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
@@ -365,7 +391,12 @@ class MainActivity : ComponentActivity() {
                     // The layout-lock affordance is intentionally absent from the primary Home
                     // surface. It remains available from Launcher settings without permanently
                     // occupying wallpaper space.
-                    if (launcherPreferences.layoutLocked && showingHome && !onPrimaryPage) {
+                    if (
+                        launcherPreferences.layoutLocked &&
+                        showingHome &&
+                        !onPrimaryPage &&
+                        !homeOverviewOpen
+                    ) {
                         LayoutLockHoldControl(
                             locked = true,
                             onUnlock = { launcherPreferencesRepository.setLayoutLocked(false) },
@@ -373,6 +404,21 @@ class MainActivity : ComponentActivity() {
                                 .align(Alignment.TopEnd)
                                 .statusBarsPadding()
                                 .padding(top = 72.dp, end = 12.dp),
+                        )
+                    }
+
+                    if (homeOverviewOpen) {
+                        HomeOverviewEditSurface(
+                            pages = renderedPages,
+                            selectedPageId = selectedHomePageId,
+                            homeColumns = launcherPreferences.homeColumns,
+                            homeRows = launcherPreferences.homeRows,
+                            layoutLocked = launcherPreferences.layoutLocked,
+                            onSelectPage = { selectedHomePageId = it },
+                            onMovePage = moveHomePage,
+                            onCreatePage = createHomePage,
+                            onDeletePage = deleteHomePage,
+                            onDismiss = { homeOverviewOpen = false },
                         )
                     }
                 }
