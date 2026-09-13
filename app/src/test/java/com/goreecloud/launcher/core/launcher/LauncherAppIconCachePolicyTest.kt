@@ -28,6 +28,16 @@ class LauncherAppIconCachePolicyTest {
     }
 
     @Test
+    fun preloadWindowIsBoundedToInitialAppDrawerWorkingSet() {
+        val inventory = (1..100).toList()
+
+        assertEquals(24, LAUNCHER_ICON_PRELOAD_LIMIT)
+        assertEquals((1..24).toList(), launcherIconPreloadWindow(inventory))
+        assertEquals(listOf(1, 2, 3), launcherIconPreloadWindow(listOf(1, 2, 3)))
+        assertTrue(launcherIconPreloadWindow(inventory, limit = 0).isEmpty())
+    }
+
+    @Test
     fun cancellingFirstWaiterDoesNotCancelSharedSingleFlightLoad() = runBlocking {
         val sharedScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val loader = LauncherIconSingleFlightLoader<String, Int>(sharedScope)
