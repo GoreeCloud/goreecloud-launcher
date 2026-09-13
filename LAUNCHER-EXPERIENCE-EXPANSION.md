@@ -36,6 +36,25 @@ Planned capabilities include:
 - Home-page overview/edit mode with thumbnails and explicit page-management controls.
 - One-handed reachability options for search, drawer entry, and edit controls.
 
+### Current Development Home overview tranche
+
+Draft PR #98 on `feat/home-overview-edit-mode-20260913` implements the first explicit Home overview/edit-mode slice on top of the existing Room-authoritative multi-page workspace:
+
+- An **Edit Home** entry affordance on the primary Home surface.
+- An ordered horizontal overview of Home page cards with bounded count-based previews.
+- Explicit page selection without requiring drag interaction.
+- Accessible **Earlier** and **Later** controls for page reordering.
+- Page creation through the existing Room-authoritative mutation path.
+- Safe deletion only for a completely empty non-primary page, with explicit confirmation.
+- Layout-lock enforcement across all structural page mutations while read-only selection remains available.
+- Fail-closed structural controls when the canonical primary Home page is not rank zero.
+- Automatic overview dismissal on Android HOME return or when authoritative Room page state becomes unavailable.
+- Pure policy tests covering primary-page immutability, layout lock, deletion eligibility, and rank-health behavior.
+
+The canonical primary Home page cannot be moved or deleted. Overview preview cells intentionally summarize counts rather than claiming to reproduce authoritative Room `cellX`/`cellY` placement. Multi-select, group movement, drag-based direct manipulation, undo/history, folders, and widgets remain separate future tranches.
+
+This implementation remains Development work. Exact-head CI for the final PR #98 revision, representative physical-device/default-HOME acceptance, accessibility review, large-text/landscape validation, and performance evaluation remain required before release-readiness claims.
+
 ## 2. App drawer
 
 Planned drawer modes:
@@ -67,7 +86,7 @@ The first bounded implementation tranche adds persistent **Grid** and **List** d
 
 Draft PR #96 exact head `b4d95027cb9fda979919f3caa21b819f6c7595c3` passed Android CI run `34735922867` attempt 2, including both the normal validation job and the Android 16 Room/runtime job. That evidence verifies the exact Development source under automation but does not replace representative physical-device/default-HOME acceptance.
 
-The second stacked Development tranche on `feat/drawer-navigation-controls-20260913` adds:
+The second stacked Development tranche in Draft PR #97 adds:
 
 - Persistent **A→Z** and **Z→A** local installed-app ordering with a fail-safe A→Z default.
 - Case-insensitive label comparison with package/class tie-breakers for deterministic local ordering.
@@ -77,9 +96,9 @@ The second stacked Development tranche on `feat/drawer-navigation-controls-20260
 - Section controls sized as accessible touch targets and hidden while a search query is filtering results.
 - Shared local search, app launch, long-press management, icon rendering, and optional `Search all GoreeCloud` handoff behavior regardless of layout/sort/search-position choices.
 
-Drawer layout, sort order, and search-position preferences are intentionally persisted outside the strict v1 portable backup/recovery subset. This prevents presentation-only changes from silently changing the existing seven-field recovery contract. A future versioned portable snapshot format may add these settings explicitly.
+Draft PR #97 exact head `0b74f449c4a08eb9524df84080dd8fcb34d04075` passed Android CI run `34759501859`, including the normal validation and Android 16 runtime suites. This is automated Development evidence only; representative physical-device/default-HOME acceptance remains open.
 
-The new navigation-controls tranche remains Development work until exact-head CI is green. It does not claim Release Candidate, Stable, production approval, or physical-device acceptance.
+Drawer layout, sort order, and search-position preferences are intentionally persisted outside the strict v1 portable backup/recovery subset. This prevents presentation-only changes from silently changing the existing seven-field recovery contract. A future versioned portable snapshot format may add these settings explicitly.
 
 ## 3. Search and discovery
 
@@ -158,6 +177,8 @@ Planned capabilities include:
 - Short local layout-history window or transactional snapshots before high-impact edits.
 - Layout lock with an intentional unlock path.
 - Deterministic rollback for interrupted or failed layout mutations.
+
+The current PR #98 Development slice implements the explicit page-overview foundation, including page selection, page creation, guarded non-drag reordering, confirmed empty-page deletion, and layout-lock enforcement. It does **not** claim multi-select, full drag/drop editing, undo/history, folders, or bulk operations.
 
 ## 8. Personalization
 
@@ -306,9 +327,9 @@ The following are candidate capabilities and remain proposed until separately ac
 The recommended sequence is:
 
 1. Finish and validate persistent Grid/List drawer presentation modes. **Source implemented; exact-head automated Development validation is green on PR #96. Physical-device/default-HOME acceptance remains open.**
-2. Add drawer sorting and fast alphabetical navigation while preserving deterministic, case-insensitive local ordering. **Source implementation is active on `feat/drawer-navigation-controls-20260913`; exact-head CI remains required.**
-3. Add bottom/top search placement and one-handed drawer ergonomics. **Top/bottom search placement source implementation is active in the same tranche; broader reachability/transition tuning remains planned.**
-4. Introduce explicit edit-mode/page-overview workflows.
+2. Add drawer sorting and fast alphabetical navigation while preserving deterministic, case-insensitive local ordering. **Source implemented; exact-head automated Development validation is green on PR #97. Physical-device/default-HOME acceptance remains open.**
+3. Add bottom/top search placement and one-handed drawer ergonomics. **Top/bottom search placement is source implemented and exact-head automated Development validation is green on PR #97; broader reachability/transition tuning remains planned.**
+4. Introduce explicit edit-mode/page-overview workflows. **The first source implementation is active on Draft PR #98 with page previews, selection, non-drag reordering, page creation, safe confirmed empty-page deletion, and layout-lock/rank-health guards. Final exact-head CI and representative-device/accessibility acceptance remain required.**
 5. Add folders and shortcut support on top of stable workspace authority.
 6. Add Android widget hosting, resizing, and recovery.
 7. Add deeper Glaze personalization and responsive form-factor layouts.
@@ -317,4 +338,4 @@ The recommended sequence is:
 
 ## Verification boundary
 
-Grid/List exact-head CI is green on Draft PR #96. The stacked drawer-navigation-controls tranche must independently pass the same exact-head validation and Android 16 runtime suite after its final documentation/code head is established. Representative Android physical-device/default-HOME acceptance, accessibility review, and performance evaluation remain required before the expanded drawer experience can be treated as release-ready. All other features in this document remain planned unless separately verified.
+Grid/List exact-head CI is green on Draft PR #96, and the drawer navigation/search-position tranche is green on Draft PR #97 exact head `0b74f449c4a08eb9524df84080dd8fcb34d04075` via Android CI run `34759501859`. The stacked Home overview/edit-mode tranche in Draft PR #98 must independently pass exact-head validation and the Android 16 runtime suite after its final documentation/code head is established. Representative Android physical-device/default-HOME acceptance, accessibility review, large-text/landscape validation, and performance evaluation remain required before the expanded Launcher experience can be treated as release-ready. All other features in this document remain planned unless separately verified.
