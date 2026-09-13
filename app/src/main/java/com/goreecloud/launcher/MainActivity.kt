@@ -36,6 +36,7 @@ import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
+import com.goreecloud.launcher.core.workspace.db.WorkspaceAtomicHomeGroupMoveResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
@@ -430,42 +431,25 @@ class MainActivity : ComponentActivity() {
                             onMoveSelectedApps = { sourcePageId, appKeys, targetPageId ->
                                 if (!launcherPreferences.layoutLocked && appKeys.isNotEmpty()) {
                                     lifecycleScope.launch {
-                                        var movedCount = 0
-                                        var interrupted = false
-                                        for (appKey in appKeys) {
-                                            val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
+                                        when (
+                                            val result = workspaceRuntimeCoordinator.moveHomeAppsToPage(
                                                 sourcePageId = sourcePageId,
-                                                appKey = appKey,
+                                                appKeys = appKeys,
                                                 targetPageId = targetPageId,
                                             )
-                                            if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
-                                                movedCount += 1
-                                            } else {
-                                                interrupted = true
-                                                break
-                                            }
-                                        }
-
-                                        when {
-                                            movedCount == appKeys.size -> {
-                                                selectedHomePageId = targetPageId
+                                        ) {
+                                            is WorkspaceAtomicHomeGroupMoveResult.Moved -> {
+                                                selectedHomePageId = result.targetPageId
                                                 Toast.makeText(
                                                     this@MainActivity,
-                                                    "Moved $movedCount app${if (movedCount == 1) "" else "s"}.",
+                                                    "Moved ${result.count} app${if (result.count == 1) "" else "s"}.",
                                                     Toast.LENGTH_SHORT,
                                                 ).show()
                                             }
-                                            movedCount > 0 -> {
+                                            else -> {
                                                 Toast.makeText(
                                                     this@MainActivity,
-                                                    "Moved $movedCount of ${appKeys.size} apps. The remaining move was stopped because the workspace changed or could not accept the next item.",
-                                                    Toast.LENGTH_LONG,
-                                                ).show()
-                                            }
-                                            interrupted -> {
-                                                Toast.makeText(
-                                                    this@MainActivity,
-                                                    "No apps were moved. The workspace changed or the destination could not accept the selection.",
+                                                    "No apps were moved. The workspace changed or the destination could not accept the complete selection.",
                                                     Toast.LENGTH_LONG,
                                                 ).show()
                                             }
