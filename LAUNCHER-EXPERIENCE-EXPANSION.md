@@ -1,7 +1,7 @@
 # GoreeCloud Launcher — Experience Expansion
 
-**Status:** Proposed capability expansion with first implementation tranche in Development  
-**Date:** September 12, 2026  
+**Status:** Proposed capability expansion with multiple implementation tranches in Development  
+**Date:** September 13, 2026  
 **Design system:** Glaze UI  
 **Search authority:** GoreeCloud Index remains the canonical universal indexing, provider, ranking, and cross-domain search authority  
 **Security:** Wardveil Security  
@@ -61,11 +61,25 @@ Planned controls include:
 - Page cleanup and empty-page removal for paged mode.
 - Search that always preserves local installed-app results even when GoreeCloud Index is unavailable.
 
-### Current Development implementation tranche
+### Current Development implementation tranches
 
 The first bounded implementation tranche adds persistent **Grid** and **List** drawer presentation modes. The existing grid remains the fail-safe default. List mode reuses the same Android-provided application inventory, launch path, long-press management path, local search filtering, icon cache, and icon scaling controls.
 
-The drawer presentation preference is intentionally persisted outside the strict v1 portable backup/recovery subset. This prevents a presentation-only feature from silently changing the existing seven-field recovery contract. A future versioned portable snapshot format may add the setting explicitly.
+Draft PR #96 exact head `b4d95027cb9fda979919f3caa21b819f6c7595c3` passed Android CI run `34735922867` attempt 2, including both the normal validation job and the Android 16 Room/runtime job. That evidence verifies the exact Development source under automation but does not replace representative physical-device/default-HOME acceptance.
+
+The second stacked Development tranche on `feat/drawer-navigation-controls-20260913` adds:
+
+- Persistent **A→Z** and **Z→A** local installed-app ordering with a fail-safe A→Z default.
+- Case-insensitive label comparison with package/class tie-breakers for deterministic local ordering.
+- Persistent **Top** or **Bottom** drawer-search placement with a fail-safe Top default.
+- An alphabetical fast-navigation rail for both Grid and List drawer layouts.
+- Fast-navigation sections derived only from sections actually present in the local app inventory, using `#` for non-A–Z starts.
+- Section controls sized as accessible touch targets and hidden while a search query is filtering results.
+- Shared local search, app launch, long-press management, icon rendering, and optional `Search all GoreeCloud` handoff behavior regardless of layout/sort/search-position choices.
+
+Drawer layout, sort order, and search-position preferences are intentionally persisted outside the strict v1 portable backup/recovery subset. This prevents presentation-only changes from silently changing the existing seven-field recovery contract. A future versioned portable snapshot format may add these settings explicitly.
+
+The new navigation-controls tranche remains Development work until exact-head CI is green. It does not claim Release Candidate, Stable, production approval, or physical-device acceptance.
 
 ## 3. Search and discovery
 
@@ -291,9 +305,9 @@ The following are candidate capabilities and remain proposed until separately ac
 
 The recommended sequence is:
 
-1. Finish and validate persistent Grid/List drawer presentation modes.
-2. Add drawer sorting and fast alphabetical navigation while preserving Unicode-correct ordering.
-3. Add bottom/top search placement and one-handed drawer ergonomics.
+1. Finish and validate persistent Grid/List drawer presentation modes. **Source implemented; exact-head automated Development validation is green on PR #96. Physical-device/default-HOME acceptance remains open.**
+2. Add drawer sorting and fast alphabetical navigation while preserving deterministic, case-insensitive local ordering. **Source implementation is active on `feat/drawer-navigation-controls-20260913`; exact-head CI remains required.**
+3. Add bottom/top search placement and one-handed drawer ergonomics. **Top/bottom search placement source implementation is active in the same tranche; broader reachability/transition tuning remains planned.**
 4. Introduce explicit edit-mode/page-overview workflows.
 5. Add folders and shortcut support on top of stable workspace authority.
 6. Add Android widget hosting, resizing, and recovery.
@@ -303,4 +317,4 @@ The recommended sequence is:
 
 ## Verification boundary
 
-The Grid/List implementation in the active Development branch is only the first slice. It requires automated CI plus representative Android physical-device/default-HOME acceptance before it can be treated as release-ready. All other features in this document remain planned unless separately verified.
+Grid/List exact-head CI is green on Draft PR #96. The stacked drawer-navigation-controls tranche must independently pass the same exact-head validation and Android 16 runtime suite after its final documentation/code head is established. Representative Android physical-device/default-HOME acceptance, accessibility review, and performance evaluation remain required before the expanded drawer experience can be treated as release-ready. All other features in this document remain planned unless separately verified.
