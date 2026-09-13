@@ -51,4 +51,20 @@ class LauncherPreferencesTest {
             GoreeCloudIndexHomeMode.fromStorage(null),
         )
     }
+
+    @Test
+    fun drawerLayoutModeStorageDecodingFailsSafeToGrid() {
+        assertEquals(
+            LauncherDrawerLayoutMode.LIST,
+            LauncherDrawerLayoutMode.fromStorage("list"),
+        )
+        assertEquals(
+            LauncherDrawerLayoutMode.GRID,
+            LauncherDrawerLayoutMode.fromStorage("unknown"),
+        )
+        assertEquals(
+            LauncherDrawerLayoutMode.GRID,
+            LauncherDrawerLayoutMode.fromStorage(null),
+        )
+    }
 }
