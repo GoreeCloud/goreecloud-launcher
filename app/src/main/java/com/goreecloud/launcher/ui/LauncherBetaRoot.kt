@@ -11,9 +11,11 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items as lazyItems
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,12 +38,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
+import com.goreecloud.launcher.core.launcher.LauncherDrawerSearchPosition
+import com.goreecloud.launcher.core.launcher.LauncherDrawerSortMode
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeThemeMode
+import java.util.Locale
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 enum class LauncherSurfaceMode { HOME, DRAWER, SETTINGS }
@@ -100,6 +106,8 @@ fun LauncherBetaRoot(
     workspace: WorkspaceState,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
+    drawerSortMode: LauncherDrawerSortMode,
+    drawerSearchPosition: LauncherDrawerSearchPosition,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
@@ -114,6 +122,8 @@ fun LauncherBetaRoot(
     onSetHomeGrid: (Int, Int) -> Unit,
     onSetDrawerColumns: (Int) -> Unit,
     onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
+    onSetDrawerSortMode: (LauncherDrawerSortMode) -> Unit,
+    onSetDrawerSearchPosition: (LauncherDrawerSearchPosition) -> Unit,
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
@@ -155,6 +165,8 @@ fun LauncherBetaRoot(
             apps = apps,
             preferences = preferences,
             drawerLayoutMode = drawerLayoutMode,
+            drawerSortMode = drawerSortMode,
+            drawerSearchPosition = drawerSearchPosition,
             searchRequestGeneration = drawerSearchGeneration,
             isIndexSearchAvailable = isIndexSearchAvailable,
             onOpenIndexSearch = onOpenIndexSearch,
@@ -166,12 +178,16 @@ fun LauncherBetaRoot(
         LauncherSurfaceMode.SETTINGS -> LauncherSettingsSurface(
             preferences = preferences,
             drawerLayoutMode = drawerLayoutMode,
+            drawerSortMode = drawerSortMode,
+            drawerSearchPosition = drawerSearchPosition,
             themeMode = themeMode,
             isDefaultHome = isDefaultHome,
             onRequestHomeRole = onRequestHomeRole,
             onSetHomeGrid = onSetHomeGrid,
             onSetDrawerColumns = onSetDrawerColumns,
             onSetDrawerLayoutMode = onSetDrawerLayoutMode,
+            onSetDrawerSortMode = onSetDrawerSortMode,
+            onSetDrawerSearchPosition = onSetDrawerSearchPosition,
             onSetShowLabels = onSetShowLabels,
             onSetIconScale = onSetIconScale,
             onSetLayoutLocked = onSetLayoutLocked,
@@ -355,11 +371,35 @@ private fun HomeSurface(
     }
 }
 
+private val launcherAppNameComparator = Comparator<LauncherActivityInfo> { left, right ->
+    val labelComparison = left.label.toString().lowercase(Locale.ROOT)
+        .compareTo(right.label.toString().lowercase(Locale.ROOT))
+    if (labelComparison != 0) {
+        labelComparison
+    } else {
+        val packageComparison = left.componentName.packageName.lowercase(Locale.ROOT)
+            .compareTo(right.componentName.packageName.lowercase(Locale.ROOT))
+        if (packageComparison != 0) {
+            packageComparison
+        } else {
+            left.componentName.className.lowercase(Locale.ROOT)
+                .compareTo(right.componentName.className.lowercase(Locale.ROOT))
+        }
+    }
+}
+
+internal fun launcherDrawerSectionLabel(label: String): String {
+    val first = label.trim().firstOrNull()?.uppercaseChar() ?: return "#"
+    return if (first in 'A'..'Z') first.toString() else "#"
+}
+
 @Composable
 private fun AppDrawerSurface(
     apps: List<LauncherActivityInfo>,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
+    drawerSortMode: LauncherDrawerSortMode,
+    drawerSearchPosition: LauncherDrawerSearchPosition,
     searchRequestGeneration: Long,
     isIndexSearchAvailable: Boolean,
     onOpenIndexSearch: (String?) -> Unit,
@@ -369,8 +409,8 @@ private fun AppDrawerSurface(
     onOpenSettings: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val filteredApps = remember(apps, query) {
-        apps.filter { app ->
+    val filteredApps = remember(apps, query, drawerSortMode) {
+        val matching = apps.filter { app ->
             matchesLauncherAppSearch(
                 label = app.label.toString(),
                 packageName = app.componentName.packageName,
@@ -378,15 +418,44 @@ private fun AppDrawerSurface(
                 query = query,
             )
         }
+        val comparator = if (drawerSortMode == LauncherDrawerSortMode.NAME_ASC) {
+            launcherAppNameComparator
+        } else {
+            launcherAppNameComparator.reversed()
+        }
+        matching.sortedWith(comparator)
+    }
+    val sectionTargets = remember(filteredApps, query) {
+        if (query.isBlank()) {
+            linkedMapOf<String, Int>().apply {
+                filteredApps.forEachIndexed { index, app ->
+                    putIfAbsent(launcherDrawerSectionLabel(app.label.toString()), index)
+                }
+            }
+        } else {
+            linkedMapOf()
+        }
     }
     val dismissThreshold = with(LocalDensity.current) { 64.dp.toPx() }
     val searchFocusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    val gridState = rememberLazyGridState()
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(searchRequestGeneration) {
         if (searchRequestGeneration > 0L) {
             searchFocusRequester.requestFocus()
             keyboard?.show()
+        }
+    }
+
+    LaunchedEffect(query, drawerLayoutMode) {
+        if (query.isNotBlank() && filteredApps.isNotEmpty()) {
+            when (drawerLayoutMode) {
+                LauncherDrawerLayoutMode.GRID -> gridState.scrollToItem(0)
+                LauncherDrawerLayoutMode.LIST -> listState.scrollToItem(0)
+            }
         }
     }
 
@@ -432,91 +501,190 @@ private fun AppDrawerSurface(
             }
 
             Spacer(Modifier.height(4.dp))
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(searchFocusRequester),
-                singleLine = true,
-                placeholder = { Text("Search installed apps") },
-                shape = RoundedCornerShape(18.dp),
-            )
+            if (drawerSearchPosition == LauncherDrawerSearchPosition.TOP) {
+                DrawerSearchField(
+                    query = query,
+                    onQueryChange = { query = it },
+                    focusRequester = searchFocusRequester,
+                )
+                DrawerSearchStatus(
+                    query = query,
+                    resultCount = filteredApps.size,
+                    isIndexSearchAvailable = isIndexSearchAvailable,
+                    onOpenIndexSearch = onOpenIndexSearch,
+                )
+                Spacer(Modifier.height(14.dp))
+            }
 
-            if (query.isNotBlank()) {
-                Spacer(Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "${filteredApps.size} local result${if (filteredApps.size == 1) "" else "s"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (isIndexSearchAvailable) {
-                        TextButton(onClick = { onOpenIndexSearch(query.trim()) }) {
-                            Text("Search all GoreeCloud")
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                if (filteredApps.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "No installed apps match this search.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                } else {
+                    when (drawerLayoutMode) {
+                        LauncherDrawerLayoutMode.GRID -> LazyVerticalGrid(
+                            columns = GridCells.Fixed(preferences.drawerColumns),
+                            state = gridState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(end = 52.dp, bottom = 22.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            items(filteredApps, key = { it.workspaceKey() }) { app ->
+                                LauncherAppTile(
+                                    app = app,
+                                    iconScale = preferences.iconScale,
+                                    showLabel = preferences.showLabels,
+                                    compact = false,
+                                    onClick = { onLaunchApp(app) },
+                                    onLongClick = { onManageApp(app) },
+                                    modifier = Modifier.height(92.dp),
+                                )
+                            }
+                        }
+                        LauncherDrawerLayoutMode.LIST -> LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(end = 52.dp, bottom = 22.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            lazyItems(filteredApps, key = { it.workspaceKey() }) { app ->
+                                LauncherAppListRow(
+                                    app = app,
+                                    iconScale = preferences.iconScale,
+                                    onClick = { onLaunchApp(app) },
+                                    onLongClick = { onManageApp(app) },
+                                )
+                            }
                         }
                     }
                 }
-                if (!isIndexSearchAvailable) {
-                    Text(
-                        "GoreeCloud Index is unavailable. Installed-app search remains local.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+
+                if (query.isBlank() && sectionTargets.isNotEmpty()) {
+                    AlphabetFastNavigationRail(
+                        sections = sectionTargets.keys.toList(),
+                        onSelect = { section ->
+                            val targetIndex = sectionTargets[section] ?: return@AlphabetFastNavigationRail
+                            coroutineScope.launch {
+                                when (drawerLayoutMode) {
+                                    LauncherDrawerLayoutMode.GRID -> gridState.animateScrollToItem(targetIndex)
+                                    LauncherDrawerLayoutMode.LIST -> listState.animateScrollToItem(targetIndex)
+                                }
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
                     )
                 }
             }
-            Spacer(Modifier.height(14.dp))
 
-            if (filteredApps.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
+            if (drawerSearchPosition == LauncherDrawerSearchPosition.BOTTOM) {
+                Spacer(Modifier.height(12.dp))
+                DrawerSearchStatus(
+                    query = query,
+                    resultCount = filteredApps.size,
+                    isIndexSearchAvailable = isIndexSearchAvailable,
+                    onOpenIndexSearch = onOpenIndexSearch,
+                )
+                DrawerSearchField(
+                    query = query,
+                    onQueryChange = { query = it },
+                    focusRequester = searchFocusRequester,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DrawerSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    focusRequester: FocusRequester,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        singleLine = true,
+        placeholder = { Text("Search installed apps") },
+        shape = RoundedCornerShape(18.dp),
+    )
+}
+
+@Composable
+private fun DrawerSearchStatus(
+    query: String,
+    resultCount: Int,
+    isIndexSearchAvailable: Boolean,
+    onOpenIndexSearch: (String?) -> Unit,
+) {
+    if (query.isBlank()) return
+
+    Spacer(Modifier.height(6.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "$resultCount local result${if (resultCount == 1) "" else "s"}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (isIndexSearchAvailable) {
+            TextButton(onClick = { onOpenIndexSearch(query.trim()) }) {
+                Text("Search all GoreeCloud")
+            }
+        }
+    }
+    if (!isIndexSearchAvailable) {
+        Text(
+            "GoreeCloud Index is unavailable. Installed-app search remains local.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun AlphabetFastNavigationRail(
+    sections: List<String>,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.width(44.dp),
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+        tonalElevation = 2.dp,
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            lazyItems(sections, key = { it }) { section ->
+                TextButton(
+                    onClick = { onSelect(section) },
+                    modifier = Modifier.sizeIn(minWidth = 36.dp, minHeight = 36.dp),
+                    contentPadding = PaddingValues(0.dp),
                 ) {
                     Text(
-                        "No installed apps match this search.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
+                        section,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
                     )
-                }
-            } else {
-                when (drawerLayoutMode) {
-                    LauncherDrawerLayoutMode.GRID -> LazyVerticalGrid(
-                        columns = GridCells.Fixed(preferences.drawerColumns),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 22.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        items(filteredApps, key = { it.workspaceKey() }) { app ->
-                            LauncherAppTile(
-                                app = app,
-                                iconScale = preferences.iconScale,
-                                showLabel = preferences.showLabels,
-                                compact = false,
-                                onClick = { onLaunchApp(app) },
-                                onLongClick = { onManageApp(app) },
-                                modifier = Modifier.height(92.dp),
-                            )
-                        }
-                    }
-                    LauncherDrawerLayoutMode.LIST -> LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 22.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        lazyItems(filteredApps, key = { it.workspaceKey() }) { app ->
-                            LauncherAppListRow(
-                                app = app,
-                                iconScale = preferences.iconScale,
-                                onClick = { onLaunchApp(app) },
-                                onLongClick = { onManageApp(app) },
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -527,12 +695,16 @@ private fun AppDrawerSurface(
 private fun LauncherSettingsSurface(
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
+    drawerSortMode: LauncherDrawerSortMode,
+    drawerSearchPosition: LauncherDrawerSearchPosition,
     themeMode: GlazeThemeMode,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onSetHomeGrid: (Int, Int) -> Unit,
     onSetDrawerColumns: (Int) -> Unit,
     onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
+    onSetDrawerSortMode: (LauncherDrawerSortMode) -> Unit,
+    onSetDrawerSearchPosition: (LauncherDrawerSearchPosition) -> Unit,
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
@@ -602,6 +774,36 @@ private fun LauncherSettingsSurface(
                         onChoice = { onSetDrawerColumns(it.toInt()) },
                     )
                 }
+                Text(
+                    "App sorting",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ChoiceRow(
+                    choices = listOf("A–Z", "Z–A"),
+                    selectedChoice = if (drawerSortMode == LauncherDrawerSortMode.NAME_ASC) "A–Z" else "Z–A",
+                    onChoice = {
+                        onSetDrawerSortMode(
+                            if (it == "Z–A") LauncherDrawerSortMode.NAME_DESC
+                            else LauncherDrawerSortMode.NAME_ASC,
+                        )
+                    },
+                )
+                Text(
+                    "Drawer search position",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ChoiceRow(
+                    choices = listOf("Top", "Bottom"),
+                    selectedChoice = if (drawerSearchPosition == LauncherDrawerSearchPosition.TOP) "Top" else "Bottom",
+                    onChoice = {
+                        onSetDrawerSearchPosition(
+                            if (it == "Bottom") LauncherDrawerSearchPosition.BOTTOM
+                            else LauncherDrawerSearchPosition.TOP,
+                        )
+                    },
+                )
                 SettingSwitch("Show app labels", preferences.showLabels, onSetShowLabels)
             }
 

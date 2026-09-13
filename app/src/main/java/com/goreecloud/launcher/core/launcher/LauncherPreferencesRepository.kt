@@ -41,6 +41,26 @@ enum class LauncherDrawerLayoutMode(val storageValue: String) {
     }
 }
 
+enum class LauncherDrawerSortMode(val storageValue: String) {
+    NAME_ASC("name_asc"),
+    NAME_DESC("name_desc");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerSortMode =
+            entries.firstOrNull { it.storageValue == value } ?: NAME_ASC
+    }
+}
+
+enum class LauncherDrawerSearchPosition(val storageValue: String) {
+    TOP("top"),
+    BOTTOM("bottom");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerSearchPosition =
+            entries.firstOrNull { it.storageValue == value } ?: TOP
+    }
+}
+
 data class LauncherPreferences(
     val homeColumns: Int = 4,
     val homeRows: Int = 5,
@@ -74,6 +94,8 @@ class LauncherPreferencesRepository(
         val layoutLocked = booleanPreferencesKey("layout_locked")
         val indexHomeMode = stringPreferencesKey("index_home_mode")
         val drawerLayoutMode = stringPreferencesKey("drawer_layout_mode")
+        val drawerSortMode = stringPreferencesKey("drawer_sort_mode")
+        val drawerSearchPosition = stringPreferencesKey("drawer_search_position")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
 
@@ -85,12 +107,21 @@ class LauncherPreferencesRepository(
         .distinctUntilChanged()
 
     /**
-     * Drawer presentation is intentionally stored outside the v1 portable preference subset.
-     * This lets the Launcher add a local UI preference without silently changing the strict
-     * seven-field backup/recovery contract. A future snapshot format can version this setting in.
+     * Drawer presentation settings are intentionally stored outside the v1 portable preference
+     * subset. Layout mode, local sort order, and search-field position can evolve independently
+     * without silently changing the strict seven-field backup/recovery contract. A future snapshot
+     * format can version these presentation preferences in explicitly.
      */
     val drawerLayoutMode: Flow<LauncherDrawerLayoutMode> = dataStore.data
         .map { values -> LauncherDrawerLayoutMode.fromStorage(values[Keys.drawerLayoutMode]) }
+        .distinctUntilChanged()
+
+    val drawerSortMode: Flow<LauncherDrawerSortMode> = dataStore.data
+        .map { values -> LauncherDrawerSortMode.fromStorage(values[Keys.drawerSortMode]) }
+        .distinctUntilChanged()
+
+    val drawerSearchPosition: Flow<LauncherDrawerSearchPosition> = dataStore.data
+        .map { values -> LauncherDrawerSearchPosition.fromStorage(values[Keys.drawerSearchPosition]) }
         .distinctUntilChanged()
 
     fun setHomeGrid(columns: Int, rows: Int) {
@@ -149,6 +180,22 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.drawerLayoutMode] = mode.storageValue
+            }
+        }
+    }
+
+    fun setDrawerSortMode(mode: LauncherDrawerSortMode) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerSortMode] = mode.storageValue
+            }
+        }
+    }
+
+    fun setDrawerSearchPosition(position: LauncherDrawerSearchPosition) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerSearchPosition] = position.storageValue
             }
         }
     }

@@ -67,4 +67,36 @@ class LauncherPreferencesTest {
             LauncherDrawerLayoutMode.fromStorage(null),
         )
     }
+
+    @Test
+    fun drawerSortModeStorageDecodingFailsSafeToNameAscending() {
+        assertEquals(
+            LauncherDrawerSortMode.NAME_DESC,
+            LauncherDrawerSortMode.fromStorage("name_desc"),
+        )
+        assertEquals(
+            LauncherDrawerSortMode.NAME_ASC,
+            LauncherDrawerSortMode.fromStorage("unknown"),
+        )
+        assertEquals(
+            LauncherDrawerSortMode.NAME_ASC,
+            LauncherDrawerSortMode.fromStorage(null),
+        )
+    }
+
+    @Test
+    fun drawerSearchPositionStorageDecodingFailsSafeToTop() {
+        assertEquals(
+            LauncherDrawerSearchPosition.BOTTOM,
+            LauncherDrawerSearchPosition.fromStorage("bottom"),
+        )
+        assertEquals(
+            LauncherDrawerSearchPosition.TOP,
+            LauncherDrawerSearchPosition.fromStorage("unknown"),
+        )
+        assertEquals(
+            LauncherDrawerSearchPosition.TOP,
+            LauncherDrawerSearchPosition.fromStorage(null),
+        )
+    }
 }
