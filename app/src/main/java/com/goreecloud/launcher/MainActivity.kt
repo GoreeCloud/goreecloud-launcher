@@ -44,6 +44,7 @@ import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.HomeEditEntryControl
+import com.goreecloud.launcher.ui.HomeMultiSelectEditControl
 import com.goreecloud.launcher.ui.HomeOverviewEditSurface
 import com.goreecloud.launcher.ui.HomePageSwitcher
 import com.goreecloud.launcher.ui.LayoutLockHoldControl
@@ -419,6 +420,60 @@ class MainActivity : ComponentActivity() {
                             onCreatePage = createHomePage,
                             onDeletePage = deleteHomePage,
                             onDismiss = { homeOverviewOpen = false },
+                        )
+
+                        HomeMultiSelectEditControl(
+                            page = selectedPage,
+                            pages = renderedPages,
+                            appLabelsByKey = apps.associate { it.workspaceKey() to it.label.toString() },
+                            layoutLocked = launcherPreferences.layoutLocked,
+                            onMoveSelectedApps = { sourcePageId, appKeys, targetPageId ->
+                                if (!launcherPreferences.layoutLocked && appKeys.isNotEmpty()) {
+                                    lifecycleScope.launch {
+                                        var movedCount = 0
+                                        var interrupted = false
+                                        for (appKey in appKeys) {
+                                            val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
+                                                sourcePageId = sourcePageId,
+                                                appKey = appKey,
+                                                targetPageId = targetPageId,
+                                            )
+                                            if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
+                                                movedCount += 1
+                                            } else {
+                                                interrupted = true
+                                                break
+                                            }
+                                        }
+
+                                        when {
+                                            movedCount == appKeys.size -> {
+                                                selectedHomePageId = targetPageId
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Moved $movedCount app${if (movedCount == 1) "" else "s"}.",
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                            }
+                                            movedCount > 0 -> {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Moved $movedCount of ${appKeys.size} apps. The remaining move was stopped because the workspace changed or could not accept the next item.",
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
+                                            }
+                                            interrupted -> {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "No apps were moved. The workspace changed or the destination could not accept the selection.",
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.align(Alignment.BottomCenter),
                         )
                     }
                 }
