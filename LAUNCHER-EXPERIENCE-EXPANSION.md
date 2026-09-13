@@ -55,7 +55,7 @@ Draft PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` passed Androi
 
 ### Current Development multi-select tranche
 
-The stacked `feat/home-multiselect-group-move-20260913` branch introduces the next bounded edit-mode slice:
+Draft PR #99 on `feat/home-multiselect-group-move-20260913` introduces the next bounded edit-mode slice:
 
 - An explicit **Select apps on this page** action inside Home overview/edit mode.
 - Selection only from currently resolved installed applications on a non-primary Home page; unresolved retained Room identities are not presented as selectable apps.
@@ -63,13 +63,32 @@ The stacked `feat/home-multiselect-group-move-20260913` branch introduces the ne
 - Destination choices limited to other secondary Home pages. The canonical primary page and source page are excluded.
 - Layout-lock enforcement that closes and clears active selection when mutation authority is unavailable to the edit surface.
 - Selection reconciliation when the page inventory changes, dropping stale selected keys rather than mutating an obsolete selection.
-- Reuse of the existing Room-authoritative single-app move path for each selected application.
-- Explicit success, partial-success, and zero-move reporting so a partially applied sequential operation is never represented as an atomic success.
 - Pure policy tests for primary-page exclusion, layout lock, target filtering, deterministic ordering, stale-key removal, and destination requirements.
 
-This tranche deliberately **does not claim atomic all-or-nothing group movement**. Each item move independently revalidates the authoritative Room workspace snapshot. If a later move cannot proceed, already accepted moves remain applied and the user is told exactly that the operation was partial. A future transactional batch mutation and undo/history layer should provide all-or-nothing group movement after its concurrency and recovery behavior is separately accepted.
+Draft PR #99 final synchronized head `0a6e24c4b95df16a5372487666267348cf5689bb` passed Android CI run `34762388664` / #355, including normal validation and the Android 16 Room/runtime suite. PR #99's original movement implementation was deliberately sequential and explicitly reported complete, partial, or zero-move results rather than claiming atomic behavior.
 
-Draft PR #99 implementation head `6de20edb93a60c1f13c6bb196c9f48bc9fac334e` passed Android CI run `34761745372` / #353, including the normal validation job and the Android 16 Room/runtime job. That verifies the implemented Development behavior under automation. Representative physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, one-handed ergonomics, and performance evaluation remain separate release gates. Documentation-only synchronization commits after that implementation head do not expand the application behavior and must still pass the branch's normal CI before the final stacked head is treated as the synchronized Development checkpoint.
+### Current Development atomic batch tranche
+
+Draft PR #100 on `feat/home-atomic-batch-undo-20260913` hardens the multi-select movement path into an all-or-nothing Room transaction:
+
+- A dedicated `WorkspaceHomeBatchMoveDao` owns the transaction boundary without creating a second workspace authority.
+- `WorkspaceHomeBatchMoveService` validates terminal Room authority, canonical primary placement health, contiguous HOME page ranks, protected primary-page boundaries, source identities, secondary spatial geometry, target ranks, and every target placement before any write begins.
+- Selected apps are re-resolved from the Room-authoritative source page and ordered by current source rank rather than trusting selection tap order.
+- All target placements are planned before the transaction begins.
+- An opaque `WorkspaceHomeBatchMoveCommit` records the exact pre-move pages/items, complete applied item snapshot, source/target identities, and moved item identities.
+- The transaction re-reads the complete HOME page/item snapshot and refuses the write if anything changed since planning.
+- Every moved row is written inside one Room transaction; complete post-write HOME readback is verified before the transaction may commit.
+- MainActivity now invokes one atomic batch call. The multi-select path therefore reports full success or zero moved rather than a partial sequential outcome.
+- A one-level exact-state rollback primitive can restore the complete pre-move placement only while HOME still exactly matches the applied batch snapshot.
+- Any intervening HOME mutation causes rollback to fail closed rather than overwriting newer user state.
+- Android runtime coverage verifies atomic movement, deterministic source-page ordering, successful exact-state rollback, and rollback refusal after an intervening HOME mutation.
+- Room entities and schema version are unchanged. Portable backup/recovery v1 is unchanged. The canonical primary HOME page remains outside this secondary-page spatial edit path.
+
+Draft PR #100 implementation head `2c48749eed203842968b5ce59a0aaec1745c3123` passed Android CI run `34762929330` / #356, including source/policy checks, unit tests, lint/build, Room schema validation, APK staging, and the Android 16 runtime suite.
+
+The rollback primitive is currently a backend/recovery foundation. PR #100 does **not** yet expose a user-visible Undo action, persist undo history across process death, or claim a durable edit-history system. Those remain separate follow-on work.
+
+Representative physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, one-handed ergonomics, and performance evaluation remain separate release gates.
 
 ## 2. App drawer
 
@@ -194,9 +213,9 @@ Planned capabilities include:
 - Layout lock with an intentional unlock path.
 - Deterministic rollback for interrupted or failed layout mutations.
 
-Draft PR #98 provides the validated automated Development foundation for explicit page overview, selection, page creation, guarded non-drag reordering, confirmed empty-page deletion, and layout-lock enforcement. Draft PR #99 implementation head `6de20edb93a60c1f13c6bb196c9f48bc9fac334e` passed Android CI run `34761745372` / #353 and adds explicit secondary-page app selection plus bounded sequential cross-page movement while preserving Room mutation authority.
+Draft PR #98 provides the validated automated Development foundation for explicit page overview, selection, page creation, guarded non-drag reordering, confirmed empty-page deletion, and layout-lock enforcement. Draft PR #99 adds explicit secondary-page app selection. Draft PR #100 implementation head `2c48749eed203842968b5ce59a0aaec1745c3123` passed Android CI run `34762929330` / #356 and upgrades multi-app movement to a complete-snapshot-guarded Room transaction with all-or-nothing writes plus an exact-state rollback primitive.
 
-The current multi-select source does **not** provide group drag, atomic batch movement, rollback, undo/history, folders, or bulk folder creation. Those remain follow-on work and must not be inferred from the presence of a multi-select UI.
+The current source still does **not** provide group drag, a user-visible Undo action, persisted edit history, folders, or bulk folder creation. The rollback primitive is not a claim that durable or process-death-safe undo history exists.
 
 ## 8. Personalization
 
@@ -318,7 +337,7 @@ Planned capabilities include:
 - Recovery snapshots before high-impact migrations.
 - Schema-versioned restoration rather than silently interpreting incompatible state.
 
-Group editing should eventually integrate with local transaction history or Everkeep-appropriate recovery only after the edit transaction model is defined. Everkeep must not be used as a substitute for correct atomic workspace mutations.
+PR #100's exact-state batch rollback is a local transaction-safety primitive, not an Everkeep restore mechanism and not durable undo history. Group editing may later integrate with bounded local edit history or Everkeep-appropriate recovery only after the edit-history lifecycle, persistence, authorization, and process-death behavior are separately defined and accepted. Everkeep must not be used as a substitute for correct atomic workspace mutations.
 
 ## 17. Additional capabilities to evaluate
 
@@ -342,7 +361,7 @@ The following are candidate capabilities and remain proposed until separately ac
 - Do not claim Wardveil or Privacy Shield protection without accepted runtime evidence.
 - Do not silently reorder the user’s layout based on inferred behavior.
 - Do not broaden the portable backup schema without an explicit versioned migration.
-- Do not represent sequential multi-item movement as atomic or rollback-safe.
+- Do not describe the backend rollback primitive as durable, process-death-safe, or user-visible Undo/history until those capabilities are separately implemented and verified.
 - Do not call a Development implementation Release Candidate or Stable without required validation and release evidence.
 
 ## Implementation sequence
@@ -352,8 +371,8 @@ The recommended sequence is:
 1. Finish and validate persistent Grid/List drawer presentation modes. **Source implemented; exact-head automated Development validation is green on PR #96. Physical-device/default-HOME acceptance remains open.**
 2. Add drawer sorting and fast alphabetical navigation while preserving deterministic, case-insensitive local ordering. **Source implemented; exact-head automated Development validation is green on PR #97. Physical-device/default-HOME acceptance remains open.**
 3. Add bottom/top search placement and one-handed drawer ergonomics. **Top/bottom search placement is source implemented and exact-head automated Development validation is green on PR #97; broader reachability/transition tuning remains planned.**
-4. Introduce explicit edit-mode/page-overview and multi-select workflows. **PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` passed Android CI run `34760609799`. PR #99 implementation head `6de20edb93a60c1f13c6bb196c9f48bc9fac334e` passed Android CI run `34761745372` / #353, adding explicit multi-select and bounded sequential group movement. Representative-device/accessibility acceptance remains open.**
-5. Harden group editing with an atomic Room batch-move transaction, deterministic rollback/undo semantics, and direct drag workflows after the explicit non-drag path is stable.
+4. Introduce explicit edit-mode/page-overview and multi-select workflows. **PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` passed Android CI run `34760609799`. PR #99 final synchronized head `0a6e24c4b95df16a5372487666267348cf5689bb` passed Android CI run `34762388664` / #355. Representative-device/accessibility acceptance remains open.**
+5. Harden group editing with an atomic Room batch transaction and deterministic rollback primitive. **PR #100 implementation head `2c48749eed203842968b5ce59a0aaec1745c3123` passed Android CI run `34762929330` / #356. User-visible Undo/history and direct group drag remain follow-on work.**
 6. Add folders and shortcut support on top of stable workspace authority.
 7. Add Android widget hosting, resizing, and recovery.
 8. Add deeper Glaze personalization and responsive form-factor layouts.
@@ -362,6 +381,6 @@ The recommended sequence is:
 
 ## Verification boundary
 
-Grid/List exact-head CI is green on Draft PR #96. The drawer navigation/search-position tranche is green on Draft PR #97 exact head `0b74f449c4a08eb9524df84080dd8fcb34d04075` via Android CI run `34759501859`. The Home overview/edit-mode tranche is green on Draft PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` via Android CI run `34760609799`, including its Android 16 runtime job. Draft PR #99 implementation head `6de20edb93a60c1f13c6bb196c9f48bc9fac334e` is green via Android CI run `34761745372` / #353, including both the normal validation job and Android 16 runtime suite.
+Grid/List exact-head CI is green on Draft PR #96. The drawer navigation/search-position tranche is green on Draft PR #97 exact head `0b74f449c4a08eb9524df84080dd8fcb34d04075` via Android CI run `34759501859`. The Home overview/edit-mode tranche is green on Draft PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` via Android CI run `34760609799`, including its Android 16 runtime job. Draft PR #99 final synchronized head `0a6e24c4b95df16a5372487666267348cf5689bb` is green via Android CI run `34762388664` / #355. Draft PR #100 implementation head `2c48749eed203842968b5ce59a0aaec1745c3123` is green via Android CI run `34762929330` / #356, including Android 16 runtime coverage for atomic batch movement and guarded rollback.
 
-The current branch also contains documentation-only synchronization commits that do not expand the validated application behavior. The final stacked documentation head must still pass normal CI before it is recorded as the synchronized Development checkpoint. Representative Android physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, one-handed ergonomics, and performance evaluation remain required before the expanded Launcher experience can be treated as release-ready. All other features in this document remain planned unless separately verified.
+Documentation-only synchronization commits after the PR #100 implementation head do not expand validated application behavior and must still pass normal CI before the final stacked documentation head is treated as the synchronized Development checkpoint. Representative Android physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, one-handed ergonomics, performance evaluation, Platform-System acceptance, signing/provenance, and release approval remain required before the expanded Launcher experience can be treated as release-ready. All other features in this document remain planned unless separately verified.

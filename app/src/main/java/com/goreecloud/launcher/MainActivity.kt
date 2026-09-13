@@ -37,6 +37,8 @@ import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
+import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeBatchMoveResult
+import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeBatchMoveService
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResult
@@ -64,6 +66,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
     private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
+    private lateinit var homeBatchMoveService: WorkspaceHomeBatchMoveService
     private val defaultHomeState = MutableStateFlow(false)
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
@@ -86,6 +89,15 @@ class MainActivity : ComponentActivity() {
             authorityRepository = workspaceRepository,
             workspaceDaoProvider = {
                 LauncherDatabaseProvider.get(this).workspaceDao()
+            },
+        )
+        homeBatchMoveService = WorkspaceHomeBatchMoveService(
+            authorityRepository = workspaceRepository,
+            workspaceDaoProvider = {
+                LauncherDatabaseProvider.get(this).workspaceDao()
+            },
+            batchDaoProvider = {
+                LauncherDatabaseProvider.get(this).workspaceHomeBatchMoveDao()
             },
         )
         lifecycleScope.launch {
@@ -430,42 +442,33 @@ class MainActivity : ComponentActivity() {
                             onMoveSelectedApps = { sourcePageId, appKeys, targetPageId ->
                                 if (!launcherPreferences.layoutLocked && appKeys.isNotEmpty()) {
                                     lifecycleScope.launch {
-                                        var movedCount = 0
-                                        var interrupted = false
-                                        for (appKey in appKeys) {
-                                            val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
+                                        when (
+                                            val result = homeBatchMoveService.moveAppsToPage(
                                                 sourcePageId = sourcePageId,
-                                                appKey = appKey,
+                                                appKeys = appKeys,
                                                 targetPageId = targetPageId,
                                             )
-                                            if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
-                                                movedCount += 1
-                                            } else {
-                                                interrupted = true
-                                                break
-                                            }
-                                        }
-
-                                        when {
-                                            movedCount == appKeys.size -> {
-                                                selectedHomePageId = targetPageId
+                                        ) {
+                                            is WorkspaceHomeBatchMoveResult.Applied -> {
+                                                selectedHomePageId = result.commit.targetPageId
+                                                val movedCount = result.commit.movedItemIds.size
                                                 Toast.makeText(
                                                     this@MainActivity,
-                                                    "Moved $movedCount app${if (movedCount == 1) "" else "s"}.",
+                                                    "Moved $movedCount app${if (movedCount == 1) "" else "s"} atomically.",
                                                     Toast.LENGTH_SHORT,
                                                 ).show()
                                             }
-                                            movedCount > 0 -> {
+                                            WorkspaceHomeBatchMoveResult.StoredWorkspaceChanged -> {
                                                 Toast.makeText(
                                                     this@MainActivity,
-                                                    "Moved $movedCount of ${appKeys.size} apps. The remaining move was stopped because the workspace changed or could not accept the next item.",
+                                                    "No apps were moved. Home changed before the atomic move could commit.",
                                                     Toast.LENGTH_LONG,
                                                 ).show()
                                             }
-                                            interrupted -> {
+                                            else -> {
                                                 Toast.makeText(
                                                     this@MainActivity,
-                                                    "No apps were moved. The workspace changed or the destination could not accept the selection.",
+                                                    "No apps were moved. The selection or destination could not be applied safely.",
                                                     Toast.LENGTH_LONG,
                                                 ).show()
                                             }

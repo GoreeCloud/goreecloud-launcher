@@ -196,7 +196,7 @@ fun HomeMultiSelectEditControl(
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
                     Text(
-                        "Choose another secondary Home page. Moves are applied in current page order and any partial result is reported explicitly.",
+                        "Choose another secondary Home page. Launcher plans the selected moves in current page order and applies them together; if Home changes before commit, none of the selected apps are moved.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
