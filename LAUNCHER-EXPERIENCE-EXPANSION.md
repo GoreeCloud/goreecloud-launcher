@@ -69,7 +69,7 @@ The stacked `feat/home-multiselect-group-move-20260913` branch introduces the ne
 
 This tranche deliberately **does not claim atomic all-or-nothing group movement**. Each item move independently revalidates the authoritative Room workspace snapshot. If a later move cannot proceed, already accepted moves remain applied and the user is told exactly that the operation was partial. A future transactional batch mutation and undo/history layer should provide all-or-nothing group movement after its concurrency and recovery behavior is separately accepted.
 
-The multi-select tranche remains Development work until its final exact head passes the complete Android CI and Android 16 runtime gates. Representative physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, and performance evaluation remain separate release gates.
+Draft PR #99 implementation head `6de20edb93a60c1f13c6bb196c9f48bc9fac334e` passed Android CI run `34761745372` / #353, including the normal validation job and the Android 16 Room/runtime job. That verifies the implemented Development behavior under automation. Representative physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, one-handed ergonomics, and performance evaluation remain separate release gates. Documentation-only synchronization commits after that implementation head do not expand the application behavior and must still pass the branch's normal CI before the final stacked head is treated as the synchronized Development checkpoint.
 
 ## 2. App drawer
 
@@ -194,7 +194,7 @@ Planned capabilities include:
 - Layout lock with an intentional unlock path.
 - Deterministic rollback for interrupted or failed layout mutations.
 
-Draft PR #98 provides the validated automated Development foundation for explicit page overview, selection, page creation, guarded non-drag reordering, confirmed empty-page deletion, and layout-lock enforcement. The stacked multi-select branch adds explicit secondary-page app selection and bounded sequential cross-page movement while preserving Room mutation authority.
+Draft PR #98 provides the validated automated Development foundation for explicit page overview, selection, page creation, guarded non-drag reordering, confirmed empty-page deletion, and layout-lock enforcement. Draft PR #99 implementation head `6de20edb93a60c1f13c6bb196c9f48bc9fac334e` passed Android CI run `34761745372` / #353 and adds explicit secondary-page app selection plus bounded sequential cross-page movement while preserving Room mutation authority.
 
 The current multi-select source does **not** provide group drag, atomic batch movement, rollback, undo/history, folders, or bulk folder creation. Those remain follow-on work and must not be inferred from the presence of a multi-select UI.
 
@@ -352,7 +352,7 @@ The recommended sequence is:
 1. Finish and validate persistent Grid/List drawer presentation modes. **Source implemented; exact-head automated Development validation is green on PR #96. Physical-device/default-HOME acceptance remains open.**
 2. Add drawer sorting and fast alphabetical navigation while preserving deterministic, case-insensitive local ordering. **Source implemented; exact-head automated Development validation is green on PR #97. Physical-device/default-HOME acceptance remains open.**
 3. Add bottom/top search placement and one-handed drawer ergonomics. **Top/bottom search placement is source implemented and exact-head automated Development validation is green on PR #97; broader reachability/transition tuning remains planned.**
-4. Introduce explicit edit-mode/page-overview workflows. **PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` passed Android CI run `34760609799`. The next stacked source tranche adds explicit multi-select and bounded sequential group movement; exact-head validation for that tranche remains required.**
+4. Introduce explicit edit-mode/page-overview and multi-select workflows. **PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` passed Android CI run `34760609799`. PR #99 implementation head `6de20edb93a60c1f13c6bb196c9f48bc9fac334e` passed Android CI run `34761745372` / #353, adding explicit multi-select and bounded sequential group movement. Representative-device/accessibility acceptance remains open.**
 5. Harden group editing with an atomic Room batch-move transaction, deterministic rollback/undo semantics, and direct drag workflows after the explicit non-drag path is stable.
 6. Add folders and shortcut support on top of stable workspace authority.
 7. Add Android widget hosting, resizing, and recovery.
@@ -362,6 +362,6 @@ The recommended sequence is:
 
 ## Verification boundary
 
-Grid/List exact-head CI is green on Draft PR #96. The drawer navigation/search-position tranche is green on Draft PR #97 exact head `0b74f449c4a08eb9524df84080dd8fcb34d04075` via Android CI run `34759501859`. The Home overview/edit-mode tranche is green on Draft PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` via Android CI run `34760609799`, including its Android 16 runtime job.
+Grid/List exact-head CI is green on Draft PR #96. The drawer navigation/search-position tranche is green on Draft PR #97 exact head `0b74f449c4a08eb9524df84080dd8fcb34d04075` via Android CI run `34759501859`. The Home overview/edit-mode tranche is green on Draft PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` via Android CI run `34760609799`, including its Android 16 runtime job. Draft PR #99 implementation head `6de20edb93a60c1f13c6bb196c9f48bc9fac334e` is green via Android CI run `34761745372` / #353, including both the normal validation job and Android 16 runtime suite.
 
-The stacked `feat/home-multiselect-group-move-20260913` tranche is source-implemented but remains unverified until its final exact head passes the same automated validation and Android 16 runtime suite. Representative Android physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, and performance evaluation remain required before the expanded Launcher experience can be treated as release-ready. All other features in this document remain planned unless separately verified.
+The current branch also contains documentation-only synchronization commits that do not expand the validated application behavior. The final stacked documentation head must still pass normal CI before it is recorded as the synchronized Development checkpoint. Representative Android physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, one-handed ergonomics, and performance evaluation remain required before the expanded Launcher experience can be treated as release-ready. All other features in this document remain planned unless separately verified.
