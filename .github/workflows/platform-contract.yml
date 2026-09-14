@@ -22,9 +22,10 @@ concurrency:
 
 jobs:
   validate:
-    # Development pin to the exact green head of GoreeCloud/GoreeCloud PR #30,
-    # which advances the Contract 0.3 Stable Glaze UI consumer baseline to 1.4.0.
+    # Development pin to the corrected exact head of GoreeCloud/GoreeCloud PR #30.
+    # This Contract 0.3 candidate uses the governed seven Integral Platform Systems
+    # and current Stable GLAZE UI 1.4.0 consumer baseline.
     # Replace this with the accepted immutable mainline revision after central integration.
-    uses: GoreeCloud/GoreeCloud/.github/workflows/reusable-platform-manifest.yml@5e10d17f10a4c12cc0a98b595646e4fc5992c1f2
+    uses: GoreeCloud/GoreeCloud/.github/workflows/reusable-platform-manifest.yml@96701cc5f20c8e0deaad512d2a9f83e0411f3f18
     with:
       manifest-path: goreecloud.platform.yaml
