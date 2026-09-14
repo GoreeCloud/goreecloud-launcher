@@ -7,12 +7,19 @@ import org.junit.Test
 
 class GlazeAtmosphereContractTest {
     @Test
-    fun `v1_2 material stays neutral while accent stays bounded`() {
-        assertEquals(Color(0xA8FFFFFF), GlazeAtmosphere.frostWhite)
-        assertEquals(Color(0xA61C1D20), GlazeAtmosphere.frostGraphite)
-        assertEquals(Color(0xB012151A), GlazeAtmosphere.frostDeepDark)
-        assertEquals(Color(0xFF78A7FF), GlazeAtmosphere.iceBlueAccent)
-        assertTrue(GlazeAtmosphere.decorativeAccentMaxAlpha <= 0.12f)
-        assertEquals(1, GlazeAtmosphere.defaultAccentFieldsMax)
+    fun `v1_4 atmosphere stays bounded and non semantic`() {
+        assertEquals(Color(0xFF0F6B6F), GlazeAtmosphere.deepTeal)
+        assertEquals(Color(0xFFD9A35F), GlazeAtmosphere.softAmber)
+        assertEquals(Color(0xFFF2D7A6), GlazeAtmosphere.warmGlow)
+
+        assertTrue(GlazeAtmosphere.lightTealAuraMaxAlpha <= 0.08f)
+        assertTrue(GlazeAtmosphere.lightAmberAuraMaxAlpha <= 0.04f)
+        assertTrue(GlazeAtmosphere.darkTealAuraMaxAlpha <= 0.12f)
+        assertTrue(GlazeAtmosphere.darkAmberAuraMaxAlpha <= 0.06f)
+        assertTrue(GlazeAtmosphere.deepDarkTealAuraMaxAlpha <= 0.16f)
+        assertTrue(GlazeAtmosphere.deepDarkAmberAuraMaxAlpha <= 0.08f)
+        assertEquals(2, GlazeAtmosphere.defaultAuraFieldsMax)
+        assertEquals(1, GlazeAtmosphere.defaultTealFieldsMax)
+        assertEquals(1, GlazeAtmosphere.defaultAmberFieldsMax)
     }
 }
