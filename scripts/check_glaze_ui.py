@@ -186,15 +186,20 @@ def main() -> None:
         'schema_version: "0.3"',
         "  id: goreecloud-launcher",
         '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.4.0"',
-        '  sync:\n    result: applicable-blocked',
         '  glaze_ui_required: "1.4.0"',
         "glaze-ui==1.4.0",
         "GlazeOpticalV14.kt",
         "GlazeOpticalV14Test.kt",
+        "GoreeCloud Sync integration and acceptance are not established",
+        "local backup/restore and portable snapshots are not synchronization evidence",
         "conformance:\n  status: nonconformant",
     ):
         if marker not in platform:
             fail(f"Platform Contract is missing the V1.4 Development boundary `{marker}`")
+
+    platform_systems_text = platform.split("platform_systems:\n", 1)[1].split("\nhealth:\n", 1)[0]
+    if "\n  sync:\n" in platform_systems_text:
+        fail("Platform Contract incorrectly classifies GoreeCloud Sync as an eighth Integral Platform System")
 
     for active_name, active_content in {
         "metrics": metrics,
