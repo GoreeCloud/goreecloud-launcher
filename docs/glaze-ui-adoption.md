@@ -63,7 +63,7 @@ GoreeCloud Index remains the universal-search/indexing authority.
 
 Launcher preserves the Glaze rule: **Solid where users read or make explicit critical decisions. Glazed where users interact with transient navigation, command, search, control, or feedback chrome.**
 
-Durable settings, explanatory content, and destructive or security-sensitive decisions remain certainty-first. Optical atmosphere must never manufacture authorization, privacy, security, backup, recovery, identity, or trust state owned by another GoreeCloud system or Android.
+Durable settings, explanatory content, and destructive or security-sensitive decisions remain certainty-first. Optical atmosphere must never manufacture authorization, privacy, security, backup, recovery, identity, synchronization, or trust state owned by another GoreeCloud system or Android.
 
 ## V1.4.1 human-validation boundary
 
@@ -77,6 +77,12 @@ By the V1.4 release decision, human validation and human verification are assign
 
 Launcher-specific release acceptance may remain stricter than the shared Glaze lifecycle and is not waived by this deferral.
 
+## Platform Contract 0.3 boundary
+
+The active Launcher migration also adopts GoreeCloud Platform Contract `0.3`, which requires explicit declarations for all eight Integral Platform Systems: Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, Mesh, Identity, and Sync. Launcher remains Development/nonconformant. The presence of a Contract 0.3 manifest is declaration and validation input only; it does not establish accepted integration.
+
+In particular, current portable snapshots, transactional restore, and recovery journals remain local recovery/portability mechanisms. They are not GoreeCloud Sync implementation, replication, conflict-resolution, or cross-device synchronization evidence. Sync and Everkeep remain distinct authorities.
+
 ## Acceptance still required
 
 - Rendered V1.4 review across Home, Apps, Settings, Theme Manager, dialogs, and workspace editing.
@@ -87,7 +93,7 @@ Launcher-specific release acceptance may remain stricter than the shared Glaze l
 - Representative phone/tablet/foldable adaptive composition.
 - Representative-device Theme Manager navigation/persistence and Home/Apps/Settings acceptance.
 - Performance/power fallback evidence and the V1.4.1 human-validation work applicable to Launcher.
-- Required Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, Manager, and Index integration acceptance.
+- Required Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, Sync, Manager, and Index integration acceptance.
 - Exact-head CI, production signing/distribution, release approval, and Stable Launcher qualification.
 
 Passing source, unit, build, schema, emulator, or registry checks remains Development evidence only.
