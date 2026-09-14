@@ -117,12 +117,11 @@ def main() -> None:
         "semanticProtection",
         "backgroundComplexity",
         "backgroundLuminance",
-        "performs no collection itself" if False else "does not collect telemetry",
+        "does not collect telemetry",
     ):
         if marker not in optical:
             fail(f"missing V1.4 Optical Intelligence invariant `{marker}`")
 
-    # Keep the resolver explicitly local and non-authoritative.
     for forbidden in ("HttpClient", "URLConnection", "Socket(", "Camera", "WallpaperManager"):
         if forbidden in optical:
             fail(f"optical resolver gained forbidden collection/network primitive `{forbidden}`")
@@ -184,9 +183,10 @@ def main() -> None:
             fail(f"Theme Manager Development evidence is not synchronized with V1.4: `{marker}`")
 
     for marker in (
-        'schema_version: "0.2"',
+        'schema_version: "0.3"',
         "  id: goreecloud-launcher",
         '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.4.0"',
+        '  sync:\n    result: applicable-blocked',
         '  glaze_ui_required: "1.4.0"',
         "glaze-ui==1.4.0",
         "GlazeOpticalV14.kt",
