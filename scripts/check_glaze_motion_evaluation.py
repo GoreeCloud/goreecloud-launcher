@@ -8,6 +8,7 @@ MAIN = ROOT / "app/src/main"
 LAUNCHER_ROOT = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt"
 REFERENCE_REVISION = "e8f68770540d00499b5613a00310ac7002a674fd"
 MARKER = "GlazeMotionExperimental"
+CURRENT_GLAZE_AUTHORITY = "GLAZE UI V1.4 / `1.4.0` is the current production design-system authority for Launcher."
 
 
 def fail(message: str) -> None:
@@ -28,15 +29,17 @@ def main() -> None:
         f"Reviewed canonical revision: `{REFERENCE_REVISION}`",
         "Evaluation mode: native Android semantic mapping, test-only",
         "Production dependency: no",
-        "Glaze UI 2.2.0 Stable is the production design-system authority.",
+        CURRENT_GLAZE_AUTHORITY,
         "insufficient for Candidate promotion by itself",
         "Glaze Motion remains Experimental and test-only",
+        "V1.4.1 manual/human validation boundary",
     ]
     for evidence in required_doc:
         if evidence not in doc_text:
             fail(f"missing lifecycle or evidence boundary `{evidence}`")
 
     for stale in (
+        "Glaze UI 2.2.0 Stable is the production design-system authority.",
         "Glaze UI 2.1 Stable is the production design-system authority.",
         "Glaze UI 2.0 Stable is the production design-system authority.",
         "Glaze UI 1.6 Stable remains the production design-system authority.",
@@ -82,7 +85,7 @@ def main() -> None:
         )
 
     print(
-        "Glaze Motion 0.4 Launcher historical test-only evaluation boundary passed under Glaze UI 2.2.0 Stable: "
+        "Glaze Motion 0.4 Launcher historical test-only evaluation boundary passed under GLAZE UI V1.4 / 1.4.0: "
         "real ordering domain mapped, production source remains quarantined."
     )
 
