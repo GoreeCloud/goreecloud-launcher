@@ -10,14 +10,16 @@ import androidx.compose.ui.graphics.Color
 enum class GlazeThemeMode { SYSTEM, LIGHT, DARK, DEEP_DARK }
 
 /**
- * GLAZE UI V1.3 Adaptive Resonance structural appearance mapping for Launcher,
- * retaining the inherited V1.2 Frosted Neutral material foundation.
- * Neutral glass is the material and color remains a bounded accent.
+ * GLAZE UI V1.4 structural appearance mapping for Launcher surfaces.
  *
- * The translucent neutral surface roles intentionally remain independent of
- * protection, privacy, identity, recovery, availability, focus, selection,
- * and other producer-owned semantic state. Accessibility resolution always
- * takes precedence over decorative material treatment.
+ * V1.4 is additive over the previous Stable light/dark/deep-dark structural
+ * mapping. Optical Intelligence is resolved independently by `GlazeOpticalV14`
+ * so accessibility and semantic authority can always override decorative
+ * atmosphere without changing the application's core color semantics.
+ *
+ * Deep Teal and Soft Amber remain atmospheric presentation primitives rather
+ * than semantic state colors. Protected semantics, focus, selection,
+ * accessibility resolution, and producer-owned state always take precedence.
  */
 private val light = lightColorScheme(
     primary = Color(0xFF3478F6),
@@ -27,11 +29,10 @@ private val light = lightColorScheme(
     secondary = Color(0xFF7657F6),
     background = Color(0xFFF5F7FA),
     onBackground = Color(0xFF151A23),
-    surface = Color(0x94FFFFFF),
+    surface = Color(0xFFFFFFFF),
     onSurface = Color(0xFF151A23),
-    surfaceVariant = Color(0xD9FFFFFF),
+    surfaceVariant = Color(0xE0FFFFFF),
     onSurfaceVariant = Color(0xFF5D6675),
-    outlineVariant = GlazeAtmosphere.lightNeutralLine,
 )
 
 private val dark = darkColorScheme(
@@ -42,11 +43,10 @@ private val dark = darkColorScheme(
     secondary = Color(0xFFA990FF),
     background = Color(0xFF0B0D11),
     onBackground = Color(0xFFF5F7FA),
-    surface = Color(0x9E19191B),
+    surface = Color(0xFF12151B),
     onSurface = Color(0xFFF5F7FA),
-    surfaceVariant = Color(0xD91A1C21),
+    surfaceVariant = Color(0xDB181D26),
     onSurfaceVariant = Color(0xFFB0B7C3),
-    outlineVariant = GlazeAtmosphere.darkNeutralLine,
 )
 
 private val deepDark = darkColorScheme(
@@ -57,11 +57,10 @@ private val deepDark = darkColorScheme(
     secondary = Color(0xFFA990FF),
     background = Color(0xFF05070A),
     onBackground = Color(0xFFF5F7FA),
-    surface = Color(0xB012151A),
+    surface = Color(0xFF0D1015),
     onSurface = Color(0xFFF5F7FA),
-    surfaceVariant = Color(0xD90D1015),
+    surfaceVariant = Color(0xE612161D),
     onSurfaceVariant = Color(0xFFABB4C2),
-    outlineVariant = GlazeAtmosphere.darkNeutralLine,
 )
 
 @Composable
