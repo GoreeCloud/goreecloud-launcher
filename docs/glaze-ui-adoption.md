@@ -1,99 +1,103 @@
-# GLAZE UI V1.3 Migration — GoreeCloud Launcher
+# GLAZE UI V1.4 Migration — GoreeCloud Launcher
 
 Status: **Migration in progress / Development**  
-Official target: **GLAZE UI V1.3 (`1.3.0`) — Adaptive Resonance**  
+Official target: **GLAZE UI V1.4 (`1.4.0`)**  
 Canonical repository: `GoreeCloud/goreecloud-glaze-ui`  
-Exact Stable integration source authority: `fc7cc91d2eace8da2371371c2855c24cbcb326a1`  
-Stable aggregate entrypoints: `css/glaze-v1.3.0.css`, `js/glaze-v1.3.0.mjs`  
+Exact Stable merged source authority: `84cb3db4884042f0fa25ed6d475a127fb110f596`  
 Production eligible on the Glaze UI gate: **no**  
-Adoption mode: native Android semantic/structural mapping using Adaptive Resonance with the inherited V1.2 Frosted Neutral material foundation  
+Adoption mode: native Android semantic/structural mapping with bounded local Optical Intelligence  
 Automated contract: `scripts/check_glaze_ui.py`
 
-GLAZE UI V1.3 / `1.3.0` is the current GoreeCloud design-system target. This record defines Launcher's repository-local V1.3 Development mapping. It does **not** establish complete V1.3 consumer conformance, rendered/accessibility/device acceptance, production approval, release approval, Release Candidate entry, or Stable qualification. V1.2 (`1.2.0`) is the rollback baseline; earlier V1.1/V1.0 and pre-reset evidence remains historical only.
+GLAZE UI V1.4 is the current GoreeCloud design-system adoption target for Launcher. This record defines repository-local V1.4 Development implementation. It does **not** establish complete V1.4 consumer conformance, rendered/accessibility/device acceptance, product production approval, release approval, or Stable Launcher qualification. No V1.3, V1.2, V1.1, V1.0, or pre-reset acceptance is inherited as V1.4 application acceptance.
 
 ## Authority boundary
 
-The implementation-facing source anchor is the exact V1.3 Stable integration revision above. Canonical lifecycle authority remains `VERSION`, `registry/lifecycle.json`, `GLAZE_UI_V1_3.md`, `MIGRATION_V1_2_TO_V1_3.md`, and `acceptance/v1.3-stable.md` in `GoreeCloud/goreecloud-glaze-ui`.
+Launcher consumes the current Stable V1.4 contract as a native Jetpack Compose mapping. It does not embed a remote UI runtime and does not create a competing Glaze authority.
 
-Launcher maps applicable V1.3 contracts into first-party Jetpack Compose code. It does not embed a remote UI runtime or create a competing design-system authority. The V1.3 migration inherits the validated V1.2 Frosted Neutral material and structural geometry where the current Glaze contract carries them forward, while recording the Adaptive Resonance contract and Stable aggregate entrypoints explicitly.
+The native source pins V1.4 through `GlazeMetrics.targetVersion`, `GlazeOpticalV14.targetVersion`, and the exact merged Stable Glaze source revision. `GlazeTheme` retains the established Light, Dark, and Deep Dark structural appearances while `GlazeOpticalV14` adds the bounded V1.4 optical resolver.
 
-## Implemented V1.3 source mapping
+## Implemented V1.4 source mapping
 
-The current Development branch:
+The current Development implementation:
 
-- pins machine version `1.3.0`, release identity `Adaptive Resonance`, and exact Stable integration revision `fc7cc91d2eace8da2371371c2855c24cbcb326a1`;
-- records `contracts/v1.3/adaptive-resonance.plan.json` and the Stable V1.3 aggregate entrypoints;
-- preserves inherited spacing values 4/8/12/16/20/24/32/48/64 dp where directly consumed;
-- preserves the structural radius tiers currently consumed by Launcher;
-- preserves inherited 8/16/24/32 dp optical geometry references plus capsule geometry;
+- pins machine version `1.4.0` and exact Stable merged source revision `84cb3db4884042f0fa25ed6d475a127fb110f596`;
+- preserves the existing 4/8/12/16/20/24/32/48/64 dp spacing mapping and established structural radii used by Launcher;
 - preserves the 48 dp normal touch-oriented interaction floor and 56 dp Touch Assistance / far-view target;
-- retains System, Light, Dark, and Deep Dark through the existing device-local Theme Manager persistence path;
-- retains the neutral Frosted Neutral material substrate inherited from V1.2;
-- uses neutral separator lines for degraded/effects-free presentation;
-- limits the current Theme Manager preview to one bounded Ice Blue decorative accent; and
-- explicitly forbids wallpaper, application content, privacy/security state, or other producer truth from becoming an implicit adaptive-color authority.
-
-The inherited material rule remains: **Neutral glass is the material; color is an accent.** Decorative color can never establish protection, privacy, identity, recovery, availability, focus, selection, or other authoritative state.
+- preserves System, Light, Dark, and Deep Dark through the existing device-local Theme Manager persistence path;
+- keeps Deep Teal + Soft Amber atmosphere non-semantic;
+- adds a deterministic native Content-Aware Frost resolver using already-derived background complexity/luminance inputs;
+- adds Semantic Blur Protection where higher semantic importance reduces allowed blur;
+- adds bounded chromatic depth and daypart warmth;
+- caps Environmental Color Memory influence at 8%;
+- forces Reduced Transparency and Forced Colors into a solid-accessible mode;
+- suppresses decorative tint and warmth under Increased Contrast; and
+- requires no telemetry, camera access, wallpaper-pixel collection, analytics, or remote context.
 
 `space10` remains a Launcher-owned 40 dp layout convenience and is not claimed as a canonical Glaze token.
 
+## Context and privacy boundary
+
+`GlazeOpticalV14` is signal-source agnostic. It accepts already-derived local inputs but performs no collection itself. Any future adapter that derives wallpaper, environment, time, or other context remains separately subject to Launcher privacy/security authority, Privacy Shield, Wardveil Security, and Android permissions/capability boundaries.
+
+Glaze UI does not grant authority to inspect content or collect user data for visual effects.
+
+## Accessibility precedence
+
+V1.4 optical adaptation remains subordinate to accessibility and meaning:
+
+1. Forced Colors or platform equivalent.
+2. Reduced Transparency.
+3. Increased Contrast / show-boundaries behavior.
+4. Semantic state and task clarity.
+5. Material/optical expression.
+
+In the current resolver, Forced Colors and Reduced Transparency fail closed to `SOLID_ACCESSIBLE`; Increased Contrast suppresses decorative warmth and memory tint while increasing optical protection.
+
 ## System Shell classification
 
-Launcher Home is a **Workspace** presentation surface. Launcher Settings and Theme Manager are **Application** surfaces. These classifications affect presentation and interaction only; they grant no operating-system, Control Center, notification, authentication, search-indexing, or other system authority.
+Launcher Home is a **Workspace** presentation surface. Launcher Settings and Theme Manager are **Application** surfaces. These classifications affect presentation and interaction only; they grant no operating-system, window-manager, Control Center, notification, authentication, search-indexing, or other system authority.
 
-GoreeCloud Index remains the universal-search/indexing authority. Theme Manager is not Universal Search, Control Center, a Critical System surface, or an authorization boundary merely because Glaze defines presentation concepts for those surfaces.
+GoreeCloud Index remains the universal-search/indexing authority.
 
-## Adaptive Resonance and inherited Frosted Neutral boundary
+## Presentation rule
 
-Durable reading and explicit decisions remain certainty-first. Transient navigation, control, search, and feedback chrome may use neutral glazed treatment where appropriate. V1.3 adaptive expression remains bounded to presentation inputs that are explicitly implemented and accepted; this Launcher candidate does not sample wallpaper/application/editor content, persist Environmental Color Memory, or infer product truth from decorative color.
+Launcher preserves the Glaze rule: **Solid where users read or make explicit critical decisions. Glazed where users interact with transient navigation, command, search, control, or feedback chrome.**
 
-Reduced Transparency, Increased Contrast, forced-color/native equivalents, accessibility state, and producer-owned semantic state take precedence over material effects. If a frosted effect degrades or is removed, meaning, actions, focus, state, and hierarchy must remain intact.
+Durable settings, explanatory content, and destructive or security-sensitive decisions remain certainty-first. Optical atmosphere must never manufacture authorization, privacy, security, backup, recovery, identity, synchronization, or trust state owned by another GoreeCloud system or Android.
 
-## Theme Manager boundary
+## V1.4.1 human-validation boundary
 
-The reachable Theme Manager supports System, Light, Dark, and Deep Dark. Settings navigation remains saveable, unknown/stale destination values fail closed to Settings root, and only a different appearance choice may invoke caller-owned persistence.
+By the V1.4 release decision, human validation and human verification are assigned to Glaze UI V1.4.1 rather than blocking the shared V1.4.0 lifecycle. Launcher therefore does not represent the following as passed V1.4.0 evidence:
 
-The preview uses inherited neutral Frosted material plus one Ice Blue accent marker. It does not sample wallpaper/content, persist Environmental Color Memory, animate atmospheric fields, infer semantic state from color, or create remote color dependencies.
+- subjective optical-quality and GoreeCloud-identity review;
+- manual assistive-technology verification;
+- representative physical-device optical qualification;
+- real-device performance, thermal, and power review; or
+- qualitative animation/touch/visual polish review.
 
-## Accessibility and resilience boundary
+Launcher-specific release acceptance may remain stricter than the shared Glaze lifecycle and is not waived by this deferral.
 
-The V1.3 source migration does not by itself establish:
+## Platform Contract 0.3 boundary
 
-- Reduced Motion behavior across all Launcher surfaces;
-- Reduced Transparency / solid fallback resolution;
-- Increased Contrast and forced-colors/native equivalents;
-- 200% text/reflow;
-- RTL/localization;
-- platform Touch Assistance preference resolution;
-- TalkBack, Switch Access, keyboard/D-pad focus and announcement timing;
-- phone/tablet/foldable adaptive composition;
-- performance/power fallback behavior; or
-- Human Visual Excellence acceptance.
+The active Launcher migration also adopts GoreeCloud Platform Contract `0.3`, which requires explicit declarations for all eight Integral Platform Systems: Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, Mesh, Identity, and Sync. Launcher remains Development/nonconformant. The presence of a Contract 0.3 manifest is declaration and validation input only; it does not establish accepted integration.
 
-The 48/56 dp target mapping is source evidence only. Theme Manager uses the 56 dp target conservatively for primary appearance actions; that does not prove platform Touch Assistance detection or complete accessibility acceptance.
-
-## Platform-system boundary
-
-Glaze UI governs presentation and interaction only. This migration does not manufacture GoreeCloud Manager, Privacy Shield, Wardveil Security, Everkeep, GoreeCloud Mesh, GoreeCloud Identity, or GoreeCloud Index integration. Each remains independently evidence-gated.
-
-## Historical and rollback boundary
-
-V1.2 (`1.2.0`) is the immediate rollback baseline for this migration. V1.2, V1.1, V1.0, and pre-reset Glaze UI 2.x adoption commits, pull requests, CI runs, and discussion remain immutable development history. Historical evidence may explain implementation ancestry but does not satisfy current V1.3 application acceptance.
-
-Rollback must restore a recorded known-good Launcher integration; it must not rewrite Glaze release history or relabel a historical release as the current target.
+In particular, current portable snapshots, transactional restore, and recovery journals remain local recovery/portability mechanisms. They are not GoreeCloud Sync implementation, replication, conflict-resolution, or cross-device synchronization evidence. Sync and Everkeep remain distinct authorities.
 
 ## Acceptance still required
 
-- Complete V1.3 component/state/material/adaptive mapping applicable to Launcher.
-- Rendered review of Light, Dark, and Deep Dark across Home, Apps, Settings, Theme Manager, dialogs, and workspace editing.
-- Reduced Motion, Reduced Transparency, Increased Contrast, forced-color/native-equivalent behavior, and degradation-order validation.
+- Rendered V1.4 review across Home, Apps, Settings, Theme Manager, dialogs, and workspace editing.
+- Wiring and validation of approved local optical context sources where useful.
+- Reduced Motion, Reduced Transparency, Increased Contrast, native forced-color equivalents, and degradation-order validation.
 - 200% text/reflow, RTL/localization, and Touch Assistance resolution.
 - TalkBack, Switch Access, keyboard/D-pad/focus-order, and spoken-announcement acceptance.
-- Representative phone/tablet/foldable adaptive composition and reachability.
-- Representative physical-device Theme Manager navigation/persistence and Home/Apps/Settings acceptance.
-- Performance/power fallback evidence and Human Visual Excellence review.
-- Verified V1.2 rollback on the Launcher integration path.
-- Required Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, Manager, and Index integration acceptance.
-- Exact-head CI, production signing/distribution, release approval, and Release Candidate qualification.
+- Representative phone/tablet/foldable adaptive composition.
+- Representative-device Theme Manager navigation/persistence and Home/Apps/Settings acceptance.
+- Performance/power fallback evidence and the V1.4.1 human-validation work applicable to Launcher.
+- Required Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, Sync, Manager, and Index integration acceptance.
+- Exact-head CI, production signing/distribution, release approval, and Stable Launcher qualification.
 
 Passing source, unit, build, schema, emulator, or registry checks remains Development evidence only.
+
+## Rollback
+
+V1.3 remains the immediate shared Glaze rollback baseline. If the Launcher V1.4 migration regresses, revert the Launcher migration commit(s) while preserving the canonical Glaze V1.4 Stable authority. A local rollback does not authorize relabeling an older Glaze release as current.

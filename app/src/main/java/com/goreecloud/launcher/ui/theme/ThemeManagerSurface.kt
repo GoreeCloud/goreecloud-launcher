@@ -37,12 +37,13 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Native Theme Manager presentation foundation for the currently implemented
- * System/Light/Dark/Deep Dark appearance modes under GLAZE UI V1.2.
+ * System/Light/Dark/Deep Dark appearance modes under GLAZE UI V1.4.
  *
- * V1.2 uses Frosted Neutral as material and reserves color for bounded accent.
- * This surface deliberately does not imply icon-pack discovery, icon masking,
- * wallpaper sampling, environmental color memory, expression controls, or
- * complete V1.2 application acceptance. Those remain separately gated.
+ * V1.4 keeps structural appearance and bounded non-semantic atmosphere separate
+ * from authoritative state. This surface deliberately does not imply icon-pack
+ * discovery, icon masking, wallpaper sampling, environmental color memory,
+ * expression controls, or complete V1.4 application acceptance. Those remain
+ * separately gated.
  */
 @Composable
 fun ThemeManagerSurface(
@@ -101,9 +102,9 @@ fun ThemeManagerSurface(
                     modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space4),
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
-                    Text("Frosted Neutral foundation", fontWeight = FontWeight.SemiBold)
+                    Text("GLAZE UI V1.4 foundation", fontWeight = FontWeight.SemiBold)
                     Text(
-                        "System, Light, Dark and Deep Dark use the current V1.2 structural mapping. Neutral glass is the material; color is a restrained accent. Icon packs, masking, wallpaper-derived palettes, environmental sampling and advanced expression controls remain separate Development work.",
+                        "System, Light, Dark and Deep Dark use the current V1.4 structural mapping. The preview includes only bounded non-semantic atmosphere. Icon packs, masking, wallpaper-derived palettes, environmental sampling and advanced expression controls remain separate Development work.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -168,7 +169,7 @@ private fun ThemeChoiceCard(
                         Column(Modifier.weight(1f)) {
                             Text("GoreeCloud", fontWeight = FontWeight.SemiBold)
                             Text(
-                                "Frosted Neutral structure with restrained accent",
+                                "Structural appearance with restrained V1.4 atmosphere",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -176,7 +177,7 @@ private fun ThemeChoiceCard(
                         Surface(
                             modifier = Modifier.size(24.dp),
                             shape = RoundedCornerShape(GlazeMetrics.opticalMicro),
-                            color = GlazeAtmosphere.iceBlueAccent,
+                            color = GlazeAtmosphere.softAmber,
                             content = {},
                         )
                     }

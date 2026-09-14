@@ -6,21 +6,11 @@ import org.junit.Test
 
 class GlazeMetricsContractTest {
     @Test
-    fun `launcher targets exact GLAZE UI V1_3 Stable authority`() {
-        assertEquals("1.3.0", GlazeMetrics.targetVersion)
-        assertEquals("Adaptive Resonance", GlazeMetrics.releaseTheme)
-        assertEquals("fc7cc91d2eace8da2371371c2855c24cbcb326a1", GlazeMetrics.sourceRevision)
-        assertEquals(
-            "tokens/glaze-v1.2-optical-foundation.candidate.json",
-            GlazeMetrics.opticalContract,
-        )
-        assertEquals(
-            "contracts/v1.3/adaptive-resonance.plan.json",
-            GlazeMetrics.adaptiveContract,
-        )
-        assertEquals("css/glaze-v1.3.0.css", GlazeMetrics.stableWebEntrypoint)
-        assertEquals("js/glaze-v1.3.0.mjs", GlazeMetrics.stableRuntimeEntrypoint)
-        assertEquals("1.2.0", GlazeMetrics.rollbackBaselineVersion)
+    fun `launcher targets exact GLAZE UI V1_4 Stable release`() {
+        assertEquals("1.4.0", GlazeMetrics.targetVersion)
+        assertEquals("84cb3db4884042f0fa25ed6d475a127fb110f596", GlazeMetrics.sourceRevision)
+        assertEquals(GlazeOpticalV14.targetVersion, GlazeMetrics.targetVersion)
+        assertEquals(GlazeOpticalV14.stableSourceRevision, GlazeMetrics.sourceRevision)
     }
 
     @Test
@@ -32,7 +22,7 @@ class GlazeMetricsContractTest {
     }
 
     @Test
-    fun `launcher preserves inherited spacing and structural radius tiers`() {
+    fun `launcher preserves inherited stable spacing and structural radius tiers`() {
         assertEquals(4.dp, GlazeMetrics.space1)
         assertEquals(8.dp, GlazeMetrics.space2)
         assertEquals(12.dp, GlazeMetrics.space3)
@@ -53,7 +43,7 @@ class GlazeMetricsContractTest {
     }
 
     @Test
-    fun `v1_3 inherits optical geometry separately from structural radii`() {
+    fun `optical geometry remains separate from structural radii`() {
         assertEquals(8.dp, GlazeMetrics.opticalMicro)
         assertEquals(16.dp, GlazeMetrics.opticalControl)
         assertEquals(24.dp, GlazeMetrics.opticalContainer)
