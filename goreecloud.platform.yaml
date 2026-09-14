@@ -96,11 +96,6 @@ platform_systems:
     evidence:
       - README.md
     notes: Core Launcher use is local and does not require an account, but accepted GoreeCloud Identity integration for future identity-aware or synchronized capabilities is not established. Current appKey values are device/profile-resolved runtime keys and are not treated as portable cross-device identities.
-  sync:
-    result: applicable-blocked
-    version: null
-    evidence: []
-    notes: Launcher-owned cross-device layout or settings synchronization is not established. Current portable snapshots, transactional restore, and recovery journals are local recovery/portability mechanisms and are not treated as GoreeCloud Sync implementation, replication, conflict-resolution, or acceptance evidence.
 
 health:
   health_endpoint: null
