@@ -33,6 +33,7 @@ import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
+import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
@@ -40,6 +41,8 @@ import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacement
 import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeBatchMoveCommit
 import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeBatchMoveResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeBatchMoveService
+import com.goreecloud.launcher.core.workspace.db.WorkspaceHomePageCompactionResult
+import com.goreecloud.launcher.core.workspace.db.WorkspaceHomePageCompactionService
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResult
@@ -68,6 +71,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var workspaceRepository: WorkspaceRepository
     private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
     private lateinit var homeBatchMoveService: WorkspaceHomeBatchMoveService
+    private lateinit var homePageCompactionService: WorkspaceHomePageCompactionService
     private val defaultHomeState = MutableStateFlow(false)
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
@@ -94,6 +98,15 @@ class MainActivity : ComponentActivity() {
             },
         )
         homeBatchMoveService = WorkspaceHomeBatchMoveService(
+            authorityRepository = workspaceRepository,
+            workspaceDaoProvider = {
+                LauncherDatabaseProvider.get(this).workspaceDao()
+            },
+            batchDaoProvider = {
+                LauncherDatabaseProvider.get(this).workspaceHomeBatchMoveDao()
+            },
+        )
+        homePageCompactionService = WorkspaceHomePageCompactionService(
             authorityRepository = workspaceRepository,
             workspaceDaoProvider = {
                 LauncherDatabaseProvider.get(this).workspaceDao()
@@ -434,6 +447,64 @@ class MainActivity : ComponentActivity() {
                             onMovePage = moveHomePage,
                             onCreatePage = createHomePage,
                             onDeletePage = deleteHomePage,
+                            onCompactPage = { pageId ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        val result = homePageCompactionService.compact(
+                                            grid = WorkspaceGridPlacement.Grid(
+                                                columns = launcherPreferences.homeColumns,
+                                                rows = launcherPreferences.homeRows,
+                                            ),
+                                            pageId = pageId,
+                                        )
+                                        when (result) {
+                                            is WorkspaceHomePageCompactionResult.Applied -> {
+                                                homeBatchUndoCommit.value = null
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Compacted ${result.itemCount} app${if (result.itemCount == 1) "" else "s"} on this Home page.",
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                            }
+                                            WorkspaceHomePageCompactionResult.AlreadyCompact -> {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "This Home page is already compact.",
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                            }
+                                            WorkspaceHomePageCompactionResult.UnsupportedPageItems -> {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Compact apps is unavailable because this page contains unsupported or non-1×1 items.",
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
+                                            }
+                                            WorkspaceHomePageCompactionResult.CapacityExceeded -> {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Compact apps is unavailable because the current Home grid is too small for this page.",
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
+                                            }
+                                            WorkspaceHomePageCompactionResult.StoredWorkspaceChanged -> {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Home changed before compaction finished, so nothing was rearranged.",
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
+                                            }
+                                            else -> {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "This Home page could not be compacted safely.",
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
+                                            }
+                                        }
+                                    }
+                                }
+                            },
                             onDismiss = { homeOverviewOpen = false },
                         )
 

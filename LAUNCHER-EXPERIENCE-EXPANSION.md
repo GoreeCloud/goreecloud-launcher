@@ -104,9 +104,24 @@ Draft PR #101 on `feat/home-one-level-undo-20260913` surfaces the validated exac
 - Android runtime coverage proves that a successfully consumed checkpoint cannot be replayed a second time.
 - Existing checkbox-based selection and explicit destination controls remain available, so group editing still has a non-drag path.
 
-Draft PR #101 implementation/test-hardening head `c7f95f3e5ff070795bc5906cb08d3f730d974d6e` passed Android CI run `34765759427` / #366, including source/policy checks, lint, JVM tests, build, Room schema verification, Development APK staging, and the Android 16 runtime suite.
+Draft PR #101 final synchronized head `2759260d3e821d3b1b5eb538367784b1d014e709` passed Android CI run `34766428420` / #368, including normal validation and the Android 16 Room/runtime suite. Its implementation/test-hardening head `c7f95f3e5ff070795bc5906cb08d3f730d974d6e` previously passed Android CI run `34765759427` / #366.
 
 PR #101 also increases the existing Home lifecycle/reactivity runtime test's settle bound from 15 to 30 seconds after the same timeout-only flake appeared on multiple otherwise-green hosted API 36 runs. This is test-harness reliability hardening, not a relaxation of a product performance budget and not performance acceptance.
+
+### Current Development page-compaction tranche
+
+Draft PR #104 on `feat/home-page-compaction-20260913` adds the first explicit gap-cleanup operation for secondary Home pages:
+
+- Home overview/edit mode exposes **Compact apps** only when the selected page is a healthy non-primary secondary Home page and the layout is unlocked.
+- Compaction preserves authoritative page-item rank order and deterministically repacks eligible 1×1 applications into row-major cells within the current configured Home grid.
+- The operation refuses primary Home, malformed page state, unsupported shortcuts/folders/widgets, non-1×1 items, and insufficient grid capacity rather than spilling content to another page or silently changing item meaning.
+- A Room transaction rechecks the complete HOME page/item snapshot before writing and updates all changed placements together; complete post-write readback is verified before success.
+- The existing one-level atomic-move Undo checkpoint is cleared only after a successful compaction, because compaction is a distinct workspace mutation with no user-visible undo contract yet.
+- Layout lock blocks compaction. Room remains the only post-cutover workspace authority.
+- Room entities and schema version are unchanged, and portable backup/recovery v1 is unchanged.
+- JVM and Android runtime coverage verify deterministic packing, rejection paths, exact-state stale-plan refusal, and primary-page protection.
+
+PR #104 implementation head `5429453ae58d794a11ec5e18b889cfd66ebae74c` passed Android CI run `34767635221` / #369, including both `validate` and the Android 16 `room-runtime-emulator` job. The first repository-roadmap synchronization head `a22acc84c427aa1dd62e5df0866c4a3a742900cc` also passed Android CI run `34791807396` / #370, including both jobs. This documentation update records the same validated Development behavior and does not expand application mutation semantics.
 
 Representative physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, one-handed ergonomics, and performance evaluation remain separate release gates.
 
@@ -233,9 +248,9 @@ Planned capabilities include:
 - Layout lock with an intentional unlock path.
 - Deterministic rollback for interrupted or failed layout mutations.
 
-Draft PR #98 provides the validated automated Development foundation for explicit page overview, selection, page creation, guarded non-drag reordering, confirmed empty-page deletion, and layout-lock enforcement. Draft PR #99 adds explicit secondary-page app selection. Draft PR #100 upgrades multi-app movement to a complete-snapshot-guarded Room transaction with all-or-nothing writes plus an exact-state rollback primitive. Draft PR #101 implementation head `c7f95f3e5ff070795bc5906cb08d3f730d974d6e` passed Android CI run `34765759427` / #366 and exposes one-level, in-session Undo for the last successful atomic multi-app move.
+Draft PR #98 provides the validated automated Development foundation for explicit page overview, selection, page creation, guarded non-drag reordering, confirmed empty-page deletion, and layout-lock enforcement. Draft PR #99 adds explicit secondary-page app selection. Draft PR #100 upgrades multi-app movement to a complete-snapshot-guarded Room transaction with all-or-nothing writes plus an exact-state rollback primitive. Draft PR #101 final synchronized head `2759260d3e821d3b1b5eb538367784b1d014e709` passed Android CI run `34766428420` / #368 and exposes one-level, in-session Undo for the last successful atomic multi-app move. Draft PR #104 implementation head `5429453ae58d794a11ec5e18b889cfd66ebae74c` passed Android CI run `34767635221` / #369 and adds explicit transactional secondary-page app compaction/gap cleanup.
 
-The current source still does **not** provide direct group drag, durable or process-death-safe edit history, multi-step undo/redo, folders, or bulk folder creation. The one-level Undo checkpoint is activity-local and intentionally discarded on Activity recreation or process death.
+The current source still does **not** provide direct group drag, durable or process-death-safe edit history, multi-step undo/redo, folders, or bulk folder creation. The one-level Undo checkpoint is activity-local and intentionally discarded on Activity recreation or process death. Compaction itself does not yet create a user-visible rollback checkpoint.
 
 ## 8. Personalization
 
@@ -294,7 +309,7 @@ Release-quality requirements include:
 - One-handed reachability.
 - Accessible reordering/edit actions that do not require drag-only interaction.
 
-The current edit-mode source deliberately provides explicit buttons, checkbox-based selection, destination controls, and an explicit Undo button rather than making drag gestures the only editing path. That source-level accessibility direction still requires representative assistive-technology validation before release acceptance.
+The current edit-mode source deliberately provides explicit buttons, checkbox-based selection, destination controls, an explicit Undo button, and a direct compaction button rather than making drag gestures the only editing path. That source-level accessibility direction still requires representative assistive-technology validation before release acceptance.
 
 ## 12. Devices and form factors
 
@@ -359,7 +374,7 @@ Planned capabilities include:
 - Recovery snapshots before high-impact migrations.
 - Schema-versioned restoration rather than silently interpreting incompatible state.
 
-PR #100's exact-state batch rollback and PR #101's one-level activity-local Undo are local transaction-safety/user-recovery primitives, not Everkeep restore mechanisms and not durable history. Group editing may later integrate with bounded persistent edit history or Everkeep-appropriate recovery only after the edit-history lifecycle, persistence, authorization, migration, and process-death behavior are separately defined and accepted. Everkeep must not be used as a substitute for correct atomic workspace mutations.
+PR #100's exact-state batch rollback and PR #101's one-level activity-local Undo are local transaction-safety/user-recovery primitives, not Everkeep restore mechanisms and not durable history. PR #104 compaction is likewise a guarded Room mutation, not Everkeep recovery, and currently has no user-visible undo checkpoint. Group editing may later integrate with bounded persistent edit history or Everkeep-appropriate recovery only after the edit-history lifecycle, persistence, authorization, migration, and process-death behavior are separately defined and accepted. Everkeep must not be used as a substitute for correct atomic workspace mutations.
 
 ## 17. Additional capabilities to evaluate
 
@@ -384,6 +399,7 @@ The following are candidate capabilities and remain proposed until separately ac
 - Do not silently reorder the user’s layout based on inferred behavior.
 - Do not broaden the portable backup schema without an explicit versioned migration.
 - Do not describe PR #101's activity-local one-level Undo as durable, process-death-safe, multi-step history, or Everkeep recovery.
+- Do not describe PR #104 compaction as automatic behavior, cross-page reorganization, durable recovery, or support for folders/widgets/shortcuts.
 - Do not call a Development implementation Release Candidate or Stable without required validation and release evidence.
 
 ## Implementation sequence
@@ -394,15 +410,16 @@ The recommended sequence is:
 2. Add drawer sorting and fast alphabetical navigation while preserving deterministic, case-insensitive local ordering. **Source implemented; exact-head automated Development validation is green on PR #97. Physical-device/default-HOME acceptance remains open.**
 3. Add bottom/top search placement and one-handed drawer ergonomics. **Top/bottom search placement is source implemented and exact-head automated Development validation is green on PR #97; broader reachability/transition tuning remains planned.**
 4. Introduce explicit edit-mode/page-overview and multi-select workflows. **PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` passed Android CI run `34760609799`. PR #99 final synchronized head `0a6e24c4b95df16a5372487666267348cf5689bb` passed Android CI run `34762388664` / #355. Representative-device/accessibility acceptance remains open.**
-5. Harden group editing with an atomic Room batch transaction, deterministic exact-state rollback, and explicit one-level in-session Undo. **PR #100 current synchronized head `febefe0da2554e79449a0b5faf041679bdf96cf9` passed Android CI run `34763563436` / #359. PR #101 implementation/test-hardening head `c7f95f3e5ff070795bc5906cb08d3f730d974d6e` passed Android CI run `34765759427` / #366. Durable multi-step/process-death-safe history and direct group drag remain follow-on work.**
-6. Add folders and shortcut support on top of stable workspace authority.
-7. Add Android widget hosting, resizing, and recovery.
-8. Add deeper Glaze personalization and responsive form-factor layouts.
-9. Add Launcher Profiles, Smart Spaces, and local intelligent surfaces only after the core remains stable under physical-device acceptance.
-10. Complete Privacy Shield, Wardveil, Everkeep, accessibility, performance, provenance, and release-gate evidence before RC/Stable claims.
+5. Harden group editing with an atomic Room batch transaction, deterministic exact-state rollback, explicit one-level in-session Undo, and explicit secondary-page compaction. **PR #100 synchronized head `febefe0da2554e79449a0b5faf041679bdf96cf9` passed Android CI run `34763563436` / #359. PR #101 final synchronized head `2759260d3e821d3b1b5eb538367784b1d014e709` passed Android CI run `34766428420` / #368. PR #104 implementation head `5429453ae58d794a11ec5e18b889cfd66ebae74c` passed Android CI run `34767635221` / #369. Durable multi-step/process-death-safe history and direct group drag remain follow-on work.**
+6. Integrate current Stable Glaze UI V1.4 / `1.4.0` into the active Launcher feature stack while preserving the separate V1.4.1 manual/human validation boundary.
+7. Add folders and shortcut support on top of stable workspace authority.
+8. Add Android widget hosting, resizing, and recovery.
+9. Add deeper Glaze personalization and responsive form-factor layouts.
+10. Add Launcher Profiles, Smart Spaces, and local intelligent surfaces only after the core remains stable under physical-device acceptance.
+11. Complete Privacy Shield, Wardveil, Everkeep, accessibility, performance, provenance, and release-gate evidence before RC/Stable claims.
 
 ## Verification boundary
 
-Grid/List exact-head CI is green on Draft PR #96. The drawer navigation/search-position tranche is green on Draft PR #97 exact head `0b74f449c4a08eb9524df84080dd8fcb34d04075` via Android CI run `34759501859`. The Home overview/edit-mode tranche is green on Draft PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` via Android CI run `34760609799`, including its Android 16 runtime job. Draft PR #99 final synchronized head `0a6e24c4b95df16a5372487666267348cf5689bb` is green via Android CI run `34762388664` / #355. Draft PR #100 current synchronized head `febefe0da2554e79449a0b5faf041679bdf96cf9` is green via Android CI run `34763563436` / #359 after the Android 16 runtime job passed on rerun. Draft PR #101 implementation/test-hardening head `c7f95f3e5ff070795bc5906cb08d3f730d974d6e` is green via Android CI run `34765759427` / #366, including its Android 16 runtime suite.
+Grid/List exact-head CI is green on Draft PR #96. The drawer navigation/search-position tranche is green on Draft PR #97 exact head `0b74f449c4a08eb9524df84080dd8fcb34d04075` via Android CI run `34759501859`. The Home overview/edit-mode tranche is green on Draft PR #98 exact head `6d35ac144e96b6fc61c3d969e2e7af442291099e` via Android CI run `34760609799`, including its Android 16 runtime job. Draft PR #99 final synchronized head `0a6e24c4b95df16a5372487666267348cf5689bb` is green via Android CI run `34762388664` / #355. Draft PR #100 synchronized head `febefe0da2554e79449a0b5faf041679bdf96cf9` is green via Android CI run `34763563436` / #359 after the Android 16 runtime job passed on rerun. Draft PR #101 final synchronized head `2759260d3e821d3b1b5eb538367784b1d014e709` is green via Android CI run `34766428420` / #368. Draft PR #104 implementation head `5429453ae58d794a11ec5e18b889cfd66ebae74c` is green via Android CI run `34767635221` / #369. Its first roadmap-only synchronization head `a22acc84c427aa1dd62e5df0866c4a3a742900cc` is green via Android CI run `34791807396` / #370, including the Android 16 runtime suite.
 
-Repository documentation synchronization commits after the PR #101 implementation head do not expand application behavior and must still pass normal CI before the final stacked documentation head is treated as the synchronized Development checkpoint. Representative Android physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, one-handed ergonomics, performance evaluation, Platform-System acceptance, signing/provenance, and release approval remain required before the expanded Launcher experience can be treated as release-ready. All other features in this document remain planned unless separately verified.
+This documentation synchronization commit does not expand application behavior and still requires its own exact-head CI before it is treated as the final synchronized PR #104 Development checkpoint. Representative Android physical-device/default-HOME acceptance, TalkBack/Switch Access review, large-text/landscape validation, one-handed ergonomics, performance evaluation, Platform-System acceptance, Glaze UI V1.4 active-stack integration/acceptance, signing/provenance, and release approval remain required before the expanded Launcher experience can be treated as release-ready. All other features in this document remain planned unless separately verified.
