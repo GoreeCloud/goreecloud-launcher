@@ -20,7 +20,6 @@ class GlazeOpticalV14Test {
                 backgroundLuminance = GlazeBackgroundLuminance.BRIGHT,
             )
         )
-
         assertTrue(busy.frostStrength > calm.frostStrength)
         assertTrue(calm.frostStrength in 0.20f..0.88f)
         assertTrue(busy.frostStrength in 0.20f..0.88f)
@@ -30,7 +29,6 @@ class GlazeOpticalV14Test {
     fun `semantic importance increases protection and reduces blur`() {
         val low = GlazeOpticalV14.resolve(GlazeOpticalInput(semanticImportance = 0f))
         val high = GlazeOpticalV14.resolve(GlazeOpticalInput(semanticImportance = 1f))
-
         assertTrue(high.semanticProtection > low.semanticProtection)
         assertTrue(high.blurScale < low.blurScale)
     }
@@ -49,7 +47,6 @@ class GlazeOpticalV14Test {
                 accessibility = GlazeOpticalAccessibility(reducedTransparency = true),
             )
         )
-
         assertEquals(GlazeOpticalState.Mode.SOLID_ACCESSIBLE, resolved.mode)
         assertEquals(0f, resolved.blurScale, 0.0001f)
         assertEquals(0f, resolved.memoryTintInfluence, 0.0001f)
@@ -63,7 +60,6 @@ class GlazeOpticalV14Test {
                 accessibility = GlazeOpticalAccessibility(forcedColors = true),
             )
         )
-
         assertEquals(GlazeOpticalState.Mode.SOLID_ACCESSIBLE, resolved.mode)
         assertEquals(1f, resolved.semanticProtection, 0.0001f)
         assertFalse(resolved.decorativeTintAllowed)
@@ -78,16 +74,24 @@ class GlazeOpticalV14Test {
                 accessibility = GlazeOpticalAccessibility(increasedContrast = true),
             )
         )
-
         assertEquals(0f, resolved.warmth, 0.0001f)
         assertEquals(0f, resolved.memoryTintInfluence, 0.0001f)
         assertFalse(resolved.decorativeTintAllowed)
     }
 
     @Test
-    fun `launcher targets exact stable Glaze UI v1_4 release`() {
-        assertEquals("1.4.0", GlazeOpticalV14.targetVersion)
-        assertEquals("1.4.0", GlazeMetrics.targetVersion)
+    fun `launcher targets exact stable Glaze UI v1_4_1 release`() {
+        assertEquals("1.4.1", GlazeOpticalV14.targetVersion)
+        assertEquals("1.4.1", GlazeMetrics.targetVersion)
+        assertEquals("4fab9da0fad2e5c974e0e66ec88632c61745751c", GlazeOpticalV14.stableSourceRevision)
         assertEquals(GlazeOpticalV14.stableSourceRevision, GlazeMetrics.sourceRevision)
+    }
+
+    @Test
+    fun `shared v1_4_1 qualification does not fabricate Launcher acceptance`() {
+        assertFalse(GlazeOpticalV14.launcherPhysicalDeviceAcceptanceEstablished)
+        assertFalse(GlazeOpticalV14.launcherManualAssistiveTechnologyAcceptanceEstablished)
+        assertFalse(GlazeOpticalV14.launcherHumanVisualExcellenceAccepted)
+        assertFalse(GlazeOpticalV14.launcherRepresentativePerformanceAccepted)
     }
 }

@@ -1,18 +1,18 @@
 # Saveable Theme Manager settings composition
 
-Status: Development — GLAZE UI V1.4 migration in progress
+Status: Development — GLAZE UI V1.4.1 migration in progress
 
-`LauncherSettingsSurface` composes the validated saveable Settings destination model with `LauncherSettingsDestinationHost` while the repository-local native design authority targets **GLAZE UI V1.4 (`1.4.0`)** at exact Stable merged source revision `84cb3db4884042f0fa25ed6d475a127fb110f596`.
+`LauncherSettingsSurface` composes the validated saveable Settings destination model with `LauncherSettingsDestinationHost` while the repository-local native design authority targets **GLAZE UI V1.4.1 (`1.4.1`)** at exact Stable merged source revision `4fab9da0fad2e5c974e0e66ec88632c61745751c`.
 
 The surface owns only the Settings sub-destination string saved through Compose. Unknown or stale values are decoded through `LauncherSettingsNavigation` and therefore fail closed to Settings root. Root content receives a single bounded callback for opening Theme Manager, and Theme Manager returns through the same navigation model.
 
 Theme persistence remains with the caller-provided `GlazeThemeRepository` path through `onSelectThemeMode`. This surface gains no Home/Apps navigation, workspace placement, launcher-role, wallpaper, icon-pack, account, or system-setting authority.
 
-## GLAZE UI V1.4 mapping
+## GLAZE UI V1.4.1 mapping
 
-`GlazeMetrics` records machine version `1.4.0`, the exact Stable merged source revision, inherited spacing/radius values used by Launcher, the 48 dp normal interaction floor, and the 56 dp Touch Assistance / far-view target.
+`GlazeMetrics` records machine version `1.4.1`, the exact signed Stable merged source revision, inherited spacing/radius values used by Launcher, the 48 dp normal interaction floor, and the 56 dp Touch Assistance / far-view target.
 
-`GlazeTheme` preserves the established Light/Dark/Deep Dark structural palette. `GlazeAtmosphere` records bounded Deep Teal + Soft Amber decorative primitives. `GlazeOpticalV14` adds the V1.4 Optical Intelligence resolver for bounded frost, semantic protection, chromatic depth, warmth, and environmental-memory influence.
+`GlazeTheme` preserves the established Light/Dark/Deep Dark structural palette. `GlazeAtmosphere` records bounded Deep Teal + Soft Amber decorative primitives. `GlazeOpticalV14` preserves the V1.4-derived Optical Intelligence resolver for bounded frost, semantic protection, chromatic depth, warmth, and environmental-memory influence under the V1.4.1 Stable patch.
 
 The optical resolver is local and deterministic. It performs no telemetry, camera access, wallpaper-pixel sampling, analytics, or remote-context acquisition. Any future context adapter remains separately governed by Launcher privacy/security authority.
 
@@ -30,7 +30,7 @@ The already-selected appearance renders as a non-actionable `Selected` status su
 
 The preview's Soft Amber marker remains deliberately decorative and communicates no application state.
 
-## V1.4 accessibility and optical boundary
+## V1.4.1 accessibility and optical boundary
 
 Forced Colors and Reduced Transparency must override optical expression. In the native resolver they produce `SOLID_ACCESSIBLE`, disable blur and decorative tint, and maximize semantic protection. Increased Contrast suppresses warmth and memory tint while increasing frost/semantic protection.
 
@@ -44,14 +44,14 @@ The non-actionable selected-state surface exposes an explicit state description 
 
 This is source-level semantic hardening only. It does not prove TalkBack, Switch Access, keyboard/D-pad, focus-order, spoken-announcement timing, 200% text/reflow, RTL, representative-device, or adaptive acceptance.
 
-## V1.4.1 human-validation boundary
+## Shared qualification versus Launcher acceptance
 
-Human optical review, subjective polish, manual assistive-technology verification, representative physical-device qualification, and real-device performance/thermal/power validation are assigned to the Glaze UI V1.4.1 hardening track. They are not represented as passed V1.4.0 evidence.
+GLAZE UI V1.4.1 carries governed shared human/manual/device qualification for the shared design-system claim. That does not establish Launcher-local human optical review, subjective polish, manual assistive-technology verification, representative physical-device qualification, or real-device performance/thermal/power acceptance.
 
 Launcher-specific product release requirements remain independent and may be stricter.
 
 ## Remaining acceptance
 
-This migration still requires rendered V1.4 component/state/material review, accessibility fallback validation, 200% text/reflow, RTL/localization expansion, representative phone/tablet/foldable behavior, TalkBack/Switch Access, approved optical-context integration where beneficial, performance fallbacks, V1.4.1 human-validation work applicable to Launcher, representative-device Theme Manager navigation/persistence testing across all four modes, production signing/distribution, release approval, and Stable Launcher qualification.
+This migration still requires rendered V1.4.1 component/state/material review, accessibility fallback validation, 200% text/reflow, RTL/localization expansion, representative phone/tablet/foldable behavior, TalkBack/Switch Access, approved optical-context integration where beneficial, performance fallbacks, Launcher-local Human Visual Excellence evidence, representative-device Theme Manager navigation/persistence testing across all four modes, production signing/distribution, release approval, and Stable Launcher qualification.
 
-This remains Development evidence only. A green build or correct source mapping does not establish complete GLAZE UI V1.4 consumer conformance or production readiness.
+This remains Development evidence only. A green build or correct source mapping does not establish complete GLAZE UI V1.4.1 consumer conformance or production readiness.
