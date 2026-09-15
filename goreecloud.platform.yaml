@@ -66,7 +66,7 @@ platform_systems:
     notes: Versioned workspace-placement and explicit preference snapshots have validation-before-write, pair-level Home-grid compatibility, reviewed apply, concrete Room/DataStore persistence, a durable pre-Room device-local recovery journal, exact-state interrupted-operation reconciliation, readback verification, guarded compensation, and emulator-targeted recovery tests. This remains partial Development recovery; the coordinator is not yet an accepted production startup gate, clean-target/cross-device identity reconstruction and complete Launcher-owned recovery scope remain incomplete, and accepted Everkeep integration is not established.
   glaze_ui:
     result: applicable-migration-required
-    version: "1.4.0"
+    version: "1.4.1"
     evidence:
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeAtmosphere.kt
@@ -80,7 +80,7 @@ platform_systems:
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
       - docs/development/saveable-theme-manager-settings-composition.md
-    notes: Repository-local Development source now targets current Official Stable GLAZE UI V1.4 / 1.4.0 — Optical Intelligence at exact merged Stable Glaze source revision 84cb3db4884042f0fa25ed6d475a127fb110f596. The native mapping preserves the 48/56 dp interaction floors and adds the bounded V1.4 optical resolver, Deep Dark structural appearance, Semantic Blur Protection, Content-Aware Frost inputs, bounded chromatic depth/daypart warmth, and accessibility fail-closed handling without collecting telemetry, camera data, wallpaper pixels, analytics, or remote context. Shared manual/physical-device/subjective optical validation is assigned to the V1.4.1 hardening track and is not represented as passed V1.4.0 evidence. Complete Launcher-specific rendered, accessibility, adaptive, representative-device, platform-integration, release, and production acceptance remain required before application conformance can be claimed.
+    notes: Repository-local Development source now targets current Official Stable GLAZE UI V1.4.1 / 1.4.1 at exact Stable Glaze main revision 4fab9da0fad2e5c974e0e66ec88632c61745751c, with V1.4.0 retained as the immediate rollback baseline. The native mapping preserves the 48/56 dp interaction floors, bounded Optical Intelligence resolver, Deep Dark structural appearance, Semantic Blur Protection, Content-Aware Frost inputs, bounded chromatic depth/daypart warmth, and accessibility fail-closed handling without collecting telemetry, camera data, wallpaper pixels, analytics, or remote context. Shared V1.4.1 qualification does not establish Launcher-local rendered, accessibility, adaptive, representative-device, platform-integration, release, or production acceptance.
   mesh:
     result: applicable-blocked
     version: null
@@ -141,10 +141,10 @@ external_dependencies:
 
 compatibility:
   platform_contract: "0.3"
-  glaze_ui_required: "1.4.0"
+  glaze_ui_required: "1.4.1"
   requires:
     - goreecloud-platform-contract==0.3
-    - glaze-ui==1.4.0
+    - glaze-ui==1.4.1
     - android-api>=29
   provides:
     - goreecloud-launcher-workspace-snapshot/1
@@ -175,7 +175,7 @@ conformance:
     - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
     - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
   blockers:
-    - GLAZE UI V1.4 / 1.4.0 source mapping now exists on the active Launcher feature stack, but complete Launcher-specific rendered, accessibility, adaptive, representative-device, platform-integration, release, and production acceptance remain outstanding. Shared manual/physical-device/subjective optical validation assigned to V1.4.1 is not counted as V1.4.0 acceptance evidence.
+    - GLAZE UI V1.4.1 / 1.4.1 source mapping now exists on the active Launcher feature stack, but complete Launcher-specific rendered, accessibility, adaptive, representative-device, platform-integration, release, and production acceptance remain outstanding. Shared V1.4.1 qualification is not counted as Launcher-local acceptance evidence.
     - GoreeCloud Sync integration and acceptance are not established; local backup/restore and portable snapshots are not synchronization evidence.
     - GoreeCloud Identity integration and acceptance are not established for future identity-aware capabilities.
     - Wardveil Security integration and acceptance are not established.

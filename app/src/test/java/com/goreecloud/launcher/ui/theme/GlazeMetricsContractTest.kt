@@ -6,11 +6,13 @@ import org.junit.Test
 
 class GlazeMetricsContractTest {
     @Test
-    fun `launcher targets exact GLAZE UI V1_4 Stable release`() {
-        assertEquals("1.4.0", GlazeMetrics.targetVersion)
-        assertEquals("84cb3db4884042f0fa25ed6d475a127fb110f596", GlazeMetrics.sourceRevision)
+    fun `launcher targets exact GLAZE UI V1_4_1 Stable release`() {
+        assertEquals("1.4.1", GlazeMetrics.targetVersion)
+        assertEquals("4fab9da0fad2e5c974e0e66ec88632c61745751c", GlazeMetrics.sourceRevision)
+        assertEquals("1.4.0", GlazeMetrics.rollbackVersion)
         assertEquals(GlazeOpticalV14.targetVersion, GlazeMetrics.targetVersion)
         assertEquals(GlazeOpticalV14.stableSourceRevision, GlazeMetrics.sourceRevision)
+        assertEquals(GlazeOpticalV14.rollbackVersion, GlazeMetrics.rollbackVersion)
     }
 
     @Test
