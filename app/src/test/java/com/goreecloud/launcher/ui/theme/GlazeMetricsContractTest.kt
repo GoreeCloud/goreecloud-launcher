@@ -6,9 +6,9 @@ import org.junit.Test
 
 class GlazeMetricsContractTest {
     @Test
-    fun `launcher targets exact GLAZE UI V1_4 Stable release`() {
-        assertEquals("1.4.0", GlazeMetrics.targetVersion)
-        assertEquals("84cb3db4884042f0fa25ed6d475a127fb110f596", GlazeMetrics.sourceRevision)
+    fun `launcher targets exact GLAZE UI V1_4_1 Stable release`() {
+        assertEquals("1.4.1", GlazeMetrics.targetVersion)
+        assertEquals("4fab9da0fad2e5c974e0e66ec88632c61745751c", GlazeMetrics.sourceRevision)
         assertEquals(GlazeOpticalV14.targetVersion, GlazeMetrics.targetVersion)
         assertEquals(GlazeOpticalV14.stableSourceRevision, GlazeMetrics.sourceRevision)
     }
@@ -32,7 +32,6 @@ class GlazeMetricsContractTest {
         assertEquals(32.dp, GlazeMetrics.space8)
         assertEquals(48.dp, GlazeMetrics.space12)
         assertEquals(64.dp, GlazeMetrics.space16)
-
         assertEquals(12.dp, GlazeMetrics.radiusSmall)
         assertEquals(20.dp, GlazeMetrics.radiusMedium)
         assertEquals(12.dp, GlazeMetrics.radiusControl)
