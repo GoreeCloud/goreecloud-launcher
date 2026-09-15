@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "documentVersion": "1.0",
+  "recordType": "goreecloud-launcher-glaze-v1.5-development-integration",
+  "consumer": {
+    "name": "GoreeCloud Launcher",
+    "repository": "GoreeCloud/goreecloud-launcher",
+    "lifecycle": "development",
+    "supportedSurfaces": ["android-home"]
+  },
+  "glazeUi": {
+    "canonicalRepository": "GoreeCloud/goreecloud-glaze-ui",
+    "implementedStableTarget": "1.4.1",
+    "implementedStableRevision": "4fab9da0fad2e5c974e0e66ec88632c61745751c",
+    "developmentVersion": "1.5.0-dev.1",
+    "developmentRevision": "e7c397837908e4644d6230f17d0f73e84e3d1558",
+    "developmentEntrypoint": "js/glaze-v1.5-resolution.dev.mjs",
+    "providerRegistryEntrypoint": "js/glaze-v1.5-provider-registry.dev.mjs",
+    "sharedRepresentativeProfile": "goreecloud-launcher-handheld"
+  },
+  "integrationBoundary": {
+    "developmentOnly": true,
+    "testOnly": true,
+    "runtimeDependencyAdded": false,
+    "platformManifestStableTargetChanged": false,
+    "stable141SourceMappingPreserved": true,
+    "consumerAcceptanceEstablished": false,
+    "releaseCandidateQualified": false,
+    "stableQualified": false,
+    "productionEligible": false
+  },
+  "authorityBoundary": {
+    "glazeAuthority": "presentation-only",
+    "workspaceAuthority": "Room",
+    "applicationInventoryAuthority": "Android LauncherApps",
+    "universalSearchAuthority": "GoreeCloud Index",
+    "privacyAuthority": "Privacy Shield",
+    "securityAuthority": "Wardveil Security",
+    "identityAuthority": "GoreeCloud Identity",
+    "coordinationAuthority": "GoreeCloud Mesh",
+    "continuityAuthority": "Everkeep",
+    "authorizationMayBeInferredByGlaze": false,
+    "providerPrecedenceMayBeInferredByGlaze": false,
+    "permissionMayBeGrantedByGlaze": false,
+    "automaticNavigationAllowed": false,
+    "consequentialExecutionMayBeAutomatic": false,
+    "fallbackExecutionMayBeAutomatic": false
+  },
+  "validation": {
+    "exactLauncherRevisionRequired": true,
+    "exactGlazeDevelopmentRevisionRequired": true,
+    "upstreamRepresentativeProfileRequired": true,
+    "scenarios": [
+      "launcher.v1.5.shared-handheld-offline-profile",
+      "launcher.v1.5.index-search-temporarily-unavailable",
+      "launcher.v1.5.duplicate-index-capability-fails-closed",
+      "launcher.v1.5.workspace-edit-restricted"
+    ],
+    "requiredProperties": [
+      "local-application-launch-remains-available-offline",
+      "index-search-authority-remains-service-owned",
+      "connectivity-state-does-not-redefine-index-authority",
+      "index-unavailability-does-not-disable-local-app-launch",
+      "duplicate-index-capability-ownership-fails-closed-without-provider-precedence",
+      "restricted-workspace-edit-remains-visible-but-disabled",
+      "restricted-workspace-edit-is-not-executed-automatically",
+      "current-destination-and-task-state-remain-stable",
+      "diagnostics-omit-provider-identity-and-raw-context",
+      "telemetry-and-remote-analysis-are-not-required"
+    ]
+  },
+  "acceptance": {
+    "repositoryLocalDevelopmentContractPresent": true,
+    "repositoryLocalDevelopmentValidationRequired": true,
+    "renderedV15Acceptance": false,
+    "androidNativeV15Acceptance": false,
+    "androidPhysicalDeviceV15Acceptance": false,
+    "assistiveTechnologyV15Acceptance": false,
+    "representativeDefaultHomeV15Acceptance": false,
+    "privacyReviewV15Acceptance": false,
+    "performancePowerV15Acceptance": false,
+    "repositoryLocalConsumerAcceptance": false,
+    "productionAcceptance": false
+  },
+  "notes": "This record exercises non-consumer-eligible Glaze UI 1.5.0-dev.1 resolver semantics against Launcher authority boundaries without changing the current Stable 1.4.1 target or shipped Android runtime. It is Development compatibility evidence only and cannot establish Launcher conformance, Release Candidate qualification, Stable qualification, signing, release, deployment, or production acceptance."
+}
