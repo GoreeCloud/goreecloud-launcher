@@ -38,21 +38,27 @@ data class GlazeOpticalState(
 }
 
 /**
- * Native Android mapping of the GLAZE UI V1.4 Optical Engine invariants used by
- * GoreeCloud Launcher.
+ * Native Android mapping of the GLAZE UI V1.4.1 Optical Hardening invariants
+ * used by GoreeCloud Launcher.
  *
  * This resolver is deliberately local and deterministic. It consumes already-
  * derived context supplied by the Launcher and does not collect telemetry,
  * wallpaper pixels, camera data, analytics, or remote context. Any future signal
  * adapter remains subject to Launcher privacy/security authority.
  *
- * Human/manual/physical-device optical validation remains a Glaze UI V1.4.1
- * obligation and is not represented by this implementation as passed evidence.
+ * Shared Glaze V1.4.1 human/device qualification does not establish Launcher-
+ * local rendered, assistive-technology, physical-device, Human Visual Excellence,
+ * or performance acceptance.
  */
 object GlazeOpticalV14 {
-    const val targetVersion = "1.4.0"
-    const val stableSourceRevision = "84cb3db4884042f0fa25ed6d475a127fb110f596"
+    const val targetVersion = "1.4.1"
+    const val stableSourceRevision = "4fab9da0fad2e5c974e0e66ec88632c61745751c"
     const val maxMemoryTintInfluence = 0.08f
+
+    const val launcherPhysicalDeviceAcceptanceEstablished = false
+    const val launcherManualAssistiveTechnologyAcceptanceEstablished = false
+    const val launcherHumanVisualExcellenceAccepted = false
+    const val launcherRepresentativePerformanceAccepted = false
 
     fun resolve(input: GlazeOpticalInput = GlazeOpticalInput()): GlazeOpticalState {
         val accessibility = input.accessibility
