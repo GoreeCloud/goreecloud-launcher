@@ -1,0 +1,43 @@
+name: Launcher Glaze V1.5 Development Compatibility
+
+on:
+  pull_request:
+  push:
+    branches:
+      - feat/glaze-v1.5-development-compat-20260915
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Launcher Glaze V1.5 Development integration
+    runs-on: ubuntu-latest
+    env:
+      LAUNCHER_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      GLAZE_V15_REVISION: e7c397837908e4644d6230f17d0f73e84e3d1558
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.LAUNCHER_SOURCE_REVISION }}
+      - name: Verify exact Launcher source revision
+        run: test "$(git rev-parse HEAD)" = "$LAUNCHER_SOURCE_REVISION"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Preserve current Stable Glaze V1.4.1 Launcher boundary
+        run: python3 scripts/check_glaze_ui.py
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Fetch exact Glaze V1.5 Development revision
+        run: |
+          GLAZE_V15_ROOT="$RUNNER_TEMP/goreecloud-glaze-ui-v1.5"
+          git init "$GLAZE_V15_ROOT"
+          git -C "$GLAZE_V15_ROOT" remote add origin https://github.com/GoreeCloud/goreecloud-glaze-ui.git
+          git -C "$GLAZE_V15_ROOT" fetch --depth=1 origin "$GLAZE_V15_REVISION"
+          git -C "$GLAZE_V15_ROOT" checkout --detach FETCH_HEAD
+          test "$(git -C "$GLAZE_V15_ROOT" rev-parse HEAD)" = "$GLAZE_V15_REVISION"
+          echo "GLAZE_V15_ROOT=$GLAZE_V15_ROOT" >> "$GITHUB_ENV"
+      - name: Validate repository-local Glaze V1.5 Development compatibility
+        run: node scripts/validate_glaze_v1_5_development.mjs
