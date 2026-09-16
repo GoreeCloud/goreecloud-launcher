@@ -1,4 +1,4 @@
-schema_version: "0.3"
+schema_version: "0.2"
 
 component:
   type: application
@@ -33,7 +33,7 @@ platform_systems:
       - docs/development/portable-restore-coordinator.md
       - docs/development/portable-restore-preview.md
       - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreJournal.kt
-    notes: Launcher is local-first and the current portable codecs, pair-compatibility validation, reviewed-apply guard, bounded persistence path, and private device-local interruption journal remain privacy-minimized. The recovery journal is not part of either portable export format and adds no account, network, telemetry, or cross-device authority. Accepted Privacy Shield integration and production privacy validation are not established.
+    notes: Launcher is local-first and the current portable codecs, pair-compatibility validation, reviewed-apply guard, bounded persistence path, and private device-local interruption journal remain privacy-minimized. The recovery journal is not part of either portable export format and adds no account, network, telemetry, or cross-device authority. Glaze V1.5 capability presentation consumes only already-owned coarse authority state and cannot mint Privacy Shield authorization. Accepted Privacy Shield integration and production privacy validation are not established.
   wardveil_security:
     result: applicable-blocked
     version: null
@@ -48,7 +48,7 @@ platform_systems:
       - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
       - docs/development/portable-restore-coordinator.md
       - docs/development/portable-restore-preview.md
-    notes: Launcher restore validation fails closed on incompatible payloads and unsupported target identity state. Exact-state planning refuses a workspace changed before apply, recovery fingerprints include device/profile-resolved appKey and all persisted placement fields, journal integrity is validated, third states are not overwritten, and failed rollback preserves recovery evidence. Accepted Wardveil Security integration and production validation are not established.
+    notes: Launcher restore validation fails closed on incompatible payloads and unsupported target identity state. Exact-state planning refuses a workspace changed before apply, recovery fingerprints include device/profile-resolved appKey and all persisted placement fields, journal integrity is validated, third states are not overwritten, and failed rollback preserves recovery evidence. Glaze presentation does not manufacture Wardveil trust or protection state. Accepted Wardveil Security integration and production validation are not established.
   everkeep:
     result: applicable-blocked
     version: null
@@ -66,8 +66,10 @@ platform_systems:
     notes: Versioned workspace-placement and explicit preference snapshots have validation-before-write, pair-level Home-grid compatibility, reviewed apply, concrete Room/DataStore persistence, a durable pre-Room device-local recovery journal, exact-state interrupted-operation reconciliation, readback verification, guarded compensation, and emulator-targeted recovery tests. This remains partial Development recovery; the coordinator is not yet an accepted production startup gate, clean-target/cross-device identity reconstruction and complete Launcher-owned recovery scope remain incomplete, and accepted Everkeep integration is not established.
   glaze_ui:
     result: applicable-migration-required
-    version: "1.4.1"
+    version: "1.5.0"
     evidence:
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeCapabilityV15.kt
+      - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeCapabilityV15Test.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeAtmosphere.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeOpticalV14.kt
@@ -80,12 +82,12 @@ platform_systems:
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
       - docs/development/saveable-theme-manager-settings-composition.md
-    notes: Repository-local Development source now targets current Official Stable GLAZE UI V1.4.1 / 1.4.1 at exact Stable Glaze main revision 4fab9da0fad2e5c974e0e66ec88632c61745751c, with V1.4.0 retained as the immediate rollback baseline. The native mapping preserves the 48/56 dp interaction floors, bounded Optical Intelligence resolver, Deep Dark structural appearance, Semantic Blur Protection, Content-Aware Frost inputs, bounded chromatic depth/daypart warmth, and accessibility fail-closed handling without collecting telemetry, camera data, wallpaper pixels, analytics, or remote context. Shared V1.4.1 qualification does not establish Launcher-local rendered, accessibility, adaptive, representative-device, platform-integration, release, or production acceptance.
+    notes: Repository-local Development source now targets current Official Stable GLAZE UI V1.5 / 1.5.0 at exact Stable authority b7fa8164bfdeaa1dc0acb21b770e7601120da04e and reviewed implementation anchor ee1032a0822ab8e103f8afe48e5c1859fde65cc9. GlazeCapabilityV15 adds presentation-only context/capability resolution that fails closed for missing, unavailable, restricted, unknown, or conflicting required capabilities and never infers authorization, provider precedence, navigation, fallback execution, or consequential execution. V1.4.1 at 4fab9da0fad2e5c974e0e66ec88632c61745751c remains the inherited optical/material implementation and immediate rollback baseline; the 48/56 dp interaction floors, bounded Optical Intelligence resolver, Deep Dark structural appearance, Semantic Blur Protection, Content-Aware Frost inputs, bounded chromatic depth/daypart warmth, and accessibility fail-closed handling remain local and non-collecting. Shared V1.5.0 qualification does not establish Launcher-local rendered, accessibility, adaptive, representative-device/posture, performance, platform-integration, rollback, release, or production acceptance.
   mesh:
     result: applicable-blocked
     version: null
     evidence: []
-    notes: Canonical GoreeCloud Mesh registration, capability publication, producer evidence, and runtime acceptance are not established for Launcher.
+    notes: Canonical GoreeCloud Mesh registration, capability publication, producer evidence, and runtime acceptance are not established for Launcher. Glaze capability presentation does not create Mesh discovery or service authority.
     capabilities: []
     dependencies: []
     published_events: []
@@ -95,7 +97,7 @@ platform_systems:
     version: null
     evidence:
       - README.md
-    notes: Core Launcher use is local and does not require an account, but accepted GoreeCloud Identity integration for future identity-aware or synchronized capabilities is not established. Current appKey values are device/profile-resolved runtime keys and are not treated as portable cross-device identities.
+    notes: Core Launcher use is local and does not require an account, but accepted GoreeCloud Identity integration for future identity-aware or synchronized capabilities is not established. Current appKey values are device/profile-resolved runtime keys and are not treated as portable cross-device identities. Glaze capability presentation cannot infer Identity authorization.
 
 health:
   health_endpoint: null
@@ -140,11 +142,11 @@ external_dependencies:
     version_constraint: ">=29"
 
 compatibility:
-  platform_contract: "0.3"
-  glaze_ui_required: "1.4.1"
+  platform_contract: "0.2"
+  glaze_ui_required: "1.5.0"
   requires:
-    - goreecloud-platform-contract==0.3
-    - glaze-ui==1.4.1
+    - goreecloud-platform-contract==0.2
+    - glaze-ui==1.5.0
     - android-api>=29
   provides:
     - goreecloud-launcher-workspace-snapshot/1
@@ -162,6 +164,8 @@ conformance:
     - SPECIFICATIONS.md
     - docs/glaze-ui-adoption.md
     - scripts/check_glaze_ui.py
+    - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeCapabilityV15.kt
+    - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeCapabilityV15Test.kt
     - docs/development/workspace-portable-snapshot.md
     - docs/development/launcher-portable-preferences.md
     - docs/development/portable-restore-coordinator.md
@@ -175,7 +179,7 @@ conformance:
     - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
     - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
   blockers:
-    - GLAZE UI V1.4.1 / 1.4.1 source mapping now exists on the active Launcher feature stack, but complete Launcher-specific rendered, accessibility, adaptive, representative-device, platform-integration, release, and production acceptance remain outstanding. Shared V1.4.1 qualification is not counted as Launcher-local acceptance evidence.
+    - Current Stable GLAZE UI V1.5 / 1.5.0 source presentation mapping now exists on the active Launcher feature stack with V1.4.1 retained as inherited optics/rollback, but complete Launcher-specific rendered, accessibility, adaptive, representative-device/form-factor/posture, performance, platform-integration, rollback, release, and production acceptance remain outstanding. Shared V1.5.0 qualification is not counted as Launcher-local acceptance evidence.
     - GoreeCloud Sync integration and acceptance are not established; local backup/restore and portable snapshots are not synchronization evidence.
     - GoreeCloud Identity integration and acceptance are not established for future identity-aware capabilities.
     - Wardveil Security integration and acceptance are not established.
