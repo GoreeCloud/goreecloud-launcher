@@ -1,6 +1,8 @@
 package com.goreecloud.launcher.ui.theme
 
-import com.google.common.truth.Truth.assertThat
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GlazeCapabilityV15Test {
@@ -12,13 +14,17 @@ class GlazeCapabilityV15Test {
 
     @Test
     fun `launcher targets exact GLAZE UI v1_5_0 Stable authority`() {
-        assertThat(GlazeCapabilityV15.targetVersion).isEqualTo("1.5.0")
-        assertThat(GlazeCapabilityV15.stableSourceRevision)
-            .isEqualTo("b7fa8164bfdeaa1dc0acb21b770e7601120da04e")
-        assertThat(GlazeCapabilityV15.reviewedImplementationAnchor)
-            .isEqualTo("ee1032a0822ab8e103f8afe48e5c1859fde65cc9")
-        assertThat(GlazeCapabilityV15.opticalBaselineVersion).isEqualTo("1.4.1")
-        assertThat(GlazeCapabilityV15.rollbackVersion).isEqualTo("1.4.1")
+        assertEquals("1.5.0", GlazeCapabilityV15.targetVersion)
+        assertEquals(
+            "b7fa8164bfdeaa1dc0acb21b770e7601120da04e",
+            GlazeCapabilityV15.stableSourceRevision,
+        )
+        assertEquals(
+            "ee1032a0822ab8e103f8afe48e5c1859fde65cc9",
+            GlazeCapabilityV15.reviewedImplementationAnchor,
+        )
+        assertEquals("1.4.1", GlazeCapabilityV15.opticalBaselineVersion)
+        assertEquals("1.4.1", GlazeCapabilityV15.rollbackVersion)
     }
 
     @Test
@@ -31,11 +37,11 @@ class GlazeCapabilityV15Test {
             listOf(capability("application.launch", GlazeCapabilityV15.CapabilityState.AVAILABLE)),
         )
 
-        assertThat(result.enabled).isTrue()
-        assertThat(result.state).isEqualTo(GlazeCapabilityV15.CapabilityState.AVAILABLE)
-        assertThat(result.automaticExecutionAllowed).isFalse()
-        assertThat(result.authorityInferred).isFalse()
-        assertThat(result.providerPrecedenceInferred).isFalse()
+        assertTrue(result.enabled)
+        assertEquals(GlazeCapabilityV15.CapabilityState.AVAILABLE, result.state)
+        assertFalse(result.automaticExecutionAllowed)
+        assertFalse(result.authorityInferred)
+        assertFalse(result.providerPrecedenceInferred)
     }
 
     @Test
@@ -55,10 +61,10 @@ class GlazeCapabilityV15Test {
             listOf(capability("application.launch", GlazeCapabilityV15.CapabilityState.AVAILABLE)),
         )
 
-        assertThat(localLaunch.enabled).isTrue()
-        assertThat(indexSearch.enabled).isFalse()
-        assertThat(indexSearch.state).isEqualTo(GlazeCapabilityV15.CapabilityState.UNKNOWN)
-        assertThat(indexSearch.reasonCodes).contains("capability-unknown:service.index-search")
+        assertTrue(localLaunch.enabled)
+        assertFalse(indexSearch.enabled)
+        assertEquals(GlazeCapabilityV15.CapabilityState.UNKNOWN, indexSearch.state)
+        assertTrue(indexSearch.reasonCodes.contains("capability-unknown:service.index-search"))
     }
 
     @Test
@@ -74,10 +80,10 @@ class GlazeCapabilityV15Test {
             ),
         )
 
-        assertThat(result.enabled).isFalse()
-        assertThat(result.state).isEqualTo(GlazeCapabilityV15.CapabilityState.CONFLICT)
-        assertThat(result.reasonCodes).contains("capability-conflict:service.index-search")
-        assertThat(result.providerPrecedenceInferred).isFalse()
+        assertFalse(result.enabled)
+        assertEquals(GlazeCapabilityV15.CapabilityState.CONFLICT, result.state)
+        assertTrue(result.reasonCodes.contains("capability-conflict:service.index-search"))
+        assertFalse(result.providerPrecedenceInferred)
     }
 
     @Test
@@ -96,10 +102,10 @@ class GlazeCapabilityV15Test {
             ),
         )
 
-        assertThat(result.enabled).isFalse()
-        assertThat(result.state).isEqualTo(GlazeCapabilityV15.CapabilityState.RESTRICTED)
-        assertThat(result.reasonCodes).contains("restricted-by-authority:authorization.workspace-edit")
-        assertThat(result.automaticExecutionAllowed).isFalse()
-        assertThat(result.authorityInferred).isFalse()
+        assertFalse(result.enabled)
+        assertEquals(GlazeCapabilityV15.CapabilityState.RESTRICTED, result.state)
+        assertTrue(result.reasonCodes.contains("restricted-by-authority:authorization.workspace-edit"))
+        assertFalse(result.automaticExecutionAllowed)
+        assertFalse(result.authorityInferred)
     }
 }
