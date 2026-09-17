@@ -1,8 +1,8 @@
 # Saveable Theme Manager settings composition
 
-Status: Development — GLAZE UI V1.5.0 migration in progress
+Status: Development — GLAZE UI V1.5.1 migration in progress
 
-`LauncherSettingsSurface` composes the validated saveable Settings destination model with `LauncherSettingsDestinationHost` while the repository-local active presentation authority targets **GLAZE UI V1.5 (`1.5.0`)** at exact Stable merged revision `b7fa8164bfdeaa1dc0acb21b770e7601120da04e` and reviewed implementation anchor `ee1032a0822ab8e103f8afe48e5c1859fde65cc9`. The inherited optical/material implementation and immediate rollback baseline remain V1.4.1 at `4fab9da0fad2e5c974e0e66ec88632c61745751c`.
+`LauncherSettingsSurface` composes the validated saveable Settings destination model with `LauncherSettingsDestinationHost` while the repository-local active presentation authority targets **GLAZE UI V1.5 (`1.5.1`)** at exact Stable merged revision `98da57064ede0f334627b632bc16801f580331af` and reviewed implementation anchor `ee1032a0822ab8e103f8afe48e5c1859fde65cc9`. The inherited optical/material implementation remains V1.4.1 at `4fab9da0fad2e5c974e0e66ec88632c61745751c`; the immediate shared Stable rollback release is V1.5.0 at `b7fa8164bfdeaa1dc0acb21b770e7601120da04e`.
 
 The surface owns only the Settings sub-destination string saved through Compose. Unknown or stale values are decoded through `LauncherSettingsNavigation` and fail closed to Settings root. Root content receives one bounded callback for opening Theme Manager, and Theme Manager returns through the same navigation model.
 
@@ -32,12 +32,12 @@ Forced Colors and Reduced Transparency override optical expression and resolve t
 
 Each visual theme preview remains one descriptive semantics node using stable catalog metadata, with decorative preview internals excluded from the accessibility tree. The selected-state surface exposes an explicit state description and polite live region.
 
-These are source-level semantics and mapping controls only. Shared V1.5.0 qualification does not establish Launcher-local TalkBack, Switch Access, keyboard/D-pad, focus-order, spoken-announcement timing, 200% text/reflow, RTL, representative-device, adaptive, performance, or Human Visual Excellence acceptance.
+These are source-level semantics and mapping controls only. Shared V1.5.1 qualification does not establish Launcher-local TalkBack, Switch Access, keyboard/D-pad, focus-order, spoken-announcement timing, 200% text/reflow, RTL, representative-device, adaptive, performance, or Human Visual Excellence acceptance.
 
 ## Remaining acceptance
 
 This migration still requires rendered component/state/material review, capability-state explanation review where applicable, accessibility fallback validation, 200% text/reflow, RTL/localization, representative phone/tablet/foldable behavior, TalkBack/Switch Access, approved optical-context integration where beneficial, performance fallbacks, representative-device Theme Manager navigation/persistence testing across all four modes, production signing/distribution, release approval, and Stable Launcher qualification.
 
-The central V1.5.1 hardening track owns the Glaze-wide `performance-representative-budget` and `platform-posture-continuity` qualification expansions. Their deferral from central V1.5.0 is not Launcher acceptance evidence and does not remove product-specific performance/form-factor obligations.
+Shared V1.5.1 now contains accepted Glaze-wide `performance-representative-budget` and `platform-posture-continuity` qualification evidence. Those results remain Glaze-level evidence tied to their reviewed revisions and environments; they do not remove Launcher-specific performance, power, supported-form-factor, posture, Android-runtime, or device acceptance obligations.
 
 A green build or correct source mapping does not establish complete GLAZE UI V1.5 consumer conformance or production readiness.
