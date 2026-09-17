@@ -13,10 +13,10 @@ class GlazeCapabilityV15Test {
     ) = GlazeCapabilityV15.Capability(id, state, authority)
 
     @Test
-    fun `launcher targets exact GLAZE UI v1_5_0 Stable authority`() {
-        assertEquals("1.5.0", GlazeCapabilityV15.targetVersion)
+    fun `launcher targets exact GLAZE UI v1_5_1 Stable authority`() {
+        assertEquals("1.5.1", GlazeCapabilityV15.targetVersion)
         assertEquals(
-            "b7fa8164bfdeaa1dc0acb21b770e7601120da04e",
+            "98da57064ede0f334627b632bc16801f580331af",
             GlazeCapabilityV15.stableSourceRevision,
         )
         assertEquals(
@@ -24,7 +24,11 @@ class GlazeCapabilityV15Test {
             GlazeCapabilityV15.reviewedImplementationAnchor,
         )
         assertEquals("1.4.1", GlazeCapabilityV15.opticalBaselineVersion)
-        assertEquals("1.4.1", GlazeCapabilityV15.rollbackVersion)
+        assertEquals("1.5.0", GlazeCapabilityV15.rollbackVersion)
+        assertEquals(
+            "b7fa8164bfdeaa1dc0acb21b770e7601120da04e",
+            GlazeCapabilityV15.rollbackSourceRevision,
+        )
     }
 
     @Test
