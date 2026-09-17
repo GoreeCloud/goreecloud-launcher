@@ -13,8 +13,10 @@ const expected = Object.freeze({
   repository: 'GoreeCloud/goreecloud-launcher',
   historicalStableVersion: '1.4.1',
   historicalStableRevision: '4fab9da0fad2e5c974e0e66ec88632c61745751c',
-  currentStableVersion: '1.5.0',
-  currentStableRevision: 'b7fa8164bfdeaa1dc0acb21b770e7601120da04e',
+  currentStableVersion: '1.5.1',
+  currentStableRevision: '98da57064ede0f334627b632bc16801f580331af',
+  currentRollbackVersion: '1.5.0',
+  currentRollbackRevision: 'b7fa8164bfdeaa1dc0acb21b770e7601120da04e',
   currentImplementationAnchor: 'ee1032a0822ab8e103f8afe48e5c1859fde65cc9',
   developmentVersion: '1.5.0-dev.1',
   developmentRevision: 'e7c397837908e4644d6230f17d0f73e84e3d1558',
@@ -68,7 +70,7 @@ assert.equal(contract.acceptance?.repositoryLocalConsumerAcceptance, false);
 assert.equal(contract.acceptance?.productionAcceptance, false);
 assert.equal(contract.validation?.scenarios?.length, 4);
 
-// Current source uses V1.5 Stable for presentation while retaining the reviewed V1.4.1 optical layer.
+// Current source uses V1.5.1 Stable for presentation while retaining the reviewed V1.4.1 optical layer.
 assert.ok(metrics.includes(`const val targetVersion = "${expected.historicalStableVersion}"`));
 assert.ok(metrics.includes(`const val sourceRevision = "${expected.historicalStableRevision}"`));
 assert.ok(optical.includes(`const val targetVersion = "${expected.historicalStableVersion}"`));
@@ -78,22 +80,28 @@ assert.ok(capability.includes(`const val stableSourceRevision = "${expected.curr
 assert.ok(capability.includes(`const val reviewedImplementationAnchor = "${expected.currentImplementationAnchor}"`));
 assert.ok(capability.includes(`const val opticalBaselineVersion = "${expected.historicalStableVersion}"`));
 assert.ok(capability.includes(`const val opticalBaselineRevision = "${expected.historicalStableRevision}"`));
+assert.ok(capability.includes(`const val rollbackVersion = "${expected.currentRollbackVersion}"`));
+assert.ok(capability.includes(`const val rollbackSourceRevision = "${expected.currentRollbackRevision}"`));
 assert.ok(capability.includes('automaticExecutionAllowed = false'));
 assert.ok(capability.includes('authorityInferred = false'));
 assert.ok(capability.includes('providerPrecedenceInferred = false'));
 
-assert.ok(adoption.includes('Official target: **GLAZE UI V1.5 (`1.5.0`)**'));
+assert.ok(adoption.includes('Official target: **GLAZE UI V1.5 (`1.5.1`)**'));
 assert.ok(adoption.includes(`Exact Stable merged source authority: \`${expected.currentStableRevision}\``));
 assert.ok(adoption.includes(`Reviewed V1.5 implementation anchor: \`${expected.currentImplementationAnchor}\``));
-assert.ok(adoption.includes('Inherited optical and immediate rollback baseline: **V1.4.1 (`1.4.1`)**'));
+assert.ok(adoption.includes('Inherited optical/material baseline: **V1.4.1 (`1.4.1`)**'));
+assert.ok(adoption.includes('Immediate shared Stable rollback baseline: **V1.5.0 (`1.5.0`)**'));
+assert.ok(adoption.includes(expected.currentRollbackRevision));
 
 assert.match(platform, /schema_version:\s*"0\.2"/);
 assert.match(platform, /lifecycle:\s*development/);
 assert.match(platform, /result:\s*applicable-migration-required/);
-assert.ok(platform.includes('version: "1.5.0"'));
-assert.ok(platform.includes('glaze_ui_required: "1.5.0"'));
+assert.ok(platform.includes('version: "1.5.1"'));
+assert.ok(platform.includes('glaze_ui_required: "1.5.1"'));
 assert.ok(platform.includes('goreecloud-platform-contract==0.2'));
-assert.ok(platform.includes('glaze-ui==1.5.0'));
+assert.ok(platform.includes('glaze-ui==1.5.1'));
+assert.ok(platform.includes(expected.currentStableRevision));
+assert.ok(platform.includes(expected.currentRollbackRevision));
 assert.ok(platform.includes('conformance:\n  status: nonconformant'));
 assert.ok(!platform.includes('glaze-ui==1.5.0-dev.1'));
 assert.ok(!platform.includes('glaze_ui_required: "1.5.0-dev.1"'));
@@ -226,7 +234,8 @@ console.log(`Historical upstream Glaze revision: ${expected.developmentRevision}
 console.log('Historical Launcher Development scenarios: 4');
 console.log(`Current Stable Launcher Glaze presentation target: ${expected.currentStableVersion}`);
 console.log(`Current Stable authority: ${expected.currentStableRevision}`);
-console.log(`Inherited optical baseline / rollback: ${expected.historicalStableVersion}`);
+console.log(`Immediate shared Stable rollback: ${expected.currentRollbackVersion} at ${expected.currentRollbackRevision}`);
+console.log(`Inherited optical baseline: ${expected.historicalStableVersion}`);
 console.log('Launcher V1.5 JavaScript runtime dependency added: false');
 console.log('Launcher consumer acceptance established: false');
 console.log('Launcher Release Candidate / Stable / production acceptance established: false');
