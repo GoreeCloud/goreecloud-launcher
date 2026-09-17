@@ -25,12 +25,12 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
-      - name: Preserve current Stable Glaze V1.4.1 Launcher boundary
+      - name: Preserve current Stable Glaze V1.5.1 Launcher source boundary
         run: python3 scripts/check_glaze_ui.py
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - name: Fetch exact Glaze V1.5 Development revision
+      - name: Fetch exact historical Glaze V1.5 Development revision
         run: |
           GLAZE_V15_ROOT="$RUNNER_TEMP/goreecloud-glaze-ui-v1.5"
           git init "$GLAZE_V15_ROOT"
@@ -39,5 +39,5 @@ jobs:
           git -C "$GLAZE_V15_ROOT" checkout --detach FETCH_HEAD
           test "$(git -C "$GLAZE_V15_ROOT" rev-parse HEAD)" = "$GLAZE_V15_REVISION"
           echo "GLAZE_V15_ROOT=$GLAZE_V15_ROOT" >> "$GITHUB_ENV"
-      - name: Validate repository-local Glaze V1.5 Development compatibility
+      - name: Validate repository-local historical Glaze V1.5 Development compatibility
         run: node scripts/validate_glaze_v1_5_development.mjs
