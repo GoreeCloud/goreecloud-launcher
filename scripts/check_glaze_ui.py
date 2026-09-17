@@ -19,13 +19,15 @@ ADOPTION = ROOT / "docs/glaze-ui-adoption.md"
 DEVELOPMENT = ROOT / "docs/development/saveable-theme-manager-settings-composition.md"
 PLATFORM = ROOT / "goreecloud.platform.yaml"
 
-TARGET_VERSION = "1.5.0"
-STABLE_REVISION = "b7fa8164bfdeaa1dc0acb21b770e7601120da04e"
+TARGET_VERSION = "1.5.1"
+STABLE_REVISION = "98da57064ede0f334627b632bc16801f580331af"
 IMPLEMENTATION_ANCHOR = "ee1032a0822ab8e103f8afe48e5c1859fde65cc9"
 OPTICAL_BASELINE_VERSION = "1.4.1"
 OPTICAL_BASELINE_REVISION = "4fab9da0fad2e5c974e0e66ec88632c61745751c"
 OPTICAL_ROLLBACK_VERSION = "1.4.0"
-ROLLBACK_VERSION = "1.4.1"
+ROLLBACK_VERSION = "1.5.0"
+ROLLBACK_REVISION = "b7fa8164bfdeaa1dc0acb21b770e7601120da04e"
+PLATFORM_CONTRACT_REVISION = "981c5807f249955e9f2c6c5d9136c9ed9c8017e9"
 
 EXPECTED_METRICS = {
     "space1": 4, "space2": 8, "space3": 12, "space4": 16, "space5": 20,
@@ -126,6 +128,7 @@ def main() -> None:
         f'const val opticalBaselineVersion = "{OPTICAL_BASELINE_VERSION}"',
         f'const val opticalBaselineRevision = "{OPTICAL_BASELINE_REVISION}"',
         f'const val rollbackVersion = "{ROLLBACK_VERSION}"',
+        f'const val rollbackSourceRevision = "{ROLLBACK_REVISION}"',
         "TEMPORARILY_UNAVAILABLE", "RESTRICTED", "UNKNOWN", "CONFLICT",
         'reasons += "capability-unknown:$capabilityId"',
         'reasons += "capability-conflict:$capabilityId"',
@@ -136,7 +139,7 @@ def main() -> None:
         require(capability, marker, "V1.5 capability resolver")
 
     for marker in (
-        "launcher targets exact GLAZE UI v1_5_0 Stable authority",
+        "launcher targets exact GLAZE UI v1_5_1 Stable authority",
         "available required capability enables presentation but never automatic execution",
         "missing capability fails closed without disabling unrelated local capability",
         "duplicate capability ownership fails closed without provider precedence",
@@ -162,35 +165,42 @@ def main() -> None:
         require(manager_combined, marker, "Theme Manager/Settings")
 
     for marker in (
-        "# GLAZE UI V1.5.0 Migration — GoreeCloud Launcher",
-        "Official target: **GLAZE UI V1.5 (`1.5.0`)**",
+        "# GLAZE UI V1.5.1 Migration — GoreeCloud Launcher",
+        "Official target: **GLAZE UI V1.5 (`1.5.1`)**",
         f"Exact Stable merged source authority: `{STABLE_REVISION}`",
         f"Reviewed V1.5 implementation anchor: `{IMPLEMENTATION_ANCHOR}`",
-        "Inherited optical and immediate rollback baseline: **V1.4.1 (`1.4.1`)**",
-        "Shared Glaze V1.5.0 Stable qualification does **not** establish complete Launcher consumer conformance",
+        "Inherited optical/material baseline: **V1.4.1 (`1.4.1`)**",
+        "Immediate shared Stable rollback baseline: **V1.5.0 (`1.5.0`)**",
+        "Shared Glaze V1.5.1 Stable qualification does **not** establish complete Launcher consumer conformance",
+        "18 accepted obligations",
+        f"accepted central Platform Contract authority requiring current Stable GLAZE UI `1.5.1` is exact revision `{PLATFORM_CONTRACT_REVISION}`",
         "Platform Contract `0.2`",
         "GoreeCloud Sync is a separately governed application/service capability",
     ):
         require(adoption, marker, "adoption record")
 
     for marker in (
-        "Status: Development — GLAZE UI V1.5.0 migration in progress",
+        "Status: Development — GLAZE UI V1.5.1 migration in progress",
         STABLE_REVISION,
         IMPLEMENTATION_ANCHOR,
+        ROLLBACK_REVISION,
         "GlazeCapabilityV15",
         "GlazeOpticalV14",
         "Environmental Color Memory influence accepted by the inherited resolver remains capped at 8%",
-        "Shared V1.5.0 qualification does not establish Launcher-local",
+        "Shared V1.5.1 qualification does not establish Launcher-local",
+        "accepted Glaze-wide `performance-representative-budget` and `platform-posture-continuity` qualification evidence",
     ):
         require(development, marker, "Theme Manager Development evidence")
 
     for marker in (
         'schema_version: "0.2"',
         "  id: goreecloud-launcher",
-        '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.5.0"',
-        '  glaze_ui_required: "1.5.0"',
+        '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.5.1"',
+        '  glaze_ui_required: "1.5.1"',
         "goreecloud-platform-contract==0.2",
-        "glaze-ui==1.5.0",
+        "glaze-ui==1.5.1",
+        STABLE_REVISION,
+        ROLLBACK_REVISION,
         "GoreeCloud Sync integration and acceptance are not established",
         "local backup/restore and portable snapshots are not synchronization evidence",
         "conformance:\n  status: nonconformant",
@@ -204,7 +214,8 @@ def main() -> None:
     print(
         "GLAZE UI V1.5 Launcher source mapping passed: "
         f"presentation {TARGET_VERSION} at {STABLE_REVISION}; "
-        f"optical baseline/rollback {OPTICAL_BASELINE_VERSION} at {OPTICAL_BASELINE_REVISION}; "
+        f"shared rollback {ROLLBACK_VERSION} at {ROLLBACK_REVISION}; "
+        f"optical baseline {OPTICAL_BASELINE_VERSION} at {OPTICAL_BASELINE_REVISION}; "
         "Platform Contract remains migration-required/nonconformant until "
         "Launcher-local rendered/accessibility/device/performance/release acceptance."
     )
