@@ -11,8 +11,13 @@ const clone = value => JSON.parse(JSON.stringify(value));
 
 const expected = Object.freeze({
   repository: 'GoreeCloud/goreecloud-launcher',
-  stableVersion: '1.4.1',
-  stableRevision: '4fab9da0fad2e5c974e0e66ec88632c61745751c',
+  historicalStableVersion: '1.4.1',
+  historicalStableRevision: '4fab9da0fad2e5c974e0e66ec88632c61745751c',
+  currentStableVersion: '1.5.1',
+  currentStableRevision: '98da57064ede0f334627b632bc16801f580331af',
+  currentRollbackVersion: '1.5.0',
+  currentRollbackRevision: 'b7fa8164bfdeaa1dc0acb21b770e7601120da04e',
+  currentImplementationAnchor: 'ee1032a0822ab8e103f8afe48e5c1859fde65cc9',
   developmentVersion: '1.5.0-dev.1',
   developmentRevision: 'e7c397837908e4644d6230f17d0f73e84e3d1558',
   sharedProfileId: 'goreecloud-launcher-handheld'
@@ -23,20 +28,22 @@ const platform = read('goreecloud.platform.yaml');
 const adoption = read('docs/glaze-ui-adoption.md');
 const metrics = read('app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt');
 const optical = read('app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeOpticalV14.kt');
+const capability = read('app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeCapabilityV15.kt');
 const glazeRoot = String(process.env.GLAZE_V15_ROOT || '').trim();
 
-assert.ok(glazeRoot, 'GLAZE_V15_ROOT must point to the exact Glaze UI V1.5 Development checkout');
+assert.ok(glazeRoot, 'GLAZE_V15_ROOT must point to the exact historical Glaze UI V1.5 Development checkout');
 assert.ok(fs.existsSync(glazeRoot), `GLAZE_V15_ROOT does not exist: ${glazeRoot}`);
 const upstreamRevision = execFileSync('git', ['-C', glazeRoot, 'rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
-assert.equal(upstreamRevision, expected.developmentRevision, 'Glaze V1.5 checkout must match the exact governed Development revision');
+assert.equal(upstreamRevision, expected.developmentRevision, 'Historical Glaze V1.5 checkout must match the exact governed Development revision');
 
+// Preserve the historical compatibility record exactly as evidence of the pre-Stable exercise.
 assert.equal(contract.schemaVersion, 1);
 assert.equal(contract.documentVersion, '1.0');
 assert.equal(contract.recordType, 'goreecloud-launcher-glaze-v1.5-development-integration');
 assert.equal(contract.consumer?.repository, expected.repository);
 assert.equal(contract.consumer?.lifecycle, 'development');
-assert.equal(contract.glazeUi?.implementedStableTarget, expected.stableVersion);
-assert.equal(contract.glazeUi?.implementedStableRevision, expected.stableRevision);
+assert.equal(contract.glazeUi?.implementedStableTarget, expected.historicalStableVersion);
+assert.equal(contract.glazeUi?.implementedStableRevision, expected.historicalStableRevision);
 assert.equal(contract.glazeUi?.developmentVersion, expected.developmentVersion);
 assert.equal(contract.glazeUi?.developmentRevision, expected.developmentRevision);
 assert.equal(contract.glazeUi?.sharedRepresentativeProfile, expected.sharedProfileId);
@@ -63,32 +70,56 @@ assert.equal(contract.acceptance?.repositoryLocalConsumerAcceptance, false);
 assert.equal(contract.acceptance?.productionAcceptance, false);
 assert.equal(contract.validation?.scenarios?.length, 4);
 
-// Preserve the actual current-Stable Launcher mapping and fail closed if V1.5 leaks into production declarations.
-assert.ok(metrics.includes(`const val targetVersion = "${expected.stableVersion}"`));
-assert.ok(metrics.includes(`const val sourceRevision = "${expected.stableRevision}"`));
-assert.ok(optical.includes(`const val targetVersion = "${expected.stableVersion}"`));
-assert.ok(optical.includes(`const val stableSourceRevision = "${expected.stableRevision}"`));
-assert.ok(adoption.includes('Official target: **GLAZE UI V1.4.1 (`1.4.1`)**'));
-assert.ok(adoption.includes(`Exact Stable merged source authority: \`${expected.stableRevision}\``));
+// Current source uses V1.5.1 Stable for presentation while retaining the reviewed V1.4.1 optical layer.
+assert.ok(metrics.includes(`const val targetVersion = "${expected.historicalStableVersion}"`));
+assert.ok(metrics.includes(`const val sourceRevision = "${expected.historicalStableRevision}"`));
+assert.ok(optical.includes(`const val targetVersion = "${expected.historicalStableVersion}"`));
+assert.ok(optical.includes(`const val stableSourceRevision = "${expected.historicalStableRevision}"`));
+assert.ok(capability.includes(`const val targetVersion = "${expected.currentStableVersion}"`));
+assert.ok(capability.includes(`const val stableSourceRevision = "${expected.currentStableRevision}"`));
+assert.ok(capability.includes(`const val reviewedImplementationAnchor = "${expected.currentImplementationAnchor}"`));
+assert.ok(capability.includes(`const val opticalBaselineVersion = "${expected.historicalStableVersion}"`));
+assert.ok(capability.includes(`const val opticalBaselineRevision = "${expected.historicalStableRevision}"`));
+assert.ok(capability.includes(`const val rollbackVersion = "${expected.currentRollbackVersion}"`));
+assert.ok(capability.includes(`const val rollbackSourceRevision = "${expected.currentRollbackRevision}"`));
+assert.ok(capability.includes('automaticExecutionAllowed = false'));
+assert.ok(capability.includes('authorityInferred = false'));
+assert.ok(capability.includes('providerPrecedenceInferred = false'));
+
+assert.ok(adoption.includes('Official target: **GLAZE UI V1.5 (`1.5.1`)**'));
+assert.ok(adoption.includes(`Exact Stable merged source authority: \`${expected.currentStableRevision}\``));
+assert.ok(adoption.includes(`Reviewed V1.5 implementation anchor: \`${expected.currentImplementationAnchor}\``));
+assert.ok(adoption.includes('Inherited optical/material baseline: **V1.4.1 (`1.4.1`)**'));
+assert.ok(adoption.includes('Immediate shared Stable rollback baseline: **V1.5.0 (`1.5.0`)**'));
+assert.ok(adoption.includes(expected.currentRollbackRevision));
+
+assert.match(platform, /schema_version:\s*"0\.2"/);
 assert.match(platform, /lifecycle:\s*development/);
 assert.match(platform, /result:\s*applicable-migration-required/);
-assert.ok(platform.includes('version: "1.4.1"'));
-assert.ok(platform.includes('glaze_ui_required: "1.4.1"'));
-assert.ok(platform.includes('glaze-ui==1.4.1'));
+assert.ok(platform.includes('version: "1.5.1"'));
+assert.ok(platform.includes('glaze_ui_required: "1.5.1"'));
+assert.ok(platform.includes('goreecloud-platform-contract==0.2'));
+assert.ok(platform.includes('glaze-ui==1.5.1'));
+assert.ok(platform.includes(expected.currentStableRevision));
+assert.ok(platform.includes(expected.currentRollbackRevision));
 assert.ok(platform.includes('conformance:\n  status: nonconformant'));
 assert.ok(!platform.includes('glaze-ui==1.5.0-dev.1'));
 assert.ok(!platform.includes('glaze_ui_required: "1.5.0-dev.1"'));
 
+const platformSystems = platform.split('platform_systems:\n', 2)[1].split('\nhealth:\n', 1)[0];
+assert.ok(!platformSystems.includes('\n  sync:\n'), 'GoreeCloud Sync must not become an eighth Integral Platform System');
+
+// The old upstream Development runtime remains a regression harness only.
 const upstreamRegistry = JSON.parse(fs.readFileSync(path.join(glazeRoot, 'registry/development/glaze-v1.5.0-dev.1.json'), 'utf8'));
 const profiles = JSON.parse(fs.readFileSync(path.join(glazeRoot, 'contracts/v1.5/representative-consumers.dev.json'), 'utf8'));
 assert.equal(upstreamRegistry.version, expected.developmentVersion);
 assert.equal(upstreamRegistry.lifecycle, 'development');
 assert.equal(upstreamRegistry.consumerEligible, false);
-assert.equal(upstreamRegistry.stableBaseline, expected.stableVersion);
+assert.equal(upstreamRegistry.stableBaseline, expected.historicalStableVersion);
 assert.equal(upstreamRegistry.representativeConsumerAcceptanceEstablished, false);
 assert.equal(upstreamRegistry.representativeConsumerIntegrationChangesStableTarget, false);
 assert.equal(profiles.version, expected.developmentVersion);
-assert.equal(profiles.stableConsumerTarget, expected.stableVersion);
+assert.equal(profiles.stableConsumerTarget, expected.historicalStableVersion);
 assert.equal(profiles.developmentOnly, true);
 assert.equal(profiles.consumerAcceptanceEstablished, false);
 assert.equal(profiles.repositoryLocalAcceptanceRequired, true);
@@ -105,7 +136,7 @@ assert.equal(launcherProfile.repository, expected.repository);
 function assertGlobalBoundaries(result) {
   assert.equal(result.version, expected.developmentVersion);
   assert.equal(result.lifecycle, 'development');
-  assert.equal(result.stableBaseline, expected.stableVersion);
+  assert.equal(result.stableBaseline, expected.historicalStableVersion);
   assert.equal(result.authority.glazeAuthority, 'presentation-only');
   assert.equal(result.authority.authorizationInferred, false);
   assert.equal(result.authority.permissionGranted, false);
@@ -198,10 +229,13 @@ assert.equal(editHome.automaticExecutionAllowed, false);
 assert.ok(editHome.reasonCodes.includes('restricted-by-authority'));
 assert.equal(restricted.navigation.acceptedCurrentId, 'home');
 
-console.log('GoreeCloud Launcher / GLAZE UI 1.5.0-dev.1 repository-local Development integration: PASS');
-console.log(`Launcher exact upstream Glaze revision: ${expected.developmentRevision}`);
-console.log('Launcher Development scenarios: 4');
-console.log(`Current Stable Launcher Glaze target remains: ${expected.stableVersion}`);
-console.log('Launcher V1.5 runtime dependency added: false');
-console.log('Launcher V1.5 consumer acceptance established: false');
+console.log('GoreeCloud Launcher historical GLAZE UI 1.5.0-dev.1 compatibility regression: PASS');
+console.log(`Historical upstream Glaze revision: ${expected.developmentRevision}`);
+console.log('Historical Launcher Development scenarios: 4');
+console.log(`Current Stable Launcher Glaze presentation target: ${expected.currentStableVersion}`);
+console.log(`Current Stable authority: ${expected.currentStableRevision}`);
+console.log(`Immediate shared Stable rollback: ${expected.currentRollbackVersion} at ${expected.currentRollbackRevision}`);
+console.log(`Inherited optical baseline: ${expected.historicalStableVersion}`);
+console.log('Launcher V1.5 JavaScript runtime dependency added: false');
+console.log('Launcher consumer acceptance established: false');
 console.log('Launcher Release Candidate / Stable / production acceptance established: false');
