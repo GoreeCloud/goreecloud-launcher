@@ -1,7 +1,7 @@
 package com.goreecloud.launcher.ui.theme
 
 /**
- * Native Launcher mapping of the bounded GLAZE UI V1.5.0 Stable
+ * Native Launcher mapping of the bounded GLAZE UI V1.5.1 Stable
  * context/capability presentation contract.
  *
  * Glaze remains presentation-only. This resolver consumes authority state that
@@ -9,12 +9,13 @@ package com.goreecloud.launcher.ui.theme
  * authorization, select a provider winner, navigate, or execute an action.
  */
 object GlazeCapabilityV15 {
-    const val targetVersion = "1.5.0"
-    const val stableSourceRevision = "b7fa8164bfdeaa1dc0acb21b770e7601120da04e"
+    const val targetVersion = "1.5.1"
+    const val stableSourceRevision = "98da57064ede0f334627b632bc16801f580331af"
     const val reviewedImplementationAnchor = "ee1032a0822ab8e103f8afe48e5c1859fde65cc9"
     const val opticalBaselineVersion = "1.4.1"
     const val opticalBaselineRevision = "4fab9da0fad2e5c974e0e66ec88632c61745751c"
-    const val rollbackVersion = "1.4.1"
+    const val rollbackVersion = "1.5.0"
+    const val rollbackSourceRevision = "b7fa8164bfdeaa1dc0acb21b770e7601120da04e"
 
     enum class CapabilityState {
         AVAILABLE,
