@@ -24,7 +24,7 @@ jobs:
   validate:
     # Pin Development validation to the accepted central Contract 0.2 mainline
     # revision that preserves exactly seven Integral Platform Systems and requires
-    # current Stable GLAZE UI V1.5 / 1.5.0 for applicable consumers.
-    uses: GoreeCloud/GoreeCloud/.github/workflows/reusable-platform-manifest.yml@398098d9391ac0369a79f228ca6b94d3c425fe39
+    # current Stable GLAZE UI V1.5 / 1.5.1 for applicable consumers.
+    uses: GoreeCloud/GoreeCloud/.github/workflows/reusable-platform-manifest.yml@981c5807f249955e9f2c6c5d9136c9ed9c8017e9
     with:
       manifest-path: goreecloud.platform.yaml
