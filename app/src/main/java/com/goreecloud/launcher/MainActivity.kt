@@ -1,6 +1,7 @@
 package com.goreecloud.launcher
 
 import android.app.role.RoleManager
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -58,6 +59,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var workspaceRepository: WorkspaceRepository
     private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
     private val defaultHomeState = MutableStateFlow(false)
+    private val homeResetSequence = MutableStateFlow(0L)
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
 
@@ -65,6 +67,15 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             refreshHomeRoleState()
         }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (LauncherHomeIntentPolicy.shouldResetToPrimaryHome(intent.action, intent.categories)) {
+            homeResetSequence.value = homeResetSequence.value + 1L
+        }
+        refreshHomeRoleState()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -122,6 +133,7 @@ class MainActivity : ComponentActivity() {
                 initialValue = WorkspacePagedHomeState.WaitingForRoom
             )
             val isDefaultHome by defaultHomeState.collectAsStateWithLifecycle()
+            val homeResetSequenceValue by homeResetSequence.collectAsStateWithLifecycle()
 
             val workspace = when (val current = placement) {
                 WorkspaceAuthoritativePlacementState.WaitingForInitialization -> WorkspaceState()
@@ -149,6 +161,11 @@ class MainActivity : ComponentActivity() {
             val primarySurfaceMode = runCatching {
                 LauncherSurfaceMode.valueOf(primarySurfaceModeName)
             }.getOrDefault(LauncherSurfaceMode.HOME)
+
+            LaunchedEffect(homeResetSequenceValue) {
+                selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                primarySurfaceModeName = LauncherSurfaceMode.HOME.name
+            }
 
             LaunchedEffect(renderedPages) {
                 if (renderedPages.isNotEmpty() && renderedPages.none { it.pageId == selectedHomePageId }) {
