@@ -3,9 +3,9 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development and is not Stable or production accepted.
-- Verified baseline for this notes change: `main` at `32967cf87e33ae33af89c3be412a42c33a6f93d1`.
+- Verified current stabilization base: `main` at `38f51d63124363bef65d202640fdadce8697fa59`, including the asynchronous shared icon cache and off-main-thread/scoped LauncherApps inventory refresh integrations.
 - GitHub issue #80 is the current Android core-stabilization gate and records physical-device blockers for HOME behavior, drawer gestures/transitions, local app search, drawer presentation, app discovery, performance, and Quickstep/Recents compatibility.
-- Draft PR #109 has exact-head green Development validation for Glaze UI 1.5.1 source adoption, and draft PR #110 has green Development validation for Compact drawer presentation. Both are stacked changes rather than verified `main` integration.
+- Glaze UI 1.5.1 and Compact drawer work remain separate stacked candidates unless and until clean current-main integration is verified. Do not treat their historical green checks as current `main` acceptance.
 
 ## Active stabilization observations
 
@@ -17,3 +17,11 @@
 ## Maintenance notes
 
 Prefer clean, reviewable integration from the current authoritative base rather than merging stale or superseded stacked branches out of sequence. Keep release status truthful after every integration and re-run exact-head Android/contract validation when a source-bearing candidate changes.
+
+
+## September 18 performance and search stabilization
+
+- PR #115 merged the shared asynchronous launcher-icon cache, removing drawable-to-bitmap decoding from Compose rendering and invalidating cache entries on LauncherApps package changes.
+- PR #116 merged an IO-backed inventory refresh worker with package-scoped reconciliation for ordinary package lifecycle changes and full refreshes for availability/profile-topology changes.
+- The current local-search candidate restacks installed-app search hardening onto that authoritative base. It uses only Android LauncherApps label/package inventory, performs no network/Index/account/telemetry ranking, normalizes punctuation/diacritics deterministically, supports multi-term local matching, and shows an explicit empty result.
+- These source/CI improvements do not satisfy issue #80 physical-device performance, HOME, gesture/transition, Quickstep/Recents, or full P0 acceptance by themselves.

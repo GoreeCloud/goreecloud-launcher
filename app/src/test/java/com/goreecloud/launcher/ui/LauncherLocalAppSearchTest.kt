@@ -6,49 +6,63 @@ import org.junit.Test
 
 class LauncherLocalAppSearchTest {
     @Test
-    fun blankQueryKeepsInstalledAppVisible() {
+    fun blankQueryShowsAllLocalApps() {
         assertTrue(
-            matchesLauncherAppSearch(
-                label = "Memos",
-                packageName = "com.goreecloud.memos.development",
-                className = "com.goreecloud.memos.MainActivity",
-                query = "   \t\n  ",
+            LauncherLocalAppSearch.matches(
+                label = "GoreeCloud Memos",
+                packageName = "com.goreecloud.memos",
+                rawQuery = "   ",
             ),
         )
     }
 
     @Test
-    fun matchingIsCaseInsensitiveAcrossLabelPackageAndActivity() {
+    fun multiTermQueryMustMatchAcrossLocalLabelOrPackage() {
         assertTrue(
-            matchesLauncherAppSearch(
+            LauncherLocalAppSearch.matches(
                 label = "GoreeCloud Browser",
-                packageName = "io.goreecloud.browser.beta",
-                className = "io.goreecloud.browser.BrowserActivityV2",
-                query = "BROWSER beta activityv2",
+                packageName = "com.goreecloud.browser",
+                rawQuery = "goree brow",
             ),
         )
-    }
-
-    @Test
-    fun everySearchTermMustMatchLocalMetadata() {
         assertFalse(
-            matchesLauncherAppSearch(
+            LauncherLocalAppSearch.matches(
                 label = "GoreeCloud Browser",
-                packageName = "io.goreecloud.browser.beta",
-                className = "io.goreecloud.browser.BrowserActivityV2",
-                query = "browser memos",
+                packageName = "com.goreecloud.browser",
+                rawQuery = "goree dial",
             ),
         )
     }
 
     @Test
-    fun unicodeSeparatorsAndNormalizationRemainSearchable() {
+    fun packageNameRemainsSearchableWithoutNetworkAuthority() {
         assertTrue(
-            matchesLauncherAppSearch(
-                label = "GoreeCloud Café Notes",
-                packageName = "com.goreecloud.notes",
-                className = "com.goreecloud.notes.MainActivity",
-                query = "café\u00A0notes",
+            LauncherLocalAppSearch.matches(
+                label = "Messenger",
+                packageName = "com.goreecloud.messenger.development",
+                rawQuery = "development",
+            ),
+        )
+    }
+
+    @Test
+    fun diacriticsAndPunctuationNormalizeForHumanSearch() {
+        assertTrue(
+            LauncherLocalAppSearch.matches(
+                label = "Café Notes",
+                packageName = "com.example.cafe_notes",
+                rawQuery = "cafe notes",
+            ),
+        )
+    }
+
+    @Test
+    fun prefixTermsMatchWordStarts() {
+        assertTrue(
+            LauncherLocalAppSearch.matches(
+                label = "Advanced Tab Manager",
+                packageName = "com.goreecloud.tabs",
+                rawQuery = "adv man",
             ),
         )
     }
