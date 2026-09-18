@@ -55,6 +55,10 @@ class LauncherPreferencesTest {
     @Test
     fun drawerLayoutModeStorageDecodingFailsSafeToGrid() {
         assertEquals(
+            LauncherDrawerLayoutMode.COMPACT,
+            LauncherDrawerLayoutMode.fromStorage("compact"),
+        )
+        assertEquals(
             LauncherDrawerLayoutMode.LIST,
             LauncherDrawerLayoutMode.fromStorage("list"),
         )
