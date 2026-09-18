@@ -33,6 +33,7 @@ enum class GoreeCloudIndexHomeMode(val storageValue: String) {
 
 enum class LauncherDrawerLayoutMode(val storageValue: String) {
     GRID("grid"),
+    COMPACT("compact"),
     LIST("list");
 
     companion object {
