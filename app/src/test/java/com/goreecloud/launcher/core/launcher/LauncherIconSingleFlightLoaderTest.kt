@@ -3,6 +3,7 @@ package com.goreecloud.launcher.core.launcher
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -29,7 +30,7 @@ class LauncherIconSingleFlightLoaderTest {
             }
         }
         started.await()
-        val second = async {
+        val second = async(start = CoroutineStart.UNDISPATCHED) {
             loader.load("same") {
                 calls.incrementAndGet()
                 "unexpected-second-decode"
