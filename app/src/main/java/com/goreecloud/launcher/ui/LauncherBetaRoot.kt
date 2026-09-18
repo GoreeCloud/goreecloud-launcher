@@ -303,10 +303,12 @@ private fun AppDrawerSurface(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val filteredApps = remember(apps, query) {
-        val needle = query.trim().lowercase()
-        if (needle.isEmpty()) apps else apps.filter {
-            it.label.toString().lowercase().contains(needle) ||
-                it.componentName.packageName.lowercase().contains(needle)
+        apps.filter { app ->
+            LauncherLocalAppSearch.matches(
+                label = app.label.toString(),
+                packageName = app.componentName.packageName,
+                rawQuery = query,
+            )
         }
     }
     val dismissThreshold = with(LocalDensity.current) { 64.dp.toPx() }
@@ -363,23 +365,37 @@ private fun AppDrawerSurface(
             )
             Spacer(Modifier.height(14.dp))
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(preferences.drawerColumns),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 22.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                items(filteredApps, key = { it.workspaceKey() }) { app ->
-                    LauncherAppTile(
-                        app = app,
-                        iconScale = preferences.iconScale,
-                        showLabel = preferences.showLabels,
-                        compact = false,
-                        onClick = { onLaunchApp(app) },
-                        onLongClick = { onManageApp(app) },
-                        modifier = Modifier.height(92.dp),
+            if (filteredApps.isEmpty() && query.isNotBlank()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "No installed apps match “${query.trim()}”",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
                     )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(preferences.drawerColumns),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 22.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(filteredApps, key = { it.workspaceKey() }) { app ->
+                        LauncherAppTile(
+                            app = app,
+                            iconScale = preferences.iconScale,
+                            showLabel = preferences.showLabels,
+                            compact = false,
+                            onClick = { onLaunchApp(app) },
+                            onLongClick = { onManageApp(app) },
+                            modifier = Modifier.height(92.dp),
+                        )
+                    }
                 }
             }
         }
