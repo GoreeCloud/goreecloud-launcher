@@ -23,23 +23,47 @@ class LauncherAppsRepository(context: Context) {
         }
 
         val callback = object : LauncherApps.Callback() {
-            override fun onPackageRemoved(packageName: String, user: UserHandle) = publish()
-            override fun onPackageAdded(packageName: String, user: UserHandle) = publish()
-            override fun onPackageChanged(packageName: String, user: UserHandle) = publish()
+            override fun onPackageRemoved(packageName: String, user: UserHandle) {
+                LauncherAppIconCache.invalidatePackage(packageName, user)
+                publish()
+            }
+
+            override fun onPackageAdded(packageName: String, user: UserHandle) {
+                LauncherAppIconCache.invalidatePackage(packageName, user)
+                publish()
+            }
+
+            override fun onPackageChanged(packageName: String, user: UserHandle) {
+                LauncherAppIconCache.invalidatePackage(packageName, user)
+                publish()
+            }
             override fun onPackagesAvailable(
                 packageNames: Array<out String>,
                 user: UserHandle,
                 replacing: Boolean,
-            ) = publish()
+            ) {
+                packageNames.forEach { LauncherAppIconCache.invalidatePackage(it, user) }
+                publish()
+            }
 
             override fun onPackagesUnavailable(
                 packageNames: Array<out String>,
                 user: UserHandle,
                 replacing: Boolean,
-            ) = publish()
+            ) {
+                packageNames.forEach { LauncherAppIconCache.invalidatePackage(it, user) }
+                publish()
+            }
 
-            override fun onPackagesSuspended(packageNames: Array<out String>, user: UserHandle) = publish()
-            override fun onPackagesUnsuspended(packageNames: Array<out String>, user: UserHandle) = publish()
+            override fun onPackagesSuspended(packageNames: Array<out String>, user: UserHandle) {
+                packageNames.forEach { LauncherAppIconCache.invalidatePackage(it, user) }
+                publish()
+            }
+
+            override fun onPackagesUnsuspended(packageNames: Array<out String>, user: UserHandle) {
+                packageNames.forEach { LauncherAppIconCache.invalidatePackage(it, user) }
+                publish()
+            }
         }
 
         launcherApps.registerCallback(callback, callbackHandler)
