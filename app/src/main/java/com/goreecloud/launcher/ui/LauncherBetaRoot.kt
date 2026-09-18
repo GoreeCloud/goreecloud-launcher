@@ -453,7 +453,8 @@ private fun AppDrawerSurface(
     LaunchedEffect(query, drawerLayoutMode) {
         if (query.isNotBlank() && filteredApps.isNotEmpty()) {
             when (drawerLayoutMode) {
-                LauncherDrawerLayoutMode.GRID -> gridState.scrollToItem(0)
+                LauncherDrawerLayoutMode.GRID,
+                LauncherDrawerLayoutMode.COMPACT -> gridState.scrollToItem(0)
                 LauncherDrawerLayoutMode.LIST -> listState.scrollToItem(0)
             }
         }
@@ -550,6 +551,26 @@ private fun AppDrawerSurface(
                                 )
                             }
                         }
+                        LauncherDrawerLayoutMode.COMPACT -> LazyVerticalGrid(
+                            columns = GridCells.Fixed(preferences.drawerColumns),
+                            state = gridState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(end = 52.dp, bottom = 18.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            items(filteredApps, key = { it.workspaceKey() }) { app ->
+                                LauncherAppTile(
+                                    app = app,
+                                    iconScale = preferences.iconScale,
+                                    showLabel = preferences.showLabels,
+                                    compact = true,
+                                    onClick = { onLaunchApp(app) },
+                                    onLongClick = { onManageApp(app) },
+                                    modifier = Modifier.height(74.dp),
+                                )
+                            }
+                        }
                         LauncherDrawerLayoutMode.LIST -> LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
@@ -575,7 +596,8 @@ private fun AppDrawerSurface(
                             val targetIndex = sectionTargets[section] ?: return@AlphabetFastNavigationRail
                             coroutineScope.launch {
                                 when (drawerLayoutMode) {
-                                    LauncherDrawerLayoutMode.GRID -> gridState.animateScrollToItem(targetIndex)
+                                    LauncherDrawerLayoutMode.GRID,
+                                    LauncherDrawerLayoutMode.COMPACT -> gridState.animateScrollToItem(targetIndex)
                                     LauncherDrawerLayoutMode.LIST -> listState.animateScrollToItem(targetIndex)
                                 }
                             }
@@ -753,16 +775,23 @@ private fun LauncherSettingsSurface(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 ChoiceRow(
-                    choices = listOf("Grid", "List"),
-                    selectedChoice = if (drawerLayoutMode == LauncherDrawerLayoutMode.GRID) "Grid" else "List",
+                    choices = listOf("Grid", "Compact", "List"),
+                    selectedChoice = when (drawerLayoutMode) {
+                        LauncherDrawerLayoutMode.GRID -> "Grid"
+                        LauncherDrawerLayoutMode.COMPACT -> "Compact"
+                        LauncherDrawerLayoutMode.LIST -> "List"
+                    },
                     onChoice = {
                         onSetDrawerLayoutMode(
-                            if (it == "List") LauncherDrawerLayoutMode.LIST
-                            else LauncherDrawerLayoutMode.GRID,
+                            when (it) {
+                                "Compact" -> LauncherDrawerLayoutMode.COMPACT
+                                "List" -> LauncherDrawerLayoutMode.LIST
+                                else -> LauncherDrawerLayoutMode.GRID
+                            },
                         )
                     },
                 )
-                if (drawerLayoutMode == LauncherDrawerLayoutMode.GRID) {
+                if (drawerLayoutMode != LauncherDrawerLayoutMode.LIST) {
                     Text(
                         "Grid columns",
                         style = MaterialTheme.typography.bodyMedium,
