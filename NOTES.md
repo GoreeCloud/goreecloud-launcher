@@ -25,3 +25,10 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 - PR #116 merged an IO-backed inventory refresh worker with package-scoped reconciliation for ordinary package lifecycle changes and full refreshes for availability/profile-topology changes.
 - The current local-search candidate restacks installed-app search hardening onto that authoritative base. It uses only Android LauncherApps label/package inventory, performs no network/Index/account/telemetry ranking, normalizes punctuation/diacritics deterministically, supports multi-term local matching, and shows an explicit empty result.
 - These source/CI improvements do not satisfy issue #80 physical-device performance, HOME, gesture/transition, Quickstep/Recents, or full P0 acceptance by themselves.
+
+
+## CI supply-chain stabilization candidate — September 18, 2026
+
+- Android CI is being reconciled from moving runner/action tags to Ubuntu 24.04 and immutable full-SHA references for checkout, Java setup, Gradle setup, and artifact upload.
+- The Android 16 Room runtime job now independently verifies the checked-out revision before executing source.
+- These controls do not change Launcher runtime behavior or satisfy issue #80 physical-device P0 acceptance.
