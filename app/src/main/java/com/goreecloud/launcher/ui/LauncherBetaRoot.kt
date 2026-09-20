@@ -796,6 +796,7 @@ private fun AppDrawerSurface(
                     query = query,
                     preferences = preferences,
                     drawerLayoutMode = drawerLayoutMode,
+                    experiencePreferences = experiencePreferences,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
                     secondaryColor = drawerSecondaryColor,
@@ -816,12 +817,14 @@ private fun AppDrawerSurface(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DrawerAppsContent(
     apps: List<LauncherActivityInfo>,
     query: String,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
+    experiencePreferences: LauncherExperiencePreferences,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     secondaryColor: Color,
@@ -838,6 +841,87 @@ private fun DrawerAppsContent(
                 color = secondaryColor,
                 textAlign = TextAlign.Center,
             )
+        }
+        return
+    }
+
+    val pagedGrid = experiencePreferences.drawerNavigation == LauncherDrawerNavigation.PAGES &&
+        drawerLayoutMode != LauncherDrawerLayoutMode.LIST
+
+    if (pagedGrid) {
+        val pageSize = (
+            preferences.drawerColumns * experiencePreferences.drawerPageRows.coerceIn(4, 6)
+        ).coerceAtLeast(1)
+        val pageCount = ((apps.size + pageSize - 1) / pageSize).coerceAtLeast(1)
+        val pagerState = rememberPagerState(pageCount = { pageCount })
+
+        LaunchedEffect(query, pageCount) {
+            if (pagerState.currentPage >= pageCount || query.isNotBlank()) {
+                pagerState.scrollToPage(0)
+            }
+        }
+
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                pageSpacing = GlazeMetrics.space3,
+            ) { page ->
+                val pageApps = apps.drop(page * pageSize).take(pageSize)
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(preferences.drawerColumns),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = GlazeMetrics.space2),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) {
+                            GlazeMetrics.space1
+                        } else {
+                            GlazeMetrics.space2
+                        },
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(
+                        if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) {
+                            GlazeMetrics.space1
+                        } else {
+                            GlazeMetrics.space2
+                        },
+                    ),
+                    userScrollEnabled = false,
+                ) {
+                    items(pageApps, key = { it.workspaceKey() }) { app ->
+                        LauncherAppTile(
+                            app = app,
+                            iconScale = preferences.iconScale,
+                            showLabel = preferences.showLabels,
+                            compact = drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT,
+                            onClick = { onLaunchApp(app) },
+                            onLongClick = { onManageApp(app) },
+                            modifier = Modifier.height(
+                                if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) 72.dp
+                                else 88.dp,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            if (pageCount > 1) {
+                DrawerPageDots(
+                    pageCount = pageCount,
+                    currentPage = pagerState.currentPage,
+                    onSelectPage = { target ->
+                        if (target != pagerState.currentPage) {
+                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                                pagerState.animateScrollToPage(target)
+                            }
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            }
         }
         return
     }
@@ -897,6 +981,38 @@ private fun DrawerAppsContent(
         }
     }
 }
+
+@Composable
+private fun DrawerPageDots(
+    pageCount: Int,
+    currentPage: Int,
+    onSelectPage: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(pageCount) { page ->
+            Surface(
+                modifier = Modifier
+                    .size(if (page == currentPage) 8.dp else 6.dp)
+                    .combinedClickable(
+                        onClick = { onSelectPage(page) },
+                        onLongClick = {},
+                    ),
+                shape = CircleShape,
+                color = if (page == currentPage) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f)
+                },
+            ) {}
+        }
+    }
+}
+
 
 @Composable
 private fun LauncherSettingsRootSurface(
