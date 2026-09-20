@@ -62,8 +62,10 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 
 ## Current Glaze authority stabilization — September 19, 2026
 
-- This stabilization candidate adds a first-party `GlazeCurrentAuthority` boundary that pins current required GLAZE UI V1.6 / 1.6.0 to exact Stable source `a7180679ea851389e0f3004515f9a25f420e716d`.
-- The existing native implementation remains truthfully identified as the V1.1 / 1.1.0 baseline at `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`; the candidate does not relabel old tokens/components as V1.6.
+- PR #125 is integrated on authoritative `main` as `e64c60d24bd61926209d9feb3f93709d2a55a953`.
+- Accepted pre-merge exact-head evidence for `3443bcb56697f02e6e88f0861ac916899b499cf8`: Platform Contract run `35490207850` and Android CI run `35490207574` both completed successfully, including Android 16 room-runtime-emulator acceptance.
+- The integrated first-party `GlazeCurrentAuthority` boundary pins current required GLAZE UI V1.6 / 1.6.0 to exact Stable source `a7180679ea851389e0f3004515f9a25f420e716d`.
+- The existing native implementation remains truthfully identified as the V1.1 / 1.1.0 baseline at `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`; the integration does not relabel old tokens/components as V1.6.
 - Unit and repository guards require migration to remain true until current consumer conformance is separately implemented and accepted.
 - Root README/specification/platform records are reconciled away from older active Glaze 2.2/V1.5.1 claims.
-- V1.6 implementation, rendered/accessibility/device/performance acceptance, platform-system runtime acceptance, signing, Release Candidate, production, and Stable qualification remain open.
+- Issue #80 remains open for V1.6 implementation and application acceptance, representative physical-device/default-HOME gesture/transition quality, app discovery, measured performance, accessibility, Quickstep/Recents coexistence, platform-system runtime acceptance, signing, Release Candidate, production, and Stable qualification.
