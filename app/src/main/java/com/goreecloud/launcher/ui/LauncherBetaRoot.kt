@@ -237,6 +237,7 @@ private fun HomeSurface(
                         contentPadding = PaddingValues(top = 4.dp, bottom = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
+                        userScrollEnabled = false,
                     ) {
                         items(favoriteApps, key = { it.workspaceKey() }) { app ->
                             LauncherAppTile(
