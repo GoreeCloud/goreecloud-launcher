@@ -16,12 +16,14 @@ class GlazeCurrentAuthorityTest {
     }
 
     @Test
-    fun `retained V1_1 implementation remains truthfully migration required`() {
-        assertEquals("1.1.0", GlazeCurrentAuthority.implementedBaselineVersion)
+    fun `V1_6 source migration can be complete while consumer acceptance remains open`() {
+        assertEquals("1.6.0", GlazeCurrentAuthority.implementedBaselineVersion)
         assertEquals(
-            "15cc76d2bcd4065552dc31c77145b63f34d9e7b2",
+            "a7180679ea851389e0f3004515f9a25f420e716d",
             GlazeCurrentAuthority.implementedBaselineSourceRevision,
         )
+        assertFalse(GlazeCurrentAuthority.sourceMigrationRequired())
+        assertTrue(GlazeCurrentAuthority.consumerAcceptanceRequired())
         assertFalse(GlazeCurrentAuthority.currentConsumerConformanceEstablished)
         assertTrue(GlazeCurrentAuthority.migrationRequired())
     }

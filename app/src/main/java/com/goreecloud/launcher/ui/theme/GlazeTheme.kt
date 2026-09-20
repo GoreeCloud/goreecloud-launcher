@@ -5,19 +5,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 enum class GlazeThemeMode { SYSTEM, LIGHT, DARK, DEEP_DARK }
 
 /**
- * GLAZE UI V1.1 structural appearance mapping for the Launcher surfaces
- * currently in use. V1.1 preserves the inherited V1 Light/Dark foundation and
- * adds an explicit Deep Dark structural appearance.
+ * Launcher-owned structural palettes mapped under the GLAZE UI V1.6 semantic presentation model.
  *
- * Deep Teal and Soft Amber are atmospheric presentation primitives rather than
- * semantic state colors, so they remain outside this Material color-scheme
- * authority. Protected semantics, focus, selection, accessibility resolution,
- * and producer-owned state always take precedence over atmosphere.
+ * These pigments are retained application choices rather than claims that every value is a
+ * canonical V1.6 token. Glaze UI owns presentation semantics; authoritative privacy, security,
+ * identity, recovery, availability, capability, and workflow state remain outside this theme.
  */
 private val light = lightColorScheme(
     primary = Color(0xFF3478F6),
@@ -62,12 +60,21 @@ private val deepDark = darkColorScheme(
 )
 
 @Composable
-fun GlazeTheme(mode: GlazeThemeMode, content: @Composable () -> Unit) {
+fun GlazeTheme(
+    mode: GlazeThemeMode,
+    presentationContext: GlazeV16PresentationContext = GlazeV16PresentationContext(),
+    content: @Composable () -> Unit,
+) {
     val scheme = when (mode) {
         GlazeThemeMode.SYSTEM -> if (isSystemInDarkTheme()) dark else light
         GlazeThemeMode.LIGHT -> light
         GlazeThemeMode.DARK -> dark
         GlazeThemeMode.DEEP_DARK -> deepDark
     }
-    MaterialTheme(colorScheme = scheme, content = content)
+
+    CompositionLocalProvider(
+        LocalGlazeV16PresentationContext provides presentationContext,
+    ) {
+        MaterialTheme(colorScheme = scheme, content = content)
+    }
 }
