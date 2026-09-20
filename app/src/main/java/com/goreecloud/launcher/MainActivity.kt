@@ -182,10 +182,9 @@ class MainActivity : ComponentActivity() {
 
             LaunchedEffect(apps, workspace.initialized) {
                 if (!workspace.initialized && apps.isNotEmpty()) {
-                    val defaults = apps.filterNot { it.componentName.packageName == packageName }
                     workspaceRepository.ensureDefaults(
-                        favoriteKeys = defaults.take(12).map { it.workspaceKey() },
-                        dockKeys = defaults.take(4).map { it.workspaceKey() },
+                        favoriteKeys = emptyList(),
+                        dockKeys = emptyList(),
                     )
                 }
             }
