@@ -462,9 +462,6 @@ private fun EmptyDock(onOpenApps: () -> Unit) {
 }
 
 @Composable
-private fun HomeQuickActions
-
-@Composable
 private fun HomeQuickActions(
     onOpenApps: () -> Unit,
     onOpenSearch: () -> Unit,
@@ -777,7 +774,9 @@ private fun LauncherSettingsRootSurface(
     onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
+    onSetShowHomePageIndicator: (Boolean) -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
+    onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onOpenThemeManager: () -> Unit,
     onBack: () -> Unit,
@@ -852,6 +851,11 @@ private fun LauncherSettingsRootSurface(
                     experiencePreferences.showHomeQuickActions,
                     onSetShowHomeQuickActions,
                 )
+                SettingSwitch(
+                    "Page indicator",
+                    experiencePreferences.showHomePageIndicator,
+                    onSetShowHomePageIndicator,
+                )
                 Text(
                     "Home grid",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -924,6 +928,23 @@ private fun LauncherSettingsRootSurface(
                         onSetDrawerBackdrop(
                             if (it == "Solid") LauncherDrawerBackdrop.SOLID
                             else LauncherDrawerBackdrop.GLASS,
+                        )
+                    },
+                )
+                Text(
+                    "Search position",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Top", "Bottom"),
+                    selected = if (
+                        experiencePreferences.drawerSearchPlacement == LauncherDrawerSearchPlacement.TOP
+                    ) "Top" else "Bottom",
+                    onChoice = {
+                        onSetDrawerSearchPlacement(
+                            if (it == "Top") LauncherDrawerSearchPlacement.TOP
+                            else LauncherDrawerSearchPlacement.BOTTOM,
                         )
                     },
                 )
