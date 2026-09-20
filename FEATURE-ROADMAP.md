@@ -43,9 +43,9 @@ This file is the repository-side feature roadmap control for GoreeCloud Launcher
 
 - Category, Search-first, and optional paged drawer presentation.
 - Explicit custom ordering plus recent/frequent views only when locally derived, transparent, user-controlled, and free of behavioral tracking.
-- Expanded one-handed reachability controls and transition tuning after current-main drawer/search behavior is separately verified.
+- Expanded one-handed reachability controls and transition tuning after source-bearing runtime drawer/search behavior is separately verified.
 - Complete Launcher-specific GLAZE UI V1.6 rendered, accessibility, adaptive phone/tablet/foldable, performance/power, rollback, Human Visual Excellence, and representative-device acceptance.
-- Durable multi-step undo/redo and process-death-safe edit history after the current-main workspace-editing baseline is separately verified and accepted.
+- Durable multi-step undo/redo and process-death-safe edit history after the source-bearing runtime workspace-editing baseline is separately verified and accepted.
 - Folders, smart folders, collections, categories, tags, locked/private organizational surfaces, and explicit user-approved smart reorganization.
 - Android AppWidgetHost, searchable widget gallery, resize/configuration, widget stacks, first-party Glaze Cards, and provider crash containment.
 - Work/private-profile correctness, phone/tablet/foldable/posture-aware layouts, keyboard/D-pad/Switch/TalkBack accessibility, and physical-device performance/power acceptance.
