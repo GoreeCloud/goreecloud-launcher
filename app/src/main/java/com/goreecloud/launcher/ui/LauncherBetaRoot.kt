@@ -205,6 +205,7 @@ private fun HomeSurface(
     apps: List<LauncherActivityInfo>,
     workspace: WorkspaceState,
     preferences: LauncherPreferences,
+    experiencePreferences: LauncherExperiencePreferences,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
@@ -221,6 +222,14 @@ private fun HomeSurface(
         workspace.dockKeys.mapNotNull(appsByKey::get).take(MAX_DOCK_ITEMS)
     }
     val swipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
+    var now by remember { mutableStateOf(LocalDateTime.now()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000)
+            now = LocalDateTime.now()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -251,8 +260,8 @@ private fun HomeSurface(
                     Brush.verticalGradient(
                         listOf(
                             Color.Transparent,
-                            GlazeAtmosphere.canvasBlack.copy(alpha = 0.06f),
-                            GlazeAtmosphere.canvasBlack.copy(alpha = 0.28f),
+                            GlazeAtmosphere.canvasBlack.copy(alpha = 0.04f),
+                            GlazeAtmosphere.canvasBlack.copy(alpha = 0.32f),
                         ),
                     ),
                 ),
@@ -263,10 +272,10 @@ private fun HomeSurface(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            GlazeAtmosphere.softAqua.copy(alpha = 0.08f),
+                            GlazeAtmosphere.softAqua.copy(alpha = 0.10f),
                             Color.Transparent,
                         ),
-                        radius = 900f,
+                        radius = 980f,
                     ),
                 ),
         )
@@ -277,6 +286,7 @@ private fun HomeSurface(
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space2),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -284,22 +294,38 @@ private fun HomeSurface(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (!isDefaultHome) {
-                    GlazeTextAction("Set Home", onRequestHomeRole)
+                    GlazeTextAction("Make default", onRequestHomeRole)
                 } else {
-                    Spacer(Modifier.width(1.dp))
+                    Spacer(Modifier.width(44.dp))
                 }
-                GlazeRoundAction(label = "•••", onClick = onOpenSettings)
+                GlazeRoundAction(label = "⚙", onClick = onOpenSettings)
+            }
+
+            if (experiencePreferences.homeCardStyle != LauncherHomeCardStyle.OFF) {
+                HomeClockCard(
+                    now = now,
+                    compact = experiencePreferences.homeCardStyle == LauncherHomeCardStyle.COMPACT,
+                    onOpenApps = onOpenDrawer,
+                    onOpenSearch = onOpenUniversalSearch,
+                )
             }
 
             if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) {
-                Spacer(Modifier.height(GlazeMetrics.space2))
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     GlazeSearchCapsule(
                         value = "Search GoreeCloud",
                         onClick = onOpenUniversalSearch,
-                        modifier = Modifier.fillMaxWidth(0.74f),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
+            }
+
+            if (experiencePreferences.showHomeQuickActions) {
+                HomeQuickActions(
+                    onOpenApps = onOpenDrawer,
+                    onOpenSearch = onOpenUniversalSearch,
+                    onOpenSettings = onOpenSettings,
+                )
             }
 
             Box(
@@ -307,14 +333,24 @@ private fun HomeSurface(
                     .weight(1f)
                     .fillMaxWidth(),
             ) {
-                if (favoriteApps.isNotEmpty()) {
+                if (favoriteApps.isEmpty()) {
+                    EmptyWorkspaceCard(
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        onOpenApps = onOpenDrawer,
+                    )
+                } else {
                     Column(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(bottom = GlazeMetrics.space2),
+                            .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                     ) {
+                        Text(
+                            "Favorites",
+                            modifier = Modifier.padding(horizontal = GlazeMetrics.space1),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.White.copy(alpha = 0.82f),
+                        )
                         favoriteApps.chunked(preferences.homeColumns).forEach { rowApps ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -349,17 +385,138 @@ private fun HomeSurface(
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
                 )
-                Spacer(Modifier.height(GlazeMetrics.space2))
             }
 
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Surface(
-                    modifier = Modifier.width(32.dp).height(4.dp),
+                    modifier = Modifier.width(34.dp).height(4.dp),
                     shape = CircleShape,
                     color = Color.White.copy(alpha = 0.34f),
                 ) {}
             }
-            Spacer(Modifier.height(GlazeMetrics.space1))
+        }
+    }
+}
+
+@Composable
+private fun HomeClockCard(
+    now: LocalDateTime,
+    compact: Boolean,
+    onOpenApps: () -> Unit,
+    onOpenSearch: () -> Unit,
+) {
+    val locale = Locale.getDefault()
+    val time = remember(now.minute, locale) {
+        now.format(DateTimeFormatter.ofPattern("h:mm", locale))
+    }
+    val date = remember(now.dayOfYear, locale) {
+        now.format(DateTimeFormatter.ofPattern("EEEE, MMMM d", locale))
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.48f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(if (compact) GlazeMetrics.space3 else GlazeMetrics.space4),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        ) {
+            Text(
+                time,
+                style = if (compact) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                date,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (!compact) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    GlazeTextAction("Apps", onOpenApps)
+                    GlazeTextAction("Search", onOpenSearch)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeQuickActions(
+    onOpenApps: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+    ) {
+        GlazeActionTile("Apps", "All installed apps", onOpenApps, Modifier.weight(1f))
+        GlazeActionTile("Search", "Local first", onOpenSearch, Modifier.weight(1f))
+        GlazeActionTile("Tune", "Home & theme", onOpenSettings, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun GlazeActionTile(
+    title: String,
+    summary: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        onClick = onClick,
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.42f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = GlazeMetrics.space3, vertical = GlazeMetrics.space2),
+        ) {
+            Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                summary,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyWorkspaceCard(
+    modifier: Modifier = Modifier,
+    onOpenApps: () -> Unit,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.42f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space3),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Make Home yours", fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Long-press an app to add it to Favorites or the dock.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            GlazeTextAction("Add apps", onOpenApps)
         }
     }
 }
