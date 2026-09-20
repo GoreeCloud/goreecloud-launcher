@@ -41,6 +41,7 @@ import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
+import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativeWriteResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResult
@@ -218,13 +219,28 @@ class MainActivity : ComponentActivity() {
                     )
                     launcherPreferencesRepository.markStarterLayoutApplied()
                 } else if (workspace.favoriteKeys.isEmpty() && workspace.dockKeys.isEmpty()) {
-                    starterSelection.favoriteKeys.forEach { key ->
-                        workspaceRuntimeCoordinator.toggleFavorite(key)
+                    var seeded = true
+                    for (key in starterSelection.favoriteKeys) {
+                        if (workspaceRuntimeCoordinator.toggleFavorite(key) !is
+                            WorkspaceAuthoritativeWriteResult.Written
+                        ) {
+                            seeded = false
+                            break
+                        }
                     }
-                    starterSelection.dockKeys.forEach { key ->
-                        workspaceRuntimeCoordinator.toggleDock(key)
+                    if (seeded) {
+                        for (key in starterSelection.dockKeys) {
+                            if (workspaceRuntimeCoordinator.toggleDock(key) !is
+                                WorkspaceAuthoritativeWriteResult.Written
+                            ) {
+                                seeded = false
+                                break
+                            }
+                        }
                     }
-                    launcherPreferencesRepository.markStarterLayoutApplied()
+                    if (seeded) {
+                        launcherPreferencesRepository.markStarterLayoutApplied()
+                    }
                 } else {
                     // Existing user placement always wins over the one-time Development starter.
                     launcherPreferencesRepository.markStarterLayoutApplied()
