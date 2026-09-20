@@ -1,15 +1,11 @@
 package com.goreecloud.launcher.ui.theme
 
 /**
- * Truthful current-Stable Glaze UI authority boundary for GoreeCloud Launcher.
+ * Current-Stable Glaze UI authority and Launcher adoption boundary.
  *
- * Launcher still implements its retained V1.1 native source baseline. This object records the
- * separately governed current shared Glaze UI target so source, CI, documentation, and platform
- * declarations cannot silently keep treating a superseded Stable release as current.
- *
- * Recording the current target does not establish V1.6 consumer conformance, rendered acceptance,
- * accessibility acceptance, representative-device acceptance, production eligibility, or Stable
- * qualification for Launcher.
+ * The repository source mapping now targets the exact GLAZE UI V1.6 Stable release source.
+ * Application acceptance remains separate: source mapping does not establish rendered,
+ * accessibility, representative-device, performance, production, release, or Stable acceptance.
  */
 object GlazeCurrentAuthority {
     const val currentRequiredVersion = "1.6.0"
@@ -20,7 +16,17 @@ object GlazeCurrentAuthority {
 
     const val currentConsumerConformanceEstablished = false
 
-    fun migrationRequired(): Boolean =
+    fun sourceMigrationRequired(): Boolean =
         implementedBaselineVersion != currentRequiredVersion ||
-            !currentConsumerConformanceEstablished
+            implementedBaselineSourceRevision != currentStableSourceRevision
+
+    fun consumerAcceptanceRequired(): Boolean =
+        !currentConsumerConformanceEstablished
+
+    /**
+     * Compatibility helper retained for callers/tests that ask whether current-Stable Glaze work
+     * remains. Source migration may be complete while application acceptance is still required.
+     */
+    fun migrationRequired(): Boolean =
+        sourceMigrationRequired() || consumerAcceptanceRequired()
 }

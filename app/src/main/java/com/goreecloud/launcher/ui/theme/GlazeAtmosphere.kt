@@ -3,9 +3,12 @@ package com.goreecloud.launcher.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Bounded GLAZE UI V1.1 atmospheric primitives used only for non-semantic
- * presentation. These colors never establish protection, privacy, identity,
- * recovery, availability, focus, selection, or other authoritative state.
+ * Launcher-owned decorative atmospheric primitives retained under the GLAZE UI V1.6 semantic
+ * mapping. These are non-semantic application presentation values, not canonical V1.6 status or
+ * authority colors.
+ *
+ * They never establish protection, privacy, identity, recovery, availability, focus, selection,
+ * authorization, or other authoritative state.
  */
 object GlazeAtmosphere {
     val canvasBlack = Color(0xFF081016)

@@ -22,17 +22,17 @@ object GlazeThemeManagerCatalog {
         GlazeThemeChoice(
             mode = GlazeThemeMode.LIGHT,
             title = "Light",
-            summary = "Use the GLAZE UI V1.1 light foundation regardless of system appearance.",
+            summary = "Use the Launcher light palette under GLAZE UI V1.6 semantics.",
         ),
         GlazeThemeChoice(
             mode = GlazeThemeMode.DARK,
             title = "Dark",
-            summary = "Use the GLAZE UI V1.1 dark foundation regardless of system appearance.",
+            summary = "Use the Launcher dark palette under GLAZE UI V1.6 semantics.",
         ),
         GlazeThemeChoice(
             mode = GlazeThemeMode.DEEP_DARK,
             title = "Deep Dark",
-            summary = "Use the explicit GLAZE UI V1.1 Deep Dark structural appearance.",
+            summary = "Use the Launcher Deep Dark palette under GLAZE UI V1.6 semantics.",
         ),
     )
 
