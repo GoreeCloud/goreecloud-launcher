@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 METRICS = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt"
+CURRENT_AUTHORITY = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeCurrentAuthority.kt"
 ATMOSPHERE = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeAtmosphere.kt"
 THEME = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt"
 THEME_REPOSITORY = ROOT / "app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeRepository.kt"
@@ -15,6 +16,8 @@ PLATFORM = ROOT / "goreecloud.platform.yaml"
 
 TARGET_VERSION = "1.1.0"
 SOURCE_REVISION = "15cc76d2bcd4065552dc31c77145b63f34d9e7b2"
+CURRENT_REQUIRED_VERSION = "1.6.0"
+CURRENT_STABLE_SOURCE_REVISION = "a7180679ea851389e0f3004515f9a25f420e716d"
 
 EXPECTED_METRICS = {
     "space1": 4,
@@ -83,6 +86,7 @@ def read(path: Path, label: str) -> str:
 
 def main() -> None:
     metrics_text = read(METRICS, "native metric map")
+    current_authority_text = read(CURRENT_AUTHORITY, "current Glaze authority boundary")
     atmosphere_text = read(ATMOSPHERE, "native atmospheric token map")
     theme_text = read(THEME, "native theme map")
     repository_text = read(THEME_REPOSITORY, "theme persistence repository")
@@ -92,6 +96,16 @@ def main() -> None:
     adoption_text = read(ADOPTION, "V1.1 adoption evidence")
     development_text = read(DEVELOPMENT, "Theme Manager development evidence")
     platform_text = read(PLATFORM, "Platform Contract declaration")
+
+    for marker in (
+        f'const val currentRequiredVersion = "{CURRENT_REQUIRED_VERSION}"',
+        f'const val currentStableSourceRevision = "{CURRENT_STABLE_SOURCE_REVISION}"',
+        "const val implementedBaselineVersion = GlazeMetrics.targetVersion",
+        "const val currentConsumerConformanceEstablished = false",
+        "fun migrationRequired(): Boolean",
+    ):
+        if marker not in current_authority_text:
+            fail(f"missing current Stable Glaze authority marker `{marker}`")
 
     for marker in (
         f'const val targetVersion = "{TARGET_VERSION}"',
@@ -139,13 +153,14 @@ def main() -> None:
             fail(f"missing bounded Theme Manager/Settings V1.1 evidence `{marker}`")
 
     for evidence in (
-        "# GLAZE UI V1.1 Migration — GoreeCloud Launcher",
+        "# GLAZE UI Current-Stable Migration — GoreeCloud Launcher",
         "Status: **Migration in progress / Development**",
-        "Official target: **GLAZE UI V1.1 (`1.1.0`)**",
-        f"Exact Stable release source authority: `{SOURCE_REVISION}`",
+        "Current required target: **GLAZE UI V1.6 (`1.6.0`)**",
+        f"Current Stable release source authority: `{CURRENT_STABLE_SOURCE_REVISION}`",
+        "Implemented source baseline: **GLAZE UI V1.1 (`1.1.0`)**",
         "Production eligible on the Glaze UI gate: **no**",
-        "does **not** establish complete V1.1 consumer conformance",
-        "No V1.0 or pre-reset acceptance is inherited as V1.1 acceptance",
+        "does **not** establish V1.6 consumer conformance",
+        "is not inherited as V1.6 acceptance",
         "Launcher Home is a **Workspace** presentation surface",
         "Launcher Settings and Theme Manager are **Application** surfaces",
         "Deep Dark is now implemented as a source-level structural appearance",
@@ -173,10 +188,11 @@ def main() -> None:
         "  id: goreecloud-launcher",
         '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.1.0"',
         "Authoritative Launcher source remains mapped to GLAZE UI V1.1 / 1.1.0",
+        "Official Stable Glaze UI V1.6 / 1.6.0",
         '  platform_contract: "0.4"',
-        '  glaze_ui_required: "1.5.1"',
+        '  glaze_ui_required: "1.6.0"',
         "goreecloud-platform-contract==0.4",
-        "glaze-ui==1.5.1",
+        "glaze-ui==1.6.0",
         "conformance:\n  status: nonconformant",
         "  policy:\n    result: applicable-blocked",
         "  observability:\n    result: applicable-blocked",
@@ -222,7 +238,7 @@ def main() -> None:
     print(
         "GLAZE UI V1.1 Launcher source mapping passed: "
         f"implemented target {TARGET_VERSION}, source {SOURCE_REVISION}; Platform Contract v0.4 "
-        "requires current Glaze UI 1.5.1 and remains migration-required/nonconformant until the "
+        "requires current Glaze UI 1.6.0 and remains migration-required/nonconformant until the "
         "source migration plus rendered/accessibility/device/release acceptance are complete."
     )
 

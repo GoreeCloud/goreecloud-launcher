@@ -5,7 +5,7 @@
 - Repository lifecycle remains Development and is not Stable or production accepted.
 - Latest source-bearing stabilization baseline: `f22d39d0801551470c0bb38c99d27e8de4172d62`, including the asynchronous shared icon cache, off-main-thread/scoped LauncherApps inventory refresh, hardened local installed-app search, immutable Android CI supply-chain integration, Platform Contract 0.4/all-nine-system reconciliation, the PR #120 workspace-tile drawer-gesture correction, and the integrated PR #123 bounded Home/app-drawer transition behavior. Earlier documentation-only PR #121/#122 changed documentation only and did not alter Launcher runtime behavior.
 - GitHub issue #80 is the current Android core-stabilization gate and records physical-device blockers for HOME behavior, drawer gestures/transitions, local app search, drawer presentation, app discovery, performance, and Quickstep/Recents compatibility.
-- Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. Authoritative source still maps GLAZE UI 1.1.0. PR #119 integrated Platform Contract 0.4/all-nine-system reconciliation without claiming the unmerged 1.5.1 source migration.
+- Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. Authoritative source still maps GLAZE UI 1.1.0. Current Official Stable GLAZE UI V1.6 / 1.6.0 supersedes the earlier target; no historical stack is treated as current source.
 
 ## Active stabilization observations
 
@@ -38,7 +38,7 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 
 - PR #119 updated the root manifest from legacy Contract 0.2/seven-system structure to accepted Contract 0.4/all nine Integral Platform Systems and is integrated on `main`.
 - GoreeCloud Policy and GoreeCloud Observability are explicitly evaluated as applicable-blocked rather than silently omitted.
-- The manifest truthfully records the implemented GLAZE UI V1.1 / 1.1.0 mapping while declaring current Official Stable V1.5 / 1.5.1 as the required migration target; the unmerged historical 1.5.1 stack is not treated as current source.
+- The manifest truthfully records the implemented GLAZE UI V1.1 / 1.1.0 mapping while declaring current Official Stable GLAZE UI V1.6 / 1.6.0 as the required migration target; historical V1.5.1 work is not treated as current conformance.
 - The reusable Platform Contract workflow is repinned to the accepted central Contract 0.4 validator revision.
 - This is governance and validation hardening only; issue #80 physical-device/default-HOME, gesture/transition, Quickstep/Recents, performance, and full P0 acceptance remain open.
 
@@ -59,3 +59,11 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 - Existing Android 16 runtime acceptance must still prove that a swipe beginning on workspace app content reaches the drawer and exposes Apps and Search apps after the transition.
 - This is source-level transition behavior only. It does not establish representative physical-device smoothness, frame timing, measured jank/performance, reduced-motion acceptance, Quickstep/Recents coexistence, Release Candidate, production, or Stable qualification.
 
+
+## Current Glaze authority stabilization — September 19, 2026
+
+- This stabilization candidate adds a first-party `GlazeCurrentAuthority` boundary that pins current required GLAZE UI V1.6 / 1.6.0 to exact Stable source `a7180679ea851389e0f3004515f9a25f420e716d`.
+- The existing native implementation remains truthfully identified as the V1.1 / 1.1.0 baseline at `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`; the candidate does not relabel old tokens/components as V1.6.
+- Unit and repository guards require migration to remain true until current consumer conformance is separately implemented and accepted.
+- Root README/specification/platform records are reconciled away from older active Glaze 2.2/V1.5.1 claims.
+- V1.6 implementation, rendered/accessibility/device/performance acceptance, platform-system runtime acceptance, signing, Release Candidate, production, and Stable qualification remain open.
