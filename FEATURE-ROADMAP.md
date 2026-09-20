@@ -12,7 +12,7 @@ This file is the repository-side feature roadmap control for GoreeCloud Launcher
 
 ## Current verified baseline
 
-- Authoritative `main`: `90db5f3c6fac192610872ca8adf5c353a45878de`.
+- Latest source-bearing runtime commit: `90db5f3c6fac192610872ca8adf5c353a45878de`. Documentation-only commits may advance the default branch; verify GitHub live whenever the exact current `main` SHA is material.
 - PR #130 integrated persisted Grid, Compact, and List app-drawer presentation plus restored shared icon-cache use in drawer rendering.
 - PR #130 accepted exact head `0c6ba267ae6aad01696767774fd959eea1eb555f`; Android CI `35495421670` succeeded before merge and Android CI `35496206431` succeeded after merge on the exact authoritative main.
 - Official Stable GLAZE UI V1.6 / `1.6.0` source mapping is integrated through PR #128 at exact source `a7180679ea851389e0f3004515f9a25f420e716d`; application-specific acceptance remains blocked.
