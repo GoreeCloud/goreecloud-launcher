@@ -4,7 +4,7 @@ component:
   type: application
   id: goreecloud-launcher
   product_name: GoreeCloud Launcher
-  repository: GoreeCloud/goreecloud-launcher
+  repository: GoreeCloud/launcher
 
 lifecycle: development
 version: "0.1.0-dev"
@@ -79,7 +79,7 @@ platform_systems:
       - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: This Development candidate maps Launcher source to exact Official Stable GLAZE UI V1.6 / 1.6.0 release source a7180679ea851389e0f3004515f9a25f420e716d and implements repository-local presentation policy. Glaze remains applicable-blocked because authoritative runtime accessibility/performance wiring, rendered/accessibility/adaptive phone/tablet/foldable, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance remain incomplete.
+    notes: Authoritative Launcher source maps to exact Official Stable GLAZE UI V1.6 / 1.6.0 release source a7180679ea851389e0f3004515f9a25f420e716d and implements repository-local presentation policy. Glaze remains applicable-blocked because authoritative runtime accessibility/performance wiring, rendered/accessibility/adaptive phone/tablet/foldable, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance remain incomplete.
   mesh:
     result: applicable-blocked
     version: null

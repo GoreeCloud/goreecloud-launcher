@@ -3,9 +3,10 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development and is not Stable or production accepted.
-- Latest source-bearing stabilization baseline: `f22d39d0801551470c0bb38c99d27e8de4172d62`, including the asynchronous shared icon cache, off-main-thread/scoped LauncherApps inventory refresh, hardened local installed-app search, immutable Android CI supply-chain integration, Platform Contract 0.4/all-nine-system reconciliation, the PR #120 workspace-tile drawer-gesture correction, and the integrated PR #123 bounded Home/app-drawer transition behavior. Earlier documentation-only PR #121/#122 changed documentation only and did not alter Launcher runtime behavior.
+- GitHub repository identity is now `GoreeCloud/launcher` after a repository rename. The repository ID, product identity, Android package namespaces, and versioned Launcher data-format identifiers remain unchanged; the rename does not establish runtime or release acceptance.
+- Latest source-bearing stabilization baseline: `0a12c06781841924a4b4eeb2494735d9d44b2811`, integrating PR #128 on top of the prior Launcher stabilization line. The source now maps to exact Official Stable GLAZE UI V1.6 / 1.6.0 while application acceptance remains blocked. Earlier documentation-only integrations changed documentation only and did not alter Launcher runtime authority.
 - GitHub issue #80 is the current Android core-stabilization gate and records physical-device blockers for HOME behavior, drawer gestures/transitions, local app search, drawer presentation, app discovery, performance, and Quickstep/Recents compatibility.
-- Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. The current V1.6 migration branch maps first-party source to exact Stable V1.6 / 1.6.0 authority; no historical stack is treated as current source or acceptance.
+- Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. Authoritative `main` now carries the integrated first-party V1.6 / 1.6.0 source mapping; no historical stack is treated as current source or acceptance.
 
 ## Active stabilization observations
 
@@ -38,7 +39,7 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 
 - PR #119 updated the root manifest from legacy Contract 0.2/seven-system structure to accepted Contract 0.4/all nine Integral Platform Systems and is integrated on `main`.
 - GoreeCloud Policy and GoreeCloud Observability are explicitly evaluated as applicable-blocked rather than silently omitted.
-- The migration candidate updates the manifest to GLAZE UI V1.6 / 1.6.0 source mapping while keeping Glaze result blocked and overall conformance nonconformant until repository-local acceptance exists; historical V1.1/V1.5.1 evidence is not rebound as V1.6 acceptance.
+- Integrated PR #128 updates the manifest to the GLAZE UI V1.6 / 1.6.0 source mapping while keeping Glaze applicable-blocked and overall conformance nonconformant until repository-local acceptance exists; historical V1.1/V1.5.1 evidence is not rebound as V1.6 acceptance.
 - The reusable Platform Contract workflow is repinned to the accepted central Contract 0.4 validator revision.
 - This is governance and validation hardening only; issue #80 physical-device/default-HOME, gesture/transition, Quickstep/Recents, performance, and full P0 acceptance remain open.
 
@@ -71,11 +72,12 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 - Accepted exact-head evidence for PR #125: Platform Contract run `35490207850` and Android CI run `35490207574` both succeeded before squash merge to authoritative main commit `e64c60d24bd61926209d9feb3f93709d2a55a953`.
 
 
-## GLAZE UI V1.6 source migration candidate — September 20, 2026
+## GLAZE UI V1.6 source mapping integration — September 20, 2026
 
-- This Development branch maps the active Launcher source boundary from the prior V1.1 implementation baseline to exact Official Stable GLAZE UI V1.6 / 1.6.0 release source `a7180679ea851389e0f3004515f9a25f420e716d`.
+- PR #128 is integrated on authoritative `main` as source-bearing commit `0a12c06781841924a4b4eeb2494735d9d44b2811`, mapping the prior V1.1 implementation baseline to exact Official Stable GLAZE UI V1.6 / 1.6.0 release source `a7180679ea851389e0f3004515f9a25f420e716d`.
 - A first-party V1.6 presentation policy models bounded material simplification, Reduced Motion, Reduced Transparency, performance levels, focus visibility, large-text density yielding, and conservative interaction targets without creating privacy, security, authorization, connectivity, recovery, or workflow truth.
 - The inherited Stable V1.6 release sources expose a 44 px-equivalent coarse target floor and 32 px pointer-compact floor. Launcher deliberately retains a stricter 48 dp general touch target and 56 dp accessibility-oriented target; those are product choices, not relabeled Glaze tokens.
 - Retained Launcher palettes, atmosphere, radii, and 20/40 dp composition conveniences are explicitly application-owned. Source continuity is preserved without representing legacy product values as canonical V1.6 values.
 - Theme Manager consumes the V1.6 presentation context so future authoritative Reduced Transparency/performance inputs can simplify raised material. The branch does not fabricate system preference detection; neutral defaults remain neutral until caller/platform state is actually supplied.
+- Accepted pre-merge evidence for exact PR #128 head `0a13fd5f40e09de877bbf51823e2747873c74914`: Platform Contract run `35491439181` and Android CI run `35491438765` succeeded, including Android 16 runtime acceptance. Post-merge Platform Contract run `35491732732` and Android CI run `35491732451` both succeeded on exact source merge commit `0a12c06781841924a4b4eeb2494735d9d44b2811`, including the Android 16 runtime-emulator lane.
 - Source migration does not establish V1.6 consumer conformance. Rendered/accessibility/adaptive/representative-device/performance/rollback/Human Visual Excellence/platform-system/signing/release acceptance remain open, and issue #80 remains the product stabilization gate.
