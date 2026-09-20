@@ -42,6 +42,34 @@ enum class LauncherDrawerLayoutMode(val storageValue: String) {
     }
 }
 
+enum class LauncherHomeCardStyle(val storageValue: String) {
+    CLOCK("clock"),
+    COMPACT("compact"),
+    OFF("off");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeCardStyle =
+            entries.firstOrNull { it.storageValue == value } ?: CLOCK
+    }
+}
+
+enum class LauncherDrawerBackdrop(val storageValue: String) {
+    GLASS("glass"),
+    SOLID("solid");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerBackdrop =
+            entries.firstOrNull { it.storageValue == value } ?: GLASS
+    }
+}
+
+data class LauncherExperiencePreferences(
+    val homeCardStyle: LauncherHomeCardStyle = LauncherHomeCardStyle.CLOCK,
+    val showHomeQuickActions: Boolean = true,
+    val drawerBackdrop: LauncherDrawerBackdrop = LauncherDrawerBackdrop.GLASS,
+    val showDrawerAppCount: Boolean = false,
+)
+
 data class LauncherPreferences(
     val homeColumns: Int = 4,
     val homeRows: Int = 5,
@@ -75,6 +103,10 @@ class LauncherPreferencesRepository(
         val layoutLocked = booleanPreferencesKey("layout_locked")
         val indexHomeMode = stringPreferencesKey("index_home_mode")
         val drawerLayoutMode = stringPreferencesKey("drawer_layout_mode")
+        val homeCardStyle = stringPreferencesKey("home_card_style")
+        val showHomeQuickActions = booleanPreferencesKey("show_home_quick_actions")
+        val drawerBackdrop = stringPreferencesKey("drawer_backdrop")
+        val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
 
@@ -91,6 +123,22 @@ class LauncherPreferencesRepository(
      */
     val drawerLayoutMode: Flow<LauncherDrawerLayoutMode> = dataStore.data
         .map { values -> LauncherDrawerLayoutMode.fromStorage(values[Keys.drawerLayoutMode]) }
+        .distinctUntilChanged()
+
+    /**
+     * Launcher-owned visual preferences that intentionally remain outside the strict seven-field
+     * v1 portable preference subset. These settings may evolve during Development without silently
+     * changing backup/recovery compatibility.
+     */
+    val experiencePreferences: Flow<LauncherExperiencePreferences> = dataStore.data
+        .map { values ->
+            LauncherExperiencePreferences(
+                homeCardStyle = LauncherHomeCardStyle.fromStorage(values[Keys.homeCardStyle]),
+                showHomeQuickActions = values[Keys.showHomeQuickActions] ?: true,
+                drawerBackdrop = LauncherDrawerBackdrop.fromStorage(values[Keys.drawerBackdrop]),
+                showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
+            )
+        }
         .distinctUntilChanged()
 
     fun setHomeGrid(columns: Int, rows: Int) {
@@ -149,6 +197,38 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.indexHomeMode] = mode.storageValue
+            }
+        }
+    }
+
+    fun setHomeCardStyle(style: LauncherHomeCardStyle) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeCardStyle] = style.storageValue
+            }
+        }
+    }
+
+    fun setShowHomeQuickActions(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showHomeQuickActions] = show
+            }
+        }
+    }
+
+    fun setDrawerBackdrop(backdrop: LauncherDrawerBackdrop) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerBackdrop] = backdrop.storageValue
+            }
+        }
+    }
+
+    fun setShowDrawerAppCount(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showDrawerAppCount] = show
             }
         }
     }
