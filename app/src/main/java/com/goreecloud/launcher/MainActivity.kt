@@ -319,6 +319,23 @@ class MainActivity : ComponentActivity() {
                             preferences = launcherPreferences,
                             drawerLayoutMode = drawerLayoutMode,
                             experiencePreferences = experiencePreferences,
+                            homePageCount = renderedPages.size.coerceAtLeast(1),
+                            onManageHomePages = {
+                                val secondaryPage = renderedPages.firstOrNull {
+                                    it.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                                }
+                                if (secondaryPage != null) {
+                                    selectedHomePageId = secondaryPage.pageId
+                                } else if (!launcherPreferences.layoutLocked) {
+                                    val pageId = "home:user:${UUID.randomUUID()}"
+                                    lifecycleScope.launch {
+                                        val result = workspaceRuntimeCoordinator.createHomePage(pageId)
+                                        if (result is WorkspacePagedRoomMutationResult.CreatedPage) {
+                                            selectedHomePageId = result.pageId
+                                        }
+                                    }
+                                }
+                            },
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
@@ -369,6 +386,7 @@ class MainActivity : ComponentActivity() {
                             onSetDrawerPageRows = launcherPreferencesRepository::setDrawerPageRows,
                             onSetShowDrawerAppCount = launcherPreferencesRepository::setShowDrawerAppCount,
                             onSetHomeGlanceAlignment = launcherPreferencesRepository::setHomeGlanceAlignment,
+                            onSetHomeSearchPlacement = launcherPreferencesRepository::setHomeSearchPlacement,
                             onSetDockStyle = launcherPreferencesRepository::setDockStyle,
                             onSetWallpaperShade = launcherPreferencesRepository::setWallpaperShade,
                             onOpenWallpaperPicker = ::openWallpaperPicker,
