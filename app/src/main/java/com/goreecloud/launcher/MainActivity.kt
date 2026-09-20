@@ -42,6 +42,7 @@ import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResul
 import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
+import com.goreecloud.launcher.ui.HomePageDots
 import com.goreecloud.launcher.ui.HomePageSwitcher
 import com.goreecloud.launcher.ui.LayoutLockHoldControl
 import com.goreecloud.launcher.ui.LauncherBetaRoot
@@ -308,7 +309,9 @@ class MainActivity : ComponentActivity() {
                             onSetIndexHomeMode = launcherPreferencesRepository::setIndexHomeMode,
                             onSetHomeCardStyle = launcherPreferencesRepository::setHomeCardStyle,
                             onSetShowHomeQuickActions = launcherPreferencesRepository::setShowHomeQuickActions,
+                            onSetShowHomePageIndicator = launcherPreferencesRepository::setShowHomePageIndicator,
                             onSetDrawerBackdrop = launcherPreferencesRepository::setDrawerBackdrop,
+                            onSetDrawerSearchPlacement = launcherPreferencesRepository::setDrawerSearchPlacement,
                             onSetShowDrawerAppCount = launcherPreferencesRepository::setShowDrawerAppCount,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
@@ -316,8 +319,23 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // Keep the primary homescreen visually quiet. Page-management chrome only
-                    // appears after navigating to an additional page, where it is actually needed.
+                    if (
+                        experiencePreferences.showHomePageIndicator &&
+                        renderedPages.size > 1 &&
+                        showingHome
+                    ) {
+                        HomePageDots(
+                            pages = renderedPages,
+                            selectedPageId = selectedHomePageId,
+                            onSelectPage = { selectedHomePageId = it },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .navigationBarsPadding()
+                                .padding(bottom = if (onPrimaryPage) 102.dp else 24.dp),
+                        )
+                    }
+
+                    // Detailed page-management controls remain available on secondary pages.
                     val showPageSwitcher = renderedPages.size > 1 && showingHome && !onPrimaryPage
                     if (showPageSwitcher) {
                         HomePageSwitcher(
