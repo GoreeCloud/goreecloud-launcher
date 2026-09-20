@@ -6,7 +6,7 @@ GoreeCloud Launcher is GoreeCloud's privacy-first, original Android HOME applica
 
 **Development — not a signed production/Stable release.**
 
-The current repository contains a usable native daily-launcher foundation, a rebuilt Home / Apps / Launcher Settings product shell, guarded Room-authority multi-page workspace foundations, a Development Launcher-to-Index universal-search handoff, and a bounded **Glaze UI 2.2.0 Adoption Candidate** with a reachable native Theme Manager for the implemented System / Light / Dark appearance modes. Passing CI/emulator tests does not establish complete rendered/native/accessibility or physical-device acceptance, signed release, complete platform integration, or Stable qualification.
+The current repository contains a usable native daily-launcher foundation, a rebuilt Home / Apps / Launcher Settings product shell, guarded Room-authority multi-page workspace foundations, a Development Launcher-to-Index universal-search handoff, and a retained **GLAZE UI V1.1 / 1.1.0 implemented baseline** with a reachable native Theme Manager. **GLAZE UI V1.6 / 1.6.0 is the current required shared target**, recorded separately so the older implementation is not mislabeled as current. Passing CI/emulator tests does not establish V1.6 consumer conformance, complete rendered/native/accessibility or physical-device acceptance, signed release, complete platform integration, or Stable qualification.
 
 The complete approved target capability inventory is maintained in [FEATURES.md](FEATURES.md). Target capabilities are not implementation claims unless separately identified as current Development behavior and supported by repository evidence.
 
@@ -56,7 +56,7 @@ Current Development source includes:
 - a **Search GoreeCloud** Home affordance when Permanent mode is selected;
 - the one-finger downward Home gesture wired to the same Index handoff in both entry modes;
 - bounded package visibility for the Index search action without broad package access;
-- Glaze UI 2.2.0 Stable token/geometry/target mapping as an application Adoption Candidate, including the 48 dp general floor, mapped 56 dp Touch Assistance target, and ordinary System Glaze composition budget;
+- Retained GLAZE UI V1.1 token/geometry/target mapping for the currently implemented native baseline, including the 48 dp general floor and mapped 56 dp Touch Assistance target; V1.6.0 remains the required migration target;
 - a reachable Settings → Theme Manager path with saveable/fail-closed sub-destination restoration, direct persisted System/Light/Dark theme selection, concise preview semantics, and a non-actionable selected-state surface; and
 - Android system wallpaper presentation through the native window-wallpaper mechanism without requesting wallpaper/storage privileges.
 
@@ -126,9 +126,9 @@ Index search history, provider controls, contextual ranking, and remote-provider
 
 ## Glaze UI boundary
 
-Launcher carries repository-level **Glaze UI 2.2.0 Adoption Candidate** evidence anchored to Stable promotion head `fb5ecde4a8258503789ffde08ac46a2e524ef71e`, Stable release merge `6731098b28dd0393faa878c70d989a221d714a20`, and tag `v2.2.0`. The bounded native mapping covers the currently consumed spacing/shape/target semantics, Light/Dark foundations, the ordinary System Glaze composition budget, direct persisted theme selection, and the reachable Theme Manager Settings composition. Historical Glaze Motion evaluation remains Experimental/test-only.
+Launcher implements a bounded native **GLAZE UI V1.1 / 1.1.0** baseline at exact source authority `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`. The separate current-authority boundary pins required **GLAZE UI V1.6 / 1.6.0** to exact Stable source `a7180679ea851389e0f3004515f9a25f420e716d`. The retained native mapping covers the currently consumed spacing/shape/target semantics, theme persistence, and reachable Theme Manager composition. Historical Glaze Motion evaluation remains Experimental/test-only.
 
-This does **not** make Launcher Glaze UI 2.2 conformant, `aligned-current-stable`, or production-eligible. Deep Dark, complete component/state mapping, complete System Glaze/material-budget review, density/performance adaptation, deterministic accessibility-resolution behavior, Reduced Transparency/Solid resolution, large-text/reflow, forced-colors/native equivalents, runtime Touch Assistance preference resolution, Reduced Motion, Increased Contrast, TalkBack/Switch Access, responsive phone/tablet/foldable composition, rendered/native visual review, representative physical-device Theme Manager behavior, and Human Visual Excellence remain separate evidence requirements.
+This does **not** make Launcher V1.6-conformant, `aligned-current-stable`, or production-eligible. Complete V1.6 component/state mapping, current motion/material/input/resilience/navigation behavior, density/performance adaptation, deterministic accessibility resolution, Reduced Transparency/Solid resolution, large-text/reflow, forced-colors/native equivalents, runtime Touch Assistance resolution, Reduced Motion, Increased Contrast, TalkBack/Switch Access, responsive phone/tablet/foldable composition, rendered/native visual review, representative physical-device Theme Manager behavior, and Human Visual Excellence remain separate evidence requirements.
 
 ## Current limitations
 
