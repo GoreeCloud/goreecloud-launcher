@@ -202,7 +202,7 @@ Contacts, files/documents, calendar, media, Drive, first-party app-content provi
 
 Launcher requires a unique first-party visual identity distinct from framework defaults, upstream products, and the generic GoreeCloud platform/corporate logo.
 
-All canonical Launcher logos, icons, symbols, illustrations, and artwork must be stored, reviewed, and approved in **`GoreeCloud/goreecloud-branding-assets`**. The current canonical Launcher source is `products/launcher/app-icon.svg`. `GoreeCloud/goreecloud-launcher` is a consumer repository and may carry only traceable synchronized/generated/packaged Android derivatives required for the application.
+All canonical Launcher logos, icons, symbols, illustrations, and artwork must be stored, reviewed, and approved in **`GoreeCloud/goreecloud-branding-assets`**. The current canonical Launcher source is `products/launcher/app-icon.svg`. `GoreeCloud/launcher` is the current consumer repository and may carry only traceable synchronized/generated/packaged Android derivatives required for the application.
 
 `branding/provenance.json` records the canonical repository/path/blob used to create the current Android adaptive, round, and monochrome derivatives. A consumer derivative must never be edited into an independent canonical source. Future visual revisions begin in `goreecloud-branding-assets`, then propagate through a traceable derivative update.
 

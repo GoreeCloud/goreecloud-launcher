@@ -3,6 +3,7 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development and is not Stable or production accepted.
+- GitHub repository identity is now `GoreeCloud/launcher` after a repository rename. The repository ID, product identity, Android package namespaces, and versioned Launcher data-format identifiers remain unchanged; the rename does not establish runtime or release acceptance.
 - Latest source-bearing stabilization baseline: `0a12c06781841924a4b4eeb2494735d9d44b2811`, integrating PR #128 on top of the prior Launcher stabilization line. The source now maps to exact Official Stable GLAZE UI V1.6 / 1.6.0 while application acceptance remains blocked. Earlier documentation-only integrations changed documentation only and did not alter Launcher runtime authority.
 - GitHub issue #80 is the current Android core-stabilization gate and records physical-device blockers for HOME behavior, drawer gestures/transitions, local app search, drawer presentation, app discovery, performance, and Quickstep/Recents compatibility.
 - Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. Authoritative `main` now carries the integrated first-party V1.6 / 1.6.0 source mapping; no historical stack is treated as current source or acceptance.
