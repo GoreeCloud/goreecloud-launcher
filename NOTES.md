@@ -47,4 +47,6 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 
 - The current stabilization candidate adds Android 16 runtime coverage for the issue #80 path where a swipe-up gesture begins over an actual workspace application tile rather than empty Home chrome.
 - The test requires the gesture to transition from primary Home into the app drawer and render both the Apps heading and Search apps field.
-- This is automated Development regression evidence only. It does not establish representative physical-device gesture smoothness, transition quality, Quickstep/Recents coexistence, measured performance, accessibility acceptance, or Stable qualification.
+- Exact-head runtime validation exposed that the primary Home `LazyVerticalGrid` still accepted vertical scrolling and won the gesture when a swipe began on app content. The candidate now disables user scrolling on that fixed Home grid so the parent Home swipe detector can receive drawer gestures across app tiles; the app drawer grid remains scrollable.
+- Superseded candidate heads also exposed two test-only defects (a missing Compose `swipeUp` import and a non-`Unit` JUnit test signature). Those failed heads are audit history and are not accepted as runtime evidence.
+- This remains automated Development regression evidence only. It does not establish representative physical-device gesture smoothness, transition quality, Quickstep/Recents coexistence, measured performance, accessibility acceptance, or Stable qualification.
