@@ -41,9 +41,11 @@ class LauncherPreferencesTest {
         val defaults = LauncherExperiencePreferences()
 
         assertFalse(defaults.showHomeQuickActions)
+        assertEquals(true, defaults.showHomePageIndicator)
         assertFalse(defaults.starterLayoutApplied)
         assertEquals(LauncherDockStyle.GLASS, defaults.dockStyle)
         assertEquals(LauncherWallpaperShade.SOFT, defaults.wallpaperShade)
+        assertEquals(LauncherDrawerSearchPlacement.BOTTOM, defaults.drawerSearchPlacement)
     }
 
     @Test
@@ -52,6 +54,14 @@ class LauncherPreferencesTest {
         assertEquals(LauncherDockStyle.GLASS, LauncherDockStyle.fromStorage("unknown"))
         assertEquals(LauncherWallpaperShade.STRONG, LauncherWallpaperShade.fromStorage("strong"))
         assertEquals(LauncherWallpaperShade.SOFT, LauncherWallpaperShade.fromStorage(null))
+        assertEquals(
+            LauncherDrawerSearchPlacement.TOP,
+            LauncherDrawerSearchPlacement.fromStorage("top"),
+        )
+        assertEquals(
+            LauncherDrawerSearchPlacement.BOTTOM,
+            LauncherDrawerSearchPlacement.fromStorage("unknown"),
+        )
     }
 
     @Test
