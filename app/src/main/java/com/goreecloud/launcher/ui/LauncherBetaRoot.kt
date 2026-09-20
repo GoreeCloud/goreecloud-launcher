@@ -212,6 +212,7 @@ fun LauncherBetaRoot(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeSurface(
     apps: List<LauncherActivityInfo>,
