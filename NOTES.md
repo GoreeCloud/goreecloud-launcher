@@ -3,7 +3,7 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development and is not Stable or production accepted.
-- Latest source-bearing stabilization baseline: `f5150b99687946cbf34d963a3935de104e486e23`, including the asynchronous shared icon cache, off-main-thread/scoped LauncherApps inventory refresh, hardened local installed-app search, immutable Android CI supply-chain integration, Platform Contract 0.4/all-nine-system reconciliation, and the PR #120 workspace-tile drawer-gesture correction. Documentation-only PR #121 followed that source-bearing baseline without changing Launcher runtime behavior.
+- Latest source-bearing stabilization baseline: `f22d39d0801551470c0bb38c99d27e8de4172d62`, including the asynchronous shared icon cache, off-main-thread/scoped LauncherApps inventory refresh, hardened local installed-app search, immutable Android CI supply-chain integration, Platform Contract 0.4/all-nine-system reconciliation, the PR #120 workspace-tile drawer-gesture correction, and the integrated PR #123 bounded Home/app-drawer transition behavior. Earlier documentation-only PR #121/#122 changed documentation only and did not alter Launcher runtime behavior.
 - GitHub issue #80 is the current Android core-stabilization gate and records physical-device blockers for HOME behavior, drawer gestures/transitions, local app search, drawer presentation, app discovery, performance, and Quickstep/Recents compatibility.
 - Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. Authoritative source still maps GLAZE UI 1.1.0. PR #119 integrated Platform Contract 0.4/all-nine-system reconciliation without claiming the unmerged 1.5.1 source migration.
 
@@ -53,7 +53,7 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 
 ## Home and drawer transition stabilization — September 19, 2026
 
-- This Development candidate replaces the abrupt top-level Home/app-drawer surface swap with a bounded Compose animated transition.
+- PR #123 is integrated on `main` and replaces the abrupt top-level Home/app-drawer surface swap with a bounded Compose animated transition.
 - Home-to-drawer uses a short upward spatial transition plus fade, while drawer-to-Home reverses that spatial direction; Settings transitions remain a short fade.
 - The existing gesture authority is unchanged: the fixed Home grid remains non-scrollable so parent Home swipe handling retains the workspace-tile gesture path, and the app drawer itself remains scrollable.
 - Existing Android 16 runtime acceptance must still prove that a swipe beginning on workspace app content reaches the drawer and exposes Apps and Search apps after the transition.
