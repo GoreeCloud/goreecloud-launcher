@@ -3,9 +3,9 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development and is not Stable or production accepted.
-- Verified current stabilization base: `main` at `5343869c1dc5f31a10196f6b1992a848b47337db`, including the asynchronous shared icon cache, off-main-thread/scoped LauncherApps inventory refresh, hardened local installed-app search, and immutable Android CI supply-chain integration.
+- Verified current stabilization base: `main` at `de03baa3fae9cfbd9902601074660820f625911e`, including the asynchronous shared icon cache, off-main-thread/scoped LauncherApps inventory refresh, hardened local installed-app search, immutable Android CI supply-chain integration, and Platform Contract 0.4/all-nine-system reconciliation.
 - GitHub issue #80 is the current Android core-stabilization gate and records physical-device blockers for HOME behavior, drawer gestures/transitions, local app search, drawer presentation, app discovery, performance, and Quickstep/Recents compatibility.
-- Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. Authoritative source still maps GLAZE UI 1.1.0. The root Platform Contract declaration was stale at 0.2/seven systems and is being reconciled in this stabilization branch to Contract 0.4/all nine systems without claiming the unmerged 1.5.1 source migration.
+- Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. Authoritative source still maps GLAZE UI 1.1.0. PR #119 integrated Platform Contract 0.4/all-nine-system reconciliation without claiming the unmerged 1.5.1 source migration.
 
 ## Active stabilization observations
 
@@ -36,8 +36,15 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 
 ## Platform Contract stabilization — September 19, 2026
 
-- This branch updates the root manifest from legacy Contract 0.2/seven-system structure to accepted Contract 0.4/all nine Integral Platform Systems.
+- PR #119 updated the root manifest from legacy Contract 0.2/seven-system structure to accepted Contract 0.4/all nine Integral Platform Systems and is integrated on `main`.
 - GoreeCloud Policy and GoreeCloud Observability are explicitly evaluated as applicable-blocked rather than silently omitted.
 - The manifest truthfully records the implemented GLAZE UI V1.1 / 1.1.0 mapping while declaring current Official Stable V1.5 / 1.5.1 as the required migration target; the unmerged historical 1.5.1 stack is not treated as current source.
 - The reusable Platform Contract workflow is repinned to the accepted central Contract 0.4 validator revision.
 - This is governance and validation hardening only; issue #80 physical-device/default-HOME, gesture/transition, Quickstep/Recents, performance, and full P0 acceptance remain open.
+
+
+## Workspace drawer gesture regression coverage — September 19, 2026
+
+- The current stabilization candidate adds Android 16 runtime coverage for the issue #80 path where a swipe-up gesture begins over an actual workspace application tile rather than empty Home chrome.
+- The test requires the gesture to transition from primary Home into the app drawer and render both the Apps heading and Search apps field.
+- This is automated Development regression evidence only. It does not establish representative physical-device gesture smoothness, transition quality, Quickstep/Recents coexistence, measured performance, accessibility acceptance, or Stable qualification.
