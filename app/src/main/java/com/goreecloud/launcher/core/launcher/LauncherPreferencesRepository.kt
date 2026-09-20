@@ -73,6 +73,26 @@ enum class LauncherDrawerSearchPlacement(val storageValue: String) {
     }
 }
 
+enum class LauncherDrawerNavigation(val storageValue: String) {
+    SCROLL("scroll"),
+    PAGES("pages");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerNavigation =
+            entries.firstOrNull { it.storageValue == value } ?: PAGES
+    }
+}
+
+enum class LauncherHomeGlanceAlignment(val storageValue: String) {
+    LEFT("left"),
+    CENTER("center");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeGlanceAlignment =
+            entries.firstOrNull { it.storageValue == value } ?: LEFT
+    }
+}
+
 enum class LauncherDockStyle(val storageValue: String) {
     GLASS("glass"),
     CLEAR("clear");
@@ -100,7 +120,10 @@ data class LauncherExperiencePreferences(
     val showHomePageIndicator: Boolean = true,
     val drawerBackdrop: LauncherDrawerBackdrop = LauncherDrawerBackdrop.GLASS,
     val drawerSearchPlacement: LauncherDrawerSearchPlacement = LauncherDrawerSearchPlacement.BOTTOM,
+    val drawerNavigation: LauncherDrawerNavigation = LauncherDrawerNavigation.PAGES,
+    val drawerPageRows: Int = 5,
     val showDrawerAppCount: Boolean = false,
+    val homeGlanceAlignment: LauncherHomeGlanceAlignment = LauncherHomeGlanceAlignment.LEFT,
     val dockStyle: LauncherDockStyle = LauncherDockStyle.GLASS,
     val wallpaperShade: LauncherWallpaperShade = LauncherWallpaperShade.SOFT,
     val starterLayoutApplied: Boolean = false,
@@ -144,7 +167,10 @@ class LauncherPreferencesRepository(
         val showHomePageIndicator = booleanPreferencesKey("show_home_page_indicator")
         val drawerBackdrop = stringPreferencesKey("drawer_backdrop")
         val drawerSearchPlacement = stringPreferencesKey("drawer_search_placement")
+        val drawerNavigation = stringPreferencesKey("drawer_navigation")
+        val drawerPageRows = intPreferencesKey("drawer_page_rows")
         val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
+        val homeGlanceAlignment = stringPreferencesKey("home_glance_alignment")
         val dockStyle = stringPreferencesKey("dock_style")
         val wallpaperShade = stringPreferencesKey("wallpaper_shade")
         val starterLayoutApplied = booleanPreferencesKey("starter_layout_applied")
@@ -179,7 +205,10 @@ class LauncherPreferencesRepository(
                 showHomePageIndicator = values[Keys.showHomePageIndicator] ?: true,
                 drawerBackdrop = LauncherDrawerBackdrop.fromStorage(values[Keys.drawerBackdrop]),
                 drawerSearchPlacement = LauncherDrawerSearchPlacement.fromStorage(values[Keys.drawerSearchPlacement]),
+                drawerNavigation = LauncherDrawerNavigation.fromStorage(values[Keys.drawerNavigation]),
+                drawerPageRows = (values[Keys.drawerPageRows] ?: 5).coerceIn(4, 6),
                 showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
+                homeGlanceAlignment = LauncherHomeGlanceAlignment.fromStorage(values[Keys.homeGlanceAlignment]),
                 dockStyle = LauncherDockStyle.fromStorage(values[Keys.dockStyle]),
                 wallpaperShade = LauncherWallpaperShade.fromStorage(values[Keys.wallpaperShade]),
                 starterLayoutApplied = values[Keys.starterLayoutApplied] ?: false,
@@ -283,6 +312,30 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.drawerSearchPlacement] = placement.storageValue
+            }
+        }
+    }
+
+    fun setDrawerNavigation(navigation: LauncherDrawerNavigation) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerNavigation] = navigation.storageValue
+            }
+        }
+    }
+
+    fun setDrawerPageRows(rows: Int) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerPageRows] = rows.coerceIn(4, 6)
+            }
+        }
+    }
+
+    fun setHomeGlanceAlignment(alignment: LauncherHomeGlanceAlignment) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeGlanceAlignment] = alignment.storageValue
             }
         }
     }

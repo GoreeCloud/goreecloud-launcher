@@ -16,6 +16,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items as lazyItems
@@ -31,8 +33,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -44,9 +48,11 @@ import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
+import com.goreecloud.launcher.core.launcher.LauncherDrawerNavigation
 import com.goreecloud.launcher.core.launcher.LauncherDrawerSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
+import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
@@ -60,6 +66,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class LauncherSurfaceMode { HOME, DRAWER, SETTINGS }
 
@@ -92,7 +99,10 @@ fun LauncherBetaRoot(
     onSetShowHomePageIndicator: (Boolean) -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
+    onSetDrawerNavigation: (LauncherDrawerNavigation) -> Unit,
+    onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
+    onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onOpenWallpaperPicker: () -> Unit,
@@ -187,7 +197,10 @@ fun LauncherBetaRoot(
                         onSetShowHomePageIndicator = onSetShowHomePageIndicator,
                         onSetDrawerBackdrop = onSetDrawerBackdrop,
                         onSetDrawerSearchPlacement = onSetDrawerSearchPlacement,
+                        onSetDrawerNavigation = onSetDrawerNavigation,
+                        onSetDrawerPageRows = onSetDrawerPageRows,
                         onSetShowDrawerAppCount = onSetShowDrawerAppCount,
+                        onSetHomeGlanceAlignment = onSetHomeGlanceAlignment,
                         onSetDockStyle = onSetDockStyle,
                         onSetWallpaperShade = onSetWallpaperShade,
                         onOpenThemeManager = onOpenThemeManager,
@@ -303,6 +316,7 @@ private fun HomeSurface(
                 HomeAtAGlance(
                     now = now,
                     compact = experiencePreferences.homeCardStyle == LauncherHomeCardStyle.COMPACT,
+                    alignment = experiencePreferences.homeGlanceAlignment,
                 )
             }
 
@@ -458,6 +472,7 @@ private fun HomeEditorAction(
 private fun HomeAtAGlance(
     now: LocalDateTime,
     compact: Boolean,
+    alignment: LauncherHomeGlanceAlignment,
 ) {
     val locale = Locale.getDefault()
     val time = remember(now.minute, locale) {
@@ -466,35 +481,58 @@ private fun HomeAtAGlance(
     val date = remember(now.dayOfYear, locale) {
         now.format(DateTimeFormatter.ofPattern("EEE, MMM d", locale))
     }
+    val horizontalAlignment = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
+        Alignment.CenterHorizontally
+    } else {
+        Alignment.Start
+    }
+    val textAlign = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
+        TextAlign.Center
+    } else {
+        TextAlign.Start
+    }
+    val glanceShadow = Shadow(
+        color = Color.Black.copy(alpha = 0.48f),
+        offset = Offset(0f, 2f),
+        blurRadius = 7f,
+    )
 
-    Surface(
-        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        color = GlazeAtmosphere.canvasBlack.copy(alpha = if (compact) 0.16f else 0.20f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-    ) {
-        Column(
-            modifier = Modifier.padding(
-                horizontal = if (compact) GlazeMetrics.space3 else GlazeMetrics.space4,
-                vertical = if (compact) GlazeMetrics.space2 else GlazeMetrics.space3,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = if (compact) GlazeMetrics.space2 else GlazeMetrics.space3,
+                vertical = if (compact) GlazeMetrics.space1 else GlazeMetrics.space2,
             ),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                time,
-                style = if (compact) {
-                    MaterialTheme.typography.headlineMedium
-                } else {
-                    MaterialTheme.typography.displaySmall
-                },
-                color = Color.White,
-                fontWeight = FontWeight.Medium,
-            )
-            Text(
-                date,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.82f),
-            )
-        }
+        horizontalAlignment = horizontalAlignment,
+        verticalArrangement = Arrangement.spacedBy(1.dp),
+    ) {
+        Text(
+            time,
+            modifier = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
+                Modifier.fillMaxWidth()
+            } else {
+                Modifier
+            },
+            style = (
+                if (compact) MaterialTheme.typography.headlineMedium
+                else MaterialTheme.typography.displayMedium
+            ).copy(shadow = glanceShadow),
+            color = Color.White,
+            fontWeight = FontWeight.Light,
+            textAlign = textAlign,
+        )
+        Text(
+            date,
+            modifier = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
+                Modifier.fillMaxWidth()
+            } else {
+                Modifier
+            },
+            style = MaterialTheme.typography.bodyMedium.copy(shadow = glanceShadow),
+            color = Color.White.copy(alpha = 0.92f),
+            textAlign = textAlign,
+        )
     }
 }
 
@@ -759,6 +797,7 @@ private fun AppDrawerSurface(
                     query = query,
                     preferences = preferences,
                     drawerLayoutMode = drawerLayoutMode,
+                    experiencePreferences = experiencePreferences,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
                     secondaryColor = drawerSecondaryColor,
@@ -779,12 +818,14 @@ private fun AppDrawerSurface(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DrawerAppsContent(
     apps: List<LauncherActivityInfo>,
     query: String,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
+    experiencePreferences: LauncherExperiencePreferences,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     secondaryColor: Color,
@@ -801,6 +842,88 @@ private fun DrawerAppsContent(
                 color = secondaryColor,
                 textAlign = TextAlign.Center,
             )
+        }
+        return
+    }
+
+    val pagedGrid = experiencePreferences.drawerNavigation == LauncherDrawerNavigation.PAGES &&
+        drawerLayoutMode != LauncherDrawerLayoutMode.LIST
+
+    if (pagedGrid) {
+        val pageSize = (
+            preferences.drawerColumns * experiencePreferences.drawerPageRows.coerceIn(4, 6)
+        ).coerceAtLeast(1)
+        val pageCount = ((apps.size + pageSize - 1) / pageSize).coerceAtLeast(1)
+        val pagerState = rememberPagerState(pageCount = { pageCount })
+        val pagerScope = rememberCoroutineScope()
+
+        LaunchedEffect(query, pageCount) {
+            if (pagerState.currentPage >= pageCount || query.isNotBlank()) {
+                pagerState.scrollToPage(0)
+            }
+        }
+
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                pageSpacing = GlazeMetrics.space3,
+            ) { page ->
+                val pageApps = apps.drop(page * pageSize).take(pageSize)
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(preferences.drawerColumns),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = GlazeMetrics.space2),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) {
+                            GlazeMetrics.space1
+                        } else {
+                            GlazeMetrics.space2
+                        },
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(
+                        if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) {
+                            GlazeMetrics.space1
+                        } else {
+                            GlazeMetrics.space2
+                        },
+                    ),
+                    userScrollEnabled = false,
+                ) {
+                    items(pageApps, key = { it.workspaceKey() }) { app ->
+                        LauncherAppTile(
+                            app = app,
+                            iconScale = preferences.iconScale,
+                            showLabel = preferences.showLabels,
+                            compact = drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT,
+                            onClick = { onLaunchApp(app) },
+                            onLongClick = { onManageApp(app) },
+                            modifier = Modifier.height(
+                                if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) 72.dp
+                                else 88.dp,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            if (pageCount > 1) {
+                DrawerPageDots(
+                    pageCount = pageCount,
+                    currentPage = pagerState.currentPage,
+                    onSelectPage = { target ->
+                        if (target != pagerState.currentPage) {
+                            pagerScope.launch {
+                                pagerState.animateScrollToPage(target)
+                            }
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            }
         }
         return
     }
@@ -862,6 +985,34 @@ private fun DrawerAppsContent(
 }
 
 @Composable
+private fun DrawerPageDots(
+    pageCount: Int,
+    currentPage: Int,
+    onSelectPage: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(pageCount) { page ->
+            Surface(
+                onClick = { onSelectPage(page) },
+                modifier = Modifier.size(if (page == currentPage) 8.dp else 6.dp),
+                shape = CircleShape,
+                color = if (page == currentPage) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f)
+                },
+            ) {}
+        }
+    }
+}
+
+
+@Composable
 private fun LauncherSettingsRootSurface(
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
@@ -881,7 +1032,10 @@ private fun LauncherSettingsRootSurface(
     onSetShowHomePageIndicator: (Boolean) -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
+    onSetDrawerNavigation: (LauncherDrawerNavigation) -> Unit,
+    onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
+    onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onOpenThemeManager: () -> Unit,
@@ -963,6 +1117,23 @@ private fun LauncherSettingsRootSurface(
                     onChoice = {
                         val parts = it.split("×")
                         onSetHomeGrid(parts[0].toInt(), parts[1].toInt())
+                    },
+                )
+                Text(
+                    "Clock alignment",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Left", "Center"),
+                    selected = if (
+                        experiencePreferences.homeGlanceAlignment == LauncherHomeGlanceAlignment.CENTER
+                    ) "Center" else "Left",
+                    onChoice = {
+                        onSetHomeGlanceAlignment(
+                            if (it == "Center") LauncherHomeGlanceAlignment.CENTER
+                            else LauncherHomeGlanceAlignment.LEFT,
+                        )
                     },
                 )
                 SettingSwitch(
@@ -1057,6 +1228,38 @@ private fun LauncherSettingsRootSurface(
                         )
                     },
                 )
+                Text(
+                    "Navigation",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Pages", "Scroll"),
+                    selected = if (
+                        experiencePreferences.drawerNavigation == LauncherDrawerNavigation.PAGES
+                    ) "Pages" else "Scroll",
+                    onChoice = {
+                        onSetDrawerNavigation(
+                            if (it == "Scroll") LauncherDrawerNavigation.SCROLL
+                            else LauncherDrawerNavigation.PAGES,
+                        )
+                    },
+                )
+                if (
+                    experiencePreferences.drawerNavigation == LauncherDrawerNavigation.PAGES &&
+                    drawerLayoutMode != LauncherDrawerLayoutMode.LIST
+                ) {
+                    Text(
+                        "Rows per page",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    ChoiceRow(
+                        choices = listOf("4", "5", "6"),
+                        selected = experiencePreferences.drawerPageRows.toString(),
+                        onChoice = { onSetDrawerPageRows(it.toInt()) },
+                    )
+                }
                 Text(
                     "Search position",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
