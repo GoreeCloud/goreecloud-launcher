@@ -1032,7 +1032,10 @@ private fun LauncherSettingsRootSurface(
     onSetShowHomePageIndicator: (Boolean) -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
+    onSetDrawerNavigation: (LauncherDrawerNavigation) -> Unit,
+    onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
+    onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onOpenThemeManager: () -> Unit,
@@ -1114,6 +1117,23 @@ private fun LauncherSettingsRootSurface(
                     onChoice = {
                         val parts = it.split("×")
                         onSetHomeGrid(parts[0].toInt(), parts[1].toInt())
+                    },
+                )
+                Text(
+                    "Clock alignment",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Left", "Center"),
+                    selected = if (
+                        experiencePreferences.homeGlanceAlignment == LauncherHomeGlanceAlignment.CENTER
+                    ) "Center" else "Left",
+                    onChoice = {
+                        onSetHomeGlanceAlignment(
+                            if (it == "Center") LauncherHomeGlanceAlignment.CENTER
+                            else LauncherHomeGlanceAlignment.LEFT,
+                        )
                     },
                 )
                 SettingSwitch(
@@ -1208,6 +1228,38 @@ private fun LauncherSettingsRootSurface(
                         )
                     },
                 )
+                Text(
+                    "Navigation",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Pages", "Scroll"),
+                    selected = if (
+                        experiencePreferences.drawerNavigation == LauncherDrawerNavigation.PAGES
+                    ) "Pages" else "Scroll",
+                    onChoice = {
+                        onSetDrawerNavigation(
+                            if (it == "Scroll") LauncherDrawerNavigation.SCROLL
+                            else LauncherDrawerNavigation.PAGES,
+                        )
+                    },
+                )
+                if (
+                    experiencePreferences.drawerNavigation == LauncherDrawerNavigation.PAGES &&
+                    drawerLayoutMode != LauncherDrawerLayoutMode.LIST
+                ) {
+                    Text(
+                        "Rows per page",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    ChoiceRow(
+                        choices = listOf("4", "5", "6"),
+                        selected = experiencePreferences.drawerPageRows.toString(),
+                        onChoice = { onSetDrawerPageRows(it.toInt()) },
+                    )
+                }
                 Text(
                     "Search position",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
