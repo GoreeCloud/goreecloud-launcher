@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
+import com.goreecloud.launcher.core.launcher.LauncherDrawerSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
@@ -85,7 +86,9 @@ fun LauncherBetaRoot(
     onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
+    onSetShowHomePageIndicator: (Boolean) -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
+    onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
 ) {
@@ -176,7 +179,9 @@ fun LauncherBetaRoot(
                         onSetIndexHomeMode = onSetIndexHomeMode,
                         onSetHomeCardStyle = onSetHomeCardStyle,
                         onSetShowHomeQuickActions = onSetShowHomeQuickActions,
+                        onSetShowHomePageIndicator = onSetShowHomePageIndicator,
                         onSetDrawerBackdrop = onSetDrawerBackdrop,
+                        onSetDrawerSearchPlacement = onSetDrawerSearchPlacement,
                         onSetShowDrawerAppCount = onSetShowDrawerAppCount,
                         onOpenThemeManager = onOpenThemeManager,
                         onBack = { surfaceModeName = LauncherSurfaceMode.HOME.name },
@@ -260,8 +265,8 @@ private fun HomeSurface(
                     Brush.verticalGradient(
                         listOf(
                             Color.Transparent,
-                            GlazeAtmosphere.canvasBlack.copy(alpha = 0.04f),
-                            GlazeAtmosphere.canvasBlack.copy(alpha = 0.32f),
+                            GlazeAtmosphere.canvasBlack.copy(alpha = 0.03f),
+                            GlazeAtmosphere.canvasBlack.copy(alpha = 0.22f),
                         ),
                     ),
                 ),
@@ -272,10 +277,10 @@ private fun HomeSurface(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            GlazeAtmosphere.softAqua.copy(alpha = 0.10f),
+                            GlazeAtmosphere.softAqua.copy(alpha = 0.07f),
                             Color.Transparent,
                         ),
-                        radius = 980f,
+                        radius = 1080f,
                     ),
                 ),
         )
@@ -296,7 +301,7 @@ private fun HomeSurface(
                 if (!isDefaultHome) {
                     GlazeTextAction("Make default", onRequestHomeRole)
                 } else {
-                    Spacer(Modifier.width(44.dp))
+                    Spacer(Modifier.width(1.dp))
                 }
                 GlazeRoundAction(label = "⚙", onClick = onOpenSettings)
             }
@@ -311,13 +316,11 @@ private fun HomeSurface(
             }
 
             if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    GlazeSearchCapsule(
-                        value = "Search GoreeCloud",
-                        onClick = onOpenUniversalSearch,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                GlazeSearchCapsule(
+                    value = "Search apps, GoreeCloud and more",
+                    onClick = onOpenUniversalSearch,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             if (experiencePreferences.showHomeQuickActions) {
@@ -328,55 +331,45 @@ private fun HomeSurface(
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            ) {
-                if (favoriteApps.isEmpty()) {
-                    EmptyWorkspaceCard(
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                        onOpenApps = onOpenDrawer,
-                    )
-                } else {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                    ) {
-                        Text(
-                            "Favorites",
-                            modifier = Modifier.padding(horizontal = GlazeMetrics.space1),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Color.White.copy(alpha = 0.82f),
-                        )
-                        favoriteApps.chunked(preferences.homeColumns).forEach { rowApps ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                            ) {
-                                rowApps.forEach { app ->
-                                    LauncherAppTile(
-                                        app = app,
-                                        iconScale = preferences.iconScale,
-                                        showLabel = preferences.showLabels,
-                                        compact = true,
-                                        onClick = { onLaunchApp(app) },
-                                        onLongClick = { onManageApp(app) },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(82.dp),
-                                    )
-                                }
-                                repeat(preferences.homeColumns - rowApps.size) {
-                                    Spacer(Modifier.weight(1f))
-                                }
+            Spacer(Modifier.weight(0.35f))
+
+            if (favoriteApps.isEmpty()) {
+                EmptyWorkspaceCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onOpenApps = onOpenDrawer,
+                )
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                ) {
+                    favoriteApps.chunked(preferences.homeColumns).forEach { rowApps ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                        ) {
+                            rowApps.forEach { app ->
+                                LauncherAppTile(
+                                    app = app,
+                                    iconScale = preferences.iconScale,
+                                    showLabel = preferences.showLabels,
+                                    compact = true,
+                                    onClick = { onLaunchApp(app) },
+                                    onLongClick = { onManageApp(app) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(84.dp),
+                                )
+                            }
+                            repeat(preferences.homeColumns - rowApps.size) {
+                                Spacer(Modifier.weight(1f))
                             }
                         }
                     }
                 }
             }
+
+            Spacer(Modifier.height(GlazeMetrics.space1))
 
             if (dockApps.isNotEmpty()) {
                 GlazeDock(
@@ -385,14 +378,8 @@ private fun HomeSurface(
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
                 )
-            }
-
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Surface(
-                    modifier = Modifier.width(34.dp).height(4.dp),
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.34f),
-                ) {}
+            } else {
+                EmptyDock(onOpenApps = onOpenDrawer)
             }
         }
     }
@@ -410,42 +397,72 @@ private fun HomeClockCard(
         now.format(DateTimeFormatter.ofPattern("h:mm", locale))
     }
     val date = remember(now.dayOfYear, locale) {
-        now.format(DateTimeFormatter.ofPattern("EEEE, MMMM d", locale))
+        now.format(DateTimeFormatter.ofPattern("EEE, MMM d", locale))
     }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.48f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
+        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = if (compact) 0.34f else 0.42f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(if (compact) GlazeMetrics.space3 else GlazeMetrics.space4),
-            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                .padding(
+                    horizontal = GlazeMetrics.space4,
+                    vertical = if (compact) GlazeMetrics.space2 else GlazeMetrics.space3,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
         ) {
-            Text(
-                time,
-                style = if (compact) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                date,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    time,
+                    style = if (compact) MaterialTheme.typography.headlineMedium
+                    else MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    date,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (!compact) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                ) {
-                    GlazeTextAction("Apps", onOpenApps)
-                    GlazeTextAction("Search", onOpenSearch)
+                Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1)) {
+                    GlazeRoundAction("⌕", onOpenSearch)
+                    GlazeRoundAction("▦", onOpenApps)
                 }
             }
         }
     }
 }
+
+@Composable
+private fun EmptyDock(onOpenApps: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onOpenApps,
+        shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.34f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+    ) {
+        Box(
+            modifier = Modifier.height(68.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "Add apps to dock",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeQuickActions
 
 @Composable
 private fun HomeQuickActions(
@@ -544,8 +561,10 @@ private fun AppDrawerSurface(
     }
     val dismissThreshold = with(LocalDensity.current) { 56.dp.toPx() }
     val glass = experiencePreferences.drawerBackdrop == LauncherDrawerBackdrop.GLASS
+    val searchAtBottom =
+        experiencePreferences.drawerSearchPlacement == LauncherDrawerSearchPlacement.BOTTOM
     val drawerSurfaceColor = if (glass) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.82f)
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.80f)
     } else {
         MaterialTheme.colorScheme.background
     }
@@ -556,8 +575,8 @@ private fun AppDrawerSurface(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        GlazeAtmosphere.canvasBlack.copy(alpha = if (glass) 0.08f else 0.02f),
-                        GlazeAtmosphere.canvasBlack.copy(alpha = if (glass) 0.42f else 0.18f),
+                        GlazeAtmosphere.canvasBlack.copy(alpha = if (glass) 0.06f else 0.02f),
+                        GlazeAtmosphere.canvasBlack.copy(alpha = if (glass) 0.36f else 0.16f),
                     ),
                 ),
             ),
@@ -566,12 +585,12 @@ private fun AppDrawerSurface(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = GlazeMetrics.space2),
-            shape = RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp),
+            shape = RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp),
             color = drawerSurfaceColor,
             border = BorderStroke(
                 1.dp,
-                if (glass) Color.White.copy(alpha = 0.10f)
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+                if (glass) Color.White.copy(alpha = 0.09f)
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
             ),
         ) {
             Column(
@@ -595,12 +614,12 @@ private fun AppDrawerSurface(
             ) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Surface(
-                        modifier = Modifier.width(36.dp).height(4.dp),
+                        modifier = Modifier.width(34.dp).height(4.dp),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f),
                     ) {}
                 }
-                Spacer(Modifier.height(GlazeMetrics.space3))
+                Spacer(Modifier.height(GlazeMetrics.space2))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -611,7 +630,7 @@ private fun AppDrawerSurface(
                         Text(
                             "Apps",
                             style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                         )
                         if (experiencePreferences.showDrawerAppCount) {
                             Text(
@@ -619,100 +638,123 @@ private fun AppDrawerSurface(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        } else {
-                            Text(
-                                when (drawerLayoutMode) {
-                                    LauncherDrawerLayoutMode.GRID -> "Grid · ${preferences.drawerColumns} columns"
-                                    LauncherDrawerLayoutMode.COMPACT -> "Compact · ${preferences.drawerColumns} columns"
-                                    LauncherDrawerLayoutMode.LIST -> "Alphabetical list"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1)) {
                         GlazeRoundAction("⚙", onOpenSettings)
                         GlazeRoundAction("⌄", onHome)
                     }
                 }
 
-                Spacer(Modifier.height(GlazeMetrics.space3))
-                GlazeAppSearchField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(GlazeMetrics.space3))
-
-                if (filteredApps.isEmpty() && query.isNotBlank()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            "No installed apps match “" + query.trim() + "”",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                } else {
-                    when (drawerLayoutMode) {
-                        LauncherDrawerLayoutMode.GRID -> LazyVerticalGrid(
-                            columns = GridCells.Fixed(preferences.drawerColumns),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = GlazeMetrics.space6),
-                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                        ) {
-                            items(filteredApps, key = { it.workspaceKey() }) { app ->
-                                LauncherAppTile(
-                                    app = app,
-                                    iconScale = preferences.iconScale,
-                                    showLabel = preferences.showLabels,
-                                    compact = false,
-                                    onClick = { onLaunchApp(app) },
-                                    onLongClick = { onManageApp(app) },
-                                    modifier = Modifier.height(88.dp),
-                                )
-                            }
-                        }
-                        LauncherDrawerLayoutMode.COMPACT -> LazyVerticalGrid(
-                            columns = GridCells.Fixed(preferences.drawerColumns),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = GlazeMetrics.space6),
-                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                        ) {
-                            items(filteredApps, key = { it.workspaceKey() }) { app ->
-                                LauncherAppTile(
-                                    app = app,
-                                    iconScale = preferences.iconScale,
-                                    showLabel = preferences.showLabels,
-                                    compact = true,
-                                    onClick = { onLaunchApp(app) },
-                                    onLongClick = { onManageApp(app) },
-                                    modifier = Modifier.height(72.dp),
-                                )
-                            }
-                        }
-                        LauncherDrawerLayoutMode.LIST -> LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = GlazeMetrics.space6),
-                            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                        ) {
-                            lazyItems(filteredApps, key = { it.workspaceKey() }) { app ->
-                                LauncherAppListRow(
-                                    app = app,
-                                    iconScale = preferences.iconScale,
-                                    onClick = { onLaunchApp(app) },
-                                    onLongClick = { onManageApp(app) },
-                                )
-                            }
-                        }
-                    }
+                if (!searchAtBottom) {
+                    Spacer(Modifier.height(GlazeMetrics.space2))
+                    GlazeAppSearchField(
+                        value = query,
+                        onValueChange = { query = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
+
+                Spacer(Modifier.height(GlazeMetrics.space2))
+                DrawerAppsContent(
+                    apps = filteredApps,
+                    query = query,
+                    preferences = preferences,
+                    drawerLayoutMode = drawerLayoutMode,
+                    onLaunchApp = onLaunchApp,
+                    onManageApp = onManageApp,
+                    modifier = Modifier.weight(1f),
+                )
+
+                if (searchAtBottom) {
+                    Spacer(Modifier.height(GlazeMetrics.space2))
+                    GlazeAppSearchField(
+                        value = query,
+                        onValueChange = { query = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DrawerAppsContent(
+    apps: List<LauncherActivityInfo>,
+    query: String,
+    preferences: LauncherPreferences,
+    drawerLayoutMode: LauncherDrawerLayoutMode,
+    onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (apps.isEmpty() && query.isNotBlank()) {
+        Box(
+            modifier = modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "No installed apps match “" + query.trim() + "”",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+        return
+    }
+
+    when (drawerLayoutMode) {
+        LauncherDrawerLayoutMode.GRID -> LazyVerticalGrid(
+            columns = GridCells.Fixed(preferences.drawerColumns),
+            modifier = modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(vertical = GlazeMetrics.space2),
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        ) {
+            items(apps, key = { it.workspaceKey() }) { app ->
+                LauncherAppTile(
+                    app = app,
+                    iconScale = preferences.iconScale,
+                    showLabel = preferences.showLabels,
+                    compact = false,
+                    onClick = { onLaunchApp(app) },
+                    onLongClick = { onManageApp(app) },
+                    modifier = Modifier.height(88.dp),
+                )
+            }
+        }
+        LauncherDrawerLayoutMode.COMPACT -> LazyVerticalGrid(
+            columns = GridCells.Fixed(preferences.drawerColumns),
+            modifier = modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(vertical = GlazeMetrics.space2),
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+        ) {
+            items(apps, key = { it.workspaceKey() }) { app ->
+                LauncherAppTile(
+                    app = app,
+                    iconScale = preferences.iconScale,
+                    showLabel = preferences.showLabels,
+                    compact = true,
+                    onClick = { onLaunchApp(app) },
+                    onLongClick = { onManageApp(app) },
+                    modifier = Modifier.height(72.dp),
+                )
+            }
+        }
+        LauncherDrawerLayoutMode.LIST -> LazyColumn(
+            modifier = modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(vertical = GlazeMetrics.space2),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+        ) {
+            lazyItems(apps, key = { it.workspaceKey() }) { app ->
+                LauncherAppListRow(
+                    app = app,
+                    iconScale = preferences.iconScale,
+                    onClick = { onLaunchApp(app) },
+                    onLongClick = { onManageApp(app) },
+                )
             }
         }
     }
