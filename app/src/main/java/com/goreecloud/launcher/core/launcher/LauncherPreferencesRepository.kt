@@ -63,10 +63,46 @@ enum class LauncherDrawerBackdrop(val storageValue: String) {
     }
 }
 
+enum class LauncherHomeLayoutStyle(val storageValue: String) {
+    CLASSIC("classic"),
+    SPACIOUS("spacious"),
+    MINIMAL("minimal");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeLayoutStyle =
+            entries.firstOrNull { it.storageValue == value } ?: CLASSIC
+    }
+}
+
+enum class LauncherDockStyle(val storageValue: String) {
+    TRANSPARENT("transparent"),
+    GLASS("glass"),
+    EDGE("edge");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDockStyle =
+            entries.firstOrNull { it.storageValue == value } ?: TRANSPARENT
+    }
+}
+
+enum class LauncherDrawerSearchPosition(val storageValue: String) {
+    TOP("top"),
+    BOTTOM("bottom");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerSearchPosition =
+            entries.firstOrNull { it.storageValue == value } ?: TOP
+    }
+}
+
 data class LauncherExperiencePreferences(
-    val homeCardStyle: LauncherHomeCardStyle = LauncherHomeCardStyle.CLOCK,
-    val showHomeQuickActions: Boolean = true,
+    val homeCardStyle: LauncherHomeCardStyle = LauncherHomeCardStyle.COMPACT,
+    val homeLayoutStyle: LauncherHomeLayoutStyle = LauncherHomeLayoutStyle.CLASSIC,
+    val showHomeQuickActions: Boolean = false,
+    val showHomePageIndicator: Boolean = true,
+    val dockStyle: LauncherDockStyle = LauncherDockStyle.TRANSPARENT,
     val drawerBackdrop: LauncherDrawerBackdrop = LauncherDrawerBackdrop.GLASS,
+    val drawerSearchPosition: LauncherDrawerSearchPosition = LauncherDrawerSearchPosition.TOP,
     val showDrawerAppCount: Boolean = false,
 )
 
@@ -104,8 +140,12 @@ class LauncherPreferencesRepository(
         val indexHomeMode = stringPreferencesKey("index_home_mode")
         val drawerLayoutMode = stringPreferencesKey("drawer_layout_mode")
         val homeCardStyle = stringPreferencesKey("home_card_style")
+        val homeLayoutStyle = stringPreferencesKey("home_layout_style")
         val showHomeQuickActions = booleanPreferencesKey("show_home_quick_actions")
+        val showHomePageIndicator = booleanPreferencesKey("show_home_page_indicator")
+        val dockStyle = stringPreferencesKey("dock_style")
         val drawerBackdrop = stringPreferencesKey("drawer_backdrop")
+        val drawerSearchPosition = stringPreferencesKey("drawer_search_position")
         val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
@@ -134,8 +174,12 @@ class LauncherPreferencesRepository(
         .map { values ->
             LauncherExperiencePreferences(
                 homeCardStyle = LauncherHomeCardStyle.fromStorage(values[Keys.homeCardStyle]),
-                showHomeQuickActions = values[Keys.showHomeQuickActions] ?: true,
+                homeLayoutStyle = LauncherHomeLayoutStyle.fromStorage(values[Keys.homeLayoutStyle]),
+                showHomeQuickActions = values[Keys.showHomeQuickActions] ?: false,
+                showHomePageIndicator = values[Keys.showHomePageIndicator] ?: true,
+                dockStyle = LauncherDockStyle.fromStorage(values[Keys.dockStyle]),
                 drawerBackdrop = LauncherDrawerBackdrop.fromStorage(values[Keys.drawerBackdrop]),
+                drawerSearchPosition = LauncherDrawerSearchPosition.fromStorage(values[Keys.drawerSearchPosition]),
                 showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
             )
         }
@@ -209,6 +253,14 @@ class LauncherPreferencesRepository(
         }
     }
 
+    fun setHomeLayoutStyle(style: LauncherHomeLayoutStyle) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeLayoutStyle] = style.storageValue
+            }
+        }
+    }
+
     fun setShowHomeQuickActions(show: Boolean) {
         scope.launch {
             dataStore.edit { values ->
@@ -217,10 +269,34 @@ class LauncherPreferencesRepository(
         }
     }
 
+    fun setShowHomePageIndicator(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showHomePageIndicator] = show
+            }
+        }
+    }
+
+    fun setDockStyle(style: LauncherDockStyle) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.dockStyle] = style.storageValue
+            }
+        }
+    }
+
     fun setDrawerBackdrop(backdrop: LauncherDrawerBackdrop) {
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.drawerBackdrop] = backdrop.storageValue
+            }
+        }
+    }
+
+    fun setDrawerSearchPosition(position: LauncherDrawerSearchPosition) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerSearchPosition] = position.storageValue
             }
         }
     }
