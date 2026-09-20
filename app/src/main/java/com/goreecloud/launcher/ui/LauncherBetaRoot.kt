@@ -33,8 +33,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -469,6 +471,7 @@ private fun HomeEditorAction(
 private fun HomeAtAGlance(
     now: LocalDateTime,
     compact: Boolean,
+    alignment: LauncherHomeGlanceAlignment,
 ) {
     val locale = Locale.getDefault()
     val time = remember(now.minute, locale) {
@@ -477,35 +480,58 @@ private fun HomeAtAGlance(
     val date = remember(now.dayOfYear, locale) {
         now.format(DateTimeFormatter.ofPattern("EEE, MMM d", locale))
     }
+    val horizontalAlignment = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
+        Alignment.CenterHorizontally
+    } else {
+        Alignment.Start
+    }
+    val textAlign = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
+        TextAlign.Center
+    } else {
+        TextAlign.Start
+    }
+    val glanceShadow = Shadow(
+        color = Color.Black.copy(alpha = 0.48f),
+        offset = Offset(0f, 2f),
+        blurRadius = 7f,
+    )
 
-    Surface(
-        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        color = GlazeAtmosphere.canvasBlack.copy(alpha = if (compact) 0.16f else 0.20f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-    ) {
-        Column(
-            modifier = Modifier.padding(
-                horizontal = if (compact) GlazeMetrics.space3 else GlazeMetrics.space4,
-                vertical = if (compact) GlazeMetrics.space2 else GlazeMetrics.space3,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = if (compact) GlazeMetrics.space2 else GlazeMetrics.space3,
+                vertical = if (compact) GlazeMetrics.space1 else GlazeMetrics.space2,
             ),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                time,
-                style = if (compact) {
-                    MaterialTheme.typography.headlineMedium
-                } else {
-                    MaterialTheme.typography.displaySmall
-                },
-                color = Color.White,
-                fontWeight = FontWeight.Medium,
-            )
-            Text(
-                date,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.82f),
-            )
-        }
+        horizontalAlignment = horizontalAlignment,
+        verticalArrangement = Arrangement.spacedBy(1.dp),
+    ) {
+        Text(
+            time,
+            modifier = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
+                Modifier.fillMaxWidth()
+            } else {
+                Modifier
+            },
+            style = (
+                if (compact) MaterialTheme.typography.headlineMedium
+                else MaterialTheme.typography.displayMedium
+            ).copy(shadow = glanceShadow),
+            color = Color.White,
+            fontWeight = FontWeight.Light,
+            textAlign = textAlign,
+        )
+        Text(
+            date,
+            modifier = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
+                Modifier.fillMaxWidth()
+            } else {
+                Modifier
+            },
+            style = MaterialTheme.typography.bodyMedium.copy(shadow = glanceShadow),
+            color = Color.White.copy(alpha = 0.92f),
+            textAlign = textAlign,
+        )
     }
 }
 
