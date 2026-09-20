@@ -532,9 +532,14 @@ private fun AppDrawerSurface(
     val dismissThreshold = with(LocalDensity.current) { 56.dp.toPx() }
     val glass = experiencePreferences.drawerBackdrop == LauncherDrawerBackdrop.GLASS
     val drawerSurfaceColor = if (glass) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.82f)
+        GlazeAtmosphere.canvasBlack.copy(alpha = 0.76f)
     } else {
         MaterialTheme.colorScheme.background
+    }
+    val drawerSecondaryColor = if (glass) {
+        Color.White.copy(alpha = 0.68f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     Box(
@@ -555,6 +560,7 @@ private fun AppDrawerSurface(
                 .padding(top = GlazeMetrics.space2),
             shape = RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp),
             color = drawerSurfaceColor,
+            contentColor = if (glass) Color.White else MaterialTheme.colorScheme.onBackground,
             border = BorderStroke(
                 1.dp,
                 if (glass) Color.White.copy(alpha = 0.10f)
@@ -584,7 +590,8 @@ private fun AppDrawerSurface(
                     Surface(
                         modifier = Modifier.width(36.dp).height(4.dp),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+                        color = if (glass) Color.White.copy(alpha = 0.28f)
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
                     ) {}
                 }
                 Spacer(Modifier.height(GlazeMetrics.space3))
@@ -597,14 +604,14 @@ private fun AppDrawerSurface(
                     Column {
                         Text(
                             "Apps",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.SemiBold,
                         )
                         if (experiencePreferences.showDrawerAppCount) {
                             Text(
                                 filteredApps.size.toString() + " installed",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = drawerSecondaryColor,
                             )
                         } else {
                             Text(
@@ -614,7 +621,7 @@ private fun AppDrawerSurface(
                                     LauncherDrawerLayoutMode.LIST -> "Alphabetical list"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = drawerSecondaryColor,
                             )
                         }
                     }
@@ -629,6 +636,7 @@ private fun AppDrawerSurface(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth(),
+                    darkSurface = glass,
                 )
                 Spacer(Modifier.height(GlazeMetrics.space3))
 
@@ -640,7 +648,7 @@ private fun AppDrawerSurface(
                         Text(
                             "No installed apps match “" + query.trim() + "”",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = drawerSecondaryColor,
                             textAlign = TextAlign.Center,
                         )
                     }
@@ -1178,19 +1186,25 @@ private fun GlazeAppSearchField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    darkSurface: Boolean = false,
 ) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+        color = if (darkSurface) Color.White.copy(alpha = 0.10f)
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f),
+        border = BorderStroke(
+            1.dp,
+            if (darkSurface) Color.White.copy(alpha = 0.12f)
+            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+        ),
     ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (darkSurface) Color.White else MaterialTheme.colorScheme.onSurface,
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -1207,7 +1221,8 @@ private fun GlazeAppSearchField(
                         if (value.isBlank()) {
                             Text(
                                 "Search apps",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (darkSurface) Color.White.copy(alpha = 0.62f)
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
