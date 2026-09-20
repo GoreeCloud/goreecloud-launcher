@@ -724,6 +724,8 @@ private fun LauncherSettingsRootSurface(
     onSetShowHomeQuickActions: (Boolean) -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
+    onSetDockStyle: (LauncherDockStyle) -> Unit,
+    onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onOpenThemeManager: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -734,7 +736,7 @@ private fun LauncherSettingsRootSurface(
                 Brush.verticalGradient(
                     listOf(
                         MaterialTheme.colorScheme.background,
-                        GlazeAtmosphere.softAqua.copy(alpha = 0.06f),
+                        GlazeAtmosphere.softAqua.copy(alpha = 0.05f),
                         MaterialTheme.colorScheme.background,
                     ),
                 ),
@@ -756,12 +758,12 @@ private fun LauncherSettingsRootSurface(
             ) {
                 Column {
                     Text(
-                        "Launcher",
+                        "Launcher settings",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        "Shape Home, apps and Glaze",
+                        "Home, apps, dock, search and Glaze",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -769,9 +771,9 @@ private fun LauncherSettingsRootSurface(
                 GlazeTextAction("Done", onBack)
             }
 
-            SettingsSection("Home", "Workspace, cards and search") {
+            SettingsSection("Home screen", "Layout and glance content") {
                 Text(
-                    "Home card",
+                    "Clock & date",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -792,11 +794,6 @@ private fun LauncherSettingsRootSurface(
                         )
                     },
                 )
-                SettingSwitch(
-                    "Quick actions",
-                    experiencePreferences.showHomeQuickActions,
-                    onSetShowHomeQuickActions,
-                )
                 Text(
                     "Home grid",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -810,25 +807,50 @@ private fun LauncherSettingsRootSurface(
                         onSetHomeGrid(parts[0].toInt(), parts[1].toInt())
                     },
                 )
-                Text(
-                    "Search",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                ChoiceRow(
-                    choices = listOf("Swipe down", "Show pill"),
-                    selected = if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) "Show pill" else "Swipe down",
-                    onChoice = {
-                        onSetIndexHomeMode(
-                            if (it == "Show pill") GoreeCloudIndexHomeMode.PERMANENT
-                            else GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
-                        )
-                    },
+                SettingSwitch(
+                    "Quick actions",
+                    experiencePreferences.showHomeQuickActions,
+                    onSetShowHomeQuickActions,
                 )
                 SettingSwitch("Lock layout", preferences.layoutLocked, onSetLayoutLocked)
             }
 
-            SettingsSection("App drawer", "Layout, density and material") {
+            SettingsSection("Dock", "Bottom-row apps and material") {
+                Text(
+                    "Dock material",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Glass", "Clear"),
+                    selected = if (experiencePreferences.dockStyle == LauncherDockStyle.GLASS) "Glass" else "Clear",
+                    onChoice = {
+                        onSetDockStyle(
+                            if (it == "Clear") LauncherDockStyle.CLEAR
+                            else LauncherDockStyle.GLASS,
+                        )
+                    },
+                )
+                SettingsReadOnlyRow("Capacity", "Up to 5 apps")
+                SettingsReadOnlyRow("Edit", "Long-press an app")
+            }
+
+            SettingsSection("Search", "Home access and launcher search") {
+                ChoiceRow(
+                    choices = listOf("Swipe down", "Show bar"),
+                    selected = if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) "Show bar" else "Swipe down",
+                    onChoice = {
+                        onSetIndexHomeMode(
+                            if (it == "Show bar") GoreeCloudIndexHomeMode.PERMANENT
+                            else GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
+                        )
+                    },
+                )
+                SettingsReadOnlyRow("Home gesture", "Swipe down")
+                SettingsReadOnlyRow("App drawer", "Search installed apps")
+            }
+
+            SettingsSection("App drawer", "Layout, density and background") {
                 Text(
                     "Layout",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -880,7 +902,7 @@ private fun LauncherSettingsRootSurface(
                 )
             }
 
-            SettingsSection("Icons", "Scale across Home and All Apps") {
+            SettingsSection("Icons", "Size across Home and Apps") {
                 ChoiceRow(
                     choices = listOf("Small", "Medium", "Large"),
                     selected = when {
@@ -900,30 +922,55 @@ private fun LauncherSettingsRootSurface(
                 )
             }
 
-            SettingsSection("Appearance", "Theme and Glaze presentation") {
+            SettingsSection("Appearance", "Glaze theme and wallpaper treatment") {
                 GlazeSettingsAction(
                     title = "Theme Manager",
                     summary = "System, Light, Dark and Deep Dark",
                     value = themeMode.name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() },
                     onClick = onOpenThemeManager,
                 )
+                Text(
+                    "Wallpaper shade",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Off", "Soft", "Strong"),
+                    selected = when (experiencePreferences.wallpaperShade) {
+                        LauncherWallpaperShade.OFF -> "Off"
+                        LauncherWallpaperShade.SOFT -> "Soft"
+                        LauncherWallpaperShade.STRONG -> "Strong"
+                    },
+                    onChoice = {
+                        onSetWallpaperShade(
+                            when (it) {
+                                "Off" -> LauncherWallpaperShade.OFF
+                                "Strong" -> LauncherWallpaperShade.STRONG
+                                else -> LauncherWallpaperShade.SOFT
+                            },
+                        )
+                    },
+                )
             }
 
             SettingsSection("Gestures", "Current implemented shortcuts") {
-                SettingsReadOnlyRow("Swipe up", "Open All Apps")
+                SettingsReadOnlyRow("Swipe up", "Open Apps")
                 SettingsReadOnlyRow("Swipe down", "Open GoreeCloud Search")
-                SettingsReadOnlyRow("Long-press app", "Favorites and dock")
+                SettingsReadOnlyRow("Long-press app", "Home and dock actions")
             }
 
-            if (!isDefaultHome) {
-                SettingsSection("System", "Default HOME role") {
+            SettingsSection("System", "Default HOME and Development status") {
+                if (!isDefaultHome) {
                     GlazeSettingsAction(
                         title = "Default Home app",
                         summary = "Use GoreeCloud Launcher for the Home gesture",
                         value = "Set Home",
                         onClick = onRequestHomeRole,
                     )
+                } else {
+                    SettingsReadOnlyRow("Default Home app", "GoreeCloud Launcher")
                 }
+                SettingsReadOnlyRow("Build channel", "Development")
             }
         }
     }
@@ -1176,17 +1223,30 @@ private fun GlazeAppSearchField(
 private fun GlazeDock(
     apps: List<LauncherActivityInfo>,
     iconScale: Float,
+    style: LauncherDockStyle,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
 ) {
+    val glass = style == LauncherDockStyle.GLASS
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.46f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
+        color = if (glass) {
+            GlazeAtmosphere.canvasBlack.copy(alpha = 0.24f)
+        } else {
+            Color.Transparent
+        },
+        border = if (glass) {
+            BorderStroke(1.dp, Color.White.copy(alpha = 0.10f))
+        } else {
+            null
+        },
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().height(74.dp).padding(horizontal = GlazeMetrics.space2),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .padding(horizontal = GlazeMetrics.space2),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1198,7 +1258,7 @@ private fun GlazeDock(
                     compact = true,
                     onClick = { onLaunchApp(app) },
                     onLongClick = { onManageApp(app) },
-                    modifier = Modifier.size(62.dp),
+                    modifier = Modifier.size(60.dp),
                 )
             }
         }
