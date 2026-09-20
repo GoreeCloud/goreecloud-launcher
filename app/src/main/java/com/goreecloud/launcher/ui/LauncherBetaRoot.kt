@@ -1306,17 +1306,16 @@ private fun GlazeAppSearchField(
 private fun GlazeDock(
     apps: List<LauncherActivityInfo>,
     iconScale: Float,
+    style: LauncherDockStyle,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.46f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
-    ) {
+    val content: @Composable () -> Unit = {
         Row(
-            modifier = Modifier.fillMaxWidth().height(74.dp).padding(horizontal = GlazeMetrics.space2),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .padding(horizontal = GlazeMetrics.space2),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1332,6 +1331,29 @@ private fun GlazeDock(
                 )
             }
         }
+    }
+
+    when (style) {
+        LauncherDockStyle.TRANSPARENT -> content()
+        LauncherDockStyle.GLASS -> Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.34f),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+            content = content,
+        )
+        LauncherDockStyle.EDGE -> Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(
+                topStart = GlazeMetrics.radiusExtraLarge,
+                topEnd = GlazeMetrics.radiusExtraLarge,
+                bottomStart = 10.dp,
+                bottomEnd = 10.dp,
+            ),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.52f),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+            content = content,
+        )
     }
 }
 
