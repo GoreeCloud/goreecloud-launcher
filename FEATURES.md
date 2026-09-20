@@ -17,6 +17,7 @@ Current source includes:
 - A rebuilt wallpaper-backed primary Home surface with application grid, Dock, Apps affordance, and Launcher Settings affordance.
 - Native Android system-wallpaper presentation behind the launcher window without wallpaper/storage privileges.
 - A separate Apps surface with local label/package filtering and application launching.
+- Persisted local Apps presentation modes for Grid, Compact, and List layouts; this presentation-only preference is outside the current strict v1 portable preference snapshot.
 - A separate scrollable Launcher Settings surface.
 - Persisted Home grid presets covering supported 4–6 column / 4–7 row combinations.
 - Persisted Apps-grid density of 4, 5, or 6 columns.
