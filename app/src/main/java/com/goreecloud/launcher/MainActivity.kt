@@ -293,7 +293,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             themeMode = themeMode,
-                            onCycleTheme = themeRepository::cycleMode,
+                            onSetThemeMode = themeRepository::setMode,
                             onSetHomeGrid = launcherPreferencesRepository::setHomeGrid,
                             onSetDrawerColumns = launcherPreferencesRepository::setDrawerColumns,
                             onSetDrawerLayoutMode = launcherPreferencesRepository::setDrawerLayoutMode,
