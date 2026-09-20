@@ -40,7 +40,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
+import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
+import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
+import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
@@ -49,6 +52,10 @@ import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeAtmosphere
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
 import com.goreecloud.launcher.ui.theme.GlazeThemeMode
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import kotlinx.coroutines.delay
 
 enum class LauncherSurfaceMode { HOME, DRAWER, SETTINGS }
 
@@ -58,6 +65,7 @@ fun LauncherBetaRoot(
     workspace: WorkspaceState,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
+    experiencePreferences: LauncherExperiencePreferences,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
@@ -75,6 +83,10 @@ fun LauncherBetaRoot(
     onSetIconScale: (Float) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
     onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
+    onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
+    onSetShowHomeQuickActions: (Boolean) -> Unit,
+    onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
+    onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
 ) {
     var surfaceModeName by rememberSaveable { mutableStateOf(LauncherSurfaceMode.HOME.name) }
@@ -125,6 +137,7 @@ fun LauncherBetaRoot(
                 apps = apps,
                 workspace = workspace,
                 preferences = preferences,
+                experiencePreferences = experiencePreferences,
                 isDefaultHome = isDefaultHome,
                 onRequestHomeRole = onRequestHomeRole,
                 onLaunchApp = onLaunchApp,
@@ -137,6 +150,7 @@ fun LauncherBetaRoot(
                 apps = apps,
                 preferences = preferences,
                 drawerLayoutMode = drawerLayoutMode,
+                experiencePreferences = experiencePreferences,
                 onLaunchApp = onLaunchApp,
                 onManageApp = { selectedApp = it },
                 onHome = { surfaceModeName = LauncherSurfaceMode.HOME.name },
@@ -149,6 +163,7 @@ fun LauncherBetaRoot(
                     LauncherSettingsRootSurface(
                         preferences = preferences,
                         drawerLayoutMode = drawerLayoutMode,
+                        experiencePreferences = experiencePreferences,
                         themeMode = themeMode,
                         isDefaultHome = isDefaultHome,
                         onRequestHomeRole = onRequestHomeRole,
@@ -159,6 +174,10 @@ fun LauncherBetaRoot(
                         onSetIconScale = onSetIconScale,
                         onSetLayoutLocked = onSetLayoutLocked,
                         onSetIndexHomeMode = onSetIndexHomeMode,
+                        onSetHomeCardStyle = onSetHomeCardStyle,
+                        onSetShowHomeQuickActions = onSetShowHomeQuickActions,
+                        onSetDrawerBackdrop = onSetDrawerBackdrop,
+                        onSetShowDrawerAppCount = onSetShowDrawerAppCount,
                         onOpenThemeManager = onOpenThemeManager,
                         onBack = { surfaceModeName = LauncherSurfaceMode.HOME.name },
                     )
