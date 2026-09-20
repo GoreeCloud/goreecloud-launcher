@@ -16,6 +16,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items as lazyItems
@@ -44,9 +46,11 @@ import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
+import com.goreecloud.launcher.core.launcher.LauncherDrawerNavigation
 import com.goreecloud.launcher.core.launcher.LauncherDrawerSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
+import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
@@ -92,7 +96,10 @@ fun LauncherBetaRoot(
     onSetShowHomePageIndicator: (Boolean) -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
+    onSetDrawerNavigation: (LauncherDrawerNavigation) -> Unit,
+    onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
+    onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onOpenWallpaperPicker: () -> Unit,
@@ -187,7 +194,10 @@ fun LauncherBetaRoot(
                         onSetShowHomePageIndicator = onSetShowHomePageIndicator,
                         onSetDrawerBackdrop = onSetDrawerBackdrop,
                         onSetDrawerSearchPlacement = onSetDrawerSearchPlacement,
+                        onSetDrawerNavigation = onSetDrawerNavigation,
+                        onSetDrawerPageRows = onSetDrawerPageRows,
                         onSetShowDrawerAppCount = onSetShowDrawerAppCount,
+                        onSetHomeGlanceAlignment = onSetHomeGlanceAlignment,
                         onSetDockStyle = onSetDockStyle,
                         onSetWallpaperShade = onSetWallpaperShade,
                         onOpenThemeManager = onOpenThemeManager,
@@ -303,6 +313,7 @@ private fun HomeSurface(
                 HomeAtAGlance(
                     now = now,
                     compact = experiencePreferences.homeCardStyle == LauncherHomeCardStyle.COMPACT,
+                    alignment = experiencePreferences.homeGlanceAlignment,
                 )
             }
 
