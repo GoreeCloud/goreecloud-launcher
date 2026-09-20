@@ -53,6 +53,7 @@ import com.goreecloud.launcher.core.launcher.LauncherDrawerSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
+import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
@@ -77,6 +78,8 @@ fun LauncherBetaRoot(
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
+    homePageCount: Int,
+    onManageHomePages: () -> Unit,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
@@ -103,6 +106,7 @@ fun LauncherBetaRoot(
     onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
+    onSetHomeSearchPlacement: (LauncherHomeSearchPlacement) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onOpenWallpaperPicker: () -> Unit,
@@ -157,6 +161,8 @@ fun LauncherBetaRoot(
                 workspace = workspace,
                 preferences = preferences,
                 experiencePreferences = experiencePreferences,
+                homePageCount = homePageCount,
+                onManageHomePages = onManageHomePages,
                 onLaunchApp = onLaunchApp,
                 onOpenUniversalSearch = onOpenUniversalSearch,
                 onManageApp = { selectedApp = it },
@@ -201,6 +207,7 @@ fun LauncherBetaRoot(
                         onSetDrawerPageRows = onSetDrawerPageRows,
                         onSetShowDrawerAppCount = onSetShowDrawerAppCount,
                         onSetHomeGlanceAlignment = onSetHomeGlanceAlignment,
+                        onSetHomeSearchPlacement = onSetHomeSearchPlacement,
                         onSetDockStyle = onSetDockStyle,
                         onSetWallpaperShade = onSetWallpaperShade,
                         onOpenThemeManager = onOpenThemeManager,
@@ -232,6 +239,8 @@ private fun HomeSurface(
     workspace: WorkspaceState,
     preferences: LauncherPreferences,
     experiencePreferences: LauncherExperiencePreferences,
+    homePageCount: Int,
+    onManageHomePages: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onOpenUniversalSearch: () -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
