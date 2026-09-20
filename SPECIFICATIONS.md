@@ -43,7 +43,7 @@ The rebuilt primary Home is a launcher-style surface rather than an engineering 
 
 A one-finger downward gesture on the unobstructed Home search zone invokes GoreeCloud Index in both supported Home-entry modes. **Swipe down only** removes the persistent Search GoreeCloud affordance without changing Index authority or the gesture handoff.
 
-Current supported settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps columns of 4/5/6, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and GoreeCloud Index Home-entry mode.
+Current supported settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps layout modes of Grid/Compact/List, Apps columns of 4/5/6 for grid-based modes, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and GoreeCloud Index Home-entry mode.
 
 When layout lock is enabled, current Favorite, Dock, Home-page create/delete/reorder, secondary-to-secondary movement, and current secondary spatial mutation callbacks are blocked at the Launcher composition boundary. App launching, Home page selection, navigation, and non-placement presentation settings remain usable. Primary placement-dialog mutation controls are disabled while locked.
 
@@ -53,13 +53,13 @@ The primary `WorkspaceLegacyImportMapper.HOME_PAGE_ID` page remains the protecte
 
 ### Apps
 
-The Apps surface displays the launchable inventory provided through `LauncherApps`, supports a narrow local filter by label/package, and launches selected applications. Long-press opens current placement management. Home page controls do not overlay the Apps surface.
+The Apps surface displays the launchable inventory provided through `LauncherApps`, supports user-selectable Grid, Compact, and List presentation modes, supports a narrow local filter by label/package, and launches selected applications. Grid and Compact consume the existing bounded column setting; List is a single-column row presentation. Long-press opens current placement management. Home page controls do not overlay the Apps surface.
 
 The Apps filter is a Launcher-specific navigation feature. It is not GoreeCloud Index and must not become a second universal-search provider/ranking pipeline. While layout lock is enabled, placement management may still be opened to explain state, but current placement mutation controls are disabled.
 
 ### Launcher Settings
 
-Launcher Settings is a distinct scrollable surface. Current persisted settings include Home grid, Apps columns, app-label visibility, icon-size presentation, System/Light/Dark appearance, **Lock Home screen layout**, and the GoreeCloud Index **Permanent on Home / Swipe down only** entry choice.
+Launcher Settings is a distinct scrollable surface. Current persisted settings include Home grid, Apps layout (Grid/Compact/List), Apps columns, app-label visibility, icon-size presentation, System/Light/Dark appearance, **Lock Home screen layout**, and the GoreeCloud Index **Permanent on Home / Swipe down only** entry choice. Drawer layout remains local presentation state outside the strict seven-field `goreecloud-launcher-preferences/1` backup/recovery format until a separately versioned portability extension is accepted.
 
 Current settings changes do not widen Room workspace mutation authority. The layout-lock preference restricts Launcher mutation dispatch; the Index-entry preference controls Launcher-owned invocation presentation only.
 

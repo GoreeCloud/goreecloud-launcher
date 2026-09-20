@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexIntegration
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
+import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
@@ -125,6 +126,9 @@ class MainActivity : ComponentActivity() {
             val apps by appsRepository.apps.collectAsStateWithLifecycle(initialValue = emptyList())
             val launcherPreferences by launcherPreferencesRepository.preferences.collectAsStateWithLifecycle(
                 initialValue = launcherPreferencesRepository.defaults,
+            )
+            val drawerLayoutMode by launcherPreferencesRepository.drawerLayoutMode.collectAsStateWithLifecycle(
+                initialValue = LauncherDrawerLayoutMode.GRID,
             )
             val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
                 initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
@@ -256,6 +260,7 @@ class MainActivity : ComponentActivity() {
                             apps = apps,
                             workspace = workspace,
                             preferences = launcherPreferences,
+                            drawerLayoutMode = drawerLayoutMode,
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
@@ -292,6 +297,7 @@ class MainActivity : ComponentActivity() {
                             onCycleTheme = themeRepository::cycleMode,
                             onSetHomeGrid = launcherPreferencesRepository::setHomeGrid,
                             onSetDrawerColumns = launcherPreferencesRepository::setDrawerColumns,
+                            onSetDrawerLayoutMode = launcherPreferencesRepository::setDrawerLayoutMode,
                             onSetShowLabels = launcherPreferencesRepository::setShowLabels,
                             onSetIconScale = launcherPreferencesRepository::setIconScale,
                             onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,

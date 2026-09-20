@@ -31,6 +31,17 @@ enum class GoreeCloudIndexHomeMode(val storageValue: String) {
     }
 }
 
+enum class LauncherDrawerLayoutMode(val storageValue: String) {
+    GRID("grid"),
+    COMPACT("compact"),
+    LIST("list");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerLayoutMode =
+            entries.firstOrNull { it.storageValue == value } ?: GRID
+    }
+}
+
 data class LauncherPreferences(
     val homeColumns: Int = 4,
     val homeRows: Int = 5,
@@ -63,6 +74,7 @@ class LauncherPreferencesRepository(
         val iconScale = floatPreferencesKey("icon_scale")
         val layoutLocked = booleanPreferencesKey("layout_locked")
         val indexHomeMode = stringPreferencesKey("index_home_mode")
+        val drawerLayoutMode = stringPreferencesKey("drawer_layout_mode")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
 
@@ -71,6 +83,14 @@ class LauncherPreferencesRepository(
 
     val preferences: Flow<LauncherPreferences> = dataStore.data
         .map(::portablePreferencesFrom)
+        .distinctUntilChanged()
+
+    /**
+     * Drawer presentation mode is intentionally stored outside the strict v1 portable preference
+     * subset. Adding it here must not silently change the seven-field backup/recovery contract.
+     */
+    val drawerLayoutMode: Flow<LauncherDrawerLayoutMode> = dataStore.data
+        .map { values -> LauncherDrawerLayoutMode.fromStorage(values[Keys.drawerLayoutMode]) }
         .distinctUntilChanged()
 
     fun setHomeGrid(columns: Int, rows: Int) {
@@ -88,6 +108,14 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.drawerColumns] = normalized
+            }
+        }
+    }
+
+    fun setDrawerLayoutMode(mode: LauncherDrawerLayoutMode) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerLayoutMode] = mode.storageValue
             }
         }
     }

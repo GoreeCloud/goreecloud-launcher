@@ -81,3 +81,12 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 - Theme Manager consumes the V1.6 presentation context so future authoritative Reduced Transparency/performance inputs can simplify raised material. The branch does not fabricate system preference detection; neutral defaults remain neutral until caller/platform state is actually supplied.
 - Accepted pre-merge evidence for exact PR #128 head `0a13fd5f40e09de877bbf51823e2747873c74914`: Platform Contract run `35491439181` and Android CI run `35491438765` succeeded, including Android 16 runtime acceptance. Post-merge Platform Contract run `35491732732` and Android CI run `35491732451` both succeeded on exact source merge commit `0a12c06781841924a4b4eeb2494735d9d44b2811`, including the Android 16 runtime-emulator lane.
 - Source migration does not establish V1.6 consumer conformance. Rendered/accessibility/adaptive/representative-device/performance/rollback/Human Visual Excellence/platform-system/signing/release acceptance remain open, and issue #80 remains the product stabilization gate.
+
+## App drawer layout stabilization candidate — September 20, 2026
+
+- This Development branch is restacked on exact authoritative main `150714c76818961fbb70cacbd3e1b0b5d5679930`; the historical drawer-layout branches remain provenance only and are not merge inputs.
+- Apps presentation adds persisted Grid, Compact, and List modes while preserving Android `LauncherApps` as inventory authority, local label/package filtering, launch behavior, placement-management boundaries, and the existing 4/5/6-column control for grid-based layouts.
+- The new drawer-layout preference is intentionally stored outside `LauncherPreferences` and the strict seven-field `goreecloud-launcher-preferences/1` codec. No existing backup/restore byte contract, Room workspace authority, or portable-restore recovery rule is widened by this slice.
+- Category and search-first presentation modes remain unimplemented, and issue #80 representative physical-device behavior, performance/jank, accessibility, Quickstep/Recents, complete V1.6 acceptance, platform-system acceptance, signing, Release Candidate, production, and Stable gates remain open.
+- Exact-head Android CI, including the repository's runtime-emulator lane, is required before integration may be considered. The Platform Contract workflow is intentionally path-scoped to `goreecloud.platform.yaml` and its workflow file; this slice changes neither, so no new Platform Contract run is expected or claimed.
+
