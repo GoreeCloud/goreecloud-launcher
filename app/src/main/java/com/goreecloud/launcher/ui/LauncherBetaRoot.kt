@@ -67,7 +67,7 @@ fun LauncherBetaRoot(
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveDock: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     themeMode: GlazeThemeMode,
-    onCycleTheme: (GlazeThemeMode) -> Unit,
+    onSetThemeMode: (GlazeThemeMode) -> Unit,
     onSetHomeGrid: (Int, Int) -> Unit,
     onSetDrawerColumns: (Int) -> Unit,
     onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
@@ -144,7 +144,7 @@ fun LauncherBetaRoot(
             )
             LauncherSurfaceMode.SETTINGS -> LauncherSettingsSurface(
                 selectedThemeMode = themeMode,
-                onSelectThemeMode = onCycleTheme,
+                onSelectThemeMode = onSetThemeMode,
                 rootContent = { onOpenThemeManager ->
                     LauncherSettingsRootSurface(
                         preferences = preferences,
