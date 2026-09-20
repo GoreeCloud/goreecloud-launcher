@@ -14,6 +14,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -40,10 +41,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
+import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
+import com.goreecloud.launcher.core.launcher.LauncherDrawerSearchPosition
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
+import com.goreecloud.launcher.core.launcher.LauncherHomeLayoutStyle
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
@@ -66,6 +70,7 @@ fun LauncherBetaRoot(
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
+    homePageCount: Int,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
@@ -84,9 +89,14 @@ fun LauncherBetaRoot(
     onSetLayoutLocked: (Boolean) -> Unit,
     onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
+    onSetHomeLayoutStyle: (LauncherHomeLayoutStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
+    onSetShowHomePageIndicator: (Boolean) -> Unit,
+    onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
+    onSetDrawerSearchPosition: (LauncherDrawerSearchPosition) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
+    onOpenWallpaperPicker: () -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
 ) {
     var surfaceModeName by rememberSaveable { mutableStateOf(LauncherSurfaceMode.HOME.name) }
@@ -138,6 +148,7 @@ fun LauncherBetaRoot(
                 workspace = workspace,
                 preferences = preferences,
                 experiencePreferences = experiencePreferences,
+                homePageCount = homePageCount,
                 isDefaultHome = isDefaultHome,
                 onRequestHomeRole = onRequestHomeRole,
                 onLaunchApp = onLaunchApp,
@@ -145,6 +156,7 @@ fun LauncherBetaRoot(
                 onManageApp = { selectedApp = it },
                 onOpenDrawer = { surfaceModeName = LauncherSurfaceMode.DRAWER.name },
                 onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
+                onOpenWallpaperPicker = onOpenWallpaperPicker,
             )
             LauncherSurfaceMode.DRAWER -> AppDrawerSurface(
                 apps = apps,
@@ -175,8 +187,12 @@ fun LauncherBetaRoot(
                         onSetLayoutLocked = onSetLayoutLocked,
                         onSetIndexHomeMode = onSetIndexHomeMode,
                         onSetHomeCardStyle = onSetHomeCardStyle,
+                        onSetHomeLayoutStyle = onSetHomeLayoutStyle,
                         onSetShowHomeQuickActions = onSetShowHomeQuickActions,
+                        onSetShowHomePageIndicator = onSetShowHomePageIndicator,
+                        onSetDockStyle = onSetDockStyle,
                         onSetDrawerBackdrop = onSetDrawerBackdrop,
+                        onSetDrawerSearchPosition = onSetDrawerSearchPosition,
                         onSetShowDrawerAppCount = onSetShowDrawerAppCount,
                         onOpenThemeManager = onOpenThemeManager,
                         onBack = { surfaceModeName = LauncherSurfaceMode.HOME.name },
