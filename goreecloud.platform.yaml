@@ -188,7 +188,7 @@ conformance:
     - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
     - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
   blockers:
-    - Launcher source maps to current Official Stable GLAZE UI V1.6 / 1.6.0, but consumer acceptance remains blocked: authoritative runtime accessibility/performance wiring, complete component/state review, rendered accessibility, adaptive/form-factor, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance are incomplete.
+    - "Launcher source maps to current Official Stable GLAZE UI V1.6 / 1.6.0, but consumer acceptance remains blocked: authoritative runtime accessibility/performance wiring, complete component/state review, rendered accessibility, adaptive/form-factor, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance are incomplete."
     - GoreeCloud Identity integration and acceptance are not established for future identity-aware capabilities.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.
