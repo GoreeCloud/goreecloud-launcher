@@ -526,6 +526,7 @@ private fun AppDrawerSurface(
     apps: List<LauncherActivityInfo>,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
+    experiencePreferences: LauncherExperiencePreferences,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     onHome: () -> Unit,
@@ -542,6 +543,12 @@ private fun AppDrawerSurface(
         }
     }
     val dismissThreshold = with(LocalDensity.current) { 56.dp.toPx() }
+    val glass = experiencePreferences.drawerBackdrop == LauncherDrawerBackdrop.GLASS
+    val drawerSurfaceColor = if (glass) {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.82f)
+    } else {
+        MaterialTheme.colorScheme.background
+    }
 
     Box(
         modifier = Modifier
@@ -549,8 +556,8 @@ private fun AppDrawerSurface(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        GlazeAtmosphere.canvasBlack.copy(alpha = 0.16f),
-                        GlazeAtmosphere.canvasBlack.copy(alpha = 0.48f),
+                        GlazeAtmosphere.canvasBlack.copy(alpha = if (glass) 0.08f else 0.02f),
+                        GlazeAtmosphere.canvasBlack.copy(alpha = if (glass) 0.42f else 0.18f),
                     ),
                 ),
             ),
@@ -559,9 +566,13 @@ private fun AppDrawerSurface(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = GlazeMetrics.space2),
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            color = MaterialTheme.colorScheme.background.copy(alpha = 0.96f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+            shape = RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp),
+            color = drawerSurfaceColor,
+            border = BorderStroke(
+                1.dp,
+                if (glass) Color.White.copy(alpha = 0.10f)
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+            ),
         ) {
             Column(
                 modifier = Modifier
@@ -584,7 +595,7 @@ private fun AppDrawerSurface(
             ) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Surface(
-                        modifier = Modifier.width(32.dp).height(4.dp),
+                        modifier = Modifier.width(36.dp).height(4.dp),
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
                     ) {}
@@ -598,19 +609,31 @@ private fun AppDrawerSurface(
                 ) {
                     Column {
                         Text(
-                            "Apps",
+                            "All Apps",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                         )
-                        Text(
-                            filteredApps.size.toString() + " installed",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        if (experiencePreferences.showDrawerAppCount) {
+                            Text(
+                                filteredApps.size.toString() + " installed",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            Text(
+                                when (drawerLayoutMode) {
+                                    LauncherDrawerLayoutMode.GRID -> "Grid · ${preferences.drawerColumns} columns"
+                                    LauncherDrawerLayoutMode.COMPACT -> "Compact · ${preferences.drawerColumns} columns"
+                                    LauncherDrawerLayoutMode.LIST -> "Alphabetical list"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1)) {
-                        GlazeTextAction("Settings", onOpenSettings)
-                        GlazeTextAction("Done", onHome)
+                    Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
+                        GlazeRoundAction("⚙", onOpenSettings)
+                        GlazeRoundAction("⌄", onHome)
                     }
                 }
 
