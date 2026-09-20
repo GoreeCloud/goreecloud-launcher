@@ -49,11 +49,13 @@ class LauncherPreferencesTest {
         assertEquals(LauncherDrawerNavigation.PAGES, defaults.drawerNavigation)
         assertEquals(5, defaults.drawerPageRows)
         assertEquals(LauncherHomeGlanceAlignment.LEFT, defaults.homeGlanceAlignment)
+        assertEquals(LauncherHomeSearchPlacement.BOTTOM, defaults.homeSearchPlacement)
     }
 
     @Test
     fun visualPreferenceStorageDecodingFailsSafe() {
         assertEquals(LauncherDockStyle.CLEAR, LauncherDockStyle.fromStorage("clear"))
+        assertEquals(LauncherDockStyle.EDGE, LauncherDockStyle.fromStorage("edge"))
         assertEquals(LauncherDockStyle.GLASS, LauncherDockStyle.fromStorage("unknown"))
         assertEquals(LauncherWallpaperShade.STRONG, LauncherWallpaperShade.fromStorage("strong"))
         assertEquals(LauncherWallpaperShade.SOFT, LauncherWallpaperShade.fromStorage(null))
@@ -74,6 +76,14 @@ class LauncherPreferencesTest {
         assertEquals(
             LauncherHomeGlanceAlignment.LEFT,
             LauncherHomeGlanceAlignment.fromStorage("unknown"),
+        )
+        assertEquals(
+            LauncherHomeSearchPlacement.TOP,
+            LauncherHomeSearchPlacement.fromStorage("top"),
+        )
+        assertEquals(
+            LauncherHomeSearchPlacement.BOTTOM,
+            LauncherHomeSearchPlacement.fromStorage("unknown"),
         )
     }
 
