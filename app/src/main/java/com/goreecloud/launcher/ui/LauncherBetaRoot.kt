@@ -1245,6 +1245,7 @@ private fun LauncherSettingsRootSurface(
     onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
+    onSetHomeSearchPlacement: (LauncherHomeSearchPlacement) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onOpenThemeManager: () -> Unit,
@@ -1365,12 +1366,19 @@ private fun LauncherSettingsRootSurface(
                     style = MaterialTheme.typography.bodySmall,
                 )
                 ChoiceRow(
-                    choices = listOf("Glass", "Clear"),
-                    selected = if (experiencePreferences.dockStyle == LauncherDockStyle.GLASS) "Glass" else "Clear",
+                    choices = listOf("Glass", "Clear", "Edge"),
+                    selected = when (experiencePreferences.dockStyle) {
+                        LauncherDockStyle.GLASS -> "Glass"
+                        LauncherDockStyle.CLEAR -> "Clear"
+                        LauncherDockStyle.EDGE -> "Edge"
+                    },
                     onChoice = {
                         onSetDockStyle(
-                            if (it == "Clear") LauncherDockStyle.CLEAR
-                            else LauncherDockStyle.GLASS,
+                            when (it) {
+                                "Clear" -> LauncherDockStyle.CLEAR
+                                "Edge" -> LauncherDockStyle.EDGE
+                                else -> LauncherDockStyle.GLASS
+                            },
                         )
                     },
                 )
@@ -1389,6 +1397,25 @@ private fun LauncherSettingsRootSurface(
                         )
                     },
                 )
+                if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) {
+                    Text(
+                        "Home bar position",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    ChoiceRow(
+                        choices = listOf("Top", "Bottom"),
+                        selected = if (
+                            experiencePreferences.homeSearchPlacement == LauncherHomeSearchPlacement.TOP
+                        ) "Top" else "Bottom",
+                        onChoice = {
+                            onSetHomeSearchPlacement(
+                                if (it == "Top") LauncherHomeSearchPlacement.TOP
+                                else LauncherHomeSearchPlacement.BOTTOM,
+                            )
+                        },
+                    )
+                }
                 SettingsReadOnlyRow("Home gesture", "Swipe down")
                 SettingsReadOnlyRow("App drawer", "Search installed apps")
             }
@@ -1829,25 +1856,40 @@ private fun GlazeDock(
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ) {
-    val glass = style == LauncherDockStyle.GLASS
+    val shape = if (style == LauncherDockStyle.EDGE) {
+        RoundedCornerShape(
+            topStart = 30.dp,
+            topEnd = 30.dp,
+            bottomStart = 12.dp,
+            bottomEnd = 12.dp,
+        )
+    } else {
+        RoundedCornerShape(GlazeMetrics.radius2ExtraLarge)
+    }
+    val color = when (style) {
+        LauncherDockStyle.CLEAR -> Color.Transparent
+        LauncherDockStyle.GLASS -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.24f)
+        LauncherDockStyle.EDGE -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.40f)
+    }
+    val border = if (style == LauncherDockStyle.CLEAR) {
+        null
+    } else {
+        BorderStroke(
+            1.dp,
+            Color.White.copy(alpha = if (style == LauncherDockStyle.EDGE) 0.12f else 0.10f),
+        )
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
-        color = if (glass) {
-            GlazeAtmosphere.canvasBlack.copy(alpha = 0.24f)
-        } else {
-            Color.Transparent
-        },
-        border = if (glass) {
-            BorderStroke(1.dp, Color.White.copy(alpha = 0.10f))
-        } else {
-            null
-        },
+        shape = shape,
+        color = color,
+        border = border,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(72.dp)
+                .height(if (style == LauncherDockStyle.EDGE) 78.dp else 72.dp)
                 .padding(horizontal = GlazeMetrics.space2),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
