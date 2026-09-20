@@ -1,4 +1,4 @@
-schema_version: "0.2"
+schema_version: "0.4"
 
 component:
   type: application
@@ -77,7 +77,7 @@ platform_systems:
       - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: Repository-local Development source now explicitly targets current Stable GLAZE UI V1.1 / 1.1.0 source semantics, but the known immutable 1.1.0 import-closure defect still requires a corrected governed immutable Stable release, explicit Launcher re-pin, and fresh rendered/accessibility/adaptive/representative-device/Human Visual Excellence acceptance before current application conformance can be claimed.
+    notes: Authoritative Launcher source remains mapped to GLAZE UI V1.1 / 1.1.0. Current GoreeCloud governance requires migration to Official Stable Glaze UI V1.5 / 1.5.1; that migration is not integrated on main. Repository-local rendered, accessibility, adaptive phone/tablet/foldable, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, and production acceptance remain incomplete.
   mesh:
     result: applicable-blocked
     version: null
@@ -93,6 +93,20 @@ platform_systems:
     evidence:
       - README.md
     notes: Core Launcher use is local and does not require an account, but accepted GoreeCloud Identity integration for future identity-aware or synchronized capabilities is not established. Current appKey values are device/profile-resolved runtime keys and are not treated as portable cross-device identities.
+  policy:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - goreecloud.platform.yaml
+    notes: GoreeCloud Policy is applicable to Launcher policy representation, administrative restrictions, privacy/security decisions, and evidence boundaries, but no accepted Launcher runtime Policy evaluation, distribution, enforcement-coordination, explanation, freshness, exception, or production acceptance exists.
+  observability:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - goreecloud.platform.yaml
+    notes: Launcher has Android-local Development behavior and CI evidence, but accepted GoreeCloud Observability health, metrics, events, diagnostics, performance/power, dependency-health, provenance/freshness, alerting, collection-gap, and representative-device runtime acceptance are not established.
 
 health:
   health_endpoint: null
@@ -137,11 +151,11 @@ external_dependencies:
     version_constraint: ">=29"
 
 compatibility:
-  platform_contract: "0.2"
-  glaze_ui_required: "1.1.0"
+  platform_contract: "0.4"
+  glaze_ui_required: "1.5.1"
   requires:
-    - goreecloud-platform-contract==0.2
-    - glaze-ui==1.1.0
+    - goreecloud-platform-contract==0.4
+    - glaze-ui==1.5.1
     - android-api>=29
   provides:
     - goreecloud-launcher-workspace-snapshot/1
@@ -172,13 +186,15 @@ conformance:
     - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
     - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
   blockers:
-    - GLAZE UI V1.1 / 1.1.0 source mapping exists, but the known immutable 1.1.0 defect still requires a corrected immutable Stable release, explicit Launcher re-pin, and complete application-specific rendered/accessibility/adaptive/representative-device/Human Visual Excellence acceptance.
+    - Authoritative Launcher source remains on GLAZE UI V1.1 / 1.1.0 and must be cleanly migrated to current Official Stable V1.5 / 1.5.1 before current Glaze conformance can be claimed; rendered, accessibility, adaptive/form-factor, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, and production acceptance also remain incomplete.
     - GoreeCloud Identity integration and acceptance are not established for future identity-aware capabilities.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.
     - Everkeep integration plus complete Launcher backup and clean-target restore acceptance remain incomplete. Bounded same-resolved-identity interruption journaling/reconciliation now exists in Development source, but production startup sequencing, cross-device identity reconstruction, complete recovery scope, representative-device failure injection, and production recovery acceptance remain outstanding.
     - GoreeCloud Mesh registration, capability publication, and runtime acceptance are not established.
     - Manager platform visibility and administrative integration acceptance are not established.
+    - GoreeCloud Policy runtime evaluation, enforcement-coordination, explanation, freshness, exception, and evidence integration/acceptance are not established.
+    - GoreeCloud Observability health, metrics, events, diagnostics, performance/power, dependency-health, provenance/freshness, alerting, collection-gap, and representative-device runtime acceptance are not established.
     - Product-wide export and import scope remains incomplete beyond the bounded workspace-placement and explicit-preference formats.
     - Signed representative-device HOME-role, lifecycle, accessibility, restore, rollback, upgrade, and release-candidate acceptance remain outstanding.
     - Production signing, distribution, deployment, release approval, and Stable qualification remain outstanding.

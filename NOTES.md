@@ -3,9 +3,9 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development and is not Stable or production accepted.
-- Verified current stabilization base: `main` at `38f51d63124363bef65d202640fdadce8697fa59`, including the asynchronous shared icon cache and off-main-thread/scoped LauncherApps inventory refresh integrations.
+- Verified current stabilization base: `main` at `5343869c1dc5f31a10196f6b1992a848b47337db`, including the asynchronous shared icon cache, off-main-thread/scoped LauncherApps inventory refresh, hardened local installed-app search, and immutable Android CI supply-chain integration.
 - GitHub issue #80 is the current Android core-stabilization gate and records physical-device blockers for HOME behavior, drawer gestures/transitions, local app search, drawer presentation, app discovery, performance, and Quickstep/Recents compatibility.
-- Glaze UI 1.5.1 and Compact drawer work remain separate stacked candidates unless and until clean current-main integration is verified. Do not treat their historical green checks as current `main` acceptance.
+- Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. Authoritative source still maps GLAZE UI 1.1.0. The root Platform Contract declaration was stale at 0.2/seven systems and is being reconciled in this stabilization branch to Contract 0.4/all nine systems without claiming the unmerged 1.5.1 source migration.
 
 ## Active stabilization observations
 
@@ -27,8 +27,17 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 - These source/CI improvements do not satisfy issue #80 physical-device performance, HOME, gesture/transition, Quickstep/Recents, or full P0 acceptance by themselves.
 
 
-## CI supply-chain stabilization candidate — September 18, 2026
+## CI supply-chain stabilization — September 18, 2026
 
-- Android CI is being reconciled from moving runner/action tags to Ubuntu 24.04 and immutable full-SHA references for checkout, Java setup, Gradle setup, and artifact upload.
+- PR #118 is integrated on `main`; Android CI uses Ubuntu 24.04 and immutable full-SHA references for checkout, Java setup, Gradle setup, and artifact upload.
 - The Android 16 Room runtime job now independently verifies the checked-out revision before executing source.
 - These controls do not change Launcher runtime behavior or satisfy issue #80 physical-device P0 acceptance.
+
+
+## Platform Contract stabilization — September 19, 2026
+
+- This branch updates the root manifest from legacy Contract 0.2/seven-system structure to accepted Contract 0.4/all nine Integral Platform Systems.
+- GoreeCloud Policy and GoreeCloud Observability are explicitly evaluated as applicable-blocked rather than silently omitted.
+- The manifest truthfully records the implemented GLAZE UI V1.1 / 1.1.0 mapping while declaring current Official Stable V1.5 / 1.5.1 as the required migration target; the unmerged historical 1.5.1 stack is not treated as current source.
+- The reusable Platform Contract workflow is repinned to the accepted central Contract 0.4 validator revision.
+- This is governance and validation hardening only; issue #80 physical-device/default-HOME, gesture/transition, Quickstep/Recents, performance, and full P0 acceptance remain open.
