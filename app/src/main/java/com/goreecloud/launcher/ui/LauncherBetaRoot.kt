@@ -66,6 +66,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class LauncherSurfaceMode { HOME, DRAWER, SETTINGS }
 
@@ -854,6 +855,7 @@ private fun DrawerAppsContent(
         ).coerceAtLeast(1)
         val pageCount = ((apps.size + pageSize - 1) / pageSize).coerceAtLeast(1)
         val pagerState = rememberPagerState(pageCount = { pageCount })
+        val pagerScope = rememberCoroutineScope()
 
         LaunchedEffect(query, pageCount) {
             if (pagerState.currentPage >= pageCount || query.isNotBlank()) {
@@ -914,7 +916,7 @@ private fun DrawerAppsContent(
                     currentPage = pagerState.currentPage,
                     onSelectPage = { target ->
                         if (target != pagerState.currentPage) {
-                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                            pagerScope.launch {
                                 pagerState.animateScrollToPage(target)
                             }
                         }
@@ -996,12 +998,8 @@ private fun DrawerPageDots(
     ) {
         repeat(pageCount) { page ->
             Surface(
-                modifier = Modifier
-                    .size(if (page == currentPage) 8.dp else 6.dp)
-                    .combinedClickable(
-                        onClick = { onSelectPage(page) },
-                        onLongClick = {},
-                    ),
+                onClick = { onSelectPage(page) },
+                modifier = Modifier.size(if (page == currentPage) 8.dp else 6.dp),
                 shape = CircleShape,
                 color = if (page == currentPage) {
                     MaterialTheme.colorScheme.onSurface
