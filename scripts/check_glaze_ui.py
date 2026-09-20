@@ -72,7 +72,7 @@ EXPECTED_THEME_MARKERS = (
 
 
 def fail(message: str) -> None:
-    raise SystemExit(f"GLAZE UI V1.1 source / Platform Contract v0.2 boundary failed: {message}")
+    raise SystemExit(f"GLAZE UI V1.1 source / Platform Contract v0.4 boundary failed: {message}")
 
 
 def read(path: Path, label: str) -> str:
@@ -169,19 +169,21 @@ def main() -> None:
             fail(f"Theme Manager Development evidence is not synchronized with V1.1: `{marker}`")
 
     platform_markers = (
-        'schema_version: "0.2"',
+        'schema_version: "0.4"',
         "  id: goreecloud-launcher",
         '  glaze_ui:\n    result: applicable-migration-required\n    version: "1.1.0"',
-        "source now explicitly targets current Stable GLAZE UI V1.1 / 1.1.0",
-        '  platform_contract: "0.2"',
-        '  glaze_ui_required: "1.1.0"',
-        "goreecloud-platform-contract==0.2",
-        "glaze-ui==1.1.0",
+        "Authoritative Launcher source remains mapped to GLAZE UI V1.1 / 1.1.0",
+        '  platform_contract: "0.4"',
+        '  glaze_ui_required: "1.5.1"',
+        "goreecloud-platform-contract==0.4",
+        "glaze-ui==1.5.1",
         "conformance:\n  status: nonconformant",
+        "  policy:\n    result: applicable-blocked",
+        "  observability:\n    result: applicable-blocked",
     )
     for marker in platform_markers:
         if marker not in platform_text:
-            fail(f"Platform Contract v0.2 is missing the V1.1 Development boundary `{marker}`")
+            fail(f"Platform Contract v0.4 is missing the V1.1 Development boundary `{marker}`")
 
     for stale_platform_marker in (
         'schema_version: "0.1"',
@@ -219,8 +221,9 @@ def main() -> None:
 
     print(
         "GLAZE UI V1.1 Launcher source mapping passed: "
-        f"target {TARGET_VERSION}, source {SOURCE_REVISION}; Platform Contract v0.2 remains "
-        "migration-required/nonconformant until rendered/accessibility/device/release acceptance."
+        f"implemented target {TARGET_VERSION}, source {SOURCE_REVISION}; Platform Contract v0.4 "
+        "requires current Glaze UI 1.5.1 and remains migration-required/nonconformant until the "
+        "source migration plus rendered/accessibility/device/release acceptance are complete."
     )
 
 
