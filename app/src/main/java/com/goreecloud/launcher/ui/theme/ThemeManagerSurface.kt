@@ -37,11 +37,12 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Native Theme Manager presentation foundation for the currently implemented
- * System/Light/Dark/Deep Dark appearance modes under GLAZE UI V1.1.
+ * System/Light/Dark/Deep Dark appearance modes under the GLAZE UI V1.6 source mapping.
  *
- * This surface deliberately does not imply icon-pack discovery, icon masking,
- * wallpaper sampling, environmental color memory, expression controls, or
- * complete V1.1 application acceptance. Those remain separately gated.
+ * This surface consumes caller/platform-supplied V1.6 presentation context without inferring
+ * accessibility, performance, privacy, security, or capability truth. Icon-pack discovery,
+ * wallpaper sampling, environmental color memory, broader Theme Engine behavior, and complete
+ * V1.6 application acceptance remain separately gated.
  */
 @Composable
 fun ThemeManagerSurface(
@@ -49,6 +50,16 @@ fun ThemeManagerSurface(
     onSelectMode: (GlazeThemeMode) -> Unit,
     onBack: () -> Unit,
 ) {
+    val presentation = GlazeV16PresentationPolicy.resolve(
+        requestedMaterial = GlazeV16MaterialRole.RAISED,
+        context = LocalGlazeV16PresentationContext.current,
+    )
+    val raisedContainer = if (presentation.materialRole == GlazeV16MaterialRole.SOLID) {
+        MaterialTheme.colorScheme.surface
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
@@ -93,7 +104,7 @@ fun ThemeManagerSurface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    containerColor = raisedContainer,
                 ),
             ) {
                 Column(
@@ -102,7 +113,7 @@ fun ThemeManagerSurface(
                 ) {
                     Text("Theme Manager foundation", fontWeight = FontWeight.SemiBold)
                     Text(
-                        "System, Light, Dark and Deep Dark use the current V1.1 structural mapping. The preview includes only bounded non-semantic atmosphere. Icon packs, masking, wallpaper-derived palettes, environmental sampling and advanced expression controls remain separate Development work.",
+                        "System, Light, Dark and Deep Dark use the current GLAZE UI V1.6 source mapping. Accessibility and performance presentation context may simplify material cost without changing task or authority truth. Rendered/device acceptance, icon packs, masking, wallpaper-derived palettes, environmental sampling and advanced expression controls remain separate Development work.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -118,10 +129,20 @@ private fun ThemeChoiceCard(
     selected: Boolean,
     onSelect: () -> Unit,
 ) {
+    val presentation = GlazeV16PresentationPolicy.resolve(
+        requestedMaterial = GlazeV16MaterialRole.RAISED,
+        context = LocalGlazeV16PresentationContext.current,
+    )
+    val cardContainer = if (presentation.materialRole == GlazeV16MaterialRole.SOLID) {
+        MaterialTheme.colorScheme.surface
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = cardContainer),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space4),
@@ -167,7 +188,7 @@ private fun ThemeChoiceCard(
                         Column(Modifier.weight(1f)) {
                             Text("GoreeCloud", fontWeight = FontWeight.SemiBold)
                             Text(
-                                "Structural appearance with restrained V1.1 atmosphere",
+                                "Launcher appearance under V1.6 presentation semantics",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

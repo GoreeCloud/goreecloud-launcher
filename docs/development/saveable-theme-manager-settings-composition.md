@@ -1,51 +1,30 @@
-# Saveable Theme Manager settings composition
+# Saveable Theme Manager Settings Composition
 
-Status: Development — GLAZE UI V1.1 migration in progress
+Status: Development — GLAZE UI V1.6 source mapping candidate; application acceptance pending
 
-`LauncherSettingsSurface` composes the validated saveable Settings destination model with `LauncherSettingsDestinationHost` while the repository-local native design authority targets **GLAZE UI V1.1 (`1.1.0`)** at exact Stable release source revision `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`.
+`LauncherSettingsSurface` composes the validated saveable Settings destination model with `LauncherSettingsDestinationHost`. Theme persistence remains with the caller-provided `GlazeThemeRepository` through `onSelectThemeMode`; the presentation layer gains no Home/Apps navigation, workspace placement, launcher-role, wallpaper, icon-pack, account, or system-setting authority.
 
-The surface owns only the Settings sub-destination string saved through Compose. Unknown or stale values are decoded through `LauncherSettingsNavigation` and therefore fail closed to Settings root. Root content receives a single bounded callback for opening Theme Manager, and Theme Manager returns through the same navigation model.
+## V1.6 source mapping
 
-Theme persistence remains with the caller-provided `GlazeThemeRepository` path through `onSelectThemeMode`. This surface gains no Home/Apps navigation, workspace placement, launcher-role, wallpaper, icon-pack, account, or system-setting authority.
+The branch pins exact Official Stable GLAZE UI V1.6 / `1.6.0` source `a7180679ea851389e0f3004515f9a25f420e716d`.
 
-## GLAZE UI V1.1 mapping
+`GlazeMetrics` preserves the inherited Stable spacing subset used by Launcher and records the inherited 44 dp-equivalent coarse target floor while keeping Launcher's stricter 48 dp normal target and 56 dp accessibility-oriented target. Product-owned 20/40 dp spacing, radii, optical aliases, pigments, and atmosphere remain explicitly non-canonical.
 
-`GlazeMetrics` records machine version `1.1.0`, the exact Stable release source revision, inherited V1 spacing/radius values used by Launcher, separate V1.1 8/16/24/32 dp optical geometry references, the 48 dp normal interaction floor, and the 56 dp Touch Assistance / far-view target.
+`GlazeV16PresentationPolicy` models V1.6 material/accessibility/performance behavior without inferring authoritative state. Reduced Transparency can force glass to solid, Essential performance can reduce costly material and motion, Reduced Motion yields minimal motion, large text may make density yield to reflow, and strong input/accessibility contexts preserve visible focus.
 
-`GlazeTheme` preserves the inherited V1 Light/Dark structural palette and adds the explicit V1.1 Deep Dark structural appearance. `GlazeAtmosphere` separately records the bounded Deep Teal + Soft Amber atmospheric primitives so decorative atmosphere cannot become semantic-state authority.
+`GlazeTheme` propagates caller-supplied presentation context through nested previews. Neutral defaults remain neutral until a caller/platform supplies actual state.
 
-Theme Manager is **Application** settings content under the inherited V1 System Shell contract. It is not Control Center, Universal Search, or a Critical System surface. Durable explanatory/settings content stays solid/certainty-first; bounded transient interaction chrome may use Glaze treatment where appropriate.
+Theme Manager is **Application** settings content. Durable explanatory/settings content remains certainty-first, while presentation policy may simplify optional material cost without changing meaning, action hierarchy, persistence, or authority.
 
-## Root composition
+## Current bounded behavior
 
-`LauncherBetaRoot` routes `LauncherSurfaceMode.SETTINGS` through `LauncherSettingsSurface`, supplies the current theme mode and caller-owned theme callback, and returns to the Home surface through the existing root navigation state.
+- System, Light, Dark, and Deep Dark are reachable.
+- Only a different appearance choice invokes caller-owned persistence.
+- Stale/unknown Settings destination state fails closed to Settings root.
+- The selected appearance is represented as selected state, not as an actionable duplicate.
+- The preview atmosphere is decorative and carries no semantic state.
+- Theme Manager can resolve raised material to solid when authoritative presentation context requests Reduced Transparency or Essential performance.
 
-## Theme Manager interaction targets and appearances
+## Acceptance boundary
 
-The rendered Theme Manager applies `GlazeMetrics.touchAssistanceTarget` (56 dp) as the minimum height for its Done action and actionable System/Light/Dark/Deep Dark appearance choices. This is a conservative accessible target and exceeds the 48 dp normal V1 floor. It does **not** claim that Launcher has implemented or detected a platform Touch Assistance preference; broader accessibility-resolution wiring remains separate work.
-
-The already-selected appearance renders as a non-actionable `Selected` status surface rather than another persistence button. This prevents a redundant `onSelectThemeMode` callback for the current mode while preserving clear selected-state presentation. Only a different appearance choice can invoke the caller-owned persistence path.
-
-The Deep Dark choice uses the exact V1.1 structural canvas/base/panel/text mapping rather than a pre-reset approximation. The preview's Soft Amber marker is deliberately decorative and sits inside the preview's cleared semantics tree; it communicates no application state.
-
-## Accessibility semantics hardening
-
-Each visual theme preview is exposed as one descriptive semantics node using stable catalog metadata such as `Deep Dark appearance preview`. Decorative preview internals are cleared from the accessibility tree so assistive technology receives one concise description instead of reading decorative fragments as independent content.
-
-The non-actionable selected-state surface exposes an explicit state description such as `Deep Dark appearance selected` and uses a polite live region. A change to the selected appearance can therefore be announced as state rather than being misrepresented as another clickable control.
-
-This is source-level semantic hardening only. It does not prove TalkBack, Switch Access, keyboard/D-pad, focus-order, spoken-announcement timing, 200% text/reflow, RTL, representative-device, or adaptive acceptance.
-
-## V1.1 atmosphere and authority boundary
-
-Atmosphere resolves after protected semantics and accessibility. Forced-color/native equivalents, Reduced Motion, Reduced Transparency, Increased Contrast/show-boundaries, large text/Touch Assistance, and material clarity all take precedence. Environmental sampling is not implemented. No color sample is persisted, transmitted, or used to infer meaning.
-
-## Historical evidence
-
-Earlier V1.0 and pre-reset Glaze UI 2.x source mappings and CI runs remain historical Development evidence only. They may support implementation ancestry but do not establish current V1.1 consumer acceptance or production eligibility.
-
-## Remaining acceptance
-
-This migration still requires complete V1.1 component/state/material review, Reduced Motion, Reduced Transparency, Increased Contrast, native accessibility-equivalent/forced-color handling where applicable, 200% text/reflow, RTL/localization expansion, platform Touch Assistance resolution, representative phone/tablet/foldable behavior, TalkBack/Switch Access, performance fallbacks, Human Visual Excellence, representative-device Theme Manager navigation/persistence testing across all four modes, production signing/distribution, release approval, and Stable qualification.
-
-This remains Development evidence only. A green build or correct token/semantics mapping does not establish complete GLAZE UI V1.1 conformance or production readiness.
+This source mapping does not establish V1.6 application conformance. Authoritative runtime accessibility/performance wiring, rendered accessibility, localization/RTL, representative form factors/devices, issue #80 physical HOME/drawer behavior, measured performance/power, rollback, Human Visual Excellence, platform-system acceptance, signing/distribution, Release Candidate, production, and Stable qualification remain separate gates.

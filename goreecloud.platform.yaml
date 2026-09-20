@@ -65,19 +65,21 @@ platform_systems:
       - docs/development/portable-restore-preview.md
     notes: Versioned workspace-placement and explicit preference snapshots have validation-before-write, pair-level Home-grid compatibility, reviewed apply, concrete Room/DataStore persistence, a durable pre-Room device-local recovery journal, exact-state interrupted-operation reconciliation, readback verification, guarded compensation, and emulator-targeted recovery tests. This remains partial Development recovery; the coordinator is not yet an accepted production startup gate, clean-target/cross-device identity reconstruction and complete Launcher-owned recovery scope remain incomplete, and accepted Everkeep integration is not established.
   glaze_ui:
-    result: applicable-migration-required
-    version: "1.1.0"
+    result: applicable-blocked
+    version: "1.6.0"
     evidence:
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeV16PresentationPolicy.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeAtmosphere.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalog.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/ThemeManagerSurface.kt
       - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeMetricsContractTest.kt
+      - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeV16PresentationPolicyTest.kt
       - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: Authoritative Launcher source remains mapped to GLAZE UI V1.1 / 1.1.0. Current GoreeCloud governance requires migration to Official Stable Glaze UI V1.6 / 1.6.0; that migration is not integrated on main. Repository-local rendered, accessibility, adaptive phone/tablet/foldable, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, and production acceptance remain incomplete.
+    notes: This Development candidate maps Launcher source to exact Official Stable GLAZE UI V1.6 / 1.6.0 release source a7180679ea851389e0f3004515f9a25f420e716d and implements repository-local presentation policy. Glaze remains applicable-blocked because authoritative runtime accessibility/performance wiring, rendered/accessibility/adaptive phone/tablet/foldable, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance remain incomplete.
   mesh:
     result: applicable-blocked
     version: null
@@ -186,7 +188,7 @@ conformance:
     - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
     - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
   blockers:
-    - Authoritative Launcher source remains on GLAZE UI V1.1 / 1.1.0 and must be cleanly migrated to current Official Stable V1.6 / 1.6.0 before current Glaze conformance can be claimed; rendered, accessibility, adaptive/form-factor, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, and production acceptance also remain incomplete.
+    - Launcher source maps to current Official Stable GLAZE UI V1.6 / 1.6.0, but consumer acceptance remains blocked: authoritative runtime accessibility/performance wiring, complete component/state review, rendered accessibility, adaptive/form-factor, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance are incomplete.
     - GoreeCloud Identity integration and acceptance are not established for future identity-aware capabilities.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.

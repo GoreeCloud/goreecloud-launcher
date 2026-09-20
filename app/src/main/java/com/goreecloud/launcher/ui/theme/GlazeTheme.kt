@@ -62,9 +62,12 @@ private val deepDark = darkColorScheme(
 @Composable
 fun GlazeTheme(
     mode: GlazeThemeMode,
-    presentationContext: GlazeV16PresentationContext = GlazeV16PresentationContext(),
+    presentationContext: GlazeV16PresentationContext? = null,
     content: @Composable () -> Unit,
 ) {
+    val inheritedPresentationContext = LocalGlazeV16PresentationContext.current
+    val effectivePresentationContext = presentationContext ?: inheritedPresentationContext
+
     val scheme = when (mode) {
         GlazeThemeMode.SYSTEM -> if (isSystemInDarkTheme()) dark else light
         GlazeThemeMode.LIGHT -> light
@@ -73,7 +76,7 @@ fun GlazeTheme(
     }
 
     CompositionLocalProvider(
-        LocalGlazeV16PresentationContext provides presentationContext,
+        LocalGlazeV16PresentationContext provides effectivePresentationContext,
     ) {
         MaterialTheme(colorScheme = scheme, content = content)
     }

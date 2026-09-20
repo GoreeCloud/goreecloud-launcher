@@ -6,7 +6,7 @@ GoreeCloud Launcher is GoreeCloud's privacy-first, original Android HOME applica
 
 **Development — not a signed production/Stable release.**
 
-The current repository contains a usable native daily-launcher foundation, a rebuilt Home / Apps / Launcher Settings product shell, guarded Room-authority multi-page workspace foundations, a Development Launcher-to-Index universal-search handoff, and a retained **GLAZE UI V1.1 / 1.1.0 implemented baseline** with a reachable native Theme Manager. **GLAZE UI V1.6 / 1.6.0 is the current required shared target**, recorded separately so the older implementation is not mislabeled as current. Passing CI/emulator tests does not establish V1.6 consumer conformance, complete rendered/native/accessibility or physical-device acceptance, signed release, complete platform integration, or Stable qualification.
+The current repository contains a usable native daily-launcher foundation, a rebuilt Home / Apps / Launcher Settings product shell, guarded Room-authority multi-page workspace foundations, a Development Launcher-to-Index universal-search handoff, and a **GLAZE UI V1.6 / 1.6.0 source-migration candidate** with a reachable native Theme Manager. The candidate is pinned to exact Stable release source `a7180679ea851389e0f3004515f9a25f420e716d` and adds repository-local V1.6 material/accessibility/performance presentation policy without claiming downstream acceptance. Passing source/CI/emulator tests does not establish V1.6 consumer conformance, complete rendered/native/accessibility or physical-device acceptance, signed release, complete platform integration, or Stable qualification.
 
 The complete approved target capability inventory is maintained in [FEATURES.md](FEATURES.md). Target capabilities are not implementation claims unless separately identified as current Development behavior and supported by repository evidence.
 
@@ -56,11 +56,11 @@ Current Development source includes:
 - a **Search GoreeCloud** Home affordance when Permanent mode is selected;
 - the one-finger downward Home gesture wired to the same Index handoff in both entry modes;
 - bounded package visibility for the Index search action without broad package access;
-- Retained GLAZE UI V1.1 token/geometry/target mapping for the currently implemented native baseline, including the 48 dp general floor and mapped 56 dp Touch Assistance target; V1.6.0 remains the required migration target;
+- GLAZE UI V1.6 source mapping pinned to exact Stable provenance, with inherited Stable spacing/material/state semantics, a conservative Launcher 48 dp touch floor, a 56 dp accessibility-oriented target, and fail-closed application acceptance;
 - a reachable Settings → Theme Manager path with saveable/fail-closed sub-destination restoration, direct persisted System/Light/Dark theme selection, concise preview semantics, and a non-actionable selected-state surface; and
 - Android system wallpaper presentation through the native window-wallpaper mechanism without requesting wallpaper/storage privileges.
 
-The current Theme Manager remains deliberately bounded to System, Light, and Dark. Deep Dark, icon-pack discovery/application, masking, wallpaper-derived palettes, expression controls, and complete Glaze Theme Engine behavior remain separate implementation and acceptance work.
+The current Theme Manager remains deliberately bounded to System, Light, Dark, and Deep Dark. Icon-pack discovery/application, masking, wallpaper-derived palettes, expression controls, and complete Glaze Theme Engine behavior remain separate implementation and acceptance work.
 
 ## Complete app discovery boundary
 
@@ -126,9 +126,9 @@ Index search history, provider controls, contextual ranking, and remote-provider
 
 ## Glaze UI boundary
 
-Launcher implements a bounded native **GLAZE UI V1.1 / 1.1.0** baseline at exact source authority `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`. The separate current-authority boundary pins required **GLAZE UI V1.6 / 1.6.0** to exact Stable source `a7180679ea851389e0f3004515f9a25f420e716d`. The retained native mapping covers the currently consumed spacing/shape/target semantics, theme persistence, and reachable Theme Manager composition. Historical Glaze Motion evaluation remains Experimental/test-only.
+This Development branch maps Launcher source to **GLAZE UI V1.6 / 1.6.0** at exact Stable release source `a7180679ea851389e0f3004515f9a25f420e716d`. The mapping consumes inherited Stable layout/material/state authorities and adds first-party Compose policy for V1.6 material simplification, Reduced Motion, Reduced Transparency, performance-cost reduction, focus visibility, large-text density yielding, and conservative interaction targets. Retained Launcher pigments, atmosphere, radii, and 20/40 dp composition conveniences remain explicitly application-owned rather than being mislabeled as canonical V1.6 tokens. Historical Glaze Motion evaluation remains Experimental/test-only.
 
-This does **not** make Launcher V1.6-conformant, `aligned-current-stable`, or production-eligible. Complete V1.6 component/state mapping, current motion/material/input/resilience/navigation behavior, density/performance adaptation, deterministic accessibility resolution, Reduced Transparency/Solid resolution, large-text/reflow, forced-colors/native equivalents, runtime Touch Assistance resolution, Reduced Motion, Increased Contrast, TalkBack/Switch Access, responsive phone/tablet/foldable composition, rendered/native visual review, representative physical-device Theme Manager behavior, and Human Visual Excellence remain separate evidence requirements.
+This does **not** make Launcher V1.6-conformant, `aligned-current-stable`, or production-eligible. Caller/platform accessibility and performance inputs still require authoritative runtime wiring, and complete component/state coverage, rendered accessibility, localization/RTL, responsive phone/tablet/foldable behavior, representative physical-device validation, performance/power acceptance, rollback, Human Visual Excellence, platform-system acceptance, signing, and release approval remain separate evidence requirements.
 
 ## Current limitations
 
