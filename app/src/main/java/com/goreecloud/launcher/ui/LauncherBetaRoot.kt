@@ -40,11 +40,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
+import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
+import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceState
@@ -87,6 +89,8 @@ fun LauncherBetaRoot(
     onSetShowHomeQuickActions: (Boolean) -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
+    onSetDockStyle: (LauncherDockStyle) -> Unit,
+    onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
 ) {
     var surfaceModeName by rememberSaveable { mutableStateOf(LauncherSurfaceMode.HOME.name) }
@@ -178,6 +182,8 @@ fun LauncherBetaRoot(
                         onSetShowHomeQuickActions = onSetShowHomeQuickActions,
                         onSetDrawerBackdrop = onSetDrawerBackdrop,
                         onSetShowDrawerAppCount = onSetShowDrawerAppCount,
+                        onSetDockStyle = onSetDockStyle,
+                        onSetWallpaperShade = onSetWallpaperShade,
                         onOpenThemeManager = onOpenThemeManager,
                         onBack = { surfaceModeName = LauncherSurfaceMode.HOME.name },
                     )
