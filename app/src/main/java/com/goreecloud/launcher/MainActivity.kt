@@ -26,6 +26,7 @@ import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexIntegration
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
+import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
@@ -129,6 +130,9 @@ class MainActivity : ComponentActivity() {
             )
             val drawerLayoutMode by launcherPreferencesRepository.drawerLayoutMode.collectAsStateWithLifecycle(
                 initialValue = LauncherDrawerLayoutMode.GRID,
+            )
+            val experiencePreferences by launcherPreferencesRepository.experiencePreferences.collectAsStateWithLifecycle(
+                initialValue = LauncherExperiencePreferences(),
             )
             val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
                 initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
@@ -260,6 +264,7 @@ class MainActivity : ComponentActivity() {
                             workspace = workspace,
                             preferences = launcherPreferences,
                             drawerLayoutMode = drawerLayoutMode,
+                            experiencePreferences = experiencePreferences,
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
@@ -301,6 +306,10 @@ class MainActivity : ComponentActivity() {
                             onSetIconScale = launcherPreferencesRepository::setIconScale,
                             onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,
                             onSetIndexHomeMode = launcherPreferencesRepository::setIndexHomeMode,
+                            onSetHomeCardStyle = launcherPreferencesRepository::setHomeCardStyle,
+                            onSetShowHomeQuickActions = launcherPreferencesRepository::setShowHomeQuickActions,
+                            onSetDrawerBackdrop = launcherPreferencesRepository::setDrawerBackdrop,
+                            onSetShowDrawerAppCount = launcherPreferencesRepository::setShowDrawerAppCount,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
                             },
