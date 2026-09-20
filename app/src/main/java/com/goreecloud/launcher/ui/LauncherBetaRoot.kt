@@ -271,6 +271,9 @@ private fun HomeSurface(
         LauncherWallpaperShade.SOFT -> 0.18f
         LauncherWallpaperShade.STRONG -> 0.34f
     }
+    val showPermanentSearch = preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT
+    val searchAtTop =
+        experiencePreferences.homeSearchPlacement == LauncherHomeSearchPlacement.TOP
 
     Box(
         modifier = Modifier
@@ -329,6 +332,14 @@ private fun HomeSurface(
                 )
             }
 
+            if (showPermanentSearch && searchAtTop) {
+                GlazeSearchCapsule(
+                    value = "Search phone",
+                    onClick = onOpenUniversalSearch,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
             if (experiencePreferences.showHomeQuickActions) {
                 HomeQuickActions(
                     onOpenApps = onOpenDrawer,
@@ -356,7 +367,7 @@ private fun HomeSurface(
                 )
             }
 
-            if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) {
+            if (showPermanentSearch && !searchAtTop) {
                 GlazeSearchCapsule(
                     value = "Search phone",
                     onClick = onOpenUniversalSearch,
@@ -386,17 +397,23 @@ private fun HomeSurface(
                 tonalElevation = 0.dp,
             ) {
                 HomeEditorSheet(
+                    now = now,
+                    favoriteApps = favoriteApps,
+                    dockApps = dockApps,
+                    preferences = preferences,
+                    experiencePreferences = experiencePreferences,
+                    homePageCount = homePageCount,
                     onWallpaper = {
                         showHomeEditor = false
                         onOpenWallpaperPicker()
                     },
+                    onPages = {
+                        showHomeEditor = false
+                        onManageHomePages()
+                    },
                     onApps = {
                         showHomeEditor = false
                         onOpenDrawer()
-                    },
-                    onSearch = {
-                        showHomeEditor = false
-                        onOpenUniversalSearch()
                     },
                     onSettings = {
                         showHomeEditor = false
@@ -410,9 +427,15 @@ private fun HomeSurface(
 
 @Composable
 private fun HomeEditorSheet(
+    now: LocalDateTime,
+    favoriteApps: List<LauncherActivityInfo>,
+    dockApps: List<LauncherActivityInfo>,
+    preferences: LauncherPreferences,
+    experiencePreferences: LauncherExperiencePreferences,
+    homePageCount: Int,
     onWallpaper: () -> Unit,
+    onPages: () -> Unit,
     onApps: () -> Unit,
-    onSearch: () -> Unit,
     onSettings: () -> Unit,
 ) {
     Column(
@@ -422,28 +445,205 @@ private fun HomeEditorSheet(
             .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
         verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "Edit Home",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    homePageCount.toString() + if (homePageCount == 1) " Home page" else " Home pages",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(
-                "Home screen",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                "Wallpaper, apps, search and Home settings",
-                style = MaterialTheme.typography.bodySmall,
+                "Long-press Home anytime",
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+
+        HomeEditorPreview(
+            now = now,
+            favoriteApps = favoriteApps,
+            dockApps = dockApps,
+            preferences = preferences,
+            experiencePreferences = experiencePreferences,
+        )
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
         ) {
             HomeEditorAction("Wallpaper", "◫", onWallpaper, Modifier.weight(1f))
+            HomeEditorAction("Pages", "▣", onPages, Modifier.weight(1f))
             HomeEditorAction("Apps", "▦", onApps, Modifier.weight(1f))
-            HomeEditorAction("Search", "⌕", onSearch, Modifier.weight(1f))
             HomeEditorAction("Settings", "⚙", onSettings, Modifier.weight(1f))
         }
-        Spacer(Modifier.height(GlazeMetrics.space2))
+        Spacer(Modifier.height(GlazeMetrics.space1))
+    }
+}
+
+@Composable
+private fun HomeEditorPreview(
+    now: LocalDateTime,
+    favoriteApps: List<LauncherActivityInfo>,
+    dockApps: List<LauncherActivityInfo>,
+    preferences: LauncherPreferences,
+    experiencePreferences: LauncherExperiencePreferences,
+) {
+    val locale = Locale.getDefault()
+    val time = remember(now.minute, locale) {
+        now.format(DateTimeFormatter.ofPattern("h:mm", locale))
+    }
+    val date = remember(now.dayOfYear, locale) {
+        now.format(DateTimeFormatter.ofPattern("EEE, MMM d", locale))
+    }
+    val searchAtTop =
+        experiencePreferences.homeSearchPlacement == LauncherHomeSearchPlacement.TOP
+    val showSearch = preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(330.dp),
+        shape = RoundedCornerShape(34.dp),
+        color = GlazeAtmosphere.canvasBlack.copy(alpha = 0.40f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(GlazeMetrics.space4),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        ) {
+            if (experiencePreferences.homeCardStyle != LauncherHomeCardStyle.OFF) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = if (
+                        experiencePreferences.homeGlanceAlignment == LauncherHomeGlanceAlignment.CENTER
+                    ) Alignment.CenterHorizontally else Alignment.Start,
+                ) {
+                    Text(
+                        time,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Light,
+                        color = Color.White,
+                    )
+                    Text(
+                        date,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.78f),
+                    )
+                }
+            }
+
+            if (showSearch && searchAtTop) {
+                HomeEditorPreviewSearch()
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            if (favoriteApps.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    favoriteApps.take(preferences.homeColumns.coerceAtMost(5)).forEach { app ->
+                        HomeEditorPreviewIcon(app)
+                    }
+                }
+            }
+
+            if (showSearch && !searchAtTop) {
+                HomeEditorPreviewSearch()
+            }
+
+            if (dockApps.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = if (experiencePreferences.dockStyle == LauncherDockStyle.EDGE) {
+                        RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 10.dp, bottomEnd = 10.dp)
+                    } else {
+                        RoundedCornerShape(GlazeMetrics.radiusExtraLarge)
+                    },
+                    color = when (experiencePreferences.dockStyle) {
+                        LauncherDockStyle.CLEAR -> Color.Transparent
+                        LauncherDockStyle.GLASS -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.24f)
+                        LauncherDockStyle.EDGE -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.40f)
+                    },
+                    border = if (experiencePreferences.dockStyle == LauncherDockStyle.CLEAR) {
+                        null
+                    } else {
+                        BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+                    },
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        dockApps.take(MAX_DOCK_ITEMS).forEach { app ->
+                            HomeEditorPreviewIcon(app)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeEditorPreviewSearch() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(34.dp),
+        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+        color = Color.White.copy(alpha = 0.14f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = GlazeMetrics.space3),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+        ) {
+            Text("⌕", color = Color.White.copy(alpha = 0.84f))
+            Text(
+                "Search phone",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.72f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeEditorPreviewIcon(app: LauncherActivityInfo) {
+    val icon = rememberLauncherAppIcon(app)
+    if (icon != null) {
+        Image(
+            bitmap = icon,
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(34.dp),
+        )
+    } else {
+        Surface(
+            modifier = Modifier.size(34.dp),
+            shape = RoundedCornerShape(10.dp),
+            color = Color.White.copy(alpha = 0.14f),
+        ) {}
     }
 }
 
