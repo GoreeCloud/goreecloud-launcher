@@ -328,6 +328,8 @@ private fun HomeSurface(
                     showLabels = preferences.showLabels,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
+                    onSwipeUp = onOpenDrawer,
+                    onSwipeDown = onOpenUniversalSearch,
                 )
             }
 
@@ -346,6 +348,8 @@ private fun HomeSurface(
                     style = experiencePreferences.dockStyle,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
+                    onSwipeUp = onOpenDrawer,
+                    onSwipeDown = onOpenUniversalSearch,
                 )
             }
 
@@ -502,6 +506,8 @@ private fun HomeFavoritesGrid(
     showLabels: Boolean,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
+    onSwipeUp: () -> Unit,
+    onSwipeDown: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -520,6 +526,8 @@ private fun HomeFavoritesGrid(
                         compact = true,
                         onClick = { onLaunchApp(app) },
                         onLongClick = { onManageApp(app) },
+                        onSwipeUp = onSwipeUp,
+                        onSwipeDown = onSwipeDown,
                         modifier = Modifier
                             .weight(1f)
                             .height(78.dp),
@@ -1406,6 +1414,8 @@ private fun GlazeDock(
     style: LauncherDockStyle,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
+    onSwipeUp: () -> Unit,
+    onSwipeDown: () -> Unit,
 ) {
     val glass = style == LauncherDockStyle.GLASS
     Surface(
@@ -1438,6 +1448,8 @@ private fun GlazeDock(
                     compact = true,
                     onClick = { onLaunchApp(app) },
                     onLongClick = { onManageApp(app) },
+                    onSwipeUp = onSwipeUp,
+                    onSwipeDown = onSwipeDown,
                     modifier = Modifier.size(60.dp),
                 )
             }
@@ -1455,13 +1467,39 @@ private fun LauncherAppTile(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier,
+    onSwipeUp: (() -> Unit)? = null,
+    onSwipeDown: (() -> Unit)? = null,
 ) {
     val icon = rememberLauncherAppIcon(app)
     val base = if (compact) 50f else 52f
     val iconSize = (base * iconScale.coerceIn(0.85f, 1.15f)).dp
+    val swipeThreshold = with(LocalDensity.current) { 42.dp.toPx() }
+    val gestureModifier = if (onSwipeUp != null || onSwipeDown != null) {
+        Modifier.pointerInput(onSwipeUp, onSwipeDown, swipeThreshold) {
+            var drag = 0f
+            detectVerticalDragGestures(
+                onDragStart = { drag = 0f },
+                onDragCancel = { drag = 0f },
+                onDragEnd = {
+                    when {
+                        drag <= -swipeThreshold -> onSwipeUp?.invoke()
+                        drag >= swipeThreshold -> onSwipeDown?.invoke()
+                    }
+                    drag = 0f
+                },
+                onVerticalDrag = { change, amount ->
+                    change.consume()
+                    drag += amount
+                },
+            )
+        }
+    } else {
+        Modifier
+    }
 
     Column(
         modifier = modifier
+            .then(gestureModifier)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
