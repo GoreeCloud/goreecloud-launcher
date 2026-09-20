@@ -3,7 +3,7 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development and is not Stable or production accepted.
-- Verified current stabilization base: `main` at `f5150b99687946cbf34d963a3935de104e486e23`, including the asynchronous shared icon cache, off-main-thread/scoped LauncherApps inventory refresh, hardened local installed-app search, immutable Android CI supply-chain integration, Platform Contract 0.4/all-nine-system reconciliation, and the PR #120 workspace-tile drawer-gesture correction.
+- Latest source-bearing stabilization baseline: `f5150b99687946cbf34d963a3935de104e486e23`, including the asynchronous shared icon cache, off-main-thread/scoped LauncherApps inventory refresh, hardened local installed-app search, immutable Android CI supply-chain integration, Platform Contract 0.4/all-nine-system reconciliation, and the PR #120 workspace-tile drawer-gesture correction. Documentation-only PR #121 followed that source-bearing baseline without changing Launcher runtime behavior.
 - GitHub issue #80 is the current Android core-stabilization gate and records physical-device blockers for HOME behavior, drawer gestures/transitions, local app search, drawer presentation, app discovery, performance, and Quickstep/Recents compatibility.
 - Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. Authoritative source still maps GLAZE UI 1.1.0. PR #119 integrated Platform Contract 0.4/all-nine-system reconciliation without claiming the unmerged 1.5.1 source migration.
 
