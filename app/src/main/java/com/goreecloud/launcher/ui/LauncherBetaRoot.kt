@@ -14,6 +14,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -94,6 +95,7 @@ fun LauncherBetaRoot(
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
+    onOpenWallpaperPicker: () -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
 ) {
     var surfaceModeName by rememberSaveable { mutableStateOf(LauncherSurfaceMode.HOME.name) }
@@ -150,6 +152,7 @@ fun LauncherBetaRoot(
                 onManageApp = { selectedApp = it },
                 onOpenDrawer = { surfaceModeName = LauncherSurfaceMode.DRAWER.name },
                 onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
+                onOpenWallpaperPicker = onOpenWallpaperPicker,
             )
             LauncherSurfaceMode.DRAWER -> AppDrawerSurface(
                 apps = apps,
@@ -220,6 +223,7 @@ private fun HomeSurface(
     onManageApp: (LauncherActivityInfo) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenWallpaperPicker: () -> Unit,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val favoriteApps = remember(appsByKey, workspace.favoriteKeys, preferences.homeCapacity) {
@@ -230,6 +234,7 @@ private fun HomeSurface(
     }
     val swipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
+    var showHomeEditor by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -247,6 +252,9 @@ private fun HomeSurface(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(onLongPress = { showHomeEditor = true })
+            }
             .pointerInput(onOpenUniversalSearch, onOpenDrawer, swipeThreshold) {
                 var drag = 0f
                 detectVerticalDragGestures(
@@ -290,14 +298,6 @@ private fun HomeSurface(
                 .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space2),
             verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                GlazeRoundAction(label = "⚙", onClick = onOpenSettings)
-            }
-
             if (experiencePreferences.homeCardStyle != LauncherHomeCardStyle.OFF) {
                 HomeAtAGlance(
                     now = now,
@@ -349,6 +349,102 @@ private fun HomeSurface(
             }
 
             Spacer(Modifier.height(2.dp))
+        }
+
+        if (showHomeEditor) {
+            ModalBottomSheet(
+                onDismissRequest = { showHomeEditor = false },
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                tonalElevation = 0.dp,
+            ) {
+                HomeEditorSheet(
+                    onWallpaper = {
+                        showHomeEditor = false
+                        onOpenWallpaperPicker()
+                    },
+                    onApps = {
+                        showHomeEditor = false
+                        onOpenDrawer()
+                    },
+                    onSearch = {
+                        showHomeEditor = false
+                        onOpenUniversalSearch()
+                    },
+                    onSettings = {
+                        showHomeEditor = false
+                        onOpenSettings()
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeEditorSheet(
+    onWallpaper: () -> Unit,
+    onApps: () -> Unit,
+    onSearch: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                "Home screen",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Wallpaper, apps, search and Home settings",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        ) {
+            HomeEditorAction("Wallpaper", "◫", onWallpaper, Modifier.weight(1f))
+            HomeEditorAction("Apps", "▦", onApps, Modifier.weight(1f))
+            HomeEditorAction("Search", "⌕", onSearch, Modifier.weight(1f))
+            HomeEditorAction("Settings", "⚙", onSettings, Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(GlazeMetrics.space2))
+    }
+}
+
+@Composable
+private fun HomeEditorAction(
+    label: String,
+    glyph: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        onClick = onClick,
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(glyph, style = MaterialTheme.typography.titleLarge)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
         }
     }
 }
@@ -1031,6 +1127,7 @@ private fun LauncherSettingsRootSurface(
             SettingsSection("Gestures", "Current implemented shortcuts") {
                 SettingsReadOnlyRow("Swipe up", "Open Apps")
                 SettingsReadOnlyRow("Swipe down", "Open GoreeCloud Search")
+                SettingsReadOnlyRow("Long-press Home", "Open Home editor")
                 SettingsReadOnlyRow("Long-press app", "Home and dock actions")
             }
 
