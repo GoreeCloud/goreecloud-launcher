@@ -14,6 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
+import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
@@ -50,6 +53,7 @@ fun LauncherBetaRoot(
     apps: List<LauncherActivityInfo>,
     workspace: WorkspaceState,
     preferences: LauncherPreferences,
+    drawerLayoutMode: LauncherDrawerLayoutMode,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
@@ -62,6 +66,7 @@ fun LauncherBetaRoot(
     onCycleTheme: (GlazeThemeMode) -> Unit,
     onSetHomeGrid: (Int, Int) -> Unit,
     onSetDrawerColumns: (Int) -> Unit,
+    onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
@@ -127,6 +132,7 @@ fun LauncherBetaRoot(
             LauncherSurfaceMode.DRAWER -> AppDrawerSurface(
                 apps = apps,
                 preferences = preferences,
+                drawerLayoutMode = drawerLayoutMode,
                 onLaunchApp = onLaunchApp,
                 onManageApp = { selectedApp = it },
                 onHome = { surfaceModeName = LauncherSurfaceMode.HOME.name },
@@ -134,11 +140,13 @@ fun LauncherBetaRoot(
             )
             LauncherSurfaceMode.SETTINGS -> LauncherSettingsSurface(
                 preferences = preferences,
+                drawerLayoutMode = drawerLayoutMode,
                 themeMode = themeMode,
                 isDefaultHome = isDefaultHome,
                 onRequestHomeRole = onRequestHomeRole,
                 onSetHomeGrid = onSetHomeGrid,
                 onSetDrawerColumns = onSetDrawerColumns,
+                onSetDrawerLayoutMode = onSetDrawerLayoutMode,
                 onSetShowLabels = onSetShowLabels,
                 onSetIconScale = onSetIconScale,
                 onSetLayoutLocked = onSetLayoutLocked,
@@ -341,6 +349,7 @@ private fun HomeSurface(
 private fun AppDrawerSurface(
     apps: List<LauncherActivityInfo>,
     preferences: LauncherPreferences,
+    drawerLayoutMode: LauncherDrawerLayoutMode,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     onHome: () -> Unit,
@@ -423,23 +432,58 @@ private fun AppDrawerSurface(
                     )
                 }
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(preferences.drawerColumns),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 22.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    items(filteredApps, key = { it.workspaceKey() }) { app ->
-                        LauncherAppTile(
-                            app = app,
-                            iconScale = preferences.iconScale,
-                            showLabel = preferences.showLabels,
-                            compact = false,
-                            onClick = { onLaunchApp(app) },
-                            onLongClick = { onManageApp(app) },
-                            modifier = Modifier.height(92.dp),
-                        )
+                when (drawerLayoutMode) {
+                    LauncherDrawerLayoutMode.GRID -> LazyVerticalGrid(
+                        columns = GridCells.Fixed(preferences.drawerColumns),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 22.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(filteredApps, key = { it.workspaceKey() }) { app ->
+                            LauncherAppTile(
+                                app = app,
+                                iconScale = preferences.iconScale,
+                                showLabel = preferences.showLabels,
+                                compact = false,
+                                onClick = { onLaunchApp(app) },
+                                onLongClick = { onManageApp(app) },
+                                modifier = Modifier.height(92.dp),
+                            )
+                        }
+                    }
+                    LauncherDrawerLayoutMode.COMPACT -> LazyVerticalGrid(
+                        columns = GridCells.Fixed(preferences.drawerColumns),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        items(filteredApps, key = { it.workspaceKey() }) { app ->
+                            LauncherAppTile(
+                                app = app,
+                                iconScale = preferences.iconScale,
+                                showLabel = preferences.showLabels,
+                                compact = true,
+                                onClick = { onLaunchApp(app) },
+                                onLongClick = { onManageApp(app) },
+                                modifier = Modifier.height(74.dp),
+                            )
+                        }
+                    }
+                    LauncherDrawerLayoutMode.LIST -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 22.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        lazyItems(filteredApps, key = { it.workspaceKey() }) { app ->
+                            LauncherAppListRow(
+                                app = app,
+                                iconScale = preferences.iconScale,
+                                onClick = { onLaunchApp(app) },
+                                onLongClick = { onManageApp(app) },
+                            )
+                        }
                     }
                 }
             }
@@ -450,11 +494,13 @@ private fun AppDrawerSurface(
 @Composable
 private fun LauncherSettingsSurface(
     preferences: LauncherPreferences,
+    drawerLayoutMode: LauncherDrawerLayoutMode,
     themeMode: GlazeThemeMode,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onSetHomeGrid: (Int, Int) -> Unit,
     onSetDrawerColumns: (Int) -> Unit,
+    onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
@@ -496,6 +542,28 @@ private fun LauncherSettingsSurface(
             }
 
             SettingsSection("Apps") {
+                Text(
+                    "Layout: ${drawerLayoutMode.name.lowercase().replaceFirstChar { it.uppercase() }}",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Grid", "Compact", "List"),
+                    onChoice = {
+                        onSetDrawerLayoutMode(
+                            when (it) {
+                                "Compact" -> LauncherDrawerLayoutMode.COMPACT
+                                "List" -> LauncherDrawerLayoutMode.LIST
+                                else -> LauncherDrawerLayoutMode.GRID
+                            },
+                        )
+                    },
+                )
+                Text(
+                    "Grid columns",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 ChoiceRow(
                     choices = listOf("4", "5", "6"),
                     onChoice = { onSetDrawerColumns(it.toInt()) },
@@ -645,6 +713,64 @@ private fun LauncherAppTile(
                 style = MaterialTheme.typography.labelSmall,
                 textAlign = TextAlign.Center,
                 maxLines = if (compact) 1 else 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun LauncherAppListRow(
+    app: LauncherActivityInfo,
+    iconScale: Float,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val icon = remember(app.componentName, app.user) {
+        runCatching { app.getBadgedIcon(0).toBitmap(144, 144).asImageBitmap() }.getOrNull()
+    }
+    val iconSize = (44f * iconScale.coerceIn(0.85f, 1.15f)).dp
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        if (icon != null) {
+            Image(
+                bitmap = icon,
+                contentDescription = app.label.toString(),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(iconSize),
+            )
+        } else {
+            Surface(
+                modifier = Modifier.size(iconSize),
+                shape = RoundedCornerShape(13.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(app.label.toString().take(1).uppercase(), fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                app.label.toString(),
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                app.componentName.packageName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
