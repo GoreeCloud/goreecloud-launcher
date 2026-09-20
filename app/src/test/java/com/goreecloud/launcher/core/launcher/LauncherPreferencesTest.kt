@@ -37,6 +37,34 @@ class LauncherPreferencesTest {
     }
 
     @Test
+    fun experienceDefaultsFavorLauncherLikeHomeWithoutDashboardActions() {
+        val defaults = LauncherExperiencePreferences()
+
+        assertFalse(defaults.showHomeQuickActions)
+        assertEquals(true, defaults.showHomePageIndicator)
+        assertFalse(defaults.starterLayoutApplied)
+        assertEquals(LauncherDockStyle.GLASS, defaults.dockStyle)
+        assertEquals(LauncherWallpaperShade.SOFT, defaults.wallpaperShade)
+        assertEquals(LauncherDrawerSearchPlacement.BOTTOM, defaults.drawerSearchPlacement)
+    }
+
+    @Test
+    fun visualPreferenceStorageDecodingFailsSafe() {
+        assertEquals(LauncherDockStyle.CLEAR, LauncherDockStyle.fromStorage("clear"))
+        assertEquals(LauncherDockStyle.GLASS, LauncherDockStyle.fromStorage("unknown"))
+        assertEquals(LauncherWallpaperShade.STRONG, LauncherWallpaperShade.fromStorage("strong"))
+        assertEquals(LauncherWallpaperShade.SOFT, LauncherWallpaperShade.fromStorage(null))
+        assertEquals(
+            LauncherDrawerSearchPlacement.TOP,
+            LauncherDrawerSearchPlacement.fromStorage("top"),
+        )
+        assertEquals(
+            LauncherDrawerSearchPlacement.BOTTOM,
+            LauncherDrawerSearchPlacement.fromStorage("unknown"),
+        )
+    }
+
+    @Test
     fun drawerLayoutModeStorageDecodingFailsSafeToGrid() {
         assertEquals(LauncherDrawerLayoutMode.COMPACT, LauncherDrawerLayoutMode.fromStorage("compact"))
         assertEquals(LauncherDrawerLayoutMode.LIST, LauncherDrawerLayoutMode.fromStorage("list"))

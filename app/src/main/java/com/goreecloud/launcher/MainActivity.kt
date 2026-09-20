@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Text
@@ -26,22 +27,28 @@ import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexIntegration
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
+import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
+import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
+import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
+import com.goreecloud.launcher.core.launcher.StarterWorkspacePolicy
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
+import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativeWriteResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResult
 import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
+import com.goreecloud.launcher.ui.HomePageDots
 import com.goreecloud.launcher.ui.HomePageSwitcher
 import com.goreecloud.launcher.ui.LayoutLockHoldControl
 import com.goreecloud.launcher.ui.LauncherBetaRoot
@@ -184,12 +191,59 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            LaunchedEffect(apps, workspace.initialized) {
-                if (!workspace.initialized && apps.isNotEmpty()) {
+            LaunchedEffect(
+                apps,
+                workspace.initialized,
+                experiencePreferences.starterLayoutApplied,
+            ) {
+                if (apps.isEmpty() || experiencePreferences.starterLayoutApplied) {
+                    return@LaunchedEffect
+                }
+
+                val starterSelection = StarterWorkspacePolicy.select(
+                    apps
+                        .filterNot { it.componentName.packageName == packageName }
+                        .map { app ->
+                            StarterWorkspaceCandidate(
+                                key = app.workspaceKey(),
+                                label = app.label.toString(),
+                                packageName = app.componentName.packageName,
+                            )
+                        },
+                )
+
+                if (!workspace.initialized) {
                     workspaceRepository.ensureDefaults(
-                        favoriteKeys = emptyList(),
-                        dockKeys = emptyList(),
+                        favoriteKeys = starterSelection.favoriteKeys,
+                        dockKeys = starterSelection.dockKeys,
                     )
+                    launcherPreferencesRepository.markStarterLayoutApplied()
+                } else if (workspace.favoriteKeys.isEmpty() && workspace.dockKeys.isEmpty()) {
+                    var seeded = true
+                    for (key in starterSelection.favoriteKeys) {
+                        if (workspaceRuntimeCoordinator.toggleFavorite(key) !is
+                            WorkspaceAuthoritativeWriteResult.Written
+                        ) {
+                            seeded = false
+                            break
+                        }
+                    }
+                    if (seeded) {
+                        for (key in starterSelection.dockKeys) {
+                            if (workspaceRuntimeCoordinator.toggleDock(key) !is
+                                WorkspaceAuthoritativeWriteResult.Written
+                            ) {
+                                seeded = false
+                                break
+                            }
+                        }
+                    }
+                    if (seeded) {
+                        launcherPreferencesRepository.markStarterLayoutApplied()
+                    }
+                } else {
+                    // Existing user placement always wins over the one-time Development starter.
+                    launcherPreferencesRepository.markStarterLayoutApplied()
                 }
             }
 
@@ -308,16 +362,36 @@ class MainActivity : ComponentActivity() {
                             onSetIndexHomeMode = launcherPreferencesRepository::setIndexHomeMode,
                             onSetHomeCardStyle = launcherPreferencesRepository::setHomeCardStyle,
                             onSetShowHomeQuickActions = launcherPreferencesRepository::setShowHomeQuickActions,
+                            onSetShowHomePageIndicator = launcherPreferencesRepository::setShowHomePageIndicator,
                             onSetDrawerBackdrop = launcherPreferencesRepository::setDrawerBackdrop,
+                            onSetDrawerSearchPlacement = launcherPreferencesRepository::setDrawerSearchPlacement,
                             onSetShowDrawerAppCount = launcherPreferencesRepository::setShowDrawerAppCount,
+                            onSetDockStyle = launcherPreferencesRepository::setDockStyle,
+                            onSetWallpaperShade = launcherPreferencesRepository::setWallpaperShade,
+                            onOpenWallpaperPicker = ::openWallpaperPicker,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
                             },
                         )
                     }
 
-                    // Keep the primary homescreen visually quiet. Page-management chrome only
-                    // appears after navigating to an additional page, where it is actually needed.
+                    if (
+                        experiencePreferences.showHomePageIndicator &&
+                        renderedPages.size > 1 &&
+                        showingHome
+                    ) {
+                        HomePageDots(
+                            pages = renderedPages,
+                            selectedPageId = selectedHomePageId,
+                            onSelectPage = { selectedHomePageId = it },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .navigationBarsPadding()
+                                .padding(bottom = if (onPrimaryPage) 104.dp else 24.dp),
+                        )
+                    }
+
+                    // Detailed page-management controls remain available on secondary pages.
                     val showPageSwitcher = renderedPages.size > 1 && showingHome && !onPrimaryPage
                     if (showPageSwitcher) {
                         HomePageSwitcher(
@@ -404,6 +478,18 @@ class MainActivity : ComponentActivity() {
         val manager = getSystemService(RoleManager::class.java)
         if (manager.isRoleAvailable(RoleManager.ROLE_HOME) && !manager.isRoleHeld(RoleManager.ROLE_HOME)) {
             homeRoleRequest.launch(manager.createRequestRoleIntent(RoleManager.ROLE_HOME))
+        }
+    }
+
+    private fun openWallpaperPicker() {
+        runCatching {
+            startActivity(Intent.createChooser(Intent(Intent.ACTION_SET_WALLPAPER), "Choose wallpaper"))
+        }.onFailure {
+            Toast.makeText(
+                this,
+                "No wallpaper picker is available",
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
