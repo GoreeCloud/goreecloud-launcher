@@ -609,7 +609,7 @@ private fun AppDrawerSurface(
                 ) {
                     Column {
                         Text(
-                            "All Apps",
+                            "Apps",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                         )
