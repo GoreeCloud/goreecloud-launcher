@@ -1,6 +1,6 @@
 # Saveable Theme Manager Settings Composition
 
-Status: Development — GLAZE UI V1.6 source mapping candidate; application acceptance pending
+Status: Development — GLAZE UI V1.6 source mapping integrated; application acceptance pending
 
 `LauncherSettingsSurface` composes the validated saveable Settings destination model with `LauncherSettingsDestinationHost`. Theme persistence remains with the caller-provided `GlazeThemeRepository` through `onSelectThemeMode`; the presentation layer gains no Home/Apps navigation, workspace placement, launcher-role, wallpaper, icon-pack, account, or system-setting authority.
 

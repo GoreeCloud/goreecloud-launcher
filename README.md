@@ -6,7 +6,7 @@ GoreeCloud Launcher is GoreeCloud's privacy-first, original Android HOME applica
 
 **Development — not a signed production/Stable release.**
 
-The current repository contains a usable native daily-launcher foundation, a rebuilt Home / Apps / Launcher Settings product shell, guarded Room-authority multi-page workspace foundations, a Development Launcher-to-Index universal-search handoff, and a **GLAZE UI V1.6 / 1.6.0 source-migration candidate** with a reachable native Theme Manager. The candidate is pinned to exact Stable release source `a7180679ea851389e0f3004515f9a25f420e716d` and adds repository-local V1.6 material/accessibility/performance presentation policy without claiming downstream acceptance. Passing source/CI/emulator tests does not establish V1.6 consumer conformance, complete rendered/native/accessibility or physical-device acceptance, signed release, complete platform integration, or Stable qualification.
+The current repository contains a usable native daily-launcher foundation, a rebuilt Home / Apps / Launcher Settings product shell, guarded Room-authority multi-page workspace foundations, a Development Launcher-to-Index universal-search handoff, and an integrated **GLAZE UI V1.6 / 1.6.0 source mapping** with a reachable native Theme Manager. Source-bearing PR #128 mapped Launcher to exact Stable release source `a7180679ea851389e0f3004515f9a25f420e716d` and added repository-local V1.6 material/accessibility/performance presentation policy without claiming downstream acceptance. Passing source/CI/emulator tests does not establish V1.6 consumer conformance, complete rendered/native/accessibility or physical-device acceptance, signed release, complete platform integration, or Stable qualification.
 
 The complete approved target capability inventory is maintained in [FEATURES.md](FEATURES.md). Target capabilities are not implementation claims unless separately identified as current Development behavior and supported by repository evidence.
 
@@ -126,7 +126,7 @@ Index search history, provider controls, contextual ranking, and remote-provider
 
 ## Glaze UI boundary
 
-This Development branch maps Launcher source to **GLAZE UI V1.6 / 1.6.0** at exact Stable release source `a7180679ea851389e0f3004515f9a25f420e716d`. The mapping consumes inherited Stable layout/material/state authorities and adds first-party Compose policy for V1.6 material simplification, Reduced Motion, Reduced Transparency, performance-cost reduction, focus visibility, large-text density yielding, and conservative interaction targets. Retained Launcher pigments, atmosphere, radii, and 20/40 dp composition conveniences remain explicitly application-owned rather than being mislabeled as canonical V1.6 tokens. Historical Glaze Motion evaluation remains Experimental/test-only.
+Authoritative Launcher source now maps to **GLAZE UI V1.6 / 1.6.0** at exact Stable release source `a7180679ea851389e0f3004515f9a25f420e716d`. The mapping consumes inherited Stable layout/material/state authorities and adds first-party Compose policy for V1.6 material simplification, Reduced Motion, Reduced Transparency, performance-cost reduction, focus visibility, large-text density yielding, and conservative interaction targets. Retained Launcher pigments, atmosphere, radii, and 20/40 dp composition conveniences remain explicitly application-owned rather than being mislabeled as canonical V1.6 tokens. Historical Glaze Motion evaluation remains Experimental/test-only.
 
 This does **not** make Launcher V1.6-conformant, `aligned-current-stable`, or production-eligible. Caller/platform accessibility and performance inputs still require authoritative runtime wiring, and complete component/state coverage, rendered accessibility, localization/RTL, responsive phone/tablet/foldable behavior, representative physical-device validation, performance/power acceptance, rollback, Human Visual Excellence, platform-system acceptance, signing, and release approval remain separate evidence requirements.
 
@@ -162,7 +162,7 @@ Still incomplete or separately gated:
 - [BENEFITS.md](BENEFITS.md) — current and intended benefits.
 - [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — product completeness objectives.
 - [Rendered HOME page navigation](docs/rendered-home-page-navigation.md) — terminal-Room page behavior.
-- [Glaze UI adoption](docs/glaze-ui-adoption.md) — exact current-Stable migration and application acceptance boundary.
+- [Glaze UI adoption](docs/glaze-ui-adoption.md) — exact current-Stable source mapping and application acceptance boundary.
 - `docs/` — architecture, persistence, design-system, validation, and implementation records.
 
 Canonical project specifications and acceptance/change records are maintained in the authorized GoreeCloud project documentation hierarchy.

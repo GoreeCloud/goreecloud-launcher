@@ -1,6 +1,6 @@
 # GLAZE UI V1.6 Source Mapping — GoreeCloud Launcher
 
-Status: **Development source-migration candidate / application acceptance pending**  
+Status: **Development source mapping integrated / application acceptance pending**  
 Current required target: **GLAZE UI V1.6 (`1.6.0`)**  
 Canonical repository: `GoreeCloud/goreecloud-glaze-ui`  
 Exact Stable release source authority: `a7180679ea851389e0f3004515f9a25f420e716d`  
@@ -11,10 +11,10 @@ Automated contract: `scripts/check_glaze_ui.py`
 
 ## Authority boundary
 
-The exact V1.6 Stable release is consumer-eligible, but downstream application acceptance is explicitly non-transferable. This branch therefore separates **source mapping** from **consumer acceptance**:
+The exact V1.6 Stable release is consumer-eligible, but downstream application acceptance is explicitly non-transferable. The integrated Launcher source therefore separates **source mapping** from **consumer acceptance**:
 
 - `GlazeMetrics` and `GlazeV16PresentationPolicy` pin exact V1.6 source provenance.
-- `GlazeCurrentAuthority.sourceMigrationRequired()` is false when the candidate source and exact Stable authority agree.
+- `GlazeCurrentAuthority.sourceMigrationRequired()` is false because authoritative Launcher source and exact Stable authority now agree.
 - `currentConsumerConformanceEstablished` remains false and `consumerAcceptanceRequired()` remains true.
 - Platform Contract stays Development/nonconformant and records Glaze as applicable-blocked rather than conformant.
 
@@ -22,7 +22,7 @@ No source string, successful build, emulator run, or shared Glaze qualification 
 
 ## Implemented V1.6 source semantics
 
-The candidate consumes the accepted V1.6 release source and its inherited Stable authorities rather than inventing a new palette contract.
+The integrated source consumes the accepted V1.6 release source and its inherited Stable authorities rather than inventing a new palette contract.
 
 ### Layout and interaction
 
@@ -70,4 +70,4 @@ Theme Manager consumes the V1.6 presentation context for material-cost simplific
 
 The prior V1.1 source mapping remains immutable Development provenance. It is not rewritten as V1.6 acceptance.
 
-If this candidate causes a source regression before integration, return the branch to the verified pre-migration Launcher main `5656ad908113dc3fabe362e06d825cdfd9de0cea`. That is a Launcher source rollback boundary, not authority to redefine the current shared Glaze target.
+The verified pre-migration Launcher main `5656ad908113dc3fabe362e06d825cdfd9de0cea` remains historical source rollback provenance. Any actual rollback requires fresh governed validation and does not redefine the current shared Glaze target.

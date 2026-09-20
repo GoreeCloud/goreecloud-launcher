@@ -32,7 +32,7 @@ Launcher must remain original GoreeCloud-owned software built from the ground up
 - Rendered paged Home state is projected from authoritative workspace state; UI convenience is not a second placement authority.
 - Home layout lock is a Launcher mutation policy layered over the authoritative workspace APIs; it is not a workspace persistence authority.
 - Universal search invocation is delegated through an explicit GoreeCloud Index action contract rather than duplicating Index provider/index/ranking logic inside Launcher.
-- GLAZE UI V1.6 / 1.6.0 is the current required design-system target for Launcher. This Development candidate maps repository source to exact Stable release source `a7180679ea851389e0f3004515f9a25f420e716d` and adds first-party V1.6 presentation-policy primitives. Fresh rendered/accessibility/adaptive/device/performance/rollback/release acceptance remains required; source mapping alone is Development evidence only.
+- GLAZE UI V1.6 / 1.6.0 is the current required design-system target for Launcher. Integrated source-bearing PR #128 maps authoritative repository source to exact Stable release source `a7180679ea851389e0f3004515f9a25f420e716d` and adds first-party V1.6 presentation-policy primitives. Fresh rendered/accessibility/adaptive/device/performance/rollback/release acceptance remains required; source mapping alone is Development evidence only.
 - Privacy, security, continuity, identity, design, and cross-service responsibilities remain separated into applicable GoreeCloud platform-system boundaries.
 
 ## Current daily-launcher shell
@@ -63,7 +63,7 @@ Launcher Settings is a distinct scrollable surface. Current persisted settings i
 
 Current settings changes do not widen Room workspace mutation authority. The layout-lock preference restricts Launcher mutation dispatch; the Index-entry preference controls Launcher-owned invocation presentation only.
 
-The native Theme Manager catalog/surface and direct persisted appearance-selection API are composed into Launcher Settings under the V1.6 source-migration candidate. Settings uses a saveable/fail-closed sub-destination model; stale destination values restore to Settings root. The current appearance is represented as non-actionable selected state, and only a different supported appearance invokes caller-owned persistence. V1.6 presentation context can simplify raised material when Reduced Transparency or constrained performance is authoritatively supplied, while broader runtime profile wiring and complete Glaze Theme Engine behavior remain separately implementation- and acceptance-gated.
+The native Theme Manager catalog/surface and direct persisted appearance-selection API are composed into Launcher Settings under the integrated V1.6 source mapping. Settings uses a saveable/fail-closed sub-destination model; stale destination values restore to Settings root. The current appearance is represented as non-actionable selected state, and only a different supported appearance invokes caller-owned persistence. V1.6 presentation context can simplify raised material when Reduced Transparency or constrained performance is authoritatively supplied, while broader runtime profile wiring and complete Glaze Theme Engine behavior remain separately implementation- and acceptance-gated.
 
 Launcher Settings must also provide explicit local/offline-capable **Backup Launcher configuration** and **Restore Launcher configuration** actions. Backup/restore remains separately implementation- and acceptance-gated.
 
@@ -194,7 +194,7 @@ GoreeCloud Index PR #1 established its initial Android Development foundation an
 
 Launcher PR #57 implemented the persisted **Permanent on Home / Swipe down only** Index entry modes together with Home layout locking and its five-second Home unlock path. It merged with expected-head protection as `eca26aa28e1ec8dd18efd1fb5f3cf914be33a361`; push-triggered Android CI run `33434363744` passed both validate and the Android 16/API 36 runtime-emulator job on that exact merge commit.
 
-The repository's current Theme Manager work is mapped to the V1.6 source candidate described in `docs/glaze-ui-adoption.md`. The Theme Manager is user-reachable through Launcher Settings and consumes the repository-local V1.6 presentation context, but this does not establish current application conformance, representative-device accessibility acceptance, or production eligibility.
+The repository's current Theme Manager work is mapped to the integrated V1.6 source boundary described in `docs/glaze-ui-adoption.md`. The Theme Manager is user-reachable through Launcher Settings and consumes the repository-local V1.6 presentation context, but this does not establish current application conformance, representative-device accessibility acceptance, or production eligibility.
 
 Contacts, files/documents, calendar, media, Drive, first-party app-content providers, connected devices, extensions, third-party providers, GoreeCloud Search integration, complete GLAZE UI V1.6 application adoption, representative-device accessibility/gesture acceptance, production signing/deployment, and Stable qualification remain separate gates.
 
@@ -260,7 +260,7 @@ Stable qualification still requires, as applicable:
 - folders/widgets/shortcuts required by release scope;
 - mature cross-page placement editing and accessible alternatives;
 - representative-device, rotation/posture, performance, physical-interaction, universal-search gesture, five-second unlock, and accessibility acceptance;
-- complete current Glaze UI application migration and acceptance, currently targeting GLAZE UI V1.6 / 1.6.0 Stable;
+- complete current Glaze UI application acceptance for the integrated GLAZE UI V1.6 / 1.6.0 Stable source mapping;
 - accepted applicable Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, Index, Search, Sync, Backup, and continuity integrations;
 - Android process-death and schema-upgrade recovery evidence;
 - signed distribution and upgrade/recovery validation; and

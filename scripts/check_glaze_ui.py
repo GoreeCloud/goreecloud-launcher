@@ -112,7 +112,7 @@ def main() -> None:
         require(catalog, marker, "Theme Manager catalog")
 
     for marker in (
-        "Status: **Development source-migration candidate / application acceptance pending**",
+        "Status: **Development source mapping integrated / application acceptance pending**",
         f"Exact Stable release source authority: `{SOURCE_REVISION}`",
         "sourceMigrationRequired()",
         "consumerAcceptanceRequired()",
@@ -123,7 +123,7 @@ def main() -> None:
         require(adoption, marker, "V1.6 adoption record")
 
     for marker in (
-        "Status: Development — GLAZE UI V1.6 source mapping candidate",
+        "Status: Development — GLAZE UI V1.6 source mapping integrated",
         SOURCE_REVISION,
         "Reduced Transparency can force glass to solid",
         "System, Light, Dark, and Deep Dark are reachable",
