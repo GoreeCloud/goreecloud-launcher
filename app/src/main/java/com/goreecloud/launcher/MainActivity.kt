@@ -26,11 +26,15 @@ import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexIntegration
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
+import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
+import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
+import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
+import com.goreecloud.launcher.core.launcher.StarterWorkspacePolicy
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
@@ -184,12 +188,44 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            LaunchedEffect(apps, workspace.initialized) {
-                if (!workspace.initialized && apps.isNotEmpty()) {
+            LaunchedEffect(
+                apps,
+                workspace.initialized,
+                experiencePreferences.starterLayoutApplied,
+            ) {
+                if (apps.isEmpty() || experiencePreferences.starterLayoutApplied) {
+                    return@LaunchedEffect
+                }
+
+                val starterSelection = StarterWorkspacePolicy.select(
+                    apps
+                        .filterNot { it.componentName.packageName == packageName }
+                        .map { app ->
+                            StarterWorkspaceCandidate(
+                                key = app.workspaceKey(),
+                                label = app.label.toString(),
+                                packageName = app.componentName.packageName,
+                            )
+                        },
+                )
+
+                if (!workspace.initialized) {
                     workspaceRepository.ensureDefaults(
-                        favoriteKeys = emptyList(),
-                        dockKeys = emptyList(),
+                        favoriteKeys = starterSelection.favoriteKeys,
+                        dockKeys = starterSelection.dockKeys,
                     )
+                    launcherPreferencesRepository.markStarterLayoutApplied()
+                } else if (workspace.favoriteKeys.isEmpty() && workspace.dockKeys.isEmpty()) {
+                    starterSelection.favoriteKeys.forEach { key ->
+                        workspaceRuntimeCoordinator.toggleFavorite(key)
+                    }
+                    starterSelection.dockKeys.forEach { key ->
+                        workspaceRuntimeCoordinator.toggleDock(key)
+                    }
+                    launcherPreferencesRepository.markStarterLayoutApplied()
+                } else {
+                    // Existing user placement always wins over the one-time Development starter.
+                    launcherPreferencesRepository.markStarterLayoutApplied()
                 }
             }
 
@@ -310,6 +346,8 @@ class MainActivity : ComponentActivity() {
                             onSetShowHomeQuickActions = launcherPreferencesRepository::setShowHomeQuickActions,
                             onSetDrawerBackdrop = launcherPreferencesRepository::setDrawerBackdrop,
                             onSetShowDrawerAppCount = launcherPreferencesRepository::setShowDrawerAppCount,
+                            onSetDockStyle = launcherPreferencesRepository::setDockStyle,
+                            onSetWallpaperShade = launcherPreferencesRepository::setWallpaperShade,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
                             },
