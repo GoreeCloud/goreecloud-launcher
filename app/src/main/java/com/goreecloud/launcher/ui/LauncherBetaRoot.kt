@@ -1,6 +1,13 @@
 package com.goreecloud.launcher.ui
 
 import android.content.pm.LauncherActivityInfo
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -68,41 +75,78 @@ fun LauncherBetaRoot(
 
     LaunchedEffect(surfaceMode) { onSurfaceModeChanged(surfaceMode) }
 
-    when (surfaceMode) {
-        LauncherSurfaceMode.HOME -> HomeSurface(
-            apps = apps,
-            workspace = workspace,
-            preferences = preferences,
-            isDefaultHome = isDefaultHome,
-            onRequestHomeRole = onRequestHomeRole,
-            onLaunchApp = onLaunchApp,
-            onOpenUniversalSearch = onOpenUniversalSearch,
-            onManageApp = { selectedApp = it },
-            onOpenDrawer = { surfaceModeName = LauncherSurfaceMode.DRAWER.name },
-            onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
-        )
-        LauncherSurfaceMode.DRAWER -> AppDrawerSurface(
-            apps = apps,
-            preferences = preferences,
-            onLaunchApp = onLaunchApp,
-            onManageApp = { selectedApp = it },
-            onHome = { surfaceModeName = LauncherSurfaceMode.HOME.name },
-            onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
-        )
-        LauncherSurfaceMode.SETTINGS -> LauncherSettingsSurface(
-            preferences = preferences,
-            themeMode = themeMode,
-            isDefaultHome = isDefaultHome,
-            onRequestHomeRole = onRequestHomeRole,
-            onSetHomeGrid = onSetHomeGrid,
-            onSetDrawerColumns = onSetDrawerColumns,
-            onSetShowLabels = onSetShowLabels,
-            onSetIconScale = onSetIconScale,
-            onSetLayoutLocked = onSetLayoutLocked,
-            onSetIndexHomeMode = onSetIndexHomeMode,
-            onCycleTheme = onCycleTheme,
-            onBack = { surfaceModeName = LauncherSurfaceMode.HOME.name },
-        )
+    AnimatedContent(
+        targetState = surfaceMode,
+        transitionSpec = {
+            when {
+                initialState == LauncherSurfaceMode.HOME &&
+                    targetState == LauncherSurfaceMode.DRAWER ->
+                    (
+                        slideInVertically(
+                            animationSpec = tween(durationMillis = 220),
+                            initialOffsetY = { height -> height / 5 },
+                        ) + fadeIn(animationSpec = tween(durationMillis = 160))
+                    ) togetherWith (
+                        slideOutVertically(
+                            animationSpec = tween(durationMillis = 180),
+                            targetOffsetY = { height -> -height / 10 },
+                        ) + fadeOut(animationSpec = tween(durationMillis = 120))
+                    )
+                initialState == LauncherSurfaceMode.DRAWER &&
+                    targetState == LauncherSurfaceMode.HOME ->
+                    (
+                        slideInVertically(
+                            animationSpec = tween(durationMillis = 180),
+                            initialOffsetY = { height -> -height / 10 },
+                        ) + fadeIn(animationSpec = tween(durationMillis = 140))
+                    ) togetherWith (
+                        slideOutVertically(
+                            animationSpec = tween(durationMillis = 220),
+                            targetOffsetY = { height -> height / 5 },
+                        ) + fadeOut(animationSpec = tween(durationMillis = 120))
+                    )
+                else ->
+                    fadeIn(animationSpec = tween(durationMillis = 140)) togetherWith
+                        fadeOut(animationSpec = tween(durationMillis = 100))
+            }
+        },
+    ) { targetSurfaceMode ->
+        when (targetSurfaceMode) {
+            LauncherSurfaceMode.HOME -> HomeSurface(
+                apps = apps,
+                workspace = workspace,
+                preferences = preferences,
+                isDefaultHome = isDefaultHome,
+                onRequestHomeRole = onRequestHomeRole,
+                onLaunchApp = onLaunchApp,
+                onOpenUniversalSearch = onOpenUniversalSearch,
+                onManageApp = { selectedApp = it },
+                onOpenDrawer = { surfaceModeName = LauncherSurfaceMode.DRAWER.name },
+                onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
+            )
+            LauncherSurfaceMode.DRAWER -> AppDrawerSurface(
+                apps = apps,
+                preferences = preferences,
+                onLaunchApp = onLaunchApp,
+                onManageApp = { selectedApp = it },
+                onHome = { surfaceModeName = LauncherSurfaceMode.HOME.name },
+                onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
+            )
+            LauncherSurfaceMode.SETTINGS -> LauncherSettingsSurface(
+                preferences = preferences,
+                themeMode = themeMode,
+                isDefaultHome = isDefaultHome,
+                onRequestHomeRole = onRequestHomeRole,
+                onSetHomeGrid = onSetHomeGrid,
+                onSetDrawerColumns = onSetDrawerColumns,
+                onSetShowLabels = onSetShowLabels,
+                onSetIconScale = onSetIconScale,
+                onSetLayoutLocked = onSetLayoutLocked,
+                onSetIndexHomeMode = onSetIndexHomeMode,
+                onCycleTheme = onCycleTheme,
+                onBack = { surfaceModeName = LauncherSurfaceMode.HOME.name },
+            )
+        }
     }
 
     selectedApp?.let { app ->

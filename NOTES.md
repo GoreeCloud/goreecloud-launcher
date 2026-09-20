@@ -50,3 +50,12 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 - Exact-head runtime validation exposed that the primary Home `LazyVerticalGrid` still accepted vertical scrolling and won the gesture when a swipe began on app content. The integrated PR #120 change disables user scrolling on that fixed Home grid so the parent Home swipe detector can receive drawer gestures across app tiles; the app drawer grid remains scrollable.
 - Superseded candidate heads also exposed two test-only defects (a missing Compose `swipeUp` import and a non-`Unit` JUnit test signature). Those failed heads are audit history and are not accepted as runtime evidence.
 - This remains automated Development regression evidence only. It does not establish representative physical-device gesture smoothness, transition quality, Quickstep/Recents coexistence, measured performance, accessibility acceptance, or Stable qualification.
+
+## Home and drawer transition stabilization — September 19, 2026
+
+- This Development candidate replaces the abrupt top-level Home/app-drawer surface swap with a bounded Compose animated transition.
+- Home-to-drawer uses a short upward spatial transition plus fade, while drawer-to-Home reverses that spatial direction; Settings transitions remain a short fade.
+- The existing gesture authority is unchanged: the fixed Home grid remains non-scrollable so parent Home swipe handling retains the workspace-tile gesture path, and the app drawer itself remains scrollable.
+- Existing Android 16 runtime acceptance must still prove that a swipe beginning on workspace app content reaches the drawer and exposes Apps and Search apps after the transition.
+- This is source-level transition behavior only. It does not establish representative physical-device smoothness, frame timing, measured jank/performance, reduced-motion acceptance, Quickstep/Recents coexistence, Release Candidate, production, or Stable qualification.
+
