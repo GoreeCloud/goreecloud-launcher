@@ -722,6 +722,7 @@ private fun AppDrawerSurface(
 private fun LauncherSettingsRootSurface(
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
+    experiencePreferences: LauncherExperiencePreferences,
     themeMode: GlazeThemeMode,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
@@ -732,6 +733,10 @@ private fun LauncherSettingsRootSurface(
     onSetIconScale: (Float) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
     onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
+    onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
+    onSetShowHomeQuickActions: (Boolean) -> Unit,
+    onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
+    onSetShowDrawerAppCount: (Boolean) -> Unit,
     onOpenThemeManager: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -742,8 +747,8 @@ private fun LauncherSettingsRootSurface(
                 Brush.verticalGradient(
                     listOf(
                         MaterialTheme.colorScheme.background,
+                        GlazeAtmosphere.softAqua.copy(alpha = 0.06f),
                         MaterialTheme.colorScheme.background,
-                        GlazeAtmosphere.softAqua.copy(alpha = 0.05f),
                     ),
                 ),
             ),
@@ -763,9 +768,13 @@ private fun LauncherSettingsRootSurface(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column {
-                    Text("Launcher", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        "Home, apps and Glaze appearance",
+                        "Launcher",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        "Shape Home, apps and Glaze",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -773,9 +782,36 @@ private fun LauncherSettingsRootSurface(
                 GlazeTextAction("Done", onBack)
             }
 
-            SettingsSection("Home") {
+            SettingsSection("Home", "Workspace, cards and search") {
                 Text(
-                    "Grid",
+                    "Home card",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Clock", "Compact", "Off"),
+                    selected = when (experiencePreferences.homeCardStyle) {
+                        LauncherHomeCardStyle.CLOCK -> "Clock"
+                        LauncherHomeCardStyle.COMPACT -> "Compact"
+                        LauncherHomeCardStyle.OFF -> "Off"
+                    },
+                    onChoice = {
+                        onSetHomeCardStyle(
+                            when (it) {
+                                "Compact" -> LauncherHomeCardStyle.COMPACT
+                                "Off" -> LauncherHomeCardStyle.OFF
+                                else -> LauncherHomeCardStyle.CLOCK
+                            },
+                        )
+                    },
+                )
+                SettingSwitch(
+                    "Quick actions",
+                    experiencePreferences.showHomeQuickActions,
+                    onSetShowHomeQuickActions,
+                )
+                Text(
+                    "Home grid",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -787,7 +823,6 @@ private fun LauncherSettingsRootSurface(
                         onSetHomeGrid(parts[0].toInt(), parts[1].toInt())
                     },
                 )
-                SettingSwitch("Lock layout", preferences.layoutLocked, onSetLayoutLocked)
                 Text(
                     "Search",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -803,9 +838,15 @@ private fun LauncherSettingsRootSurface(
                         )
                     },
                 )
+                SettingSwitch("Lock layout", preferences.layoutLocked, onSetLayoutLocked)
             }
 
-            SettingsSection("App drawer") {
+            SettingsSection("App drawer", "Layout, density and material") {
+                Text(
+                    "Layout",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 ChoiceRow(
                     choices = listOf("Grid", "Compact", "List"),
                     selected = drawerLayoutMode.name.lowercase().replaceFirstChar { it.uppercase() },
@@ -829,10 +870,30 @@ private fun LauncherSettingsRootSurface(
                     selected = preferences.drawerColumns.toString(),
                     onChoice = { onSetDrawerColumns(it.toInt()) },
                 )
+                Text(
+                    "Background",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Glass", "Solid"),
+                    selected = if (experiencePreferences.drawerBackdrop == LauncherDrawerBackdrop.GLASS) "Glass" else "Solid",
+                    onChoice = {
+                        onSetDrawerBackdrop(
+                            if (it == "Solid") LauncherDrawerBackdrop.SOLID
+                            else LauncherDrawerBackdrop.GLASS,
+                        )
+                    },
+                )
                 SettingSwitch("Show app labels", preferences.showLabels, onSetShowLabels)
+                SettingSwitch(
+                    "Show app count",
+                    experiencePreferences.showDrawerAppCount,
+                    onSetShowDrawerAppCount,
+                )
             }
 
-            SettingsSection("Icons") {
+            SettingsSection("Icons", "Scale across Home and All Apps") {
                 ChoiceRow(
                     choices = listOf("Small", "Medium", "Large"),
                     selected = when {
@@ -852,7 +913,7 @@ private fun LauncherSettingsRootSurface(
                 )
             }
 
-            SettingsSection("Appearance") {
+            SettingsSection("Appearance", "Theme and Glaze presentation") {
                 GlazeSettingsAction(
                     title = "Theme Manager",
                     summary = "System, Light, Dark and Deep Dark",
@@ -861,31 +922,66 @@ private fun LauncherSettingsRootSurface(
                 )
             }
 
+            SettingsSection("Gestures", "Current implemented shortcuts") {
+                SettingsReadOnlyRow("Swipe up", "Open All Apps")
+                SettingsReadOnlyRow("Swipe down", "Open GoreeCloud Search")
+                SettingsReadOnlyRow("Long-press app", "Favorites and dock")
+            }
+
             if (!isDefaultHome) {
-                GlazeSettingsAction(
-                    title = "Default Home app",
-                    summary = "Use GoreeCloud Launcher for the Home gesture",
-                    value = "Set Home",
-                    onClick = onRequestHomeRole,
-                )
+                SettingsSection("System", "Default HOME role") {
+                    GlazeSettingsAction(
+                        title = "Default Home app",
+                        summary = "Use GoreeCloud Launcher for the Home gesture",
+                        value = "Set Home",
+                        onClick = onRequestHomeRole,
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun SettingsReadOnlyRow(title: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun SettingsSection(
+    title: String,
+    summary: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.58f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space4),
             verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
         ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             content()
         }
     }
