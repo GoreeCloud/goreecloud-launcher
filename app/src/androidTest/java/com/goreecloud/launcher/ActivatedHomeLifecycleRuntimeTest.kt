@@ -179,6 +179,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
                 composeRule.onNodeWithText("Apps", useUnmergedTree = true).assertIsDisplayed()
                 composeRule.onNodeWithText("Search apps", useUnmergedTree = true).assertIsDisplayed()
+                Unit
             } finally {
                 scenario.close()
             }
