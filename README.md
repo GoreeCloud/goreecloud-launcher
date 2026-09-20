@@ -80,13 +80,13 @@ When Home layout lock is enabled, current placement/page mutation callbacks are 
 
 ### Apps
 
-Apps presents the launchable application inventory in a configurable 4/5/6-column grid and supports a narrow local filter by label/package. This **Search apps** filter is a Launcher navigation feature, not GoreeCloud universal search and not an alternative Index provider/ranking pipeline.
+Apps presents the launchable application inventory in user-selectable **Grid**, **Compact**, and **List** layouts and supports a narrow local filter by label/package. Grid and Compact retain the existing configurable 4/5/6-column setting; List presents one launchable application per row. This **Search apps** filter is a Launcher navigation feature, not GoreeCloud universal search and not an alternative Index provider/ranking pipeline.
 
 Long-press placement management remains discoverable while the layout is locked, but current placement controls are disabled and explain that the user must unlock Home first.
 
 ### Launcher Settings
 
-Current persisted settings include supported Home-grid presets, Apps columns, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and GoreeCloud Index Home entry mode. The Index setting controls only Launcher-owned invocation presentation; it does not move provider/index/ranking authority out of GoreeCloud Index.
+Current persisted settings include supported Home-grid presets, Apps layout (Grid/Compact/List), Apps columns, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and GoreeCloud Index Home entry mode. The drawer-layout preference is intentionally local presentation state outside the strict seven-field `goreecloud-launcher-preferences/1` portability contract; that format is unchanged. The Index setting controls only Launcher-owned invocation presentation; it does not move provider/index/ranking authority out of GoreeCloud Index.
 
 Launcher Settings now routes Appearance into the native Theme Manager through the saveable Settings destination model. Stale/unknown restored destination values fail closed to Settings root. The selected appearance is presented as status rather than another persistence action; only a different System/Light/Dark choice can invoke caller-owned theme persistence. Icon-pack selection, masking, Deep Dark, wallpaper-derived palettes, and expression controls remain separate work.
 
