@@ -1,15 +1,16 @@
-# GLAZE UI V1.1 Migration — GoreeCloud Launcher
+# GLAZE UI Current-Stable Migration — GoreeCloud Launcher
 
 Status: **Migration in progress / Development**  
-Official target: **GLAZE UI V1.1 (`1.1.0`)**  
+Current required target: **GLAZE UI V1.6 (`1.6.0`)**  
 Canonical repository: `GoreeCloud/goreecloud-glaze-ui`  
-Exact Stable release source authority: `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`  
+Current Stable release source authority: `a7180679ea851389e0f3004515f9a25f420e716d`  
+Implemented source baseline: **GLAZE UI V1.1 (`1.1.0`)** at `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`  
 Stable release tag: `v1.1.0`  
 Production eligible on the Glaze UI gate: **no**  
 Adoption mode: native Android semantic/structural mapping with bounded optical refinement  
 Automated contract: `scripts/check_glaze_ui.py`
 
-GLAZE UI V1.1 is the sole current GoreeCloud design-system adoption target. This record defines Launcher’s repository-local V1.1 Development mapping. It does **not** establish complete V1.1 consumer conformance, rendered/accessibility/device acceptance, production approval, release approval, or Stable qualification. No V1.0 or pre-reset acceptance is inherited as V1.1 acceptance.
+GLAZE UI V1.6 is the current GoreeCloud design-system adoption target. Launcher still implements the repository-local V1.1 Development baseline described below, so migration remains required. Recording V1.6 authority does **not** establish V1.6 consumer conformance, rendered/accessibility/device acceptance, production approval, release approval, or Stable qualification. Existing V1.1 evidence remains valid only for the exact behavior it proves and is not inherited as V1.6 acceptance.
 
 ## Authority boundary
 
