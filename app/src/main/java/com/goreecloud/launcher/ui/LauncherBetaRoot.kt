@@ -851,8 +851,12 @@ private fun LauncherSettingsRootSurface(
     onSetLayoutLocked: (Boolean) -> Unit,
     onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
+    onSetHomeLayoutStyle: (LauncherHomeLayoutStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
+    onSetShowHomePageIndicator: (Boolean) -> Unit,
+    onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
+    onSetDrawerSearchPosition: (LauncherDrawerSearchPosition) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onOpenThemeManager: () -> Unit,
     onBack: () -> Unit,
@@ -864,7 +868,7 @@ private fun LauncherSettingsRootSurface(
                 Brush.verticalGradient(
                     listOf(
                         MaterialTheme.colorScheme.background,
-                        GlazeAtmosphere.softAqua.copy(alpha = 0.06f),
+                        GlazeAtmosphere.softAqua.copy(alpha = 0.05f),
                         MaterialTheme.colorScheme.background,
                     ),
                 ),
@@ -886,12 +890,12 @@ private fun LauncherSettingsRootSurface(
             ) {
                 Column {
                     Text(
-                        "Launcher",
+                        "Home screen",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        "Shape Home, apps and Glaze",
+                        "Workspace, dock, apps and Glaze",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -899,16 +903,39 @@ private fun LauncherSettingsRootSurface(
                 GlazeTextAction("Done", onBack)
             }
 
-            SettingsSection("Home", "Workspace, cards and search") {
+            SettingsSection("Layout", "Choose the character of the Home screen") {
                 Text(
-                    "Home card",
+                    "Home style",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
                 ChoiceRow(
-                    choices = listOf("Clock", "Compact", "Off"),
+                    choices = listOf("Classic", "Spacious", "Minimal"),
+                    selected = when (experiencePreferences.homeLayoutStyle) {
+                        LauncherHomeLayoutStyle.CLASSIC -> "Classic"
+                        LauncherHomeLayoutStyle.SPACIOUS -> "Spacious"
+                        LauncherHomeLayoutStyle.MINIMAL -> "Minimal"
+                    },
+                    onChoice = {
+                        onSetHomeLayoutStyle(
+                            when (it) {
+                                "Spacious" -> LauncherHomeLayoutStyle.SPACIOUS
+                                "Minimal" -> LauncherHomeLayoutStyle.MINIMAL
+                                else -> LauncherHomeLayoutStyle.CLASSIC
+                            },
+                        )
+                    },
+                )
+
+                Text(
+                    "Clock",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Large", "Compact", "Off"),
                     selected = when (experiencePreferences.homeCardStyle) {
-                        LauncherHomeCardStyle.CLOCK -> "Clock"
+                        LauncherHomeCardStyle.CLOCK -> "Large"
                         LauncherHomeCardStyle.COMPACT -> "Compact"
                         LauncherHomeCardStyle.OFF -> "Off"
                     },
@@ -922,13 +949,9 @@ private fun LauncherSettingsRootSurface(
                         )
                     },
                 )
-                SettingSwitch(
-                    "Quick actions",
-                    experiencePreferences.showHomeQuickActions,
-                    onSetShowHomeQuickActions,
-                )
+
                 Text(
-                    "Home grid",
+                    "Grid",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -940,14 +963,52 @@ private fun LauncherSettingsRootSurface(
                         onSetHomeGrid(parts[0].toInt(), parts[1].toInt())
                     },
                 )
-                Text(
-                    "Search",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
+                SettingSwitch(
+                    "Show page indicator",
+                    experiencePreferences.showHomePageIndicator,
+                    onSetShowHomePageIndicator,
                 )
+                SettingSwitch(
+                    "Show quick actions",
+                    experiencePreferences.showHomeQuickActions,
+                    onSetShowHomeQuickActions,
+                )
+                SettingSwitch("Lock layout", preferences.layoutLocked, onSetLayoutLocked)
+            }
+
+            SettingsSection("Dock", "Pinned apps at the bottom of Home") {
+                ChoiceRow(
+                    choices = listOf("Clear", "Glass", "Edge"),
+                    selected = when (experiencePreferences.dockStyle) {
+                        LauncherDockStyle.TRANSPARENT -> "Clear"
+                        LauncherDockStyle.GLASS -> "Glass"
+                        LauncherDockStyle.EDGE -> "Edge"
+                    },
+                    onChoice = {
+                        onSetDockStyle(
+                            when (it) {
+                                "Glass" -> LauncherDockStyle.GLASS
+                                "Edge" -> LauncherDockStyle.EDGE
+                                else -> LauncherDockStyle.TRANSPARENT
+                            },
+                        )
+                    },
+                )
+                Text(
+                    "Long-press any app to add or remove it from the dock.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            SettingsSection("Search", "Keep search available without dominating Home") {
                 ChoiceRow(
                     choices = listOf("Swipe down", "Show pill"),
-                    selected = if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) "Show pill" else "Swipe down",
+                    selected = if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) {
+                        "Show pill"
+                    } else {
+                        "Swipe down"
+                    },
                     onChoice = {
                         onSetIndexHomeMode(
                             if (it == "Show pill") GoreeCloudIndexHomeMode.PERMANENT
@@ -955,10 +1016,9 @@ private fun LauncherSettingsRootSurface(
                         )
                     },
                 )
-                SettingSwitch("Lock layout", preferences.layoutLocked, onSetLayoutLocked)
             }
 
-            SettingsSection("App drawer", "Layout, density and material") {
+            SettingsSection("App drawer", "Dense, searchable installed-app view") {
                 Text(
                     "Layout",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -977,6 +1037,7 @@ private fun LauncherSettingsRootSurface(
                         )
                     },
                 )
+
                 Text(
                     "Columns",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -987,6 +1048,25 @@ private fun LauncherSettingsRootSurface(
                     selected = preferences.drawerColumns.toString(),
                     onChoice = { onSetDrawerColumns(it.toInt()) },
                 )
+
+                Text(
+                    "Search position",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Top", "Bottom"),
+                    selected = if (
+                        experiencePreferences.drawerSearchPosition == LauncherDrawerSearchPosition.BOTTOM
+                    ) "Bottom" else "Top",
+                    onChoice = {
+                        onSetDrawerSearchPosition(
+                            if (it == "Bottom") LauncherDrawerSearchPosition.BOTTOM
+                            else LauncherDrawerSearchPosition.TOP,
+                        )
+                    },
+                )
+
                 Text(
                     "Background",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -994,7 +1074,11 @@ private fun LauncherSettingsRootSurface(
                 )
                 ChoiceRow(
                     choices = listOf("Glass", "Solid"),
-                    selected = if (experiencePreferences.drawerBackdrop == LauncherDrawerBackdrop.GLASS) "Glass" else "Solid",
+                    selected = if (experiencePreferences.drawerBackdrop == LauncherDrawerBackdrop.GLASS) {
+                        "Glass"
+                    } else {
+                        "Solid"
+                    },
                     onChoice = {
                         onSetDrawerBackdrop(
                             if (it == "Solid") LauncherDrawerBackdrop.SOLID
@@ -1010,7 +1094,12 @@ private fun LauncherSettingsRootSurface(
                 )
             }
 
-            SettingsSection("Icons", "Scale across Home and All Apps") {
+            SettingsSection("Icons & appearance", "Scale and theme") {
+                Text(
+                    "Icon size",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 ChoiceRow(
                     choices = listOf("Small", "Medium", "Large"),
                     selected = when {
@@ -1028,9 +1117,6 @@ private fun LauncherSettingsRootSurface(
                         )
                     },
                 )
-            }
-
-            SettingsSection("Appearance", "Theme and Glaze presentation") {
                 GlazeSettingsAction(
                     title = "Theme Manager",
                     summary = "System, Light, Dark and Deep Dark",
@@ -1039,9 +1125,10 @@ private fun LauncherSettingsRootSurface(
                 )
             }
 
-            SettingsSection("Gestures", "Current implemented shortcuts") {
-                SettingsReadOnlyRow("Swipe up", "Open All Apps")
+            SettingsSection("Gestures", "Implemented Home shortcuts") {
+                SettingsReadOnlyRow("Swipe up", "Open Apps")
                 SettingsReadOnlyRow("Swipe down", "Open GoreeCloud Search")
+                SettingsReadOnlyRow("Long-press Home", "Open Home editor")
                 SettingsReadOnlyRow("Long-press app", "Favorites and dock")
             }
 
