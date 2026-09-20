@@ -49,7 +49,7 @@ data class LauncherPreferences(
     val showLabels: Boolean = true,
     val iconScale: Float = 1.0f,
     val layoutLocked: Boolean = false,
-    val indexHomeMode: GoreeCloudIndexHomeMode = GoreeCloudIndexHomeMode.PERMANENT,
+    val indexHomeMode: GoreeCloudIndexHomeMode = GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
 ) {
     val homeCapacity: Int get() = homeColumns * homeRows
 

@@ -29,11 +29,11 @@ class LauncherPreferencesTest {
     }
 
     @Test
-    fun defaultsPreserveExistingVisibleIndexEntryAndUnlockedLayout() {
+    fun defaultsKeepHomeVisuallyQuietAndLayoutUnlocked() {
         val defaults = LauncherPreferences()
 
         assertFalse(defaults.layoutLocked)
-        assertEquals(GoreeCloudIndexHomeMode.PERMANENT, defaults.indexHomeMode)
+        assertEquals(GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY, defaults.indexHomeMode)
     }
 
     @Test
