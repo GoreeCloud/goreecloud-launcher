@@ -63,10 +63,22 @@ enum class LauncherDrawerBackdrop(val storageValue: String) {
     }
 }
 
+enum class LauncherDrawerSearchPlacement(val storageValue: String) {
+    TOP("top"),
+    BOTTOM("bottom");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerSearchPlacement =
+            entries.firstOrNull { it.storageValue == value } ?: BOTTOM
+    }
+}
+
 data class LauncherExperiencePreferences(
     val homeCardStyle: LauncherHomeCardStyle = LauncherHomeCardStyle.CLOCK,
-    val showHomeQuickActions: Boolean = true,
+    val showHomeQuickActions: Boolean = false,
+    val showHomePageIndicator: Boolean = true,
     val drawerBackdrop: LauncherDrawerBackdrop = LauncherDrawerBackdrop.GLASS,
+    val drawerSearchPlacement: LauncherDrawerSearchPlacement = LauncherDrawerSearchPlacement.BOTTOM,
     val showDrawerAppCount: Boolean = false,
 )
 
@@ -105,7 +117,9 @@ class LauncherPreferencesRepository(
         val drawerLayoutMode = stringPreferencesKey("drawer_layout_mode")
         val homeCardStyle = stringPreferencesKey("home_card_style")
         val showHomeQuickActions = booleanPreferencesKey("show_home_quick_actions")
+        val showHomePageIndicator = booleanPreferencesKey("show_home_page_indicator")
         val drawerBackdrop = stringPreferencesKey("drawer_backdrop")
+        val drawerSearchPlacement = stringPreferencesKey("drawer_search_placement")
         val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
@@ -134,8 +148,10 @@ class LauncherPreferencesRepository(
         .map { values ->
             LauncherExperiencePreferences(
                 homeCardStyle = LauncherHomeCardStyle.fromStorage(values[Keys.homeCardStyle]),
-                showHomeQuickActions = values[Keys.showHomeQuickActions] ?: true,
+                showHomeQuickActions = values[Keys.showHomeQuickActions] ?: false,
+                showHomePageIndicator = values[Keys.showHomePageIndicator] ?: true,
                 drawerBackdrop = LauncherDrawerBackdrop.fromStorage(values[Keys.drawerBackdrop]),
+                drawerSearchPlacement = LauncherDrawerSearchPlacement.fromStorage(values[Keys.drawerSearchPlacement]),
                 showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
             )
         }
@@ -217,10 +233,26 @@ class LauncherPreferencesRepository(
         }
     }
 
+    fun setShowHomePageIndicator(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showHomePageIndicator] = show
+            }
+        }
+    }
+
     fun setDrawerBackdrop(backdrop: LauncherDrawerBackdrop) {
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.drawerBackdrop] = backdrop.storageValue
+            }
+        }
+    }
+
+    fun setDrawerSearchPlacement(placement: LauncherDrawerSearchPlacement) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerSearchPlacement] = placement.storageValue
             }
         }
     }
