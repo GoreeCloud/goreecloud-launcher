@@ -265,6 +265,7 @@ class MainActivity : ComponentActivity() {
                             preferences = launcherPreferences,
                             drawerLayoutMode = drawerLayoutMode,
                             experiencePreferences = experiencePreferences,
+                            homePageCount = renderedPages.size.coerceAtLeast(1),
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
@@ -307,9 +308,14 @@ class MainActivity : ComponentActivity() {
                             onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,
                             onSetIndexHomeMode = launcherPreferencesRepository::setIndexHomeMode,
                             onSetHomeCardStyle = launcherPreferencesRepository::setHomeCardStyle,
+                            onSetHomeLayoutStyle = launcherPreferencesRepository::setHomeLayoutStyle,
                             onSetShowHomeQuickActions = launcherPreferencesRepository::setShowHomeQuickActions,
+                            onSetShowHomePageIndicator = launcherPreferencesRepository::setShowHomePageIndicator,
+                            onSetDockStyle = launcherPreferencesRepository::setDockStyle,
                             onSetDrawerBackdrop = launcherPreferencesRepository::setDrawerBackdrop,
+                            onSetDrawerSearchPosition = launcherPreferencesRepository::setDrawerSearchPosition,
                             onSetShowDrawerAppCount = launcherPreferencesRepository::setShowDrawerAppCount,
+                            onOpenWallpaperPicker = ::openWallpaperPicker,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
                             },
@@ -404,6 +410,18 @@ class MainActivity : ComponentActivity() {
         val manager = getSystemService(RoleManager::class.java)
         if (manager.isRoleAvailable(RoleManager.ROLE_HOME) && !manager.isRoleHeld(RoleManager.ROLE_HOME)) {
             homeRoleRequest.launch(manager.createRequestRoleIntent(RoleManager.ROLE_HOME))
+        }
+    }
+
+    private fun openWallpaperPicker() {
+        runCatching {
+            startActivity(Intent.createChooser(Intent(Intent.ACTION_SET_WALLPAPER), "Choose wallpaper"))
+        }.onFailure {
+            Toast.makeText(
+                this,
+                "No wallpaper picker is available",
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
