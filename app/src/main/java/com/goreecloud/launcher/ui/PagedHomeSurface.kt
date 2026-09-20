@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -192,6 +193,46 @@ fun HomePageSwitcher(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun HomePageDots(
+    pages: List<WorkspaceRenderedHomePage>,
+    selectedPageId: String,
+    onSelectPage: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (pages.size <= 1) return
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.44f),
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = GlazeMetrics.space2,
+                vertical = GlazeMetrics.space1,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            pages.forEach { page ->
+                val selected = page.pageId == selectedPageId
+                Surface(
+                    modifier = Modifier
+                        .size(if (selected) 9.dp else 7.dp)
+                        .clickable { onSelectPage(page.pageId) },
+                    shape = CircleShape,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)
+                    },
+                ) {}
             }
         }
     }
