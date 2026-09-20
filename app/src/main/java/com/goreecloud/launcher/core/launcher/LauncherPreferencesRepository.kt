@@ -63,11 +63,35 @@ enum class LauncherDrawerBackdrop(val storageValue: String) {
     }
 }
 
+enum class LauncherDockStyle(val storageValue: String) {
+    GLASS("glass"),
+    CLEAR("clear");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDockStyle =
+            entries.firstOrNull { it.storageValue == value } ?: GLASS
+    }
+}
+
+enum class LauncherWallpaperShade(val storageValue: String) {
+    OFF("off"),
+    SOFT("soft"),
+    STRONG("strong");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherWallpaperShade =
+            entries.firstOrNull { it.storageValue == value } ?: SOFT
+    }
+}
+
 data class LauncherExperiencePreferences(
     val homeCardStyle: LauncherHomeCardStyle = LauncherHomeCardStyle.CLOCK,
-    val showHomeQuickActions: Boolean = true,
+    val showHomeQuickActions: Boolean = false,
     val drawerBackdrop: LauncherDrawerBackdrop = LauncherDrawerBackdrop.GLASS,
     val showDrawerAppCount: Boolean = false,
+    val dockStyle: LauncherDockStyle = LauncherDockStyle.GLASS,
+    val wallpaperShade: LauncherWallpaperShade = LauncherWallpaperShade.SOFT,
+    val starterLayoutApplied: Boolean = false,
 )
 
 data class LauncherPreferences(
@@ -107,6 +131,9 @@ class LauncherPreferencesRepository(
         val showHomeQuickActions = booleanPreferencesKey("show_home_quick_actions")
         val drawerBackdrop = stringPreferencesKey("drawer_backdrop")
         val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
+        val dockStyle = stringPreferencesKey("dock_style")
+        val wallpaperShade = stringPreferencesKey("wallpaper_shade")
+        val starterLayoutApplied = booleanPreferencesKey("starter_layout_applied")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
 
@@ -134,9 +161,12 @@ class LauncherPreferencesRepository(
         .map { values ->
             LauncherExperiencePreferences(
                 homeCardStyle = LauncherHomeCardStyle.fromStorage(values[Keys.homeCardStyle]),
-                showHomeQuickActions = values[Keys.showHomeQuickActions] ?: true,
+                showHomeQuickActions = values[Keys.showHomeQuickActions] ?: false,
                 drawerBackdrop = LauncherDrawerBackdrop.fromStorage(values[Keys.drawerBackdrop]),
                 showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
+                dockStyle = LauncherDockStyle.fromStorage(values[Keys.dockStyle]),
+                wallpaperShade = LauncherWallpaperShade.fromStorage(values[Keys.wallpaperShade]),
+                starterLayoutApplied = values[Keys.starterLayoutApplied] ?: false,
             )
         }
         .distinctUntilChanged()
@@ -229,6 +259,30 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.showDrawerAppCount] = show
+            }
+        }
+    }
+
+    fun setDockStyle(style: LauncherDockStyle) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.dockStyle] = style.storageValue
+            }
+        }
+    }
+
+    fun setWallpaperShade(shade: LauncherWallpaperShade) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.wallpaperShade] = shade.storageValue
+            }
+        }
+    }
+
+    fun markStarterLayoutApplied() {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.starterLayoutApplied] = true
             }
         }
     }
