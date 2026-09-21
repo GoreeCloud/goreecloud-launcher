@@ -47,6 +47,8 @@ class LauncherPreferencesTest {
         assertEquals(LauncherWallpaperShade.SOFT, defaults.wallpaperShade)
         assertEquals(LauncherDrawerSearchPlacement.BOTTOM, defaults.drawerSearchPlacement)
         assertEquals(LauncherDrawerNavigation.PAGES, defaults.drawerNavigation)
+        assertEquals(LauncherDrawerEntryMode.BROWSE, defaults.drawerEntryMode)
+        assertEquals(LauncherDrawerSpacing.STANDARD, defaults.drawerSpacing)
         assertEquals(5, defaults.drawerPageRows)
         assertEquals(LauncherHomeGlanceAlignment.LEFT, defaults.homeGlanceAlignment)
         assertEquals(LauncherHomeSearchPlacement.BOTTOM, defaults.homeSearchPlacement)
@@ -69,6 +71,17 @@ class LauncherPreferencesTest {
         )
         assertEquals(LauncherDrawerNavigation.SCROLL, LauncherDrawerNavigation.fromStorage("scroll"))
         assertEquals(LauncherDrawerNavigation.PAGES, LauncherDrawerNavigation.fromStorage("unknown"))
+        assertEquals(
+            LauncherDrawerEntryMode.SEARCH_FIRST,
+            LauncherDrawerEntryMode.fromStorage("search_first"),
+        )
+        assertEquals(
+            LauncherDrawerEntryMode.BROWSE,
+            LauncherDrawerEntryMode.fromStorage("unknown"),
+        )
+        assertEquals(LauncherDrawerSpacing.TIGHT, LauncherDrawerSpacing.fromStorage("tight"))
+        assertEquals(LauncherDrawerSpacing.RELAXED, LauncherDrawerSpacing.fromStorage("relaxed"))
+        assertEquals(LauncherDrawerSpacing.STANDARD, LauncherDrawerSpacing.fromStorage("unknown"))
         assertEquals(
             LauncherHomeGlanceAlignment.CENTER,
             LauncherHomeGlanceAlignment.fromStorage("center"),
