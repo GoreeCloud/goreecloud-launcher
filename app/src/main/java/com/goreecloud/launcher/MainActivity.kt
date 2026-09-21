@@ -56,6 +56,7 @@ import com.goreecloud.launcher.ui.LauncherSurfaceMode
 import com.goreecloud.launcher.ui.LauncherTransitionDiagnostics
 import com.goreecloud.launcher.ui.ReadOnlyPagedHomeSurface
 import com.goreecloud.launcher.ui.theme.GlazeTheme
+import com.goreecloud.launcher.ui.theme.GlazeV16AndroidPresentationContext
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -118,9 +119,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeMode by themeRepository.themeMode.collectAsState(initial = themeRepository.defaultMode)
             val portableRestoreRecovery by portableRestoreRecoveryResult.collectAsStateWithLifecycle()
+            val presentationContext = GlazeV16AndroidPresentationContext.resolve(this@MainActivity)
 
             if (!LauncherPortableRestoreStartupGate.allowsMutations(portableRestoreRecovery)) {
-                GlazeTheme(themeMode) {
+                GlazeTheme(themeMode, presentationContext = presentationContext) {
                     Box(
                         modifier = Modifier
                             .statusBarsPadding()
@@ -259,7 +261,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            GlazeTheme(themeMode) {
+            GlazeTheme(themeMode, presentationContext = presentationContext) {
                 Box {
                     val selectedPage = renderedPages.firstOrNull { it.pageId == selectedHomePageId }
                     val onPrimaryPage = selectedPage == null ||
