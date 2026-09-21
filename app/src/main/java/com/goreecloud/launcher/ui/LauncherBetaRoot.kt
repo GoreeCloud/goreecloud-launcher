@@ -71,6 +71,9 @@ import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeAtmosphere
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
 import com.goreecloud.launcher.ui.theme.GlazeThemeMode
+import com.goreecloud.launcher.ui.theme.GlazeV16MaterialRole
+import com.goreecloud.launcher.ui.theme.GlazeV16PresentationPolicy
+import com.goreecloud.launcher.ui.theme.LocalGlazeV16PresentationContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -132,39 +135,58 @@ fun LauncherBetaRoot(
 
     LaunchedEffect(surfaceMode) { onSurfaceModeChanged(surfaceMode) }
 
+    val presentationContext = LocalGlazeV16PresentationContext.current
+    val surfaceTransitionMotionMode = remember(presentationContext) {
+        GlazeV16PresentationPolicy.resolve(
+            requestedMaterial = GlazeV16MaterialRole.RAISED,
+            context = presentationContext,
+        ).motionMode
+    }
+
     AnimatedContent(
         targetState = surfaceMode,
         transitionSpec = {
+            val profile = LauncherSurfaceTransitionPolicy.resolve(
+                initial = initialState,
+                target = targetState,
+                motionMode = surfaceTransitionMotionMode,
+            )
             when {
+                !profile.spatial ->
+                    fadeIn(animationSpec = tween(durationMillis = profile.enterDurationMillis)) togetherWith
+                        fadeOut(animationSpec = tween(durationMillis = profile.exitDurationMillis))
+
                 initialState == LauncherSurfaceMode.HOME &&
                     targetState == LauncherSurfaceMode.DRAWER ->
                     (
                         slideInVertically(
-                            animationSpec = tween(durationMillis = 150),
-                            initialOffsetY = { height -> height / 10 },
-                        ) + fadeIn(animationSpec = tween(durationMillis = 110))
+                            animationSpec = tween(durationMillis = profile.enterDurationMillis),
+                            initialOffsetY = { height -> height / profile.enterOffsetDivisor },
+                        ) + fadeIn(animationSpec = tween(durationMillis = profile.enterDurationMillis))
                     ) togetherWith (
                         slideOutVertically(
-                            animationSpec = tween(durationMillis = 105),
-                            targetOffsetY = { height -> -height / 18 },
-                        ) + fadeOut(animationSpec = tween(durationMillis = 80))
+                            animationSpec = tween(durationMillis = profile.exitDurationMillis),
+                            targetOffsetY = { height -> -height / profile.exitOffsetDivisor },
+                        ) + fadeOut(animationSpec = tween(durationMillis = profile.exitDurationMillis))
                     )
+
                 initialState == LauncherSurfaceMode.DRAWER &&
                     targetState == LauncherSurfaceMode.HOME ->
                     (
                         slideInVertically(
-                            animationSpec = tween(durationMillis = 125),
-                            initialOffsetY = { height -> -height / 18 },
-                        ) + fadeIn(animationSpec = tween(durationMillis = 100))
+                            animationSpec = tween(durationMillis = profile.enterDurationMillis),
+                            initialOffsetY = { height -> -height / profile.enterOffsetDivisor },
+                        ) + fadeIn(animationSpec = tween(durationMillis = profile.enterDurationMillis))
                     ) togetherWith (
                         slideOutVertically(
-                            animationSpec = tween(durationMillis = 150),
-                            targetOffsetY = { height -> height / 10 },
-                        ) + fadeOut(animationSpec = tween(durationMillis = 80))
+                            animationSpec = tween(durationMillis = profile.exitDurationMillis),
+                            targetOffsetY = { height -> height / profile.exitOffsetDivisor },
+                        ) + fadeOut(animationSpec = tween(durationMillis = profile.exitDurationMillis))
                     )
+
                 else ->
-                    fadeIn(animationSpec = tween(durationMillis = 140)) togetherWith
-                        fadeOut(animationSpec = tween(durationMillis = 100))
+                    fadeIn(animationSpec = tween(durationMillis = profile.enterDurationMillis)) togetherWith
+                        fadeOut(animationSpec = tween(durationMillis = profile.exitDurationMillis))
             }
         },
     ) { targetSurfaceMode ->
