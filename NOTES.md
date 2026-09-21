@@ -90,3 +90,12 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 - Category and search-first presentation modes remain unimplemented, and issue #80 representative physical-device behavior, performance/jank, accessibility, Quickstep/Recents, complete V1.6 acceptance, platform-system acceptance, signing, Release Candidate, production, and Stable gates remain open.
 - Exact-head Android CI, including the repository's runtime-emulator lane, is required before integration may be considered. The Platform Contract workflow is intentionally path-scoped to `goreecloud.platform.yaml` and its workflow file; this slice changes neither, so no new Platform Contract run is expected or claimed.
 
+
+
+## Runtime Glaze accessibility and motion stabilization — September 21, 2026
+
+- This Development candidate wires Android runtime font scale, touch-exploration state, and animator enablement into the repository-local GLAZE UI V1.6 presentation context instead of relying only on neutral defaults.
+- Touch exploration is observed through Android AccessibilityManager, font scale follows current Android configuration, and reduced-motion behavior follows Android animator enablement. The candidate does not invent reduced-transparency or performance-pressure truth when Android does not provide an approved signal.
+- Home ↔ Apps and Settings transitions now resolve through a first-party transition policy keyed by the Glaze motion mode. Reduced motion lowers travel/duration and Minimal motion removes spatial translation while preserving bounded continuity.
+- Existing LauncherApps inventory authority, GoreeCloud Index search authority, Room workspace authority, privacy boundaries, and portable restore formats are unchanged.
+- This is Development source work only. Exact-head CI, Android runtime acceptance, transition-frame diagnostics, representative-device accessibility/performance review, and issue #80 release gates remain required.
