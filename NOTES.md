@@ -4,7 +4,7 @@
 
 - Repository lifecycle remains Development and is not Stable or production accepted.
 - GitHub repository identity is now `GoreeCloud/launcher` after a repository rename. The repository ID, product identity, Android package namespaces, and versioned Launcher data-format identifiers remain unchanged; the rename does not establish runtime or release acceptance.
-- Latest source-bearing stabilization baseline: `0a12c06781841924a4b4eeb2494735d9d44b2811`, integrating PR #128 on top of the prior Launcher stabilization line. The source now maps to exact Official Stable GLAZE UI V1.6 / 1.6.0 while application acceptance remains blocked. Earlier documentation-only integrations changed documentation only and did not alter Launcher runtime authority.
+- Latest source-bearing stabilization baseline: `7bafa6b86431ce04da5a7e02aba3a086a771b2c8`, integrating PR #157 on top of PR #156 transition-performance instrumentation and PR #155 drawer-icon preloading. Authoritative `main` is currently the later documentation-only checkpoint `284d0f9a63d5ce14fb59d97866669ff1b3cba1ea`. The runtime source maps to exact Official Stable GLAZE UI V1.6 / 1.6.0 while application acceptance remains blocked.
 - GitHub issue #80 is the current Android core-stabilization gate and records physical-device blockers for HOME behavior, drawer gestures/transitions, local app search, drawer presentation, app discovery, performance, and Quickstep/Recents compatibility.
 - Historical Glaze UI 1.5.1 and Compact drawer stacks remain provenance/candidates unless cleanly restacked and verified against current `main`. Authoritative `main` now carries the integrated first-party V1.6 / 1.6.0 source mapping; no historical stack is treated as current source or acceptance.
 
@@ -94,8 +94,9 @@ Prefer clean, reviewable integration from the current authoritative base rather 
 
 ## Runtime Glaze accessibility and motion stabilization — September 21, 2026
 
-- This Development candidate wires Android runtime font scale, touch-exploration state, and animator enablement into the repository-local GLAZE UI V1.6 presentation context instead of relying only on neutral defaults.
+- PR #157 is integrated on the runtime-bearing line as `7bafa6b86431ce04da5a7e02aba3a086a771b2c8`. It wires Android runtime font scale, touch-exploration state, and animator enablement into the repository-local GLAZE UI V1.6 presentation context instead of relying only on neutral defaults.
 - Touch exploration is observed through Android AccessibilityManager, font scale follows current Android configuration, and reduced-motion behavior follows Android animator enablement. The candidate does not invent reduced-transparency or performance-pressure truth when Android does not provide an approved signal.
 - Home ↔ Apps and Settings transitions now resolve through a first-party transition policy keyed by the Glaze motion mode. Reduced motion lowers travel/duration and Minimal motion removes spatial translation while preserving bounded continuity.
 - Existing LauncherApps inventory authority, GoreeCloud Index search authority, Room workspace authority, privacy boundaries, and portable restore formats are unchanged.
-- This is Development source work only. Exact-head CI, Android runtime acceptance, transition-frame diagnostics, representative-device accessibility/performance review, and issue #80 release gates remain required.
+- Exact PR #157 head `4db1b0d398e6b64917b488a5184f2cfb7de41312` passed Android CI run `35613060719` / #518 before integration. No post-merge workflow run is attached to squash commit `7bafa6b8…`; exact-head CI plus authoritative main/source readback are therefore the current verification boundary.
+- This remains Development source work only. PR #156 transition-frame diagnostics are emulator evidence; representative-device accessibility/performance review, default-HOME and Quickstep/Recents compatibility, complete V1.6 application acceptance, platform-system runtime acceptance, recovery, signing/provenance, Release Candidate, production, and Stable gates under issue #80 remain required.
