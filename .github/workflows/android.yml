@@ -167,5 +167,9 @@ jobs:
           target: default
           arch: x86_64
           disable-animations: false
-          script: gradle --no-daemon connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.goreecloud.launcher.ui.LauncherTransitionPerformanceRuntimeTest
+          script: |
+            adb logcat -c
+            gradle --no-daemon connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.goreecloud.launcher.ui.LauncherTransitionPerformanceRuntimeTest
+            echo "Launcher transition frame metrics:"
+            adb logcat -d -s LauncherTransitionPerf:I '*:S'
 
