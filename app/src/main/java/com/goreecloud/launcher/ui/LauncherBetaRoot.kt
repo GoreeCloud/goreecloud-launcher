@@ -60,6 +60,8 @@ import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
+import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
+import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
@@ -115,6 +117,8 @@ fun LauncherBetaRoot(
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
     onSetHomeSearchPlacement: (LauncherHomeSearchPlacement) -> Unit,
+    onSetHomeSearchStyle: (LauncherHomeSearchStyle) -> Unit,
+    onSetHomeSpacing: (LauncherHomeSpacing) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onOpenWallpaperPicker: () -> Unit,
@@ -231,6 +235,8 @@ fun LauncherBetaRoot(
                         onSetShowDrawerAppCount = onSetShowDrawerAppCount,
                         onSetHomeGlanceAlignment = onSetHomeGlanceAlignment,
                         onSetHomeSearchPlacement = onSetHomeSearchPlacement,
+                        onSetHomeSearchStyle = onSetHomeSearchStyle,
+                        onSetHomeSpacing = onSetHomeSpacing,
                         onSetDockStyle = onSetDockStyle,
                         onSetWallpaperShade = onSetWallpaperShade,
                         onOpenThemeManager = onOpenThemeManager,
@@ -361,13 +367,19 @@ private fun HomeSurface(
             )
         }
 
+        val homeVerticalSpacing = when (experiencePreferences.homeSpacing) {
+            LauncherHomeSpacing.COMPACT -> GlazeMetrics.space1
+            LauncherHomeSpacing.BALANCED -> GlazeMetrics.space2
+            LauncherHomeSpacing.AIRY -> GlazeMetrics.space3
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space2),
-            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            verticalArrangement = Arrangement.spacedBy(homeVerticalSpacing),
         ) {
             if (experiencePreferences.homeCardStyle != LauncherHomeCardStyle.OFF) {
                 HomeAtAGlance(
@@ -380,6 +392,7 @@ private fun HomeSurface(
             if (showPermanentSearch && searchAtTop) {
                 GlazeSearchCapsule(
                     value = "Search apps & GoreeCloud",
+                    style = experiencePreferences.homeSearchStyle,
                     onClick = openSearch,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -405,6 +418,7 @@ private fun HomeSurface(
                     columns = preferences.homeColumns,
                     iconScale = preferences.iconScale,
                     showLabels = preferences.showLabels,
+                    spacing = experiencePreferences.homeSpacing,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
                     onSwipeUp = onOpenDrawer,
@@ -415,6 +429,7 @@ private fun HomeSurface(
             if (showPermanentSearch && !searchAtTop) {
                 GlazeSearchCapsule(
                     value = "Search apps & GoreeCloud",
+                    style = experiencePreferences.homeSearchStyle,
                     onClick = openSearch,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -566,7 +581,13 @@ private fun HomeEditorPreview(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(GlazeMetrics.space4),
-            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            verticalArrangement = Arrangement.spacedBy(
+                when (experiencePreferences.homeSpacing) {
+                    LauncherHomeSpacing.COMPACT -> GlazeMetrics.space1
+                    LauncherHomeSpacing.BALANCED -> GlazeMetrics.space2
+                    LauncherHomeSpacing.AIRY -> GlazeMetrics.space3
+                },
+            ),
         ) {
             if (experiencePreferences.homeCardStyle != LauncherHomeCardStyle.OFF) {
                 Column(
@@ -590,7 +611,7 @@ private fun HomeEditorPreview(
             }
 
             if (showSearch && searchAtTop) {
-                HomeEditorPreviewSearch()
+                HomeEditorPreviewSearch(experiencePreferences.homeSearchStyle)
             }
 
             Spacer(Modifier.weight(1f))
@@ -607,7 +628,7 @@ private fun HomeEditorPreview(
             }
 
             if (showSearch && !searchAtTop) {
-                HomeEditorPreviewSearch()
+                HomeEditorPreviewSearch(experiencePreferences.homeSearchStyle)
             }
 
             if (dockApps.isNotEmpty()) {
@@ -647,14 +668,31 @@ private fun HomeEditorPreview(
 }
 
 @Composable
-private fun HomeEditorPreviewSearch() {
+private fun HomeEditorPreviewSearch(style: LauncherHomeSearchStyle) {
+    val fill = when (style) {
+        LauncherHomeSearchStyle.GLASS -> Color.White.copy(alpha = 0.14f)
+        LauncherHomeSearchStyle.CLEAR -> Color.White.copy(alpha = 0.05f)
+        LauncherHomeSearchStyle.SOLID -> Color.White.copy(alpha = 0.90f)
+    }
+    val foreground = if (style == LauncherHomeSearchStyle.SOLID) {
+        GlazeAtmosphere.canvasBlack.copy(alpha = 0.88f)
+    } else {
+        Color.White.copy(alpha = 0.84f)
+    }
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(34.dp),
         shape = RoundedCornerShape(GlazeMetrics.radiusPill),
-        color = Color.White.copy(alpha = 0.14f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        color = fill,
+        border = BorderStroke(
+            1.dp,
+            if (style == LauncherHomeSearchStyle.CLEAR) {
+                Color.White.copy(alpha = 0.16f)
+            } else {
+                Color.White.copy(alpha = 0.08f)
+            },
+        ),
     ) {
         Row(
             modifier = Modifier
@@ -663,11 +701,11 @@ private fun HomeEditorPreviewSearch() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
         ) {
-            Text("⌕", color = Color.White.copy(alpha = 0.84f))
+            Text("⌕", color = foreground)
             Text(
                 "Search phone",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.72f),
+                color = foreground.copy(alpha = 0.86f),
             )
         }
     }
@@ -796,19 +834,30 @@ private fun HomeFavoritesGrid(
     columns: Int,
     iconScale: Float,
     showLabels: Boolean,
+    spacing: LauncherHomeSpacing,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ) {
+    val gridSpacing = when (spacing) {
+        LauncherHomeSpacing.COMPACT -> 2.dp
+        LauncherHomeSpacing.BALANCED -> GlazeMetrics.space1
+        LauncherHomeSpacing.AIRY -> GlazeMetrics.space2
+    }
+    val tileHeight = when (spacing) {
+        LauncherHomeSpacing.COMPACT -> 72.dp
+        LauncherHomeSpacing.BALANCED -> 78.dp
+        LauncherHomeSpacing.AIRY -> 86.dp
+    }
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+        verticalArrangement = Arrangement.spacedBy(gridSpacing),
     ) {
         apps.chunked(columns).forEach { rowApps ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                horizontalArrangement = Arrangement.spacedBy(gridSpacing),
             ) {
                 rowApps.forEach { app ->
                     LauncherAppTile(
@@ -823,7 +872,7 @@ private fun HomeFavoritesGrid(
                         labelOnWallpaper = true,
                         modifier = Modifier
                             .weight(1f)
-                            .height(78.dp),
+                            .height(tileHeight),
                     )
                 }
                 repeat(columns - rowApps.size) {
@@ -1450,6 +1499,8 @@ private fun LauncherSettingsRootSurface(
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
     onSetHomeSearchPlacement: (LauncherHomeSearchPlacement) -> Unit,
+    onSetHomeSearchStyle: (LauncherHomeSearchStyle) -> Unit,
+    onSetHomeSpacing: (LauncherHomeSpacing) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onOpenThemeManager: () -> Unit,
@@ -1531,6 +1582,28 @@ private fun LauncherSettingsRootSurface(
                     onChoice = {
                         val parts = it.split("×")
                         onSetHomeGrid(parts[0].toInt(), parts[1].toInt())
+                    },
+                )
+                Text(
+                    "Home spacing",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Compact", "Balanced", "Airy"),
+                    selected = when (experiencePreferences.homeSpacing) {
+                        LauncherHomeSpacing.COMPACT -> "Compact"
+                        LauncherHomeSpacing.BALANCED -> "Balanced"
+                        LauncherHomeSpacing.AIRY -> "Airy"
+                    },
+                    onChoice = {
+                        onSetHomeSpacing(
+                            when (it) {
+                                "Compact" -> LauncherHomeSpacing.COMPACT
+                                "Airy" -> LauncherHomeSpacing.AIRY
+                                else -> LauncherHomeSpacing.BALANCED
+                            },
+                        )
                     },
                 )
                 Text(
@@ -1616,6 +1689,28 @@ private fun LauncherSettingsRootSurface(
                             onSetHomeSearchPlacement(
                                 if (it == "Top") LauncherHomeSearchPlacement.TOP
                                 else LauncherHomeSearchPlacement.BOTTOM,
+                            )
+                        },
+                    )
+                    Text(
+                        "Home bar style",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    ChoiceRow(
+                        choices = listOf("Glass", "Clear", "Solid"),
+                        selected = when (experiencePreferences.homeSearchStyle) {
+                            LauncherHomeSearchStyle.GLASS -> "Glass"
+                            LauncherHomeSearchStyle.CLEAR -> "Clear"
+                            LauncherHomeSearchStyle.SOLID -> "Solid"
+                        },
+                        onChoice = {
+                            onSetHomeSearchStyle(
+                                when (it) {
+                                    "Clear" -> LauncherHomeSearchStyle.CLEAR
+                                    "Solid" -> LauncherHomeSearchStyle.SOLID
+                                    else -> LauncherHomeSearchStyle.GLASS
+                                },
                             )
                         },
                     )
@@ -2010,33 +2105,59 @@ private fun GlazeRoundAction(
 @Composable
 private fun GlazeSearchCapsule(
     value: String,
+    style: LauncherHomeSearchStyle,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val solid = style == LauncherHomeSearchStyle.SOLID
+    val foreground = if (solid) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        Color.White
+    }
+    val background = when (style) {
+        LauncherHomeSearchStyle.GLASS -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.34f)
+        LauncherHomeSearchStyle.CLEAR -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.12f)
+        LauncherHomeSearchStyle.SOLID -> MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+    }
+    val outline = when (style) {
+        LauncherHomeSearchStyle.GLASS -> Color.White.copy(alpha = 0.14f)
+        LauncherHomeSearchStyle.CLEAR -> Color.White.copy(alpha = 0.24f)
+        LauncherHomeSearchStyle.SOLID -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    }
+    val leadingFill = when (style) {
+        LauncherHomeSearchStyle.GLASS -> Color.White.copy(alpha = 0.13f)
+        LauncherHomeSearchStyle.CLEAR -> Color.White.copy(alpha = 0.06f)
+        LauncherHomeSearchStyle.SOLID -> MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+    }
+    val height = if (style == LauncherHomeSearchStyle.CLEAR) 50.dp else 54.dp
+
     Surface(
         modifier = modifier,
         onClick = onClick,
         shape = RoundedCornerShape(GlazeMetrics.radiusPill),
-        color = GlazeAtmosphere.canvasBlack.copy(alpha = 0.34f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.14f)),
-        shadowElevation = 2.dp,
+        color = background,
+        border = BorderStroke(1.dp, outline),
+        shadowElevation = if (style == LauncherHomeSearchStyle.CLEAR) 0.dp else 3.dp,
     ) {
         Row(
-            modifier = Modifier.height(54.dp).padding(horizontal = 10.dp),
+            modifier = Modifier.height(height).padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Surface(
-                modifier = Modifier.size(36.dp),
+                modifier = Modifier.size(if (style == LauncherHomeSearchStyle.CLEAR) 32.dp else 36.dp),
                 shape = CircleShape,
-                color = Color.White.copy(alpha = 0.13f),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                color = leadingFill,
+                border = if (style == LauncherHomeSearchStyle.CLEAR) null else {
+                    BorderStroke(1.dp, outline.copy(alpha = 0.72f))
+                },
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         "⌕",
                         style = MaterialTheme.typography.titleMedium,
-                        color = Color.White.copy(alpha = 0.94f),
+                        color = foreground.copy(alpha = 0.94f),
                     )
                 }
             }
@@ -2044,17 +2165,19 @@ private fun GlazeSearchCapsule(
                 value,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.88f),
+                color = foreground.copy(alpha = if (solid) 0.86f else 0.90f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                "Search",
-                modifier = Modifier.padding(end = 8.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.56f),
-                maxLines = 1,
-            )
+            if (style != LauncherHomeSearchStyle.CLEAR) {
+                Text(
+                    "Search",
+                    modifier = Modifier.padding(end = 8.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = foreground.copy(alpha = 0.56f),
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
