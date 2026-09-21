@@ -83,6 +83,27 @@ enum class LauncherDrawerNavigation(val storageValue: String) {
     }
 }
 
+enum class LauncherDrawerEntryMode(val storageValue: String) {
+    BROWSE("browse"),
+    SEARCH_FIRST("search_first");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerEntryMode =
+            entries.firstOrNull { it.storageValue == value } ?: BROWSE
+    }
+}
+
+enum class LauncherDrawerSpacing(val storageValue: String) {
+    TIGHT("tight"),
+    STANDARD("standard"),
+    RELAXED("relaxed");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerSpacing =
+            entries.firstOrNull { it.storageValue == value } ?: STANDARD
+    }
+}
+
 enum class LauncherHomeGlanceAlignment(val storageValue: String) {
     LEFT("left"),
     CENTER("center");
@@ -132,6 +153,8 @@ data class LauncherExperiencePreferences(
     val drawerBackdrop: LauncherDrawerBackdrop = LauncherDrawerBackdrop.GLASS,
     val drawerSearchPlacement: LauncherDrawerSearchPlacement = LauncherDrawerSearchPlacement.BOTTOM,
     val drawerNavigation: LauncherDrawerNavigation = LauncherDrawerNavigation.PAGES,
+    val drawerEntryMode: LauncherDrawerEntryMode = LauncherDrawerEntryMode.BROWSE,
+    val drawerSpacing: LauncherDrawerSpacing = LauncherDrawerSpacing.STANDARD,
     val drawerPageRows: Int = 5,
     val showDrawerAppCount: Boolean = false,
     val homeGlanceAlignment: LauncherHomeGlanceAlignment = LauncherHomeGlanceAlignment.LEFT,
@@ -180,6 +203,8 @@ class LauncherPreferencesRepository(
         val drawerBackdrop = stringPreferencesKey("drawer_backdrop")
         val drawerSearchPlacement = stringPreferencesKey("drawer_search_placement")
         val drawerNavigation = stringPreferencesKey("drawer_navigation")
+        val drawerEntryMode = stringPreferencesKey("drawer_entry_mode")
+        val drawerSpacing = stringPreferencesKey("drawer_spacing")
         val drawerPageRows = intPreferencesKey("drawer_page_rows")
         val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
         val homeGlanceAlignment = stringPreferencesKey("home_glance_alignment")
@@ -219,6 +244,8 @@ class LauncherPreferencesRepository(
                 drawerBackdrop = LauncherDrawerBackdrop.fromStorage(values[Keys.drawerBackdrop]),
                 drawerSearchPlacement = LauncherDrawerSearchPlacement.fromStorage(values[Keys.drawerSearchPlacement]),
                 drawerNavigation = LauncherDrawerNavigation.fromStorage(values[Keys.drawerNavigation]),
+                drawerEntryMode = LauncherDrawerEntryMode.fromStorage(values[Keys.drawerEntryMode]),
+                drawerSpacing = LauncherDrawerSpacing.fromStorage(values[Keys.drawerSpacing]),
                 drawerPageRows = (values[Keys.drawerPageRows] ?: 5).coerceIn(4, 6),
                 showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
                 homeGlanceAlignment = LauncherHomeGlanceAlignment.fromStorage(values[Keys.homeGlanceAlignment]),
@@ -334,6 +361,22 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.drawerNavigation] = navigation.storageValue
+            }
+        }
+    }
+
+    fun setDrawerEntryMode(mode: LauncherDrawerEntryMode) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerEntryMode] = mode.storageValue
+            }
+        }
+    }
+
+    fun setDrawerSpacing(spacing: LauncherDrawerSpacing) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerSpacing] = spacing.storageValue
             }
         }
     }
