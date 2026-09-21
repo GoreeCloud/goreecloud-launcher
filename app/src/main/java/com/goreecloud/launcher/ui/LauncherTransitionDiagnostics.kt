@@ -14,9 +14,14 @@ internal object LauncherTransitionDiagnostics {
     var currentSurfaceMode: LauncherSurfaceMode = LauncherSurfaceMode.HOME
         private set
 
+    @Volatile
+    var observationCount: Long = 0L
+        private set
+
     fun recordSurfaceMode(mode: LauncherSurfaceMode) {
         if (BuildConfig.DEBUG) {
             currentSurfaceMode = mode
+            observationCount += 1L
         }
     }
 }
