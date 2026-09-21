@@ -71,6 +71,10 @@ import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeAtmosphere
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
 import com.goreecloud.launcher.ui.theme.GlazeThemeMode
+import com.goreecloud.launcher.ui.theme.GlazeV16MaterialRole
+import com.goreecloud.launcher.ui.theme.GlazeV16MotionMode
+import com.goreecloud.launcher.ui.theme.GlazeV16PresentationPolicy
+import com.goreecloud.launcher.ui.theme.LocalGlazeV16PresentationContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -129,6 +133,11 @@ fun LauncherBetaRoot(
         .getOrDefault(LauncherSurfaceMode.HOME)
     var selectedApp by remember { mutableStateOf<LauncherActivityInfo?>(null) }
     var drawerSearchRequested by rememberSaveable { mutableStateOf(false) }
+    val presentationContext = LocalGlazeV16PresentationContext.current
+    val motionMode = GlazeV16PresentationPolicy.resolve(
+        requestedMaterial = GlazeV16MaterialRole.CANVAS,
+        context = presentationContext,
+    ).motionMode
 
     LaunchedEffect(surfaceMode) { onSurfaceModeChanged(surfaceMode) }
 
@@ -136,6 +145,12 @@ fun LauncherBetaRoot(
         targetState = surfaceMode,
         transitionSpec = {
             when {
+                motionMode == GlazeV16MotionMode.MINIMAL ->
+                    fadeIn(animationSpec = tween(durationMillis = 0)) togetherWith
+                        fadeOut(animationSpec = tween(durationMillis = 0))
+                motionMode == GlazeV16MotionMode.REDUCED ->
+                    fadeIn(animationSpec = tween(durationMillis = 90)) togetherWith
+                        fadeOut(animationSpec = tween(durationMillis = 70))
                 initialState == LauncherSurfaceMode.HOME &&
                     targetState == LauncherSurfaceMode.DRAWER ->
                     (
