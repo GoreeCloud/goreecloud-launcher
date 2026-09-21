@@ -706,18 +706,7 @@ private fun HomeEditorAction(
             Text(glyph, style = MaterialTheme.typography.titleLarge)
             Text(
                 label,
-                style = if (labelOnWallpaper) {
-                    MaterialTheme.typography.labelSmall.copy(
-                        shadow = Shadow(
-                            color = Color.Black.copy(alpha = 0.60f),
-                            offset = Offset(0f, 1.5f),
-                            blurRadius = 5f,
-                        ),
-                    )
-                } else {
-                    MaterialTheme.typography.labelSmall
-                },
-                color = if (labelOnWallpaper) Color.White else Color.Unspecified,
+                style = MaterialTheme.typography.labelSmall,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
             )
@@ -2101,7 +2090,18 @@ private fun LauncherAppTile(
             Text(
                 app.label.toString(),
                 modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.labelSmall,
+                style = if (labelOnWallpaper) {
+                    MaterialTheme.typography.labelSmall.copy(
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.60f),
+                            offset = Offset(0f, 1.5f),
+                            blurRadius = 5f,
+                        ),
+                    )
+                } else {
+                    MaterialTheme.typography.labelSmall
+                },
+                color = if (labelOnWallpaper) Color.White else Color.Unspecified,
                 textAlign = TextAlign.Center,
                 maxLines = if (compact) 1 else 2,
                 overflow = TextOverflow.Ellipsis,
