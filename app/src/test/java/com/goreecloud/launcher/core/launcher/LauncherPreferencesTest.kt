@@ -52,6 +52,8 @@ class LauncherPreferencesTest {
         assertEquals(5, defaults.drawerPageRows)
         assertEquals(LauncherHomeGlanceAlignment.LEFT, defaults.homeGlanceAlignment)
         assertEquals(LauncherHomeSearchPlacement.BOTTOM, defaults.homeSearchPlacement)
+        assertEquals(LauncherHomeSearchStyle.GLASS, defaults.homeSearchStyle)
+        assertEquals(LauncherHomeSpacing.BALANCED, defaults.homeSpacing)
     }
 
     @Test
@@ -98,6 +100,21 @@ class LauncherPreferencesTest {
             LauncherHomeSearchPlacement.BOTTOM,
             LauncherHomeSearchPlacement.fromStorage("unknown"),
         )
+        assertEquals(
+            LauncherHomeSearchStyle.CLEAR,
+            LauncherHomeSearchStyle.fromStorage("clear"),
+        )
+        assertEquals(
+            LauncherHomeSearchStyle.SOLID,
+            LauncherHomeSearchStyle.fromStorage("solid"),
+        )
+        assertEquals(
+            LauncherHomeSearchStyle.GLASS,
+            LauncherHomeSearchStyle.fromStorage("unknown"),
+        )
+        assertEquals(LauncherHomeSpacing.COMPACT, LauncherHomeSpacing.fromStorage("compact"))
+        assertEquals(LauncherHomeSpacing.AIRY, LauncherHomeSpacing.fromStorage("airy"))
+        assertEquals(LauncherHomeSpacing.BALANCED, LauncherHomeSpacing.fromStorage("unknown"))
     }
 
     @Test
