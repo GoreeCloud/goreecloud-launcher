@@ -75,6 +75,25 @@ class GlazeV16PresentationPolicyTest {
     }
 
     @Test
+    fun `Android presentation signals map only authoritative runtime state`() {
+        val resolved = GlazeV16AndroidPresentationContext.resolve(
+            GlazeV16AndroidPresentationSignals(
+                fontScale = 1.65f,
+                animationsEnabled = false,
+                touchExplorationEnabled = true,
+            ),
+        )
+
+        assertTrue(resolved.reducedMotion)
+        assertTrue(resolved.largeText)
+        assertTrue(resolved.extraLargeText)
+        assertTrue(resolved.touchAssistance)
+        assertTrue(resolved.screenReaderOptimized)
+        assertFalse(resolved.reducedTransparency)
+        assertEquals(GlazeV16PerformanceLevel.FULL, resolved.performanceLevel)
+    }
+
+    @Test
     fun `neutral context does not manufacture accessibility state`() {
         val context = GlazeV16PresentationContext()
         assertFalse(context.reducedMotion)
