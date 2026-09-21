@@ -1,5 +1,7 @@
 # GoreeCloud Launcher — Development Notes
 
+- Current icon-prewarm stabilization candidate prioritizes activities returned by package-scoped LauncherApps refreshes ahead of the existing bounded 48-icon background prewarm and deduplicates cache candidates. This is presentation-cache behavior only: Android LauncherApps remains inventory authority; no package visibility, ranking, telemetry, persistence, network, or release authority changes. Exact-head Android CI and representative-device performance review remain required.
+
 ## Current stabilization context
 
 - Repository lifecycle remains Development and is not Stable or production accepted.

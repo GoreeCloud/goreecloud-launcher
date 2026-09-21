@@ -108,6 +108,7 @@ class LauncherAppsRepository(context: Context) {
 
                 var nextSnapshot = currentSnapshot
                 var refreshedAnyScope = false
+                val refreshedActivities = mutableListOf<LauncherActivityInfo>()
                 for (scope in packageScopes) {
                     val replacement = runCatching { loadPackageApps(scope) }.getOrNull() ?: continue
                     nextSnapshot = replacePackageScope(
@@ -115,12 +116,13 @@ class LauncherAppsRepository(context: Context) {
                         scope = scope,
                         replacement = replacement,
                     )
+                    refreshedActivities += replacement
                     refreshedAnyScope = true
                 }
 
                 if (refreshedAnyScope) {
                     currentSnapshot = normalizeSnapshot(nextSnapshot)
-                    LauncherAppIconCache.preload(currentSnapshot)
+                    LauncherAppIconCache.preload(refreshedActivities + currentSnapshot)
                     trySend(currentSnapshot)
                 }
             }
