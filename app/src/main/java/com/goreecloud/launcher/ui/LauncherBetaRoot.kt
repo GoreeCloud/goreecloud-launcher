@@ -1,5 +1,6 @@
 package com.goreecloud.launcher.ui
 
+import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherActivityInfo
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -1041,6 +1042,7 @@ private fun AppDrawerSurface(
                                     LauncherDrawerLayoutMode.GRID -> "Grid · ${preferences.drawerColumns} columns"
                                     LauncherDrawerLayoutMode.COMPACT -> "Compact · ${preferences.drawerColumns} columns"
                                     LauncherDrawerLayoutMode.LIST -> "Alphabetical list"
+                                    LauncherDrawerLayoutMode.CATEGORY -> "Grouped by app category"
                                 }
                             },
                             style = MaterialTheme.typography.bodySmall,
@@ -1121,7 +1123,8 @@ private fun DrawerAppsContent(
     }
 
     val pagedGrid = experiencePreferences.drawerNavigation == LauncherDrawerNavigation.PAGES &&
-        drawerLayoutMode != LauncherDrawerLayoutMode.LIST
+        drawerLayoutMode != LauncherDrawerLayoutMode.LIST &&
+        drawerLayoutMode != LauncherDrawerLayoutMode.CATEGORY
     val standardSpacing = when (experiencePreferences.drawerSpacing) {
         LauncherDrawerSpacing.TIGHT -> GlazeMetrics.space1
         LauncherDrawerSpacing.STANDARD -> GlazeMetrics.space2
@@ -1274,6 +1277,120 @@ private fun DrawerAppsContent(
                     onLongClick = { onManageApp(app) },
                 )
             }
+        }
+        LauncherDrawerLayoutMode.CATEGORY -> {
+            val categoryGroups = remember(apps) {
+                apps.groupBy(::drawerCategoryLabel)
+                    .toList()
+                    .sortedWith(
+                        compareBy<Pair<String, List<LauncherActivityInfo>>>(
+                            { drawerCategoryRank(it.first) },
+                            { it.first },
+                        ),
+                    )
+            }
+            LazyColumn(
+                modifier = modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(vertical = standardSpacing),
+                verticalArrangement = Arrangement.spacedBy(compactSpacing),
+            ) {
+                categoryGroups.forEach { (category, categoryApps) ->
+                    item(key = "category:$category") {
+                        DrawerCategoryHeader(
+                            label = category,
+                            count = categoryApps.size,
+                            secondaryColor = secondaryColor,
+                        )
+                    }
+                    val rows = categoryApps.chunked(preferences.drawerColumns.coerceAtLeast(1))
+                    lazyItems(
+                        rows,
+                        key = { row ->
+                            "category:$category:" + row.first().workspaceKey()
+                        },
+                    ) { rowApps ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(standardSpacing),
+                        ) {
+                            rowApps.forEach { app ->
+                                LauncherAppTile(
+                                    app = app,
+                                    iconScale = preferences.iconScale,
+                                    showLabel = preferences.showLabels,
+                                    compact = false,
+                                    onClick = { onLaunchApp(app) },
+                                    onLongClick = { onManageApp(app) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(gridTileHeight),
+                                )
+                            }
+                            repeat(preferences.drawerColumns - rowApps.size) {
+                                Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun drawerCategoryLabel(app: LauncherActivityInfo): String =
+    when (app.applicationInfo.category) {
+        ApplicationInfo.CATEGORY_GAME -> "Games"
+        ApplicationInfo.CATEGORY_AUDIO,
+        ApplicationInfo.CATEGORY_VIDEO,
+        ApplicationInfo.CATEGORY_IMAGE,
+        -> "Media"
+        ApplicationInfo.CATEGORY_SOCIAL -> "Social"
+        ApplicationInfo.CATEGORY_NEWS -> "News"
+        ApplicationInfo.CATEGORY_MAPS -> "Travel & maps"
+        ApplicationInfo.CATEGORY_PRODUCTIVITY -> "Productivity"
+        else -> "Other"
+    }
+
+private fun drawerCategoryRank(label: String): Int =
+    when (label) {
+        "Productivity" -> 0
+        "Social" -> 1
+        "Media" -> 2
+        "Games" -> 3
+        "Travel & maps" -> 4
+        "News" -> 5
+        else -> 6
+    }
+
+@Composable
+private fun DrawerCategoryHeader(
+    label: String,
+    count: Int,
+    secondaryColor: Color,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = GlazeMetrics.space2, bottom = GlazeMetrics.space1),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Surface(
+            shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+            color = secondaryColor.copy(alpha = 0.10f),
+            border = BorderStroke(1.dp, secondaryColor.copy(alpha = 0.18f)),
+        ) {
+            Text(
+                count.toString(),
+                modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = secondaryColor,
+            )
         }
     }
 }
@@ -1531,13 +1648,14 @@ private fun LauncherSettingsRootSurface(
                     style = MaterialTheme.typography.bodySmall,
                 )
                 ChoiceRow(
-                    choices = listOf("Grid", "Compact", "List"),
+                    choices = listOf("Grid", "Compact", "List", "Category"),
                     selected = drawerLayoutMode.name.lowercase().replaceFirstChar { it.uppercase() },
                     onChoice = {
                         onSetDrawerLayoutMode(
                             when (it) {
                                 "Compact" -> LauncherDrawerLayoutMode.COMPACT
                                 "List" -> LauncherDrawerLayoutMode.LIST
+                                "Category" -> LauncherDrawerLayoutMode.CATEGORY
                                 else -> LauncherDrawerLayoutMode.GRID
                             },
                         )
