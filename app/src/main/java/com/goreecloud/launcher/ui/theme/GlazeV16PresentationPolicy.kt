@@ -1,6 +1,21 @@
 package com.goreecloud.launcher.ui.theme
 
+import android.animation.ValueAnimator
+import android.content.Context
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -34,6 +49,78 @@ enum class GlazeV16MotionMode {
     STANDARD,
     REDUCED,
     MINIMAL,
+}
+
+
+data class GlazeV16AndroidPresentationSignals(
+    val fontScale: Float,
+    val animationsEnabled: Boolean,
+    val touchExplorationEnabled: Boolean,
+)
+
+object GlazeV16AndroidPresentationContext {
+    const val LARGE_TEXT_FONT_SCALE = 1.30f
+    const val EXTRA_LARGE_TEXT_FONT_SCALE = 1.60f
+
+    fun resolve(signals: GlazeV16AndroidPresentationSignals): GlazeV16PresentationContext =
+        GlazeV16PresentationContext(
+            reducedMotion = !signals.animationsEnabled,
+            largeText = signals.fontScale >= LARGE_TEXT_FONT_SCALE,
+            extraLargeText = signals.fontScale >= EXTRA_LARGE_TEXT_FONT_SCALE,
+            touchAssistance = signals.touchExplorationEnabled,
+            screenReaderOptimized = signals.touchExplorationEnabled,
+        )
+}
+
+@Composable
+fun rememberAndroidGlazeV16PresentationContext(): GlazeV16PresentationContext {
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val accessibilityManager = remember(context) {
+        context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+    }
+
+    var touchExplorationEnabled by remember(accessibilityManager) {
+        mutableStateOf(accessibilityManager?.isTouchExplorationEnabled == true)
+    }
+    var animationsEnabled by remember(context) {
+        mutableStateOf(ValueAnimator.areAnimatorsEnabled())
+    }
+
+    DisposableEffect(accessibilityManager) {
+        if (accessibilityManager == null) {
+            onDispose { }
+        } else {
+            val listener = AccessibilityManager.TouchExplorationStateChangeListener { enabled ->
+                touchExplorationEnabled = enabled
+            }
+            accessibilityManager.addTouchExplorationStateChangeListener(listener)
+            onDispose {
+                accessibilityManager.removeTouchExplorationStateChangeListener(listener)
+            }
+        }
+    }
+
+    DisposableEffect(context) {
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                animationsEnabled = ValueAnimator.areAnimatorsEnabled()
+            }
+        }
+        val uri = Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE)
+        context.contentResolver.registerContentObserver(uri, false, observer)
+        onDispose {
+            context.contentResolver.unregisterContentObserver(observer)
+        }
+    }
+
+    return GlazeV16AndroidPresentationContext.resolve(
+        GlazeV16AndroidPresentationSignals(
+            fontScale = configuration.fontScale,
+            animationsEnabled = animationsEnabled,
+            touchExplorationEnabled = touchExplorationEnabled,
+        ),
+    )
 }
 
 data class GlazeV16PresentationContext(
