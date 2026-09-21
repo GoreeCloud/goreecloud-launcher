@@ -80,7 +80,7 @@ enum class LauncherDrawerNavigation(val storageValue: String) {
 
     companion object {
         fun fromStorage(value: String?): LauncherDrawerNavigation =
-            entries.firstOrNull { it.storageValue == value } ?: PAGES
+            entries.firstOrNull { it.storageValue == value } ?: SCROLL
     }
 }
 
@@ -175,7 +175,7 @@ data class LauncherExperiencePreferences(
     val showHomePageIndicator: Boolean = true,
     val drawerBackdrop: LauncherDrawerBackdrop = LauncherDrawerBackdrop.GLASS,
     val drawerSearchPlacement: LauncherDrawerSearchPlacement = LauncherDrawerSearchPlacement.BOTTOM,
-    val drawerNavigation: LauncherDrawerNavigation = LauncherDrawerNavigation.PAGES,
+    val drawerNavigation: LauncherDrawerNavigation = LauncherDrawerNavigation.SCROLL,
     val drawerEntryMode: LauncherDrawerEntryMode = LauncherDrawerEntryMode.BROWSE,
     val drawerSpacing: LauncherDrawerSpacing = LauncherDrawerSpacing.STANDARD,
     val drawerPageRows: Int = 5,

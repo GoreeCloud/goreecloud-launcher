@@ -22,9 +22,11 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items as lazyItems
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,12 +43,16 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
@@ -1146,6 +1152,7 @@ private fun AppDrawerSurface(
                     experiencePreferences = experiencePreferences,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
+                    onDismiss = onHome,
                     secondaryColor = drawerSecondaryColor,
                     modifier = Modifier.weight(1f),
                 )
@@ -1175,6 +1182,7 @@ private fun DrawerAppsContent(
     experiencePreferences: LauncherExperiencePreferences,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
+    onDismiss: () -> Unit,
     secondaryColor: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -1297,56 +1305,86 @@ private fun DrawerAppsContent(
     }
 
     when (drawerLayoutMode) {
-        LauncherDrawerLayoutMode.GRID -> LazyVerticalGrid(
-            columns = GridCells.Fixed(preferences.drawerColumns),
-            modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = standardSpacing),
-            horizontalArrangement = Arrangement.spacedBy(standardSpacing),
-            verticalArrangement = Arrangement.spacedBy(standardSpacing),
-        ) {
-            items(apps, key = { it.workspaceKey() }) { app ->
-                LauncherAppTile(
-                    app = app,
-                    iconScale = preferences.iconScale,
-                    showLabel = preferences.showLabels,
-                    compact = false,
-                    onClick = { onLaunchApp(app) },
-                    onLongClick = { onManageApp(app) },
-                    modifier = Modifier.height(gridTileHeight),
-                )
+        LauncherDrawerLayoutMode.GRID -> {
+            val gridState = rememberLazyGridState()
+            val dismissConnection = rememberDrawerDismissNestedScrollConnection(
+                canScrollBackward = { gridState.canScrollBackward },
+                onDismiss = onDismiss,
+            )
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(preferences.drawerColumns),
+                state = gridState,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .nestedScroll(dismissConnection),
+                contentPadding = PaddingValues(vertical = standardSpacing),
+                horizontalArrangement = Arrangement.spacedBy(standardSpacing),
+                verticalArrangement = Arrangement.spacedBy(standardSpacing),
+            ) {
+                items(apps, key = { it.workspaceKey() }) { app ->
+                    LauncherAppTile(
+                        app = app,
+                        iconScale = preferences.iconScale,
+                        showLabel = preferences.showLabels,
+                        compact = false,
+                        onClick = { onLaunchApp(app) },
+                        onLongClick = { onManageApp(app) },
+                        modifier = Modifier.height(gridTileHeight),
+                    )
+                }
             }
         }
-        LauncherDrawerLayoutMode.COMPACT -> LazyVerticalGrid(
-            columns = GridCells.Fixed(preferences.drawerColumns),
-            modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = compactSpacing),
-            horizontalArrangement = Arrangement.spacedBy(compactSpacing),
-            verticalArrangement = Arrangement.spacedBy(compactSpacing),
-        ) {
-            items(apps, key = { it.workspaceKey() }) { app ->
-                LauncherAppTile(
-                    app = app,
-                    iconScale = preferences.iconScale,
-                    showLabel = preferences.showLabels,
-                    compact = true,
-                    onClick = { onLaunchApp(app) },
-                    onLongClick = { onManageApp(app) },
-                    modifier = Modifier.height(compactTileHeight),
-                )
+        LauncherDrawerLayoutMode.COMPACT -> {
+            val gridState = rememberLazyGridState()
+            val dismissConnection = rememberDrawerDismissNestedScrollConnection(
+                canScrollBackward = { gridState.canScrollBackward },
+                onDismiss = onDismiss,
+            )
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(preferences.drawerColumns),
+                state = gridState,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .nestedScroll(dismissConnection),
+                contentPadding = PaddingValues(vertical = compactSpacing),
+                horizontalArrangement = Arrangement.spacedBy(compactSpacing),
+                verticalArrangement = Arrangement.spacedBy(compactSpacing),
+            ) {
+                items(apps, key = { it.workspaceKey() }) { app ->
+                    LauncherAppTile(
+                        app = app,
+                        iconScale = preferences.iconScale,
+                        showLabel = preferences.showLabels,
+                        compact = true,
+                        onClick = { onLaunchApp(app) },
+                        onLongClick = { onManageApp(app) },
+                        modifier = Modifier.height(compactTileHeight),
+                    )
+                }
             }
         }
-        LauncherDrawerLayoutMode.LIST -> LazyColumn(
-            modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = standardSpacing),
-            verticalArrangement = Arrangement.spacedBy(compactSpacing),
-        ) {
-            lazyItems(apps, key = { it.workspaceKey() }) { app ->
-                LauncherAppListRow(
-                    app = app,
-                    iconScale = preferences.iconScale,
-                    onClick = { onLaunchApp(app) },
-                    onLongClick = { onManageApp(app) },
-                )
+        LauncherDrawerLayoutMode.LIST -> {
+            val listState = rememberLazyListState()
+            val dismissConnection = rememberDrawerDismissNestedScrollConnection(
+                canScrollBackward = { listState.canScrollBackward },
+                onDismiss = onDismiss,
+            )
+            LazyColumn(
+                state = listState,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .nestedScroll(dismissConnection),
+                contentPadding = PaddingValues(vertical = standardSpacing),
+                verticalArrangement = Arrangement.spacedBy(compactSpacing),
+            ) {
+                lazyItems(apps, key = { it.workspaceKey() }) { app ->
+                    LauncherAppListRow(
+                        app = app,
+                        iconScale = preferences.iconScale,
+                        onClick = { onLaunchApp(app) },
+                        onLongClick = { onManageApp(app) },
+                    )
+                }
             }
         }
         LauncherDrawerLayoutMode.CATEGORY -> {
@@ -1360,8 +1398,16 @@ private fun DrawerAppsContent(
                         ),
                     )
             }
+            val listState = rememberLazyListState()
+            val dismissConnection = rememberDrawerDismissNestedScrollConnection(
+                canScrollBackward = { listState.canScrollBackward },
+                onDismiss = onDismiss,
+            )
             LazyColumn(
-                modifier = modifier.fillMaxWidth(),
+                state = listState,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .nestedScroll(dismissConnection),
                 contentPadding = PaddingValues(vertical = standardSpacing),
                 verticalArrangement = Arrangement.spacedBy(compactSpacing),
             ) {
@@ -1403,6 +1449,54 @@ private fun DrawerAppsContent(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberDrawerDismissNestedScrollConnection(
+    canScrollBackward: () -> Boolean,
+    onDismiss: () -> Unit,
+): NestedScrollConnection {
+    val dismissThreshold = with(LocalDensity.current) { 56.dp.toPx() }
+    val currentCanScrollBackward by rememberUpdatedState(canScrollBackward)
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+
+    return remember(dismissThreshold) {
+        object : NestedScrollConnection {
+            private var downwardDrag = 0f
+            private var triggered = false
+
+            override fun onPreScroll(
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (source != NestedScrollSource.UserInput) {
+                    return Offset.Zero
+                }
+
+                if (available.y <= 0f || currentCanScrollBackward()) {
+                    downwardDrag = 0f
+                    triggered = false
+                    return Offset.Zero
+                }
+
+                if (!triggered) {
+                    downwardDrag += available.y
+                    if (downwardDrag >= dismissThreshold) {
+                        triggered = true
+                        currentOnDismiss()
+                    }
+                }
+
+                return if (triggered) Offset(0f, available.y) else Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                downwardDrag = 0f
+                triggered = false
+                return Velocity.Zero
             }
         }
     }
