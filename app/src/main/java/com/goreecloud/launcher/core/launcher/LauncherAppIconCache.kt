@@ -90,15 +90,21 @@ internal object LauncherAppIconCache {
         maxCount: Int = LAUNCHER_ICON_PRELOAD_COUNT,
     ) {
         if (maxCount <= 0) return
-        apps.asSequence()
+        val candidates = apps.asSequence()
             .distinctBy { app -> app.cacheKey() }
             .take(maxCount)
             .filter { app -> peek(app) == null }
-            .forEach { app ->
-                loadScope.launch {
-                    load(app)
-                }
+            .toList()
+        if (candidates.isEmpty()) return
+
+        // Keep package-refresh priority deterministic and avoid a cold-drawer burst of dozens of
+        // concurrent bitmap decodes. The cache remains asynchronous; candidates are decoded in the
+        // order supplied by LauncherAppsRepository.
+        loadScope.launch {
+            candidates.forEach { app ->
+                load(app)
             }
+        }
     }
 
     suspend fun load(app: LauncherActivityInfo): Bitmap? {
