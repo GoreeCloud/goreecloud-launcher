@@ -9,7 +9,6 @@ class GlazeV16AndroidPresentationContextTest {
     fun disabledAnimatorsMapToReducedMotionWithoutInventingOtherState() {
         val context = GlazeV16AndroidPresentationContext.fromSignals(
             animatorsEnabled = false,
-            highTextContrastEnabled = false,
             touchExplorationEnabled = false,
             fontScale = 1f,
         )
@@ -25,13 +24,12 @@ class GlazeV16AndroidPresentationContextTest {
     fun accessibilitySignalsMapOnlyToOwnedPresentationSemantics() {
         val context = GlazeV16AndroidPresentationContext.fromSignals(
             animatorsEnabled = true,
-            highTextContrastEnabled = true,
             touchExplorationEnabled = true,
             fontScale = 1.3f,
         )
 
         assertFalse(context.reducedMotion)
-        assertTrue(context.increasedContrast)
+        assertFalse(context.increasedContrast)
         assertTrue(context.largeText)
         assertTrue(context.extraLargeText)
         assertTrue(context.touchAssistance)
