@@ -46,7 +46,7 @@ class LauncherPreferencesTest {
         assertEquals(LauncherDockStyle.GLASS, defaults.dockStyle)
         assertEquals(LauncherWallpaperShade.SOFT, defaults.wallpaperShade)
         assertEquals(LauncherDrawerSearchPlacement.BOTTOM, defaults.drawerSearchPlacement)
-        assertEquals(LauncherDrawerNavigation.PAGES, defaults.drawerNavigation)
+        assertEquals(LauncherDrawerNavigation.SCROLL, defaults.drawerNavigation)
         assertEquals(LauncherDrawerEntryMode.BROWSE, defaults.drawerEntryMode)
         assertEquals(LauncherDrawerSpacing.STANDARD, defaults.drawerSpacing)
         assertEquals(5, defaults.drawerPageRows)
@@ -72,7 +72,9 @@ class LauncherPreferencesTest {
             LauncherDrawerSearchPlacement.fromStorage("unknown"),
         )
         assertEquals(LauncherDrawerNavigation.SCROLL, LauncherDrawerNavigation.fromStorage("scroll"))
-        assertEquals(LauncherDrawerNavigation.PAGES, LauncherDrawerNavigation.fromStorage("unknown"))
+        assertEquals(LauncherDrawerNavigation.PAGES, LauncherDrawerNavigation.fromStorage("pages"))
+        assertEquals(LauncherDrawerNavigation.SCROLL, LauncherDrawerNavigation.fromStorage("unknown"))
+        assertEquals(LauncherDrawerNavigation.SCROLL, LauncherDrawerNavigation.fromStorage(null))
         assertEquals(
             LauncherDrawerEntryMode.SEARCH_FIRST,
             LauncherDrawerEntryMode.fromStorage("search_first"),
