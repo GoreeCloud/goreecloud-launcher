@@ -125,6 +125,28 @@ enum class LauncherHomeSearchPlacement(val storageValue: String) {
     }
 }
 
+enum class LauncherHomeSearchStyle(val storageValue: String) {
+    GLASS("glass"),
+    CLEAR("clear"),
+    SOLID("solid");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeSearchStyle =
+            entries.firstOrNull { it.storageValue == value } ?: GLASS
+    }
+}
+
+enum class LauncherHomeSpacing(val storageValue: String) {
+    COMPACT("compact"),
+    BALANCED("balanced"),
+    AIRY("airy");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeSpacing =
+            entries.firstOrNull { it.storageValue == value } ?: BALANCED
+    }
+}
+
 enum class LauncherDockStyle(val storageValue: String) {
     GLASS("glass"),
     CLEAR("clear"),
@@ -160,6 +182,8 @@ data class LauncherExperiencePreferences(
     val showDrawerAppCount: Boolean = false,
     val homeGlanceAlignment: LauncherHomeGlanceAlignment = LauncherHomeGlanceAlignment.LEFT,
     val homeSearchPlacement: LauncherHomeSearchPlacement = LauncherHomeSearchPlacement.BOTTOM,
+    val homeSearchStyle: LauncherHomeSearchStyle = LauncherHomeSearchStyle.GLASS,
+    val homeSpacing: LauncherHomeSpacing = LauncherHomeSpacing.BALANCED,
     val dockStyle: LauncherDockStyle = LauncherDockStyle.GLASS,
     val wallpaperShade: LauncherWallpaperShade = LauncherWallpaperShade.SOFT,
     val starterLayoutApplied: Boolean = false,
@@ -210,6 +234,8 @@ class LauncherPreferencesRepository(
         val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
         val homeGlanceAlignment = stringPreferencesKey("home_glance_alignment")
         val homeSearchPlacement = stringPreferencesKey("home_search_placement")
+        val homeSearchStyle = stringPreferencesKey("home_search_style")
+        val homeSpacing = stringPreferencesKey("home_spacing")
         val dockStyle = stringPreferencesKey("dock_style")
         val wallpaperShade = stringPreferencesKey("wallpaper_shade")
         val starterLayoutApplied = booleanPreferencesKey("starter_layout_applied")
@@ -251,6 +277,8 @@ class LauncherPreferencesRepository(
                 showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
                 homeGlanceAlignment = LauncherHomeGlanceAlignment.fromStorage(values[Keys.homeGlanceAlignment]),
                 homeSearchPlacement = LauncherHomeSearchPlacement.fromStorage(values[Keys.homeSearchPlacement]),
+                homeSearchStyle = LauncherHomeSearchStyle.fromStorage(values[Keys.homeSearchStyle]),
+                homeSpacing = LauncherHomeSpacing.fromStorage(values[Keys.homeSpacing]),
                 dockStyle = LauncherDockStyle.fromStorage(values[Keys.dockStyle]),
                 wallpaperShade = LauncherWallpaperShade.fromStorage(values[Keys.wallpaperShade]),
                 starterLayoutApplied = values[Keys.starterLayoutApplied] ?: false,
@@ -410,6 +438,22 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.homeSearchPlacement] = placement.storageValue
+            }
+        }
+    }
+
+    fun setHomeSearchStyle(style: LauncherHomeSearchStyle) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeSearchStyle] = style.storageValue
+            }
+        }
+    }
+
+    fun setHomeSpacing(spacing: LauncherHomeSpacing) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeSpacing] = spacing.storageValue
             }
         }
     }
