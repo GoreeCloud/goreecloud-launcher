@@ -50,9 +50,11 @@ import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
+import com.goreecloud.launcher.core.launcher.LauncherDrawerEntryMode
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDrawerNavigation
 import com.goreecloud.launcher.core.launcher.LauncherDrawerSearchPlacement
+import com.goreecloud.launcher.core.launcher.LauncherDrawerSpacing
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
@@ -106,6 +108,8 @@ fun LauncherBetaRoot(
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
     onSetDrawerNavigation: (LauncherDrawerNavigation) -> Unit,
+    onSetDrawerEntryMode: (LauncherDrawerEntryMode) -> Unit,
+    onSetDrawerSpacing: (LauncherDrawerSpacing) -> Unit,
     onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
@@ -175,7 +179,8 @@ fun LauncherBetaRoot(
                 },
                 onManageApp = { selectedApp = it },
                 onOpenDrawer = {
-                    drawerSearchRequested = false
+                    drawerSearchRequested =
+                        experiencePreferences.drawerEntryMode == LauncherDrawerEntryMode.SEARCH_FIRST
                     surfaceModeName = LauncherSurfaceMode.DRAWER.name
                 },
                 onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
@@ -219,6 +224,8 @@ fun LauncherBetaRoot(
                         onSetDrawerBackdrop = onSetDrawerBackdrop,
                         onSetDrawerSearchPlacement = onSetDrawerSearchPlacement,
                         onSetDrawerNavigation = onSetDrawerNavigation,
+                        onSetDrawerEntryMode = onSetDrawerEntryMode,
+                        onSetDrawerSpacing = onSetDrawerSpacing,
                         onSetDrawerPageRows = onSetDrawerPageRows,
                         onSetShowDrawerAppCount = onSetShowDrawerAppCount,
                         onSetHomeGlanceAlignment = onSetHomeGlanceAlignment,
@@ -929,6 +936,8 @@ private fun AppDrawerSurface(
     val glass = experiencePreferences.drawerBackdrop == LauncherDrawerBackdrop.GLASS
     val searchAtBottom =
         experiencePreferences.drawerSearchPlacement == LauncherDrawerSearchPlacement.BOTTOM
+    val searchFirst =
+        experiencePreferences.drawerEntryMode == LauncherDrawerEntryMode.SEARCH_FIRST
     val drawerSurfaceColor = if (glass) {
         GlazeAtmosphere.canvasBlack.copy(alpha = 0.76f)
     } else {
@@ -1016,27 +1025,27 @@ private fun AppDrawerSurface(
                 ) {
                     Column {
                         Text(
-                            "Apps",
+                            if (searchFirst) "Search apps" else "Apps",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        if (experiencePreferences.showDrawerAppCount) {
-                            Text(
-                                filteredApps.size.toString() + " installed",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = drawerSecondaryColor,
-                            )
-                        } else {
-                            Text(
-                                when (drawerLayoutMode) {
+                        Text(
+                            when {
+                                query.isNotBlank() ->
+                                    filteredApps.size.toString() + " matches"
+                                searchFirst ->
+                                    "Type to filter installed apps"
+                                experiencePreferences.showDrawerAppCount ->
+                                    filteredApps.size.toString() + " installed"
+                                else -> when (drawerLayoutMode) {
                                     LauncherDrawerLayoutMode.GRID -> "Grid · ${preferences.drawerColumns} columns"
                                     LauncherDrawerLayoutMode.COMPACT -> "Compact · ${preferences.drawerColumns} columns"
                                     LauncherDrawerLayoutMode.LIST -> "Alphabetical list"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = drawerSecondaryColor,
-                            )
-                        }
+                                }
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = drawerSecondaryColor,
+                        )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
                         GlazeRoundAction("⚙", onOpenSettings)
@@ -1113,6 +1122,26 @@ private fun DrawerAppsContent(
 
     val pagedGrid = experiencePreferences.drawerNavigation == LauncherDrawerNavigation.PAGES &&
         drawerLayoutMode != LauncherDrawerLayoutMode.LIST
+    val standardSpacing = when (experiencePreferences.drawerSpacing) {
+        LauncherDrawerSpacing.TIGHT -> GlazeMetrics.space1
+        LauncherDrawerSpacing.STANDARD -> GlazeMetrics.space2
+        LauncherDrawerSpacing.RELAXED -> GlazeMetrics.space3
+    }
+    val compactSpacing = when (experiencePreferences.drawerSpacing) {
+        LauncherDrawerSpacing.TIGHT -> 2.dp
+        LauncherDrawerSpacing.STANDARD -> GlazeMetrics.space1
+        LauncherDrawerSpacing.RELAXED -> GlazeMetrics.space2
+    }
+    val gridTileHeight = when (experiencePreferences.drawerSpacing) {
+        LauncherDrawerSpacing.TIGHT -> 80.dp
+        LauncherDrawerSpacing.STANDARD -> 88.dp
+        LauncherDrawerSpacing.RELAXED -> 96.dp
+    }
+    val compactTileHeight = when (experiencePreferences.drawerSpacing) {
+        LauncherDrawerSpacing.TIGHT -> 66.dp
+        LauncherDrawerSpacing.STANDARD -> 72.dp
+        LauncherDrawerSpacing.RELAXED -> 80.dp
+    }
 
     if (pagedGrid) {
         val pageSize = (
@@ -1144,16 +1173,16 @@ private fun DrawerAppsContent(
                     contentPadding = PaddingValues(vertical = GlazeMetrics.space2),
                     horizontalArrangement = Arrangement.spacedBy(
                         if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) {
-                            GlazeMetrics.space1
+                            compactSpacing
                         } else {
-                            GlazeMetrics.space2
+                            standardSpacing
                         },
                     ),
                     verticalArrangement = Arrangement.spacedBy(
                         if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) {
-                            GlazeMetrics.space1
+                            compactSpacing
                         } else {
-                            GlazeMetrics.space2
+                            standardSpacing
                         },
                     ),
                     userScrollEnabled = false,
@@ -1167,8 +1196,8 @@ private fun DrawerAppsContent(
                             onClick = { onLaunchApp(app) },
                             onLongClick = { onManageApp(app) },
                             modifier = Modifier.height(
-                                if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) 72.dp
-                                else 88.dp,
+                                if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) compactTileHeight
+                                else gridTileHeight,
                             ),
                         )
                     }
@@ -1197,9 +1226,9 @@ private fun DrawerAppsContent(
         LauncherDrawerLayoutMode.GRID -> LazyVerticalGrid(
             columns = GridCells.Fixed(preferences.drawerColumns),
             modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = GlazeMetrics.space2),
-            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            contentPadding = PaddingValues(vertical = standardSpacing),
+            horizontalArrangement = Arrangement.spacedBy(standardSpacing),
+            verticalArrangement = Arrangement.spacedBy(standardSpacing),
         ) {
             items(apps, key = { it.workspaceKey() }) { app ->
                 LauncherAppTile(
@@ -1209,16 +1238,16 @@ private fun DrawerAppsContent(
                     compact = false,
                     onClick = { onLaunchApp(app) },
                     onLongClick = { onManageApp(app) },
-                    modifier = Modifier.height(88.dp),
+                    modifier = Modifier.height(gridTileHeight),
                 )
             }
         }
         LauncherDrawerLayoutMode.COMPACT -> LazyVerticalGrid(
             columns = GridCells.Fixed(preferences.drawerColumns),
             modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = GlazeMetrics.space2),
-            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+            contentPadding = PaddingValues(vertical = compactSpacing),
+            horizontalArrangement = Arrangement.spacedBy(compactSpacing),
+            verticalArrangement = Arrangement.spacedBy(compactSpacing),
         ) {
             items(apps, key = { it.workspaceKey() }) { app ->
                 LauncherAppTile(
@@ -1228,14 +1257,14 @@ private fun DrawerAppsContent(
                     compact = true,
                     onClick = { onLaunchApp(app) },
                     onLongClick = { onManageApp(app) },
-                    modifier = Modifier.height(72.dp),
+                    modifier = Modifier.height(compactTileHeight),
                 )
             }
         }
         LauncherDrawerLayoutMode.LIST -> LazyColumn(
             modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = GlazeMetrics.space2),
-            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+            contentPadding = PaddingValues(vertical = standardSpacing),
+            verticalArrangement = Arrangement.spacedBy(compactSpacing),
         ) {
             lazyItems(apps, key = { it.workspaceKey() }) { app ->
                 LauncherAppListRow(
@@ -1298,6 +1327,8 @@ private fun LauncherSettingsRootSurface(
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
     onSetDrawerNavigation: (LauncherDrawerNavigation) -> Unit,
+    onSetDrawerEntryMode: (LauncherDrawerEntryMode) -> Unit,
+    onSetDrawerSpacing: (LauncherDrawerSpacing) -> Unit,
     onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
@@ -1478,6 +1509,23 @@ private fun LauncherSettingsRootSurface(
 
             SettingsSection("App drawer", "Layout, density and background") {
                 Text(
+                    "Open mode",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Browse", "Search first"),
+                    selected = if (
+                        experiencePreferences.drawerEntryMode == LauncherDrawerEntryMode.SEARCH_FIRST
+                    ) "Search first" else "Browse",
+                    onChoice = {
+                        onSetDrawerEntryMode(
+                            if (it == "Search first") LauncherDrawerEntryMode.SEARCH_FIRST
+                            else LauncherDrawerEntryMode.BROWSE,
+                        )
+                    },
+                )
+                Text(
                     "Layout",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
@@ -1504,6 +1552,28 @@ private fun LauncherSettingsRootSurface(
                     choices = listOf("4", "5", "6"),
                     selected = preferences.drawerColumns.toString(),
                     onChoice = { onSetDrawerColumns(it.toInt()) },
+                )
+                Text(
+                    "Spacing",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("Tight", "Standard", "Relaxed"),
+                    selected = when (experiencePreferences.drawerSpacing) {
+                        LauncherDrawerSpacing.TIGHT -> "Tight"
+                        LauncherDrawerSpacing.STANDARD -> "Standard"
+                        LauncherDrawerSpacing.RELAXED -> "Relaxed"
+                    },
+                    onChoice = {
+                        onSetDrawerSpacing(
+                            when (it) {
+                                "Tight" -> LauncherDrawerSpacing.TIGHT
+                                "Relaxed" -> LauncherDrawerSpacing.RELAXED
+                                else -> LauncherDrawerSpacing.STANDARD
+                            },
+                        )
+                    },
                 )
                 Text(
                     "Background",
