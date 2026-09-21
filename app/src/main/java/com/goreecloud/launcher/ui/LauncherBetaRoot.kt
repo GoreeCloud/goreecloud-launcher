@@ -38,8 +38,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -83,7 +86,7 @@ fun LauncherBetaRoot(
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
-    onOpenUniversalSearch: () -> Unit,
+    onOpenUniversalSearch: () -> Boolean,
     onToggleFavorite: (LauncherActivityInfo) -> Unit,
     onToggleDock: (LauncherActivityInfo) -> Unit,
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
@@ -116,6 +119,7 @@ fun LauncherBetaRoot(
     val surfaceMode = runCatching { LauncherSurfaceMode.valueOf(surfaceModeName) }
         .getOrDefault(LauncherSurfaceMode.HOME)
     var selectedApp by remember { mutableStateOf<LauncherActivityInfo?>(null) }
+    var drawerSearchRequested by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(surfaceMode) { onSurfaceModeChanged(surfaceMode) }
 
@@ -127,27 +131,27 @@ fun LauncherBetaRoot(
                     targetState == LauncherSurfaceMode.DRAWER ->
                     (
                         slideInVertically(
-                            animationSpec = tween(durationMillis = 220),
-                            initialOffsetY = { height -> height / 5 },
-                        ) + fadeIn(animationSpec = tween(durationMillis = 160))
+                            animationSpec = tween(durationMillis = 150),
+                            initialOffsetY = { height -> height / 10 },
+                        ) + fadeIn(animationSpec = tween(durationMillis = 110))
                     ) togetherWith (
                         slideOutVertically(
-                            animationSpec = tween(durationMillis = 180),
-                            targetOffsetY = { height -> -height / 10 },
-                        ) + fadeOut(animationSpec = tween(durationMillis = 120))
+                            animationSpec = tween(durationMillis = 105),
+                            targetOffsetY = { height -> -height / 18 },
+                        ) + fadeOut(animationSpec = tween(durationMillis = 80))
                     )
                 initialState == LauncherSurfaceMode.DRAWER &&
                     targetState == LauncherSurfaceMode.HOME ->
                     (
                         slideInVertically(
-                            animationSpec = tween(durationMillis = 180),
-                            initialOffsetY = { height -> -height / 10 },
-                        ) + fadeIn(animationSpec = tween(durationMillis = 140))
+                            animationSpec = tween(durationMillis = 125),
+                            initialOffsetY = { height -> -height / 18 },
+                        ) + fadeIn(animationSpec = tween(durationMillis = 100))
                     ) togetherWith (
                         slideOutVertically(
-                            animationSpec = tween(durationMillis = 220),
-                            targetOffsetY = { height -> height / 5 },
-                        ) + fadeOut(animationSpec = tween(durationMillis = 120))
+                            animationSpec = tween(durationMillis = 150),
+                            targetOffsetY = { height -> height / 10 },
+                        ) + fadeOut(animationSpec = tween(durationMillis = 80))
                     )
                 else ->
                     fadeIn(animationSpec = tween(durationMillis = 140)) togetherWith
@@ -165,8 +169,15 @@ fun LauncherBetaRoot(
                 onManageHomePages = onManageHomePages,
                 onLaunchApp = onLaunchApp,
                 onOpenUniversalSearch = onOpenUniversalSearch,
+                onOpenLocalSearch = {
+                    drawerSearchRequested = true
+                    surfaceModeName = LauncherSurfaceMode.DRAWER.name
+                },
                 onManageApp = { selectedApp = it },
-                onOpenDrawer = { surfaceModeName = LauncherSurfaceMode.DRAWER.name },
+                onOpenDrawer = {
+                    drawerSearchRequested = false
+                    surfaceModeName = LauncherSurfaceMode.DRAWER.name
+                },
                 onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
                 onOpenWallpaperPicker = onOpenWallpaperPicker,
             )
@@ -175,9 +186,13 @@ fun LauncherBetaRoot(
                 preferences = preferences,
                 drawerLayoutMode = drawerLayoutMode,
                 experiencePreferences = experiencePreferences,
+                focusSearch = drawerSearchRequested,
                 onLaunchApp = onLaunchApp,
                 onManageApp = { selectedApp = it },
-                onHome = { surfaceModeName = LauncherSurfaceMode.HOME.name },
+                onHome = {
+                    drawerSearchRequested = false
+                    surfaceModeName = LauncherSurfaceMode.HOME.name
+                },
                 onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
             )
             LauncherSurfaceMode.SETTINGS -> LauncherSettingsSurface(
@@ -242,7 +257,8 @@ private fun HomeSurface(
     homePageCount: Int,
     onManageHomePages: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
-    onOpenUniversalSearch: () -> Unit,
+    onOpenUniversalSearch: () -> Boolean,
+    onOpenLocalSearch: () -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -274,6 +290,11 @@ private fun HomeSurface(
     val showPermanentSearch = preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT
     val searchAtTop =
         experiencePreferences.homeSearchPlacement == LauncherHomeSearchPlacement.TOP
+    val openSearch = {
+        if (!onOpenUniversalSearch()) {
+            onOpenLocalSearch()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -283,19 +304,35 @@ private fun HomeSurface(
             }
             .pointerInput(onOpenUniversalSearch, onOpenDrawer, swipeThreshold) {
                 var drag = 0f
+                var triggered = false
                 detectVerticalDragGestures(
-                    onDragStart = { drag = 0f },
-                    onDragCancel = { drag = 0f },
-                    onDragEnd = {
-                        when {
-                            drag >= swipeThreshold -> onOpenUniversalSearch()
-                            drag <= -swipeThreshold -> onOpenDrawer()
-                        }
+                    onDragStart = {
                         drag = 0f
+                        triggered = false
+                    },
+                    onDragCancel = {
+                        drag = 0f
+                        triggered = false
+                    },
+                    onDragEnd = {
+                        drag = 0f
+                        triggered = false
                     },
                     onVerticalDrag = { change, amount ->
                         change.consume()
-                        drag += amount
+                        if (!triggered) {
+                            drag += amount
+                            when {
+                                drag >= swipeThreshold -> {
+                                    triggered = true
+                                    openSearch()
+                                }
+                                drag <= -swipeThreshold -> {
+                                    triggered = true
+                                    onOpenDrawer()
+                                }
+                            }
+                        }
                     },
                 )
             },
@@ -334,8 +371,8 @@ private fun HomeSurface(
 
             if (showPermanentSearch && searchAtTop) {
                 GlazeSearchCapsule(
-                    value = "Search phone",
-                    onClick = onOpenUniversalSearch,
+                    value = "Search apps & GoreeCloud",
+                    onClick = openSearch,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -343,7 +380,7 @@ private fun HomeSurface(
             if (experiencePreferences.showHomeQuickActions) {
                 HomeQuickActions(
                     onOpenApps = onOpenDrawer,
-                    onOpenSearch = onOpenUniversalSearch,
+                    onOpenSearch = openSearch,
                     onOpenSettings = onOpenSettings,
                 )
             }
@@ -363,14 +400,14 @@ private fun HomeSurface(
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
                     onSwipeUp = onOpenDrawer,
-                    onSwipeDown = onOpenUniversalSearch,
+                    onSwipeDown = openSearch,
                 )
             }
 
             if (showPermanentSearch && !searchAtTop) {
                 GlazeSearchCapsule(
-                    value = "Search phone",
-                    onClick = onOpenUniversalSearch,
+                    value = "Search apps & GoreeCloud",
+                    onClick = openSearch,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -383,7 +420,7 @@ private fun HomeSurface(
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
                     onSwipeUp = onOpenDrawer,
-                    onSwipeDown = onOpenUniversalSearch,
+                    onSwipeDown = openSearch,
                 )
             }
 
@@ -775,6 +812,7 @@ private fun HomeFavoritesGrid(
                         onLongClick = { onManageApp(app) },
                         onSwipeUp = onSwipeUp,
                         onSwipeDown = onSwipeDown,
+                        labelOnWallpaper = true,
                         modifier = Modifier
                             .weight(1f)
                             .height(78.dp),
@@ -871,6 +909,7 @@ private fun AppDrawerSurface(
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
+    focusSearch: Boolean,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     onHome: () -> Unit,
@@ -934,14 +973,29 @@ private fun AppDrawerSurface(
                     .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space2)
                     .pointerInput(onHome, dismissThreshold) {
                         var drag = 0f
+                        var triggered = false
                         detectVerticalDragGestures(
-                            onDragStart = { drag = 0f },
-                            onDragCancel = { drag = 0f },
-                            onDragEnd = {
-                                if (drag >= dismissThreshold) onHome()
+                            onDragStart = {
                                 drag = 0f
+                                triggered = false
                             },
-                            onVerticalDrag = { _, amount -> drag += amount },
+                            onDragCancel = {
+                                drag = 0f
+                                triggered = false
+                            },
+                            onDragEnd = {
+                                drag = 0f
+                                triggered = false
+                            },
+                            onVerticalDrag = { _, amount ->
+                                if (!triggered) {
+                                    drag += amount
+                                    if (drag >= dismissThreshold) {
+                                        triggered = true
+                                        onHome()
+                                    }
+                                }
+                            },
                         )
                     },
             ) {
@@ -997,6 +1051,7 @@ private fun AppDrawerSurface(
                         onValueChange = { query = it },
                         modifier = Modifier.fillMaxWidth(),
                         darkSurface = glass,
+                        requestFocus = focusSearch,
                     )
                 }
 
@@ -1020,6 +1075,7 @@ private fun AppDrawerSurface(
                         onValueChange = { query = it },
                         modifier = Modifier.fillMaxWidth(),
                         darkSurface = glass,
+                        requestFocus = focusSearch,
                     )
                 }
             }
@@ -1773,21 +1829,43 @@ private fun GlazeSearchCapsule(
         modifier = modifier,
         onClick = onClick,
         shape = RoundedCornerShape(GlazeMetrics.radiusPill),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.50f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
+        color = GlazeAtmosphere.canvasBlack.copy(alpha = 0.34f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.14f)),
+        shadowElevation = 2.dp,
     ) {
         Row(
-            modifier = Modifier.height(46.dp).padding(horizontal = GlazeMetrics.space4),
+            modifier = Modifier.height(54.dp).padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("⌕", style = MaterialTheme.typography.titleMedium)
+            Surface(
+                modifier = Modifier.size(36.dp),
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.13f),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        "⌕",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White.copy(alpha = 0.94f),
+                    )
+                }
+            }
             Text(
                 value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White.copy(alpha = 0.88f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                "Search",
+                modifier = Modifier.padding(end = 8.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.56f),
+                maxLines = 1,
             )
         }
     }
@@ -1799,7 +1877,18 @@ private fun GlazeAppSearchField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     darkSurface: Boolean = false,
+    requestFocus: Boolean = false,
 ) {
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(requestFocus) {
+        if (requestFocus) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
@@ -1821,6 +1910,7 @@ private fun GlazeAppSearchField(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
+                .focusRequester(focusRequester)
                 .padding(horizontal = GlazeMetrics.space4),
             decorationBox = { innerTextField ->
                 Row(
@@ -1923,6 +2013,7 @@ private fun LauncherAppTile(
     modifier: Modifier,
     onSwipeUp: (() -> Unit)? = null,
     onSwipeDown: (() -> Unit)? = null,
+    labelOnWallpaper: Boolean = false,
 ) {
     val icon = rememberLauncherAppIcon(app)
     val base = if (compact) 50f else 52f
@@ -1931,19 +2022,35 @@ private fun LauncherAppTile(
     val gestureModifier = if (onSwipeUp != null || onSwipeDown != null) {
         Modifier.pointerInput(onSwipeUp, onSwipeDown, swipeThreshold) {
             var drag = 0f
+            var triggered = false
             detectVerticalDragGestures(
-                onDragStart = { drag = 0f },
-                onDragCancel = { drag = 0f },
-                onDragEnd = {
-                    when {
-                        drag <= -swipeThreshold -> onSwipeUp?.invoke()
-                        drag >= swipeThreshold -> onSwipeDown?.invoke()
-                    }
+                onDragStart = {
                     drag = 0f
+                    triggered = false
+                },
+                onDragCancel = {
+                    drag = 0f
+                    triggered = false
+                },
+                onDragEnd = {
+                    drag = 0f
+                    triggered = false
                 },
                 onVerticalDrag = { change, amount ->
                     change.consume()
-                    drag += amount
+                    if (!triggered) {
+                        drag += amount
+                        when {
+                            drag <= -swipeThreshold -> {
+                                triggered = true
+                                onSwipeUp?.invoke()
+                            }
+                            drag >= swipeThreshold -> {
+                                triggered = true
+                                onSwipeDown?.invoke()
+                            }
+                        }
+                    }
                 },
             )
         }
@@ -1983,7 +2090,18 @@ private fun LauncherAppTile(
             Text(
                 app.label.toString(),
                 modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.labelSmall,
+                style = if (labelOnWallpaper) {
+                    MaterialTheme.typography.labelSmall.copy(
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.60f),
+                            offset = Offset(0f, 1.5f),
+                            blurRadius = 5f,
+                        ),
+                    )
+                } else {
+                    MaterialTheme.typography.labelSmall
+                },
+                color = if (labelOnWallpaper) Color.White else Color.Unspecified,
                 textAlign = TextAlign.Center,
                 maxLines = if (compact) 1 else 2,
                 overflow = TextOverflow.Ellipsis,
