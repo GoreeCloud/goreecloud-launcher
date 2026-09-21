@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 internal const val LAUNCHER_ICON_DECODE_SIZE_PX = 144
 internal const val LAUNCHER_ICON_CACHE_MAX_KIB = 8 * 1024
+internal const val LAUNCHER_ICON_PRELOAD_COUNT = 48
 
 internal data class LauncherIconCacheKey(
     val user: UserHandle,
@@ -82,6 +83,21 @@ internal object LauncherAppIconCache {
 
     fun peek(app: LauncherActivityInfo): Bitmap? = synchronized(stateLock) {
         cache.get(app.cacheKey())
+    }
+
+    fun preload(
+        apps: List<LauncherActivityInfo>,
+        maxCount: Int = LAUNCHER_ICON_PRELOAD_COUNT,
+    ) {
+        if (maxCount <= 0) return
+        apps.asSequence()
+            .take(maxCount)
+            .filter { app -> peek(app) == null }
+            .forEach { app ->
+                loadScope.launch {
+                    load(app)
+                }
+            }
     }
 
     suspend fun load(app: LauncherActivityInfo): Bitmap? {
