@@ -383,6 +383,8 @@ class MainActivity : ComponentActivity() {
                             onSetDrawerBackdrop = launcherPreferencesRepository::setDrawerBackdrop,
                             onSetDrawerSearchPlacement = launcherPreferencesRepository::setDrawerSearchPlacement,
                             onSetDrawerNavigation = launcherPreferencesRepository::setDrawerNavigation,
+                            onSetDrawerEntryMode = launcherPreferencesRepository::setDrawerEntryMode,
+                            onSetDrawerSpacing = launcherPreferencesRepository::setDrawerSpacing,
                             onSetDrawerPageRows = launcherPreferencesRepository::setDrawerPageRows,
                             onSetShowDrawerAppCount = launcherPreferencesRepository::setShowDrawerAppCount,
                             onSetHomeGlanceAlignment = launcherPreferencesRepository::setHomeGlanceAlignment,
