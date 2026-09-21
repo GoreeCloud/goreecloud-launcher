@@ -57,6 +57,7 @@ import com.goreecloud.launcher.ui.LauncherTransitionDiagnostics
 import com.goreecloud.launcher.ui.ReadOnlyPagedHomeSurface
 import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
+import com.goreecloud.launcher.ui.theme.rememberAndroidGlazeV16PresentationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -120,7 +121,8 @@ class MainActivity : ComponentActivity() {
             val portableRestoreRecovery by portableRestoreRecoveryResult.collectAsStateWithLifecycle()
 
             if (!LauncherPortableRestoreStartupGate.allowsMutations(portableRestoreRecovery)) {
-                GlazeTheme(themeMode) {
+                val glazePresentationContext = rememberAndroidGlazeV16PresentationContext()
+            GlazeTheme(themeMode, presentationContext = glazePresentationContext) {
                     Box(
                         modifier = Modifier
                             .statusBarsPadding()
