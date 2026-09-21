@@ -53,6 +53,7 @@ import com.goreecloud.launcher.ui.HomePageSwitcher
 import com.goreecloud.launcher.ui.LayoutLockHoldControl
 import com.goreecloud.launcher.ui.LauncherBetaRoot
 import com.goreecloud.launcher.ui.LauncherSurfaceMode
+import com.goreecloud.launcher.ui.LauncherTransitionDiagnostics
 import com.goreecloud.launcher.ui.ReadOnlyPagedHomeSurface
 import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
@@ -396,6 +397,7 @@ class MainActivity : ComponentActivity() {
                             onOpenWallpaperPicker = ::openWallpaperPicker,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
+                                LauncherTransitionDiagnostics.recordSurfaceMode(mode)
                             },
                         )
                     }
