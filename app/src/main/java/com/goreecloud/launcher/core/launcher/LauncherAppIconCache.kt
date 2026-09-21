@@ -91,6 +91,7 @@ internal object LauncherAppIconCache {
     ) {
         if (maxCount <= 0) return
         apps.asSequence()
+            .distinctBy { app -> app.cacheKey() }
             .take(maxCount)
             .filter { app -> peek(app) == null }
             .forEach { app ->
