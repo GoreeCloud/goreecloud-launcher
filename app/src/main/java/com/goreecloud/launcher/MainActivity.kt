@@ -514,13 +514,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun openUniversalSearch(query: String? = null) {
-        if (!indexIntegration.openSearch(query)) {
-            Toast.makeText(
-                this,
-                "GoreeCloud Index is not installed yet",
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
-    }
+    private fun openUniversalSearch(query: String? = null): Boolean =
+        indexIntegration.openSearch(query)
 }
