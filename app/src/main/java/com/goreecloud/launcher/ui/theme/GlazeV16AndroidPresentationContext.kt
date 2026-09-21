@@ -17,7 +17,6 @@ object GlazeV16AndroidPresentationContext {
         val accessibilityManager = context.getSystemService(AccessibilityManager::class.java)
         return fromSignals(
             animatorsEnabled = ValueAnimator.areAnimatorsEnabled(),
-            highTextContrastEnabled = accessibilityManager?.isHighTextContrastEnabled == true,
             touchExplorationEnabled = accessibilityManager?.isTouchExplorationEnabled == true,
             fontScale = context.resources.configuration.fontScale,
         )
@@ -25,18 +24,16 @@ object GlazeV16AndroidPresentationContext {
 
     internal fun fromSignals(
         animatorsEnabled: Boolean,
-        highTextContrastEnabled: Boolean,
         touchExplorationEnabled: Boolean,
         fontScale: Float,
     ): GlazeV16PresentationContext {
         val normalizedFontScale = fontScale.coerceAtLeast(1f)
         return GlazeV16PresentationContext(
             reducedMotion = !animatorsEnabled,
-            increasedContrast = highTextContrastEnabled,
             largeText = normalizedFontScale > 1f,
             extraLargeText = normalizedFontScale >= EXTRA_LARGE_TEXT_SCALE,
             touchAssistance = touchExplorationEnabled,
-            strongFocus = touchExplorationEnabled || highTextContrastEnabled,
+            strongFocus = touchExplorationEnabled,
         )
     }
 
