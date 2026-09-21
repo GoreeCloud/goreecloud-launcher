@@ -83,6 +83,16 @@ enum class LauncherDrawerNavigation(val storageValue: String) {
     }
 }
 
+enum class LauncherDrawerSortOrder(val storageValue: String) {
+    A_TO_Z("a_to_z"),
+    Z_TO_A("z_to_a");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerSortOrder =
+            entries.firstOrNull { it.storageValue == value } ?: A_TO_Z
+    }
+}
+
 enum class LauncherHomeGlanceAlignment(val storageValue: String) {
     LEFT("left"),
     CENTER("center");
@@ -133,6 +143,8 @@ data class LauncherExperiencePreferences(
     val drawerSearchPlacement: LauncherDrawerSearchPlacement = LauncherDrawerSearchPlacement.BOTTOM,
     val drawerNavigation: LauncherDrawerNavigation = LauncherDrawerNavigation.PAGES,
     val drawerPageRows: Int = 5,
+    val drawerSearchFirst: Boolean = false,
+    val drawerSortOrder: LauncherDrawerSortOrder = LauncherDrawerSortOrder.A_TO_Z,
     val showDrawerAppCount: Boolean = false,
     val homeGlanceAlignment: LauncherHomeGlanceAlignment = LauncherHomeGlanceAlignment.LEFT,
     val homeSearchPlacement: LauncherHomeSearchPlacement = LauncherHomeSearchPlacement.BOTTOM,
@@ -181,6 +193,8 @@ class LauncherPreferencesRepository(
         val drawerSearchPlacement = stringPreferencesKey("drawer_search_placement")
         val drawerNavigation = stringPreferencesKey("drawer_navigation")
         val drawerPageRows = intPreferencesKey("drawer_page_rows")
+        val drawerSearchFirst = booleanPreferencesKey("drawer_search_first")
+        val drawerSortOrder = stringPreferencesKey("drawer_sort_order")
         val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
         val homeGlanceAlignment = stringPreferencesKey("home_glance_alignment")
         val homeSearchPlacement = stringPreferencesKey("home_search_placement")
@@ -220,6 +234,8 @@ class LauncherPreferencesRepository(
                 drawerSearchPlacement = LauncherDrawerSearchPlacement.fromStorage(values[Keys.drawerSearchPlacement]),
                 drawerNavigation = LauncherDrawerNavigation.fromStorage(values[Keys.drawerNavigation]),
                 drawerPageRows = (values[Keys.drawerPageRows] ?: 5).coerceIn(4, 6),
+                drawerSearchFirst = values[Keys.drawerSearchFirst] ?: false,
+                drawerSortOrder = LauncherDrawerSortOrder.fromStorage(values[Keys.drawerSortOrder]),
                 showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
                 homeGlanceAlignment = LauncherHomeGlanceAlignment.fromStorage(values[Keys.homeGlanceAlignment]),
                 homeSearchPlacement = LauncherHomeSearchPlacement.fromStorage(values[Keys.homeSearchPlacement]),
@@ -342,6 +358,22 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.drawerPageRows] = rows.coerceIn(4, 6)
+            }
+        }
+    }
+
+    fun setDrawerSearchFirst(enabled: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerSearchFirst] = enabled
+            }
+        }
+    }
+
+    fun setDrawerSortOrder(order: LauncherDrawerSortOrder) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerSortOrder] = order.storageValue
             }
         }
     }
