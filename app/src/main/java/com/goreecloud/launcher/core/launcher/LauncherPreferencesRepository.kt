@@ -34,7 +34,8 @@ enum class GoreeCloudIndexHomeMode(val storageValue: String) {
 enum class LauncherDrawerLayoutMode(val storageValue: String) {
     GRID("grid"),
     COMPACT("compact"),
-    LIST("list");
+    LIST("list"),
+    CATEGORY("category");
 
     companion object {
         fun fromStorage(value: String?): LauncherDrawerLayoutMode =
