@@ -389,6 +389,8 @@ class MainActivity : ComponentActivity() {
                             onSetShowDrawerAppCount = launcherPreferencesRepository::setShowDrawerAppCount,
                             onSetHomeGlanceAlignment = launcherPreferencesRepository::setHomeGlanceAlignment,
                             onSetHomeSearchPlacement = launcherPreferencesRepository::setHomeSearchPlacement,
+                            onSetHomeSearchStyle = launcherPreferencesRepository::setHomeSearchStyle,
+                            onSetHomeSpacing = launcherPreferencesRepository::setHomeSpacing,
                             onSetDockStyle = launcherPreferencesRepository::setDockStyle,
                             onSetWallpaperShade = launcherPreferencesRepository::setWallpaperShade,
                             onOpenWallpaperPicker = ::openWallpaperPicker,
