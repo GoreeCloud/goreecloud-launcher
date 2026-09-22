@@ -42,6 +42,9 @@ enum class LauncherSearchDestination {
     HOME,
     APPS,
     SETTINGS,
+    HOME_EDITOR,
+    WALLPAPER,
+    THEME_MANAGER,
 }
 
 data class LauncherNavigateSearchAction(
@@ -149,8 +152,47 @@ class LauncherCoreActionsSearchProvider : LauncherSearchProvider {
                 category = LauncherSearchCategory.ACTION,
                 destination = LauncherSearchDestination.HOME,
             ),
+            Entry(
+                id = "home-editor",
+                title = "Edit Home",
+                subtitle = "Pages, wallpaper, apps and Launcher settings",
+                searchTerms = "home editor edit customize pages layout",
+                category = LauncherSearchCategory.ACTION,
+                destination = LauncherSearchDestination.HOME_EDITOR,
+            ),
+            Entry(
+                id = "wallpaper",
+                title = "Wallpaper",
+                subtitle = "Choose the Home wallpaper",
+                searchTerms = "background appearance personalize home",
+                category = LauncherSearchCategory.SETTING,
+                destination = LauncherSearchDestination.WALLPAPER,
+            ),
+            Entry(
+                id = "theme-manager",
+                title = "Theme Manager",
+                subtitle = "Preview and choose Launcher appearance",
+                searchTerms = "theme appearance light dark deep dark glaze",
+                category = LauncherSearchCategory.SETTING,
+                destination = LauncherSearchDestination.THEME_MANAGER,
+            ),
         )
     }
+}
+
+/**
+ * Trusted built-in provider registration for core Launcher search.
+ *
+ * This registry is intentionally local and allowlisted. Optional external providers must be added
+ * through a separately reviewed contract rather than by arbitrary intents, shell commands, or
+ * unrestricted deep links.
+ */
+object LauncherBuiltInSearchProviderRegistry {
+    fun providers(apps: List<LauncherActivityInfo>): List<LauncherSearchProvider> =
+        listOf(
+            LauncherCoreActionsSearchProvider(),
+            LauncherInstalledAppsSearchProvider(apps),
+        )
 }
 
 object LauncherUniversalSearch {

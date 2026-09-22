@@ -84,8 +84,8 @@ import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
+import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppsSearchProvider
-import com.goreecloud.launcher.core.launcher.LauncherCoreActionsSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
 import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
@@ -169,6 +169,7 @@ fun LauncherBetaRoot(
         .getOrDefault(LauncherSurfaceMode.HOME)
     var selectedApp by remember { mutableStateOf<LauncherActivityInfo?>(null) }
     var drawerSearchRequested by rememberSaveable { mutableStateOf(false) }
+    var homeEditorRequestSequence by remember { mutableStateOf(0L) }
 
     LaunchedEffect(homeResetSequence) {
         drawerSearchRequested = false
@@ -240,6 +241,7 @@ fun LauncherBetaRoot(
                 preferences = preferences,
                 experiencePreferences = experiencePreferences,
                 homePageCount = homePageCount,
+                homeEditorRequestSequence = homeEditorRequestSequence,
                 homeLabelOverrides = homeLabelOverrides,
                 onManageHomePages = onManageHomePages,
                 onMoveFavoriteToTarget = onMoveFavoriteToTarget,
@@ -273,6 +275,17 @@ fun LauncherBetaRoot(
                         }
                         LauncherSearchDestination.SETTINGS -> {
                             surfaceModeName = LauncherSurfaceMode.SETTINGS.name
+                        }
+                        LauncherSearchDestination.HOME_EDITOR -> {
+                            homeEditorRequestSequence += 1L
+                            surfaceModeName = LauncherSurfaceMode.HOME.name
+                        }
+                        LauncherSearchDestination.WALLPAPER -> {
+                            surfaceModeName = LauncherSurfaceMode.HOME.name
+                            onOpenWallpaperPicker()
+                        }
+                        LauncherSearchDestination.THEME_MANAGER -> {
+                            surfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name
                         }
                     }
                 },
@@ -368,6 +381,7 @@ private fun HomeSurface(
     preferences: LauncherPreferences,
     experiencePreferences: LauncherExperiencePreferences,
     homePageCount: Int,
+    homeEditorRequestSequence: Long,
     homeLabelOverrides: Map<String, String>,
     onManageHomePages: () -> Unit,
     onMoveFavoriteToTarget: (LauncherActivityInfo, LauncherActivityInfo) -> Unit,
@@ -389,6 +403,12 @@ private fun HomeSurface(
     val swipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     var showHomeEditor by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(homeEditorRequestSequence) {
+        if (homeEditorRequestSequence > 0L) {
+            showHomeEditor = true
+        }
+    }
 
     val executeGestureAction: (LauncherGestureAction) -> Unit = { action ->
         when (action.type) {
@@ -1343,16 +1363,13 @@ private fun LauncherUniversalSearchSurface(
     onBack: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val installedAppsProvider = remember(apps) {
-        LauncherInstalledAppsSearchProvider(apps)
+    val providers = remember(apps) {
+        LauncherBuiltInSearchProviderRegistry.providers(apps)
     }
-    val coreActionsProvider = remember {
-        LauncherCoreActionsSearchProvider()
-    }
-    val results = remember(installedAppsProvider, coreActionsProvider, query) {
+    val results = remember(providers, query) {
         LauncherUniversalSearch.search(
             rawQuery = query,
-            providers = listOf(coreActionsProvider, installedAppsProvider),
+            providers = providers,
         )
     }
 
@@ -1403,6 +1420,7 @@ private fun LauncherUniversalSearchSurface(
                 modifier = Modifier.fillMaxWidth(),
                 requestFocus = true,
                 placeholder = "Search apps, settings and actions",
+                inputTestTag = "launcher-universal-search-field",
             )
 
             if (results.isEmpty()) {
@@ -3058,6 +3076,7 @@ private fun GlazeAppSearchField(
     darkSurface: Boolean = false,
     requestFocus: Boolean = false,
     placeholder: String = "Search apps",
+    inputTestTag: String? = null,
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -3091,6 +3110,9 @@ private fun GlazeAppSearchField(
                 .fillMaxWidth()
                 .height(54.dp)
                 .focusRequester(focusRequester)
+                .then(
+                    inputTestTag?.let { tag -> Modifier.testTag(tag) } ?: Modifier,
+                )
                 .padding(horizontal = GlazeMetrics.space4),
             decorationBox = { innerTextField ->
                 Row(

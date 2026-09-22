@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
@@ -290,6 +292,38 @@ class ActivatedHomeLifecycleRuntimeTest {
                 composeRule
                     .onNodeWithText(
                         "Search apps, settings and actions",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-universal-search-field",
+                        useUnmergedTree = true,
+                    )
+                    .performTextInput("theme")
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule.onAllNodesWithText("Theme Manager", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText("Theme Manager", useUnmergedTree = true)
+                    .performClick()
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithText(
+                            "Preview and choose the current Launcher appearance",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText(
+                        "Preview and choose the current Launcher appearance",
                         useUnmergedTree = true,
                     )
                     .assertIsDisplayed()
