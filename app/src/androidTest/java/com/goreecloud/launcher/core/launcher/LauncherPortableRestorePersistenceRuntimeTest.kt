@@ -358,7 +358,7 @@ class LauncherPortableRestorePersistenceRuntimeTest {
         showLabels = true,
         iconScale = 1.0f,
         layoutLocked = false,
-        indexHomeMode = GoreeCloudIndexHomeMode.PERMANENT,
+        universalSearchHomeMode = LauncherUniversalSearchHomeMode.PERMANENT,
     )
 
     private fun targetPreferences(): LauncherPreferences = basePreferences().copy(
@@ -366,7 +366,7 @@ class LauncherPortableRestorePersistenceRuntimeTest {
         showLabels = false,
         iconScale = 0.95f,
         layoutLocked = true,
-        indexHomeMode = GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
+        universalSearchHomeMode = LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
     )
 
     private fun restoredWorkspace(): WorkspacePortableSnapshot.Snapshot =
