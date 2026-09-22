@@ -156,6 +156,14 @@ Still incomplete or separately gated:
 
 ## Documentation
 
+Repository-native feature and change-history records:
+
+- [IMPLEMENTED-FEATURES.md](IMPLEMENTED-FEATURES.md) — evidence-backed implemented Development capabilities and material limitations.
+- [PLANNED-FEATURES.md](PLANNED-FEATURES.md) — planned, partial, blocked, deferred, and acceptance-gated capability obligations.
+- [CHANGELOGS.md](CHANGELOGS.md) — authoritative human-readable repository change history after migration acceptance, with imported historical segments under `docs/changelog-history/`.
+
+Additional product and technical documentation:
+
 - [USER-MANUAL.md](USER-MANUAL.md) — current Development behavior and user guidance.
 - [SPECIFICATIONS.md](SPECIFICATIONS.md) — architecture, scope, and authority boundaries.
 - [FEATURES.md](FEATURES.md) — implemented Development behavior plus approved target scope.
@@ -163,9 +171,9 @@ Still incomplete or separately gated:
 - [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — product completeness objectives.
 - [Rendered HOME page navigation](docs/rendered-home-page-navigation.md) — terminal-Room page behavior.
 - [Glaze UI adoption](docs/glaze-ui-adoption.md) — exact current-Stable source mapping and application acceptance boundary.
-- `docs/` — architecture, persistence, design-system, validation, and implementation records.
+- `docs/` — architecture, persistence, design-system, validation, implementation, and historical changelog records.
 
-Canonical project specifications and acceptance/change records are maintained in the authorized GoreeCloud project documentation hierarchy.
+Canonical project specifications and other governed project records may remain in the authorized GoreeCloud documentation hierarchy where applicable. Feature-state authority and Launcher changelog authority are repository-native and must not be synchronized to Google Drive.
 
 ## Build baseline
 
