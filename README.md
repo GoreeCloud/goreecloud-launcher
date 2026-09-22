@@ -92,9 +92,9 @@ Launcher Settings now routes Appearance into the native Theme Manager through th
 
 ## Multi-page Room boundary
 
-When terminal Room authority is active, Launcher can expose page selection, create empty pages, delete only revalidated empty non-primary pages, reorder secondary pages while keeping the protected primary page at rank zero, render secondary application pages, and request supported secondary spatial moves.
+When terminal Room authority is active, Launcher can expose page selection, create empty pages, delete only revalidated empty non-primary pages, reorder secondary pages while keeping the protected primary page at rank zero, render secondary application pages, and request supported primary↔secondary or secondary spatial moves.
 
-Room writes accept either the exact legacy primary compatibility projection or a bounded, collision-free primary spatial projection. Primary cell migration/movement uses complete snapshot comparison so concurrent changes, malformed placement, collisions, invalid bounds, or stale writes fail closed; primary↔secondary spatial transfer remains separately gated.
+Room writes accept either the exact legacy primary compatibility projection or a bounded, collision-free primary spatial projection. Primary cell migration/movement and explicit primary↔secondary app transfer use complete snapshot comparison so concurrent changes, malformed placement, collisions, invalid bounds, or stale writes fail closed. Mature drag-across-page editing remains separately gated.
 
 The Home layout lock is an additional Launcher mutation policy over these authoritative operations. It does not create a second workspace persistence authority. This remains a Development editing bridge, not a complete multi-page drag/drop editor.
 
@@ -135,7 +135,6 @@ This does **not** make Launcher V1.6-conformant, `aligned-current-stable`, or pr
 Still incomplete or separately gated:
 
 - mature cross-page drag/drop and live span editing;
-- primary↔secondary spatial movement;
 - populated-page deletion with confirmation/recovery/undo;
 - folders, shortcuts, widgets/AppWidgetHost, and richer workspace editing;
 - complete Theme Manager behavior, icon-pack discovery/application, icon masking, Deep Dark, wallpaper palettes, expression controls, and additional gesture/registered-command targets beyond the initial configurable Home-gesture set;
