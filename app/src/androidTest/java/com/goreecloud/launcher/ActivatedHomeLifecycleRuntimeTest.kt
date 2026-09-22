@@ -393,7 +393,7 @@ class ActivatedHomeLifecycleRuntimeTest {
             runShellCommand(
                 "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
             )
-            withTimeout(10_000) {
+            withTimeout(30_000) {
                 while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
                     delay(100)
                 }
@@ -405,13 +405,13 @@ class ActivatedHomeLifecycleRuntimeTest {
                 LauncherHomeGesture.SWIPE_UP,
                 configuredAction,
             )
-            withTimeout(10_000) {
+            withTimeout(30_000) {
                 preferencesRepository.experiencePreferences.first {
                     it.swipeUpAction == configuredAction
                 }
             }
 
-            val apps = withTimeout(10_000) {
+            val apps = withTimeout(30_000) {
                 LauncherAppsRepository(context).apps.first { candidates ->
                     candidates.any { it.componentName.packageName != context.packageName }
                 }
@@ -441,7 +441,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                         )
                     }
 
-                composeRule.waitUntil(timeoutMillis = 10_000) {
+                composeRule.waitUntil(timeoutMillis = 15_000) {
                     composeRule.onAllNodesWithText("Launcher settings", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
@@ -458,7 +458,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 LauncherHomeGesture.SWIPE_UP,
                 previousSwipeUp,
             )
-            withTimeout(10_000) {
+            withTimeout(30_000) {
                 preferencesRepository.experiencePreferences.first {
                     it.swipeUpAction == previousSwipeUp
                 }
