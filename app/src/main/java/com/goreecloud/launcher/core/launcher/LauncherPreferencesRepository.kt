@@ -21,12 +21,12 @@ import kotlinx.coroutines.launch
 
 private val Context.launcherPreferencesStore by preferencesDataStore(name = "launcher_preferences")
 
-enum class GoreeCloudIndexHomeMode(val storageValue: String) {
+enum class LauncherUniversalSearchHomeMode(val storageValue: String) {
     PERMANENT("permanent"),
     SWIPE_DOWN_ONLY("swipe_down_only");
 
     companion object {
-        fun fromStorage(value: String?): GoreeCloudIndexHomeMode =
+        fun fromStorage(value: String?): LauncherUniversalSearchHomeMode =
             entries.firstOrNull { it.storageValue == value } ?: PERMANENT
     }
 }
@@ -196,7 +196,7 @@ data class LauncherPreferences(
     val showLabels: Boolean = true,
     val iconScale: Float = 1.0f,
     val layoutLocked: Boolean = false,
-    val indexHomeMode: GoreeCloudIndexHomeMode = GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
+    val universalSearchHomeMode: LauncherUniversalSearchHomeMode = LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
 ) {
     val homeCapacity: Int get() = homeColumns * homeRows
 
@@ -220,7 +220,7 @@ class LauncherPreferencesRepository(
         val showLabels = booleanPreferencesKey("show_labels")
         val iconScale = floatPreferencesKey("icon_scale")
         val layoutLocked = booleanPreferencesKey("layout_locked")
-        val indexHomeMode = stringPreferencesKey("index_home_mode")
+        // Legacy DataStore key is retained for strict v1 backup/recovery compatibility.\n        val universalSearchHomeMode = stringPreferencesKey("index_home_mode")
         val drawerLayoutMode = stringPreferencesKey("drawer_layout_mode")
         val homeCardStyle = stringPreferencesKey("home_card_style")
         val showHomeQuickActions = booleanPreferencesKey("show_home_quick_actions")
@@ -338,10 +338,10 @@ class LauncherPreferencesRepository(
         }
     }
 
-    fun setIndexHomeMode(mode: GoreeCloudIndexHomeMode) {
+    fun setUniversalSearchHomeMode(mode: LauncherUniversalSearchHomeMode) {
         scope.launch {
             dataStore.edit { values ->
-                values[Keys.indexHomeMode] = mode.storageValue
+                values[Keys.universalSearchHomeMode] = mode.storageValue
             }
         }
     }
@@ -620,7 +620,7 @@ class LauncherPreferencesRepository(
             showLabels = values[Keys.showLabels] ?: defaults.showLabels,
             iconScale = values[Keys.iconScale] ?: defaults.iconScale,
             layoutLocked = values[Keys.layoutLocked] ?: defaults.layoutLocked,
-            indexHomeMode = GoreeCloudIndexHomeMode.fromStorage(values[Keys.indexHomeMode]),
+            universalSearchHomeMode = LauncherUniversalSearchHomeMode.fromStorage(values[Keys.universalSearchHomeMode]),
         ).sanitized()
 
     private fun portableRecoveryPreferencesFrom(
@@ -634,7 +634,7 @@ class LauncherPreferencesRepository(
                 showLabels = values[Keys.showLabels],
                 iconScale = values[Keys.iconScale],
                 layoutLocked = values[Keys.layoutLocked],
-                indexHomeMode = values[Keys.indexHomeMode],
+                universalSearchHomeMode = values[Keys.universalSearchHomeMode],
             ),
             defaults = defaults,
         )
@@ -649,6 +649,6 @@ class LauncherPreferencesRepository(
         values[Keys.showLabels] = preferences.showLabels
         values[Keys.iconScale] = preferences.iconScale
         values[Keys.layoutLocked] = preferences.layoutLocked
-        values[Keys.indexHomeMode] = preferences.indexHomeMode.storageValue
+        values[Keys.universalSearchHomeMode] = preferences.universalSearchHomeMode.storageValue
     }
 }
