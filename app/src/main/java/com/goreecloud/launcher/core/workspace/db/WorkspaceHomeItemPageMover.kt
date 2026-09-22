@@ -235,6 +235,17 @@ class WorkspaceHomeItemPageMover(
         }
     }
 
+    private fun deriveGrid(
+        items: List<WorkspaceItemEntity>,
+        source: WorkspaceItemEntity,
+    ): WorkspaceGridPlacement.Grid {
+        val existingColumns = items.maxOfOrNull { checkNotNull(it.cellX) + it.spanX } ?: 0
+        val existingRows = items.maxOfOrNull { checkNotNull(it.cellY) + it.spanY } ?: 0
+        val columns = maxOf(MIN_HOME_COLUMNS, existingColumns, source.spanX)
+        val rows = maxOf(1, existingRows + source.spanY)
+        return WorkspaceGridPlacement.Grid(columns = columns, rows = rows)
+    }
+
     private fun deriveDomainGrid(
         items: List<WorkspaceItemEntity>,
         source: WorkspaceItemEntity,
@@ -350,5 +361,9 @@ class WorkspaceHomeItemPageMover(
         val items: List<WorkspaceItemEntity>,
         val source: WorkspaceItemEntity,
     )
+
+    private companion object {
+        const val MIN_HOME_COLUMNS = 4
+    }
 
 }
