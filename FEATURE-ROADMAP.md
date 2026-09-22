@@ -60,7 +60,7 @@ Historical PRs and current source evidence that describe GoreeCloud Index as uni
 
 ## Planned next capabilities
 
-- Implement the Launcher-owned Universal Search foundation: provider registration, local indexing, aggregation, ranking, permission-aware categories, recents/history, commands, shortcuts, contextual actions, standardized provider APIs, and fail-soft provider isolation. Migrate Index-oriented labels/contracts/tests/settings in bounded Development tranches while preserving exact-revision provenance.
+- Extend the Launcher-owned Universal Search foundation beyond the initial installed-app provider: richer provider registration, additional local indexing sources, permission-aware categories, recents/history, commands, shortcuts, contextual actions, standardized provider APIs, and optional provider integrations. Continue bounded compatibility cleanup while preserving exact-revision provenance.
 - Basic Android-metadata Category drawer presentation is integrated through PR #151. User-defined categories/tags/collections, custom ordering, and broader organization remain planned. Search-first drawer entry is integrated through PR #149, while optional paged Grid/Compact presentation remains integrated through PR #142.
 - Explicit custom ordering plus recent/frequent views only when locally derived, transparent, user-controlled, and free of behavioral tracking.
 - Representative-device review of the PR #146 Home/search/gesture refinement, followed by measured frame timing/jank correction and any further transition/input tuning required by physical-device evidence.
