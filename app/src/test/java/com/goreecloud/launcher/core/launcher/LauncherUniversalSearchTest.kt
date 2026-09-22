@@ -134,6 +134,33 @@ class LauncherUniversalSearchTest {
     }
 
     @Test
+    fun cancellationOnlyPolicyDoesNotInventProviderTimeout() = runBlocking {
+        val provider = object : LauncherSearchProvider, LauncherAsyncSearchProvider {
+            override val id = "measured-later"
+
+            override fun search(rawQuery: String): List<LauncherSearchResult> =
+                error("async provider should use searchAsync")
+
+            override suspend fun searchAsync(
+                request: LauncherSearchRequest,
+            ): List<LauncherSearchResult> {
+                delay(75)
+                return listOf(searchResult(id, "ready", "Ready", 200))
+            }
+        }
+        val policy = LauncherSearchExecutionPolicy.cancellationOnly()
+
+        val results = LauncherUniversalSearch.searchAsync(
+            rawQuery = "ready",
+            providers = listOf(provider),
+            policy = policy,
+        )
+
+        assertNull(policy.providerTimeoutMillis)
+        assertEquals(listOf("Ready"), results.map { it.title })
+    }
+
+    @Test
     fun asyncProviderFailureDoesNotDisableOtherResults() = runBlocking {
         val failing = object : LauncherSearchProvider, LauncherAsyncSearchProvider {
             override val id = "failing-async"
@@ -184,7 +211,7 @@ class LauncherUniversalSearchTest {
             LauncherUniversalSearch.searchAsync(
                 rawQuery = "camera",
                 providers = listOf(provider),
-                policy = LauncherSearchExecutionPolicy(providerTimeoutMillis = 10_000),
+                policy = LauncherSearchExecutionPolicy.cancellationOnly(),
             )
         }
 
