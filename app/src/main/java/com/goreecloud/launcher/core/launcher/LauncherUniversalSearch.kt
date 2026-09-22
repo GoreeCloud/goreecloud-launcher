@@ -68,6 +68,149 @@ enum class LauncherSearchCategory {
     ACTION,
 }
 
+/**
+ * Version of the Launcher provider-registration contract.
+ *
+ * Major changes are incompatible. A Launcher host may accept a provider from the same major version
+ * only when that provider does not require a newer minor revision than the host understands.
+ */
+data class LauncherSearchProviderContractVersion(
+    val major: Int,
+    val minor: Int,
+) {
+    init {
+        require(major >= 0) { "major must be non-negative" }
+        require(minor >= 0) { "minor must be non-negative" }
+    }
+}
+
+/** Descriptive source provenance. This value never grants provider authorization by itself. */
+enum class LauncherSearchProviderProvenance {
+    LAUNCHER_BUILT_IN,
+    GOREECLOUD_FIRST_PARTY,
+    THIRD_PARTY,
+}
+
+enum class LauncherSearchOfflineBehavior {
+    LOCAL_ONLY,
+    OFFLINE_CAPABLE,
+    NETWORK_REQUIRED,
+}
+
+enum class LauncherSearchAuthorizationRequirement {
+    NONE,
+    USER_CONSENT,
+    ACCOUNT,
+    SYSTEM_POLICY,
+}
+
+enum class LauncherSearchRemoteProcessing {
+    NONE,
+    OPTIONAL,
+    REQUIRED,
+}
+
+enum class LauncherSearchQueryRetention {
+    NONE,
+    SESSION_ONLY,
+    PERSISTENT,
+}
+
+/**
+ * Explicit registration metadata for one provider implementation.
+ *
+ * Metadata is declarative contract information only. It does not bypass Android permissions,
+ * GoreeCloud policy, user consent, profile isolation, or any later external-provider trust review.
+ */
+data class LauncherSearchProviderMetadata(
+    val providerId: String,
+    val contractVersion: LauncherSearchProviderContractVersion,
+    val provenance: LauncherSearchProviderProvenance,
+    val offlineBehavior: LauncherSearchOfflineBehavior,
+    val authorizationRequirement: LauncherSearchAuthorizationRequirement,
+    val remoteProcessing: LauncherSearchRemoteProcessing,
+    val queryRetention: LauncherSearchQueryRetention,
+) {
+    init {
+        require(providerId.isNotBlank()) { "providerId must not be blank" }
+    }
+}
+
+data class LauncherSearchProviderRegistration(
+    val provider: LauncherSearchProvider,
+    val metadata: LauncherSearchProviderMetadata,
+) {
+    init {
+        require(provider.id == metadata.providerId) {
+            "provider id must match registration metadata"
+        }
+    }
+}
+
+enum class LauncherSearchProviderRejectionReason {
+    DUPLICATE_PROVIDER_ID,
+    INCOMPATIBLE_CONTRACT_VERSION,
+}
+
+data class LauncherSearchProviderRejection(
+    val providerId: String,
+    val reason: LauncherSearchProviderRejectionReason,
+)
+
+data class LauncherSearchProviderCatalog(
+    val acceptedRegistrations: List<LauncherSearchProviderRegistration>,
+    val rejections: List<LauncherSearchProviderRejection>,
+) {
+    val providers: List<LauncherSearchProvider>
+        get() = acceptedRegistrations.map { registration -> registration.provider }
+}
+
+/**
+ * Host-side compatibility and fail-closed registration evaluation.
+ *
+ * This is intentionally not external provider discovery. Callers must supply already reviewed
+ * registrations. Duplicate IDs and versions newer than this host understands are excluded rather
+ * than silently replacing an accepted provider.
+ */
+object LauncherSearchProviderContract {
+    val currentVersion = LauncherSearchProviderContractVersion(major = 1, minor = 0)
+
+    fun isCompatible(version: LauncherSearchProviderContractVersion): Boolean =
+        version.major == currentVersion.major && version.minor <= currentVersion.minor
+
+    fun evaluate(
+        registrations: List<LauncherSearchProviderRegistration>,
+    ): LauncherSearchProviderCatalog {
+        val acceptedIds = mutableSetOf<String>()
+        val accepted = mutableListOf<LauncherSearchProviderRegistration>()
+        val rejected = mutableListOf<LauncherSearchProviderRejection>()
+
+        registrations.forEach { registration ->
+            val providerId = registration.provider.id
+            val rejectionReason = when {
+                !isCompatible(registration.metadata.contractVersion) ->
+                    LauncherSearchProviderRejectionReason.INCOMPATIBLE_CONTRACT_VERSION
+                !acceptedIds.add(providerId) -> LauncherSearchProviderRejectionReason.DUPLICATE_PROVIDER_ID
+                else -> null
+            }
+
+            if (rejectionReason == null) {
+                accepted += registration
+            } else {
+                rejected += LauncherSearchProviderRejection(
+                    providerId = providerId,
+                    reason = rejectionReason,
+                )
+            }
+        }
+
+        return LauncherSearchProviderCatalog(
+            acceptedRegistrations = accepted,
+            rejections = rejected,
+        )
+    }
+}
+
 interface LauncherSearchAction
 
 data class LauncherSearchResult(
@@ -235,16 +378,40 @@ class LauncherCoreActionsSearchProvider : LauncherSearchProvider {
 /**
  * Trusted built-in provider registration for core Launcher search.
  *
- * This registry is intentionally local and allowlisted. Optional external providers must be added
- * through a separately reviewed contract rather than by arbitrary intents, shell commands, or
- * unrestricted deep links.
+ * Built-ins are explicitly cataloged with local-only/no-retention metadata and the current contract
+ * version. This registry remains allowlisted and in-process. Optional external providers require a
+ * separately reviewed discovery/trust boundary and are not activated by this metadata model.
  */
 object LauncherBuiltInSearchProviderRegistry {
-    fun providers(apps: List<LauncherActivityInfo>): List<LauncherSearchProvider> =
+    fun registrations(apps: List<LauncherActivityInfo>): List<LauncherSearchProviderRegistration> =
         listOf(
-            LauncherCoreActionsSearchProvider(),
-            LauncherInstalledAppsSearchProvider(apps),
+            builtInRegistration(LauncherCoreActionsSearchProvider()),
+            builtInRegistration(LauncherInstalledAppsSearchProvider(apps)),
         )
+
+    fun catalog(apps: List<LauncherActivityInfo>): LauncherSearchProviderCatalog =
+        LauncherSearchProviderContract.evaluate(registrations(apps))
+
+    fun providers(apps: List<LauncherActivityInfo>): List<LauncherSearchProvider> =
+        catalog(apps).providers
+
+    internal fun metadataFor(providerId: String): LauncherSearchProviderMetadata =
+        LauncherSearchProviderMetadata(
+            providerId = providerId,
+            contractVersion = LauncherSearchProviderContract.currentVersion,
+            provenance = LauncherSearchProviderProvenance.LAUNCHER_BUILT_IN,
+            offlineBehavior = LauncherSearchOfflineBehavior.LOCAL_ONLY,
+            authorizationRequirement = LauncherSearchAuthorizationRequirement.NONE,
+            remoteProcessing = LauncherSearchRemoteProcessing.NONE,
+            queryRetention = LauncherSearchQueryRetention.NONE,
+        )
+
+    private fun builtInRegistration(
+        provider: LauncherSearchProvider,
+    ): LauncherSearchProviderRegistration = LauncherSearchProviderRegistration(
+        provider = provider,
+        metadata = metadataFor(provider.id),
+    )
 }
 
 object LauncherUniversalSearch {
