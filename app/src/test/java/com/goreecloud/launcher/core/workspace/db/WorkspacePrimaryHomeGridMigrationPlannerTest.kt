@@ -63,9 +63,9 @@ class WorkspacePrimaryHomeGridMigrationPlannerTest {
             WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems,
             WorkspacePrimaryHomeGridMigrationPlanner.plan(
                 page = primaryPage(),
-                items = (0..4).map { rank -> primaryItem(rank, "app-$rank") },
-                columns = 2,
-                rows = 2,
+                items = (0..16).map { rank -> primaryItem(rank, "app-$rank") },
+                columns = 4,
+                rows = 4,
             ),
         )
     }
