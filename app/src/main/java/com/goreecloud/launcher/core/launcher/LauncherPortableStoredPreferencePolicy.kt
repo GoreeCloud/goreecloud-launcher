@@ -14,7 +14,8 @@ data class LauncherPortableStoredPreferences(
     val showLabels: Boolean?,
     val iconScale: Float?,
     val layoutLocked: Boolean?,
-    val indexHomeMode: String?,
+    // This value is read from the legacy v1 DataStore/wire key `index_home_mode`.
+    val universalSearchHomeMode: String?,
 )
 
 object LauncherPortableStoredPreferencePolicy {
@@ -27,10 +28,10 @@ object LauncherPortableStoredPreferencePolicy {
         stored: LauncherPortableStoredPreferences,
         defaults: LauncherPreferences = LauncherPreferences(),
     ): DecodeResult {
-        val indexHomeMode = when (val rawMode = stored.indexHomeMode) {
-            null -> defaults.indexHomeMode
-            else -> GoreeCloudIndexHomeMode.entries.firstOrNull { it.storageValue == rawMode }
-                ?: return DecodeResult.Invalid("stored index home mode is unsupported")
+        val universalSearchHomeMode = when (val rawMode = stored.universalSearchHomeMode) {
+            null -> defaults.universalSearchHomeMode
+            else -> LauncherUniversalSearchHomeMode.entries.firstOrNull { it.storageValue == rawMode }
+                ?: return DecodeResult.Invalid("stored universal search home mode is unsupported")
         }
 
         val preferences = LauncherPreferences(
@@ -40,7 +41,7 @@ object LauncherPortableStoredPreferencePolicy {
             showLabels = stored.showLabels ?: defaults.showLabels,
             iconScale = stored.iconScale ?: defaults.iconScale,
             layoutLocked = stored.layoutLocked ?: defaults.layoutLocked,
-            indexHomeMode = indexHomeMode,
+            universalSearchHomeMode = universalSearchHomeMode,
         )
 
         return try {
