@@ -1113,6 +1113,7 @@ private fun LauncherUniversalSearchSurface(
                                     is LaunchApplicationSearchAction -> onLaunchApp(action.app)
                                     is LauncherNavigateSearchAction -> onNavigate(action.destination)
                                     null -> Unit
+                                    else -> Unit
                                 }
                             },
                         )
