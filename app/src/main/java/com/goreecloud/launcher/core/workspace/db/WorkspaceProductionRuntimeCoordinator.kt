@@ -189,6 +189,50 @@ class WorkspaceProductionRuntimeCoordinator(
         targetKey: String,
     ): WorkspaceAuthoritativeWriteResult = placementRepository.moveDockToTarget(key, targetKey)
 
+    suspend fun moveHomeToDock(
+        key: String,
+        targetDockKey: String?,
+    ): WorkspaceAuthoritativeWriteResult =
+        placementRepository.moveHomeToDock(key, targetDockKey)
+
+    suspend fun moveDockToPrimaryHomeCell(
+        key: String,
+        columns: Int,
+        rows: Int,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspaceAuthoritativeWriteResult {
+        val grid = runCatching { WorkspaceGridPlacement.Grid(columns, rows) }.getOrNull()
+            ?: return WorkspaceAuthoritativeWriteResult.Mismatch
+        val write = placementRepository.moveDockToHome(key, grid)
+        return positionPrimaryHomeAfterWrite(write, key, columns, rows, cellX, cellY)
+    }
+
+    suspend fun copyDrawerToPrimaryHomeCell(
+        key: String,
+        columns: Int,
+        rows: Int,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspaceAuthoritativeWriteResult {
+        val grid = runCatching { WorkspaceGridPlacement.Grid(columns, rows) }.getOrNull()
+            ?: return WorkspaceAuthoritativeWriteResult.Mismatch
+        val write = placementRepository.copyDrawerToHome(key, grid)
+        return positionPrimaryHomeAfterWrite(write, key, columns, rows, cellX, cellY)
+    }
+
+    suspend fun copyDrawerToDock(
+        key: String,
+        targetDockKey: String?,
+    ): WorkspaceAuthoritativeWriteResult =
+        placementRepository.copyDrawerToDock(key, targetDockKey)
+
+    suspend fun reorderDockByDrop(
+        key: String,
+        targetDockKey: String?,
+    ): WorkspaceAuthoritativeWriteResult =
+        placementRepository.reorderDockByDrop(key, targetDockKey)
+
     suspend fun createHomePage(pageId: String): WorkspacePagedRoomMutationResult {
         val result = pagedMutationRepository.createHomePage(pageId)
         if (result is WorkspacePagedRoomMutationResult.CreatedPage) {
@@ -301,6 +345,59 @@ class WorkspaceProductionRuntimeCoordinator(
             refresh()
         }
         return result
+    }
+
+    private suspend fun positionPrimaryHomeAfterWrite(
+        write: WorkspaceAuthoritativeWriteResult,
+        key: String,
+        columns: Int,
+        rows: Int,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspaceAuthoritativeWriteResult {
+        val written = write as? WorkspaceAuthoritativeWriteResult.Written ?: return write
+        if (key !in written.snapshot.favoriteKeys) return written
+        if (written.snapshot.source != WorkspacePlacementSource.ROOM) return written
+
+        return when (
+            primaryHomeSpatialRepository.moveAppToCell(
+                appKey = key,
+                columns = columns,
+                rows = rows,
+                cellX = cellX,
+                cellY = cellY,
+            )
+        ) {
+            is WorkspacePrimaryHomeSpatialResult.Moved -> {
+                refresh()
+                written
+            }
+            WorkspacePrimaryHomeSpatialResult.Reserved ->
+                WorkspaceAuthoritativeWriteResult.AuthorityChanged
+            WorkspacePrimaryHomeSpatialResult.Unavailable ->
+                WorkspaceAuthoritativeWriteResult.Unavailable
+            WorkspacePrimaryHomeSpatialResult.InvalidWorkspace,
+            WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged ->
+                WorkspaceAuthoritativeWriteResult.Mismatch
+            is WorkspacePrimaryHomeSpatialResult.Failed -> {
+                WorkspaceAuthoritativeWriteResult.Failed(
+                    primaryHomeSpatialRepository
+                        .moveAppToCell(
+                            appKey = key,
+                            columns = columns,
+                            rows = rows,
+                            cellX = cellX,
+                            cellY = cellY,
+                        )
+                        .let { result ->
+                            (result as? WorkspacePrimaryHomeSpatialResult.Failed)?.failureType
+                                ?: "PrimaryHomePlacementFailed"
+                        }
+                )
+            }
+            is WorkspacePrimaryHomeSpatialResult.Ready ->
+                WorkspaceAuthoritativeWriteResult.Mismatch
+        }
     }
 
     private suspend fun reconcileTerminalRoom(): WorkspaceProductionRuntimeResult =
