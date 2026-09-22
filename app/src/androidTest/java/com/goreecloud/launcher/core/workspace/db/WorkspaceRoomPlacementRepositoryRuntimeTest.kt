@@ -124,6 +124,7 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             placementRepository.replace(
                 favoriteKeys = REPLACEMENT_FAVORITES,
                 dockKeys = REPLACEMENT_DOCK_WITH_DUPLICATES,
+                homeGrid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5),
             ),
         )
         assertEquals(
