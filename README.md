@@ -44,8 +44,8 @@ Current Development source includes:
 - a separate **Apps** surface with local label/package filtering and launching;
 - a separate scrollable **Launcher Settings** surface;
 - locally persisted Home grid presets, Apps-grid columns, app-label visibility, icon-size preference, System / Light / Dark appearance, Home layout-lock state, and Launcher Universal Search Home-entry mode;
-- ordered persisted Home Favorites and a five-item Dock;
-- long-press placement management with accessible earlier/later controls;
+- ordered persisted Home Favorites, authoritative primary-Home grid coordinates after guarded spatial activation, and a five-item Dock;
+- long-press placement management with accessible earlier/later controls and direct primary-Home drag placement into occupied or empty configured cells;
 - a persisted **Lock Home screen layout** policy that blocks current Favorite, Dock, secondary-app, Home-page create/delete/reorder, and secondary spatial mutation callbacks while leaving app launching and page selection available;
 - a visible locked-state Home control that can unlock the layout after an intentional five-second hold with progress feedback, while the Settings switch remains the deterministic accessible unlock path;
 - terminal-Room multi-page HOME observation, page selection, protected-primary/secondary-page reordering, empty-page creation/deletion, and secondary application pages;
@@ -72,7 +72,7 @@ Launcher no longer declares the legacy `com.goreecloud.index.action.SEARCH` visi
 
 ### Home
 
-Home uses the system wallpaper behind the launcher-owned surface, renders the current app grid and Dock, and keeps placement management behind long-press. The protected primary compatibility Home remains rank zero while the separate primary-grid migration is still pending.
+Home uses the system wallpaper behind the launcher-owned surface, renders the current app grid and Dock, and keeps placement management behind long-press. The primary Home remains protected at rank zero; terminal Room authority can migrate its legacy compatibility rows into authoritative cell coordinates and persist direct drag placement, including empty-cell drops and occupied-cell swaps.
 
 By default, the one-finger downward Home gesture opens Launcher Universal Search. **Permanent on Home** additionally keeps the Search GoreeCloud control visible; **Gesture only** removes that permanent control. The **Gestures** settings section can reassign Swipe up/down/left/right, Double-tap, and Tap and hold to supported Launcher actions or any currently launchable app. Core search does not depend on GoreeCloud Index or GoreeCloud Search.
 
@@ -94,7 +94,7 @@ Launcher Settings now routes Appearance into the native Theme Manager through th
 
 When terminal Room authority is active, Launcher can expose page selection, create empty pages, delete only revalidated empty non-primary pages, reorder secondary pages while keeping the protected primary page at rank zero, render secondary application pages, and request supported secondary spatial moves.
 
-Room writes continue to verify the protected primary compatibility projection and re-read the complete HOME page/item snapshot so concurrent changes, malformed placement, collisions, invalid bounds, or attempts to use primary Home as a secondary spatial source/target fail closed.
+Room writes accept either the exact legacy primary compatibility projection or a bounded, collision-free primary spatial projection. Primary cell migration/movement uses complete snapshot comparison so concurrent changes, malformed placement, collisions, invalid bounds, or stale writes fail closed; primary↔secondary spatial transfer remains separately gated.
 
 The Home layout lock is an additional Launcher mutation policy over these authoritative operations. It does not create a second workspace persistence authority. This remains a Development editing bridge, not a complete multi-page drag/drop editor.
 
@@ -134,7 +134,7 @@ This does **not** make Launcher V1.6-conformant, `aligned-current-stable`, or pr
 
 Still incomplete or separately gated:
 
-- mature cross-page drag/drop and live cell/span editing;
+- mature cross-page drag/drop and live span editing;
 - primary compatibility-page grid migration and primary↔secondary spatial movement;
 - populated-page deletion with confirmation/recovery/undo;
 - folders, shortcuts, widgets/AppWidgetHost, and richer workspace editing;
