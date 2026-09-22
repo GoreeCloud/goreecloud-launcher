@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. PR #203 reconciled the post-migration authority records, and legacy Launcher Drive roadmap/changelog retirement was subsequently verified.**  
-**Repository authority baseline:** `main` at `009371938ac3cab041cfb0893ede68e66e211a4f` (PR #201). Latest source-bearing Launcher runtime remains `ec6640dda8522244d57a947db083aecb8b9cfe33` (PR #199).  
+**Repository authority baseline:** `main` at `439943d7918e4d04e9f7bf62707dc55d4a2898cd` (PR #205). Latest source-bearing Launcher runtime is the same commit.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
@@ -29,7 +29,31 @@ The migrated historical record is stored in these repository-local segments:
 6. [September 2–9, 2026 — accessibility, portability, HOME stabilization, privacy, and local-first Search](docs/changelog-history/2026-09-02-to-2026-09-09.md)
 7. [September 16–22, 2026 — Glaze/Platform stabilization through Universal Search presentation structure](docs/changelog-history/2026-09-16-to-2026-09-22.md)
 
-The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and PR #199, which post-date or extend the imported retained chronology, are recorded directly below.
+The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
+
+## September 22, 2026 — PR #205 cancelled superseded Launcher icon preload work
+
+**Change type:** Performance stabilization; application inventory; icon caching; Development implementation.
+
+PR #205, **Cancel superseded Launcher icon preload work**, was guarded-squash merged to `main` as `439943d7918e4d04e9f7bf62707dc55d4a2898cd`.
+
+Implemented:
+
+- added a single replaceable background preload runner for Launcher icon warming;
+- a new authoritative `LauncherApps` inventory warm request now cancels the superseded preload tail before it can continue scheduling lower-priority icon loads;
+- complete icon-cache/profile-topology invalidation now cancels background preload work before the cache generation is advanced and entries are evicted;
+- preserved the existing 12 MiB LRU cache, 128-candidate warm bound, batches-of-three parallelism, package/profile invalidation stamps, single-flight decode sharing, LauncherApps inventory authority, and visible-icon lazy fallback;
+- preserved safe reuse of already-started single-flight decodes by newer callers while stale stamp checks continue to prevent invalidated results from entering the cache;
+- added focused JVM regression coverage proving replacement preload work cancels the superseded tail; and
+- added the directly affected icon-cache source and regression test to `SOURCE_MANIFEST.txt`.
+
+Validation:
+
+- exact PR head `f6696f4933b073e355c08e3871bd1f7365b4ceac` passed Android CI run #643 / `35758277303` across validate/build/unit/schema/APK staging, Android 16 Room/runtime, and Android 16 transition-performance emulator lanes;
+- guarded squash merge commit: `439943d7918e4d04e9f7bf62707dc55d4a2898cd`;
+- exact merged `main` passed push Android CI run #644 / `35759394496` across the same configured validation and Android 16 emulator lanes.
+
+**Lifecycle boundary:** Development only. This tranche reduces superseded background preload scheduling but does not itself establish representative physical-device/default-HOME latency, jank, memory, power, package/profile churn acceptance, Quickstep/Recents compatibility, Release Candidate, production, or Stable qualification. Issue #80 remains open.
 
 ## September 22, 2026 — PR #203 finalized repository authority and Drive retirement was verified
 
