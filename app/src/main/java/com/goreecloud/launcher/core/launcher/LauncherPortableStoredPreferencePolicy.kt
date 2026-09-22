@@ -14,7 +14,8 @@ data class LauncherPortableStoredPreferences(
     val showLabels: Boolean?,
     val iconScale: Float?,
     val layoutLocked: Boolean?,
-    // This value is read from the legacy v1 DataStore/wire key `index_home_mode`.\n    val universalSearchHomeMode: String?,
+    // This value is read from the legacy v1 DataStore/wire key `index_home_mode`.
+    val universalSearchHomeMode: String?,
 )
 
 object LauncherPortableStoredPreferencePolicy {
