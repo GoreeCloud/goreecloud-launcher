@@ -52,7 +52,7 @@ Current source includes:
 
 Core Launcher Universal Search must work when GoreeCloud Index and GoreeCloud Search are absent, disabled, unavailable, or not production-ready.
 
-Current Development source still includes the historical Index handoff, Index-oriented Home-entry terminology, and exact-revision tests/PR evidence that treated Index as universal provider/ranking authority. Those records remain implementation provenance until migrated; they are not the controlling future architecture.
+Current Development source now contains the first Launcher-owned Universal Search foundation: Home search routes directly to the Launcher search surface, the legacy mandatory Index activity handoff/package-visibility query is removed, and installed-app results flow through a native provider contract backed by Android `LauncherApps`. Earlier Index-backed PR/test records remain exact-revision provenance; they do not define current search authority.
 
 Launcher Universal Search is intended to search and act on, where authorized and implemented:
 
@@ -88,7 +88,7 @@ The current Development APK contains synchronized adaptive, round, and Android 1
 
 Important incomplete or separately gated work includes:
 
-- Launcher-owned Universal Search provider framework implementation/acceptance for installed apps/actions, contacts when authorized, scoped media, files/documents, first-party searchable content, Drive/cloud resources, connected services/devices, settings, commands, shortcuts, contextual workspace resources, and optional third-party providers.
+- Broaden the Launcher-owned Universal Search provider framework beyond the initial installed-app provider to app actions/shortcuts, contacts when authorized, scoped media, files/documents, first-party searchable content, Drive/cloud resources, connected services/devices, settings, commands, contextual workspace resources, and optional third-party providers.
 - A fully polished Glaze UI Universal Search/result experience and complete rendered/native/accessibility acceptance.
 - Production visual-identity review of the branding-assets-backed Launcher derivatives across required Android/system surfaces.
 - Production Room-authority recovery acceptance for the complete intended workspace experience.
@@ -196,7 +196,7 @@ The following capability inventory is the approved Launcher product direction. T
 ## Gestures and Interaction
 
 - Custom swipe, horizontal swipe, double-tap, pinch, and two-finger gestures.
-- Swipe down opens GoreeCloud Index universal search by default on an unobstructed Home area.
+- Swipe down opens Launcher Universal Search by default on an unobstructed Home area.
 - Configurable swipe-up and other gesture actions without removing accessible non-gesture alternatives.
 - Custom gesture assignments.
 - Gesture-based application, shortcut, GoreeCloud-action, search, notification, and feed access.
