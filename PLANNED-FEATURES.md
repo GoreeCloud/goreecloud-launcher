@@ -3,8 +3,8 @@
 **Record type:** Repository planned/open feature inventory  
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
-**Migration state:** Candidate on `migration/repository-feature-records`; becomes authoritative only after accepted merge to the repository default branch.  
-**Evidence baseline:** `main` at `ec6640dda8522244d57a947db083aecb8b9cfe33` (PR #199 merged September 22, 2026).  
+**Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record.**  
+**Repository authority baseline:** `main` at `009371938ac3cab041cfb0893ede68e66e211a4f` (PR #201 merged September 22, 2026).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose
@@ -15,13 +15,13 @@ Source/build/unit/schema/managed-emulator evidence does not by itself establish 
 
 ## Migration reconciliation
 
-This inventory is being migrated from:
+This inventory was migrated from:
 
-- repository `FEATURE-ROADMAP.md`;
+- retired repository `FEATURE-ROADMAP.md`;
 - `GoreeCloud/Feature Roadmap/GoreeCloud Launcher/FEATURE-ROADMAP.docx`; and
 - current authoritative repository/PR evidence.
 
-The Drive roadmap is older than the current repository state and is retained only as a migration source until the deletion gate is met. Where lifecycle state conflicts, verified repository evidence controls. Drive-only historical context is preserved where material rather than being used to downgrade newer verified implementation state.
+PR #201 merged the replacement feature records and retired `FEATURE-ROADMAP.md` from authoritative `main`. The Drive roadmap is older than the current repository state and is retained only as a migration source until its verified deletion gate is completed. Where lifecycle state conflicts, verified repository evidence controls. Drive-only historical context is preserved where material rather than being used to downgrade newer verified implementation state.
 
 The former roadmap synchronization obligation (`GOV-01`) is superseded by the September 22, 2026 repository-native standard. Google Drive is no longer a permitted active or mirrored roadmap authority.
 
