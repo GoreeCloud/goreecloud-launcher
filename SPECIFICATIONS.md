@@ -45,7 +45,7 @@ A one-finger downward gesture on the unobstructed Home search zone opens Launche
 
 Current supported settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps layout modes of Grid/Compact/List, Apps columns of 4/5/6 for grid-based modes, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and Launcher Universal Search Home-entry mode.
 
-When layout lock is enabled, current Favorite, Dock, primary Home cell placement, Home-page create/delete/reorder, secondary-to-secondary movement, and current secondary spatial mutation callbacks are blocked at the Launcher composition boundary. App launching, Home page selection, navigation, and non-placement presentation settings remain usable. Primary placement-dialog mutation controls are disabled while locked.
+When layout lock is enabled, current Favorite, Dock, primary Home cell placement, Home-page create/delete/reorder, explicit primary↔secondary and secondary-to-secondary movement, and current secondary spatial mutation callbacks are blocked at the Launcher composition boundary. App launching, Home page selection, navigation, and non-placement presentation settings remain usable. Primary placement-dialog mutation controls are disabled while locked.
 
 The current locked-state Home UI provides an intentional five-second hold control with visible progress. Completing the hold disables the persisted lock. Launcher Settings remains the deterministic non-gesture unlock path. Representative physical-device hold/gesture/accessibility acceptance remains separately gated.
 
@@ -69,7 +69,7 @@ Launcher Settings must also provide explicit local/offline-capable **Backup Laun
 
 ## Home layout lock behavior and boundary
 
-The current layout lock protects every placement-changing path presently implemented by the Launcher composition layer: primary Favorite/Dock membership and ordering, primary Home cell placement, Home page creation/deletion/reordering, secondary-to-secondary application moves, and current within-secondary-page spatial movement. UI controls are disabled where practical, and the underlying callbacks are also gated so a stale or missed presentation control cannot dispatch a mutation while the current preference is locked.
+The current layout lock protects every placement-changing path presently implemented by the Launcher composition layer: primary Favorite/Dock membership and ordering, primary Home cell placement, Home page creation/deletion/reordering, explicit primary↔secondary and secondary-to-secondary application moves, and current within-secondary-page spatial movement. UI controls are disabled where practical, and the underlying callbacks are also gated so a stale or missed presentation control cannot dispatch a mutation while the current preference is locked.
 
 Normal application launching, page selection, search invocation, Apps navigation, Settings access, and presentation settings remain available because they do not mutate authoritative workspace placement.
 
@@ -101,7 +101,7 @@ Current Development source supports:
 - app launching from supported secondary pages;
 - ordinary icon-grid rendering for secondary pages rather than permanent engineering controls;
 - long-press management for secondary movement actions;
-- secondary-to-secondary page movement;
+- explicit primary↔secondary and secondary-to-secondary page movement through long-press app management;
 - within-secondary-page nearest-free-cell earlier/later movement;
 - guarded exact one-cell left/right/up/down movement;
 - fail-closed movement for collisions, invalid bounds, malformed/ambiguous placement, or stale snapshots;
@@ -109,7 +109,7 @@ Current Development source supports:
 - canonical primary/Dock validation before secondary spatial writes; and
 - a Launcher-level layout-lock gate that prevents these implemented page/item mutation calls from being dispatched while locked.
 
-Primary↔secondary spatial item movement remains separately gated; current primary spatial authority is within-page only.
+Primary↔secondary app transfer is implemented as an explicit management action under the same terminal-Room snapshot authority. Mature drag-across-page editing and broader cross-page placement UX remain separately gated.
 
 ## Native Universal Search architecture and optional Search/Index integration
 
