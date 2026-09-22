@@ -1,0 +1,160 @@
+package com.goreecloud.launcher.core.launcher
+
+/**
+ * User-facing execution boundary for Launcher Universal Search providers.
+ *
+ * This policy intentionally separates a provider being registered from a provider being allowed to
+ * receive every typed query automatically. Local, retention-free providers can participate in the
+ * normal Launcher result stream. Providers that need networking, remote processing, authorization,
+ * retention, or third-party trust stay behind an explicit user handoff even if they are registered.
+ */
+enum class LauncherSearchProviderInvocationMode {
+    AUTOMATIC_LOCAL,
+    EXPLICIT_USER_HANDOFF,
+}
+
+data class LauncherSearchProviderControlOption(
+    val providerId: String,
+    val displayName: String,
+    val invocationMode: LauncherSearchProviderInvocationMode,
+    val defaultEnabled: Boolean,
+    val privacySummary: String,
+)
+
+data class LauncherSearchProviderControlState(
+    val orderedOptions: List<LauncherSearchProviderControlOption>,
+    val enabledProviderIds: Set<String>,
+) {
+    fun isEnabled(providerId: String): Boolean = providerId in enabledProviderIds
+}
+
+/**
+ * Normalizes provider visibility, ordering, and automatic execution without expanding trust.
+ *
+ * A null enabled-provider preference means first run and adopts only privacy-safe defaults. An
+ * explicit empty set means the user disabled every optional source. Unknown/stale IDs are dropped.
+ * Newly registered providers are appended after the user's known ordering instead of silently
+ * displacing existing choices.
+ */
+object LauncherSearchProviderUserControlPolicy {
+    fun optionFor(metadata: LauncherSearchProviderMetadata): LauncherSearchProviderControlOption {
+        val invocationMode = invocationModeFor(metadata)
+        return LauncherSearchProviderControlOption(
+            providerId = metadata.providerId,
+            displayName = displayNameFor(metadata.providerId),
+            invocationMode = invocationMode,
+            defaultEnabled = invocationMode == LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL,
+            privacySummary = privacySummaryFor(metadata),
+        )
+    }
+
+    fun normalize(
+        catalog: LauncherSearchProviderCatalog,
+        requestedEnabledProviderIds: Set<String>?,
+        requestedProviderOrder: List<String>,
+    ): LauncherSearchProviderControlState {
+        val registrationsById = catalog.acceptedRegistrations.associateBy { registration ->
+            registration.metadata.providerId
+        }
+        val knownIds = registrationsById.keys
+        val orderedIds = buildList {
+            requestedProviderOrder.forEach { providerId ->
+                if (providerId in knownIds && providerId !in this) add(providerId)
+            }
+            catalog.acceptedRegistrations.forEach { registration ->
+                val providerId = registration.metadata.providerId
+                if (providerId !in this) add(providerId)
+            }
+        }
+        val orderedOptions = orderedIds.map { providerId ->
+            optionFor(checkNotNull(registrationsById[providerId]).metadata)
+        }
+        val enabledProviderIds = if (requestedEnabledProviderIds == null) {
+            orderedOptions
+                .filter { option -> option.defaultEnabled }
+                .mapTo(linkedSetOf()) { option -> option.providerId }
+        } else {
+            requestedEnabledProviderIds
+                .filterTo(linkedSetOf()) { providerId -> providerId in knownIds }
+        }
+
+        return LauncherSearchProviderControlState(
+            orderedOptions = orderedOptions,
+            enabledProviderIds = enabledProviderIds,
+        )
+    }
+
+    /**
+     * Providers eligible for automatic query fan-out.
+     *
+     * Enabling an explicit-handoff provider only makes it available to a future explicit provider
+     * picker. It never authorizes background or automatic query transmission.
+     */
+    fun automaticProviders(
+        catalog: LauncherSearchProviderCatalog,
+        state: LauncherSearchProviderControlState,
+    ): List<LauncherSearchProvider> {
+        val optionsById = state.orderedOptions.associateBy { option -> option.providerId }
+        val providersById = catalog.acceptedRegistrations.associateBy { registration ->
+            registration.metadata.providerId
+        }
+        return state.orderedOptions.mapNotNull { option ->
+            if (
+                !state.isEnabled(option.providerId) ||
+                option.invocationMode != LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL
+            ) {
+                return@mapNotNull null
+            }
+            providersById[option.providerId]?.provider
+        }.filter { provider -> provider.id in optionsById }
+    }
+
+    fun invocationModeFor(
+        metadata: LauncherSearchProviderMetadata,
+    ): LauncherSearchProviderInvocationMode {
+        val safeForAutomaticLocalExecution =
+            metadata.provenance != LauncherSearchProviderProvenance.THIRD_PARTY &&
+                metadata.offlineBehavior == LauncherSearchOfflineBehavior.LOCAL_ONLY &&
+                metadata.authorizationRequirement == LauncherSearchAuthorizationRequirement.NONE &&
+                metadata.remoteProcessing == LauncherSearchRemoteProcessing.NONE &&
+                metadata.queryRetention == LauncherSearchQueryRetention.NONE
+
+        return if (safeForAutomaticLocalExecution) {
+            LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL
+        } else {
+            LauncherSearchProviderInvocationMode.EXPLICIT_USER_HANDOFF
+        }
+    }
+
+    fun displayNameFor(providerId: String): String = when (providerId) {
+        LauncherInstalledAppsSearchProvider.PROVIDER_ID -> "Apps"
+        LauncherCoreActionsSearchProvider.PROVIDER_ID -> "Launcher actions"
+        else -> providerId
+    }
+
+    fun privacySummaryFor(metadata: LauncherSearchProviderMetadata): String {
+        val parts = mutableListOf<String>()
+        parts += when (metadata.offlineBehavior) {
+            LauncherSearchOfflineBehavior.LOCAL_ONLY -> "Local only"
+            LauncherSearchOfflineBehavior.OFFLINE_CAPABLE -> "Offline capable"
+            LauncherSearchOfflineBehavior.NETWORK_REQUIRED -> "Network required"
+        }
+        when (metadata.remoteProcessing) {
+            LauncherSearchRemoteProcessing.NONE -> Unit
+            LauncherSearchRemoteProcessing.OPTIONAL -> parts += "Optional remote processing"
+            LauncherSearchRemoteProcessing.REQUIRED -> parts += "Remote processing"
+        }
+        when (metadata.authorizationRequirement) {
+            LauncherSearchAuthorizationRequirement.NONE -> Unit
+            LauncherSearchAuthorizationRequirement.USER_CONSENT -> parts += "Consent required"
+            LauncherSearchAuthorizationRequirement.ACCOUNT -> parts += "Account required"
+            LauncherSearchAuthorizationRequirement.SYSTEM_POLICY -> parts += "Policy approval required"
+        }
+        parts += when (metadata.queryRetention) {
+            LauncherSearchQueryRetention.NONE -> "No query retention"
+            LauncherSearchQueryRetention.SESSION_ONLY -> "Session query retention"
+            LauncherSearchQueryRetention.PERSISTENT -> "Persistent query retention"
+        }
+        return parts.joinToString(separator = " · ")
+    }
+}
