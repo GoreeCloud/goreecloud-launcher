@@ -32,6 +32,8 @@ object LauncherPortablePreferences {
 
         val iconScaleMilli = iconScaleMilli(preferences.iconScale)
             ?: throw IllegalArgumentException("invalid launcher preferences: icon scale is not canonical")
+        // Version 1 intentionally retains the legacy "index_home_mode" wire key so existing
+        // backups remain byte-compatible while runtime search authority moves to Launcher.
         val payload = listOf(
             "format=$FORMAT",
             "version=$VERSION",
@@ -41,7 +43,7 @@ object LauncherPortablePreferences {
             "show_labels=${preferences.showLabels}",
             "icon_scale_milli=$iconScaleMilli",
             "layout_locked=${preferences.layoutLocked}",
-            "index_home_mode=${preferences.indexHomeMode.storageValue}",
+            "index_home_mode=${preferences.universalSearchHomeMode.storageValue}",
         ).joinToString("\n")
 
         return "$payload\nchecksum=${sha256Hex(payload)}\n"
@@ -106,10 +108,10 @@ object LauncherPortablePreferences {
             ?: return DecodeResult.Invalid("icon scale is invalid")
         val layoutLocked = parseCanonicalBoolean(value(lines[7], "layout_locked"))
             ?: return DecodeResult.Invalid("layout locked is invalid")
-        val indexModeValue = value(lines[8], "index_home_mode")
-        val indexHomeMode = GoreeCloudIndexHomeMode.entries.firstOrNull {
-            it.storageValue == indexModeValue
-        } ?: return DecodeResult.Invalid("index home mode is unsupported")
+        val universalSearchModeValue = value(lines[8], "index_home_mode")
+        val universalSearchHomeMode = LauncherUniversalSearchHomeMode.entries.firstOrNull {
+            it.storageValue == universalSearchModeValue
+        } ?: return DecodeResult.Invalid("universal search home mode is unsupported")
 
         if (homeColumns !in 4..6) return DecodeResult.Invalid("home columns are outside the supported range")
         if (homeRows !in 4..7) return DecodeResult.Invalid("home rows are outside the supported range")
@@ -125,7 +127,7 @@ object LauncherPortablePreferences {
             showLabels = showLabels,
             iconScale = iconScaleMilli.toFloat() / ICON_SCALE_FACTOR,
             layoutLocked = layoutLocked,
-            indexHomeMode = indexHomeMode,
+            universalSearchHomeMode = universalSearchHomeMode,
         )
         validate(preferences)?.let { reason -> return DecodeResult.Invalid(reason) }
         return DecodeResult.Success(preferences)
