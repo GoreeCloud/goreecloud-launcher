@@ -3,6 +3,13 @@ package com.goreecloud.launcher.core.launcher
 import android.content.pm.LauncherActivityInfo
 import java.text.Normalizer
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Launcher-owned search provider contract.
@@ -14,6 +21,39 @@ interface LauncherSearchProvider {
     val id: String
 
     fun search(rawQuery: String): List<LauncherSearchResult>
+}
+
+/**
+ * Optional asynchronous execution contract for providers that need cooperative cancellation.
+ *
+ * Providers implementing this interface are executed through [LauncherUniversalSearch.searchAsync]
+ * without blocking the caller. The synchronous [LauncherSearchProvider.search] contract remains the
+ * current built-in/local compatibility path until the rendered search surface is migrated to the
+ * asynchronous execution path.
+ */
+interface LauncherAsyncSearchProvider {
+    suspend fun searchAsync(request: LauncherSearchRequest): List<LauncherSearchResult>
+}
+
+data class LauncherSearchRequest(
+    val rawQuery: String,
+)
+
+/**
+ * Caller-owned execution policy for asynchronous provider aggregation.
+ *
+ * There is intentionally no product-default timeout here. The rendered search surface must choose
+ * and validate its interaction budget from measured Launcher evidence rather than inheriting an
+ * arbitrary value from the provider contract.
+ */
+data class LauncherSearchExecutionPolicy(
+    val providerTimeoutMillis: Long,
+) {
+    init {
+        require(providerTimeoutMillis > 0L) {
+            "providerTimeoutMillis must be greater than zero"
+        }
+    }
 }
 
 enum class LauncherSearchCategory {
@@ -200,11 +240,69 @@ object LauncherUniversalSearch {
         rawQuery: String,
         providers: List<LauncherSearchProvider>,
     ): List<LauncherSearchResult> =
-        providers
-            .flatMap { provider ->
+        normalizeResults(
+            providers.flatMap { provider ->
                 runCatching { provider.search(rawQuery) }
                     .getOrDefault(emptyList())
+            },
+        )
+
+    /**
+     * Executes providers concurrently with caller-supplied per-provider timeouts.
+     *
+     * Providers that implement [LauncherAsyncSearchProvider] receive a cancellable suspend request.
+     * Existing synchronous providers run on [Dispatchers.Default] so the caller is not blocked.
+     * Provider failures and provider-local timeouts fail soft to an empty contribution. Caller
+     * cancellation always propagates and is never converted into an ordinary provider failure.
+     *
+     * This method is the execution foundation for a future rendered-search migration. The current
+     * UI still uses [search], so UI query replacement/streaming semantics remain separate work.
+     */
+    suspend fun searchAsync(
+        rawQuery: String,
+        providers: List<LauncherSearchProvider>,
+        policy: LauncherSearchExecutionPolicy,
+    ): List<LauncherSearchResult> = coroutineScope {
+        val request = LauncherSearchRequest(rawQuery = rawQuery)
+        val providerResults = providers.map { provider ->
+            async {
+                executeProviderAsync(
+                    provider = provider,
+                    request = request,
+                    policy = policy,
+                )
             }
+        }.awaitAll()
+
+        normalizeResults(providerResults.flatten())
+    }
+
+    private suspend fun executeProviderAsync(
+        provider: LauncherSearchProvider,
+        request: LauncherSearchRequest,
+        policy: LauncherSearchExecutionPolicy,
+    ): List<LauncherSearchResult> {
+        return try {
+            withTimeoutOrNull(policy.providerTimeoutMillis) {
+                if (provider is LauncherAsyncSearchProvider) {
+                    provider.searchAsync(request)
+                } else {
+                    withContext(Dispatchers.Default) {
+                        provider.search(request.rawQuery)
+                    }
+                }
+            }.orEmpty()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            emptyList()
+        }
+    }
+
+    private fun normalizeResults(
+        results: List<LauncherSearchResult>,
+    ): List<LauncherSearchResult> =
+        results
             .distinctBy { result -> result.providerId to result.resultId }
             .sortedWith(
                 compareByDescending<LauncherSearchResult> { it.score }
