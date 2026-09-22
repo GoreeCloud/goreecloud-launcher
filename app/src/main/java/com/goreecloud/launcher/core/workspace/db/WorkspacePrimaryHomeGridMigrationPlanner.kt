@@ -34,7 +34,12 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
     fun plan(
         page: WorkspacePageEntity,
         items: List<WorkspaceItemEntity>,
+        columns: Int = PRIMARY_HOME_COLUMNS,
+        rows: Int? = null,
     ): WorkspacePrimaryHomeGridMigrationPlanningResult {
+        if (columns <= 0 || (rows != null && rows <= 0)) {
+            return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
+        }
         if (
             page.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
             page.containerType != WorkspaceContainerType.HOME ||
@@ -80,15 +85,16 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
             return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
         }
 
-        val rows = maxOf(1, (orderedItems.size + PRIMARY_HOME_COLUMNS - 1) / PRIMARY_HOME_COLUMNS)
+        val minimumRows = maxOf(1, (orderedItems.size + columns - 1) / columns)
+        val gridRows = maxOf(minimumRows, rows ?: minimumRows)
         val grid = WorkspaceGridPlacement.Grid(
-            columns = PRIMARY_HOME_COLUMNS,
-            rows = rows,
+            columns = columns,
+            rows = gridRows,
         )
         val migratedItems = orderedItems.map { item ->
             item.copy(
-                cellX = item.rank % PRIMARY_HOME_COLUMNS,
-                cellY = item.rank / PRIMARY_HOME_COLUMNS,
+                cellX = item.rank % columns,
+                cellY = item.rank / columns,
             )
         }
         val placements = migratedItems.map { item ->
@@ -105,10 +111,19 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
         }
 
         if (allSpatialCoordinates) {
-            val alreadySpatial = orderedItems.zip(migratedItems).all { (current, target) ->
-                current.cellX == target.cellX && current.cellY == target.cellY
+            val currentPlacements = orderedItems.map { item ->
+                WorkspaceGridPlacement.Placement(
+                    itemId = item.itemId,
+                    cellX = checkNotNull(item.cellX),
+                    cellY = checkNotNull(item.cellY),
+                    spanX = item.spanX,
+                    spanY = item.spanY,
+                )
             }
-            return if (alreadySpatial) {
+            return if (
+                WorkspaceGridPlacement.validate(grid, currentPlacements) ==
+                    WorkspaceGridPlacement.Validation.Valid
+            ) {
                 WorkspacePrimaryHomeGridMigrationPlanningResult.AlreadySpatial
             } else {
                 WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
