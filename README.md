@@ -54,7 +54,7 @@ Current Development source includes:
 - bounded secondary-to-secondary page movement, nearest-free-cell movement, and guarded exact one-cell movement;
 - persisted Launcher Universal Search Home entry choices for **Permanent on Home** and **Swipe down only**;
 - a **Search GoreeCloud** Home affordance when Permanent mode is selected;
-- the one-finger downward Home gesture wired directly to Launcher Universal Search in both entry modes;
+- configurable Home gestures for Swipe up, Swipe down, Swipe left, Swipe right, Double-tap, and Tap and hold; defaults preserve Swipe up → Apps, Swipe down → Launcher Universal Search, and Tap and hold → Home editor;
 - no legacy Index search-action package-visibility dependency for core Launcher search;
 - GLAZE UI V1.6 source mapping pinned to exact Stable provenance, with inherited Stable spacing/material/state semantics, a conservative Launcher 48 dp touch floor, a 56 dp accessibility-oriented target, and fail-closed application acceptance;
 - a reachable Settings → Theme Manager path with saveable/fail-closed sub-destination restoration, direct persisted System/Light/Dark theme selection, concise preview semantics, and a non-actionable selected-state surface; and
@@ -74,7 +74,7 @@ Launcher no longer declares the legacy `com.goreecloud.index.action.SEARCH` visi
 
 Home uses the system wallpaper behind the launcher-owned surface, renders the current app grid and Dock, and keeps placement management behind long-press. The protected primary compatibility Home remains rank zero while the separate primary-grid migration is still pending.
 
-The one-finger downward Home gesture opens Launcher Universal Search in both supported entry modes. **Permanent on Home** additionally keeps the Search GoreeCloud control visible; **Swipe down only** removes that permanent control. Core search does not depend on GoreeCloud Index or GoreeCloud Search.
+By default, the one-finger downward Home gesture opens Launcher Universal Search in both supported entry modes. **Permanent on Home** additionally keeps the Search GoreeCloud control visible; **Swipe down only** removes that permanent control. The **Gestures** settings section can reassign Swipe up/down/left/right, Double-tap, and Tap and hold to supported Launcher actions or any currently launchable app. Core search does not depend on GoreeCloud Index or GoreeCloud Search.
 
 When Home layout lock is enabled, current placement/page mutation callbacks are rejected at the Launcher composition boundary. Normal app launching, page selection, Apps navigation, and Settings access remain usable. The lock can be disabled from Launcher Settings or by intentionally holding the visible locked-state Home control for five seconds. The hold path has progress feedback; Settings remains the non-gesture accessible path.
 
@@ -138,7 +138,7 @@ Still incomplete or separately gated:
 - primary compatibility-page grid migration and primary↔secondary spatial movement;
 - populated-page deletion with confirmation/recovery/undo;
 - folders, shortcuts, widgets/AppWidgetHost, and richer workspace editing;
-- complete Theme Manager behavior, icon-pack discovery/application, icon masking, Deep Dark, wallpaper palettes, expression controls, and broader configurable gestures;
+- complete Theme Manager behavior, icon-pack discovery/application, icon masking, Deep Dark, wallpaper palettes, expression controls, and additional gesture/command targets beyond the initial configurable Home-gesture set;
 - representative-device Theme Manager navigation/persistence/accessibility, focus order, and spoken-announcement timing acceptance;
 - layout-lock coverage for future folders/shortcuts/widgets once those item types are implemented, plus representative physical-device five-second-hold acceptance;
 - expanded Launcher Universal Search presentation beyond the current installed-app provider foundation;
