@@ -44,4 +44,36 @@ class LauncherIconSingleFlightLoaderTest {
         assertEquals(1, calls.get())
         scope.cancel()
     }
+
+    @Test
+    fun latestPreloadReplacementCancelsSupersededTail() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val runner = LauncherLatestPreloadRunner(scope)
+        val firstStarted = CompletableDeferred<Unit>()
+        val firstCancelled = CompletableDeferred<Unit>()
+        val neverRelease = CompletableDeferred<Unit>()
+        val replacementCompleted = CompletableDeferred<Unit>()
+        val supersededTailCalls = AtomicInteger(0)
+
+        runner.replace {
+            firstStarted.complete(Unit)
+            try {
+                neverRelease.await()
+                supersededTailCalls.incrementAndGet()
+            } finally {
+                firstCancelled.complete(Unit)
+            }
+        }
+        firstStarted.await()
+
+        runner.replace {
+            replacementCompleted.complete(Unit)
+        }
+
+        firstCancelled.await()
+        replacementCompleted.await()
+
+        assertEquals(0, supersededTailCalls.get())
+        scope.cancel()
+    }
 }
