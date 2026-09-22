@@ -120,6 +120,38 @@ class LauncherPreferencesTest {
     }
 
     @Test
+    fun homeLabelOverridesRoundTripAndSanitize() {
+        val encoded = LauncherHomeLabelOverridesCodec.encode(
+            mapOf(
+                "0:com.example/.Main" to "  Camera  ",
+                "1:com.example/.Other" to "Gallery",
+            )
+        )
+
+        assertEquals(
+            mapOf(
+                "0:com.example/.Main" to "Camera",
+                "1:com.example/.Other" to "Gallery",
+            ),
+            LauncherHomeLabelOverridesCodec.decode(encoded),
+        )
+        assertEquals("My App", LauncherHomeLabelPolicy.normalize("  My\u0000 App  "))
+        assertEquals(null, LauncherHomeLabelPolicy.normalize(" \n\t "))
+    }
+
+    @Test
+    fun homeDragPolicySelectsNearestDifferentGridTarget() {
+        val targets = listOf(
+            LauncherHomeDragTarget("a", 0f, 0f),
+            LauncherHomeDragTarget("b", 100f, 0f),
+            LauncherHomeDragTarget("c", 0f, 100f),
+        )
+
+        assertEquals("b", LauncherHomeDragPolicy.nearestTargetKey("a", 90f, 4f, targets))
+        assertEquals(null, LauncherHomeDragPolicy.nearestTargetKey("a", 4f, 3f, targets))
+    }
+
+    @Test
     fun drawerLayoutModeStorageDecodingFailsSafeToGrid() {
         assertEquals(LauncherDrawerLayoutMode.COMPACT, LauncherDrawerLayoutMode.fromStorage("compact"))
         assertEquals(LauncherDrawerLayoutMode.LIST, LauncherDrawerLayoutMode.fromStorage("list"))

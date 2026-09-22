@@ -37,6 +37,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import com.goreecloud.launcher.core.launcher.LauncherHomeLabelPolicy
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeSpatialDirection
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
@@ -246,7 +248,10 @@ fun ReadOnlyPagedHomeSurface(
     homeColumns: Int,
     showLabels: Boolean,
     iconScale: Float,
+    homeLabelOverrides: Map<String, String>,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onSetHomeLabelOverride: (LauncherActivityInfo, String?) -> Unit,
+    onRequestUninstall: (LauncherActivityInfo) -> Unit,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
@@ -323,11 +328,15 @@ fun ReadOnlyPagedHomeSurface(
                     items(pageApps, key = { it.workspaceKey() }) { app ->
                         PagedAppTile(
                             app = app,
+                            displayLabel = homeLabelOverrides[app.workspaceKey()] ?: app.label.toString(),
+                            homeLabelOverride = homeLabelOverrides[app.workspaceKey()],
                             showLabel = showLabels,
                             iconScale = iconScale,
                             targetPages = targetPages,
                             layoutLocked = layoutLocked,
                             onLaunchApp = onLaunchApp,
+                            onSetHomeLabelOverride = { label -> onSetHomeLabelOverride(app, label) },
+                            onRequestUninstall = { onRequestUninstall(app) },
                             onMoveAppToPage = onMoveAppToPage,
                             onMoveAppWithinPage = onMoveAppWithinPage,
                             onMoveAppOneCell = onMoveAppOneCell,
@@ -343,11 +352,15 @@ fun ReadOnlyPagedHomeSurface(
 @Composable
 private fun PagedAppTile(
     app: LauncherActivityInfo,
+    displayLabel: String,
+    homeLabelOverride: String?,
     showLabel: Boolean,
     iconScale: Float,
     targetPages: List<WorkspaceRenderedHomePage>,
     layoutLocked: Boolean,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onSetHomeLabelOverride: (String?) -> Unit,
+    onRequestUninstall: () -> Unit,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
@@ -369,7 +382,7 @@ private fun PagedAppTile(
         if (icon != null) {
             Image(
                 bitmap = icon,
-                contentDescription = app.label.toString(),
+                contentDescription = displayLabel,
                 modifier = Modifier.size((54f * iconScale.coerceIn(0.85f, 1.15f)).dp),
             )
         } else {
@@ -379,7 +392,7 @@ private fun PagedAppTile(
                 color = MaterialTheme.colorScheme.surfaceVariant,
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(app.label.toString().take(1).uppercase(), fontWeight = FontWeight.Bold)
+                    Text(displayLabel.take(1).uppercase(), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -390,7 +403,7 @@ private fun PagedAppTile(
                 shape = RoundedCornerShape(GlazeMetrics.radiusControl),
             ) {
                 Text(
-                    text = app.label.toString(),
+                    text = displayLabel,
                     modifier = Modifier.padding(horizontal = GlazeMetrics.space1),
                     style = MaterialTheme.typography.labelSmall,
                     textAlign = TextAlign.Center,
@@ -404,8 +417,12 @@ private fun PagedAppTile(
     if (manageOpen) {
         PagedAppManagementDialog(
             app = app,
+            displayLabel = displayLabel,
+            homeLabelOverride = homeLabelOverride,
             targetPages = targetPages,
             layoutLocked = layoutLocked,
+            onSetHomeLabelOverride = onSetHomeLabelOverride,
+            onRequestUninstall = onRequestUninstall,
             onMoveAppToPage = onMoveAppToPage,
             onMoveAppWithinPage = onMoveAppWithinPage,
             onMoveAppOneCell = onMoveAppOneCell,
@@ -417,17 +434,26 @@ private fun PagedAppTile(
 @Composable
 private fun PagedAppManagementDialog(
     app: LauncherActivityInfo,
+    displayLabel: String,
+    homeLabelOverride: String?,
     targetPages: List<WorkspaceRenderedHomePage>,
     layoutLocked: Boolean,
+    onSetHomeLabelOverride: (String?) -> Unit,
+    onRequestUninstall: () -> Unit,
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
     onClose: () -> Unit,
 ) {
+    val originalLabel = app.label.toString()
+    var labelDraft by remember(app.workspaceKey(), homeLabelOverride) {
+        mutableStateOf(homeLabelOverride ?: originalLabel)
+    }
+
     AlertDialog(
         onDismissRequest = onClose,
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        title = { Text(app.label.toString()) },
+        title = { Text(displayLabel) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -490,6 +516,47 @@ private fun PagedAppManagementDialog(
                         modifier = Modifier.weight(1f),
                     ) { Text("Down") }
                 }
+
+                Text("Home label", fontWeight = FontWeight.SemiBold)
+                OutlinedTextField(
+                    value = labelDraft,
+                    onValueChange = { labelDraft = it.take(LauncherHomeLabelPolicy.MAX_LABEL_LENGTH) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    supportingText = { Text("Rename this label on Home only.") },
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    FilledTonalButton(
+                        onClick = {
+                            val normalized = LauncherHomeLabelPolicy.normalize(labelDraft)
+                            val original = LauncherHomeLabelPolicy.normalize(originalLabel)
+                            onSetHomeLabelOverride(normalized?.takeUnless { it == original })
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Save label") }
+                    TextButton(
+                        onClick = {
+                            labelDraft = originalLabel
+                            onSetHomeLabelOverride(null)
+                        },
+                    ) { Text("Reset") }
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        onRequestUninstall()
+                        onClose()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Uninstall app") }
+                Text(
+                    "Android will show its system uninstall confirmation before anything is removed.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
 
                 if (targetPages.isNotEmpty()) {
                     Text("Move to another Home page", fontWeight = FontWeight.SemiBold)

@@ -192,6 +192,83 @@ class ActivatedHomeLifecycleRuntimeTest {
         }
     }
 
+    @Test
+    fun homeButtonFromDrawerReturnsPrimaryHomeSurface() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val roleManager = context.getSystemService(RoleManager::class.java)
+        val alreadyDefaultHome =
+            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+
+        if (!alreadyDefaultHome) {
+            runShellCommand(
+                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+            )
+            withTimeout(10_000) {
+                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    delay(100)
+                }
+            }
+        }
+
+        try {
+            val apps = withTimeout(10_000) {
+                LauncherAppsRepository(context).apps.first { candidates ->
+                    candidates.any { it.componentName.packageName != context.packageName }
+                }
+            }
+            val candidate = apps.first { it.componentName.packageName != context.packageName }
+            val candidateKey = candidate.workspaceKey()
+            val repository = WorkspaceRepository(context)
+            repository.ensureDefaults(
+                favoriteKeys = listOf(candidateKey),
+                dockKeys = emptyList(),
+            )
+
+            val scenario = ActivityScenario.launch(MainActivity::class.java)
+            try {
+                withTimeout(15_000) {
+                    repository.state.first { it.authority == WorkspaceAuthority.ROOM }
+                }
+                waitForDisplayedLabel(candidate.label.toString())
+
+                composeRule
+                    .onNodeWithText(candidate.label.toString(), useUnmergedTree = true)
+                    .performTouchInput {
+                        swipeUp(
+                            startY = bottom - 1f,
+                            endY = top - 320f,
+                            durationMillis = 400,
+                        )
+                    }
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule.onAllNodesWithText("Search apps", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+
+                runShellCommand("input keyevent KEYCODE_HOME")
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule.onAllNodesWithText("Search apps", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isEmpty()
+                }
+                waitForDisplayedLabel(candidate.label.toString())
+                Unit
+            } finally {
+                scenario.close()
+            }
+        } finally {
+            if (!alreadyDefaultHome) {
+                runShellCommand(
+                    "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+                )
+            }
+        }
+    }
+
     private fun waitForDisplayedLabel(label: String) {
         composeRule.waitUntil(timeoutMillis = 15_000) {
             composeRule.onAllNodesWithText(label, useUnmergedTree = true)

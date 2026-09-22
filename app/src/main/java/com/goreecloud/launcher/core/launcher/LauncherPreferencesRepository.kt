@@ -240,6 +240,7 @@ class LauncherPreferencesRepository(
         val dockStyle = stringPreferencesKey("dock_style")
         val wallpaperShade = stringPreferencesKey("wallpaper_shade")
         val starterLayoutApplied = booleanPreferencesKey("starter_layout_applied")
+        val homeLabelOverrides = stringPreferencesKey("home_label_overrides_v1")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
 
@@ -248,6 +249,14 @@ class LauncherPreferencesRepository(
 
     val preferences: Flow<LauncherPreferences> = dataStore.data
         .map(::portablePreferencesFrom)
+        .distinctUntilChanged()
+
+    /**
+     * Launcher-local Home label overrides. These are presentation metadata only and intentionally
+     * remain outside the strict portable-preference v1 backup/recovery contract.
+     */
+    val homeLabelOverrides: Flow<Map<String, String>> = dataStore.data
+        .map { values -> LauncherHomeLabelOverridesCodec.decode(values[Keys.homeLabelOverrides]) }
         .distinctUntilChanged()
 
     /**
@@ -286,6 +295,28 @@ class LauncherPreferencesRepository(
             )
         }
         .distinctUntilChanged()
+
+    fun setHomeLabelOverride(appKey: String, rawLabel: String?) {
+        if (appKey.isBlank()) return
+        scope.launch {
+            dataStore.edit { values ->
+                val updated = LauncherHomeLabelOverridesCodec
+                    .decode(values[Keys.homeLabelOverrides])
+                    .toMutableMap()
+                val label = rawLabel?.let(LauncherHomeLabelPolicy::normalize)
+                if (label == null) {
+                    updated.remove(appKey)
+                } else {
+                    updated[appKey] = label
+                }
+                if (updated.isEmpty()) {
+                    values.remove(Keys.homeLabelOverrides)
+                } else {
+                    values[Keys.homeLabelOverrides] = LauncherHomeLabelOverridesCodec.encode(updated)
+                }
+            }
+        }
+    }
 
     fun setHomeGrid(columns: Int, rows: Int) {
         val normalized = LauncherPreferences(homeColumns = columns, homeRows = rows).sanitized()

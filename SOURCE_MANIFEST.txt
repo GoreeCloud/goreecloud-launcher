@@ -24,6 +24,8 @@ app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPreferencesRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeDragPolicy.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeLabelOverrides.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearch.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthority.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceGridPlacement.kt

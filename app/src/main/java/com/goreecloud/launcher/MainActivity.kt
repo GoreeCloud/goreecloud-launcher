@@ -2,7 +2,10 @@ package com.goreecloud.launcher
 
 import android.app.role.RoleManager
 import android.content.Intent
+import android.content.pm.LauncherActivityInfo
+import android.net.Uri
 import android.os.Bundle
+import android.os.Process
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -141,6 +144,9 @@ class MainActivity : ComponentActivity() {
             val experiencePreferences by launcherPreferencesRepository.experiencePreferences.collectAsStateWithLifecycle(
                 initialValue = LauncherExperiencePreferences(),
             )
+            val homeLabelOverrides by launcherPreferencesRepository.homeLabelOverrides.collectAsStateWithLifecycle(
+                initialValue = emptyMap(),
+            )
             val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
                 initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
             )
@@ -274,7 +280,12 @@ class MainActivity : ComponentActivity() {
                             showLabels = launcherPreferences.showLabels,
                             iconScale = launcherPreferences.iconScale,
                             layoutLocked = launcherPreferences.layoutLocked,
+                            homeLabelOverrides = homeLabelOverrides,
                             onLaunchApp = appsRepository::launch,
+                            onSetHomeLabelOverride = { app, label ->
+                                launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
+                            },
+                            onRequestUninstall = ::requestUninstall,
                             onMoveAppToPage = { app, targetPageId ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
@@ -320,6 +331,8 @@ class MainActivity : ComponentActivity() {
                             drawerLayoutMode = drawerLayoutMode,
                             experiencePreferences = experiencePreferences,
                             homePageCount = renderedPages.size.coerceAtLeast(1),
+                            homeResetSequence = homeResetSequenceValue,
+                            homeLabelOverrides = homeLabelOverrides,
                             onManageHomePages = {
                                 val secondaryPage = renderedPages.firstOrNull {
                                     it.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID
@@ -360,6 +373,16 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             },
+                            onMoveFavoriteToTarget = { app, target ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.moveFavoriteToTarget(
+                                            app.workspaceKey(),
+                                            target.workspaceKey(),
+                                        )
+                                    }
+                                }
+                            },
                             onMoveDock = { app, direction ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
@@ -392,6 +415,10 @@ class MainActivity : ComponentActivity() {
                             onSetHomeSpacing = launcherPreferencesRepository::setHomeSpacing,
                             onSetDockStyle = launcherPreferencesRepository::setDockStyle,
                             onSetWallpaperShade = launcherPreferencesRepository::setWallpaperShade,
+                            onSetHomeLabelOverride = { app, label ->
+                                launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
+                            },
+                            onRequestUninstall = ::requestUninstall,
                             onOpenWallpaperPicker = ::openWallpaperPicker,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
@@ -503,6 +530,29 @@ class MainActivity : ComponentActivity() {
         val manager = getSystemService(RoleManager::class.java)
         if (manager.isRoleAvailable(RoleManager.ROLE_HOME) && !manager.isRoleHeld(RoleManager.ROLE_HOME)) {
             homeRoleRequest.launch(manager.createRequestRoleIntent(RoleManager.ROLE_HOME))
+        }
+    }
+
+    private fun requestUninstall(app: LauncherActivityInfo) {
+        if (app.user != Process.myUserHandle()) {
+            Toast.makeText(
+                this,
+                "Uninstall this app from its Android profile.",
+                Toast.LENGTH_SHORT,
+            ).show()
+            return
+        }
+
+        val intent = Intent(
+            Intent.ACTION_DELETE,
+            Uri.fromParts("package", app.componentName.packageName, null),
+        )
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(
+                this,
+                "Android uninstall is unavailable for this app.",
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
