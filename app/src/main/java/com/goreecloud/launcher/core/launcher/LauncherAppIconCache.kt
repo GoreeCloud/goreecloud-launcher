@@ -9,7 +9,9 @@ import androidx.core.graphics.drawable.toBitmap
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -64,6 +66,63 @@ internal class LauncherIconSingleFlightLoader<K : Any, V>(
 }
 
 /**
+ * Owns the single replaceable background icon-preload job.
+ *
+ * Inventory snapshots can change again while an older warm pass is still walking its bounded tail.
+ * Replacing that pass prevents stale background work from continuing to schedule additional icon
+ * loads. Already-started single-flight decodes remain safe: callers for the newest snapshot can join
+ * them, while cache stamps still reject results made stale by package/profile invalidation.
+ */
+internal class LauncherLatestPreloadRunner(
+    private val scope: CoroutineScope,
+) {
+    private val stateLock = Any()
+    private var generation = 0L
+    private var currentJob: Job? = null
+
+    fun replace(block: suspend CoroutineScope.() -> Unit) {
+        val (ticket, previousJob) = synchronized(stateLock) {
+            generation += 1L
+            val previous = currentJob
+            currentJob = null
+            generation to previous
+        }
+        previousJob?.cancel()
+
+        val candidate = scope.launch(start = CoroutineStart.LAZY, block = block)
+        val accepted = synchronized(stateLock) {
+            if (ticket != generation) {
+                false
+            } else {
+                currentJob = candidate
+                true
+            }
+        }
+        if (!accepted) {
+            candidate.cancel()
+            return
+        }
+
+        candidate.invokeOnCompletion {
+            synchronized(stateLock) {
+                if (currentJob === candidate) {
+                    currentJob = null
+                }
+            }
+        }
+        candidate.start()
+    }
+
+    fun cancel() {
+        val job = synchronized(stateLock) {
+            generation += 1L
+            currentJob.also { currentJob = null }
+        }
+        job?.cancel()
+    }
+}
+
+/**
  * Bounded process-local cache for Android-provided badged launcher icons.
  *
  * LauncherApps remains inventory authority. This cache owns presentation bitmaps only; nothing is
@@ -75,6 +134,7 @@ internal object LauncherAppIconCache {
     private val packageGenerations = mutableMapOf<LauncherIconPackageKey, Long>()
     private val loadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val singleFlight = LauncherIconSingleFlightLoader<LauncherIconLoadKey, Bitmap?>(loadScope)
+    private val preloadRunner = LauncherLatestPreloadRunner(loadScope)
 
     private val cache = object : LruCache<LauncherIconCacheKey, Bitmap>(LAUNCHER_ICON_CACHE_MAX_KIB) {
         override fun sizeOf(key: LauncherIconCacheKey, value: Bitmap): Int =
@@ -102,18 +162,22 @@ internal object LauncherAppIconCache {
         apps: List<LauncherActivityInfo>,
         maxCount: Int = LAUNCHER_ICON_PRELOAD_COUNT,
     ) {
-        if (maxCount <= 0) return
-        val candidates = apps.asSequence()
-            .distinctBy { app -> app.cacheKey() }
-            .take(maxCount)
-            .filter { app -> peek(app) == null }
-            .toList()
-        if (candidates.isEmpty()) return
+        if (maxCount <= 0) {
+            preloadRunner.cancel()
+            return
+        }
 
-        // Warm a substantially larger bounded drawer set without moving drawable decoding onto the
-        // UI thread. Small batches finish materially faster than one-at-a-time preloading while
-        // keeping decode/binder pressure controlled on representative mobile hardware.
-        loadScope.launch {
+        // Every new authoritative inventory snapshot replaces the older bounded warm pass. Candidate
+        // selection stays off the UI thread, and the existing single-flight loader still coalesces any
+        // decode already in progress when a newer snapshot requests the same icon.
+        preloadRunner.replace {
+            val candidates = apps.asSequence()
+                .distinctBy { app -> app.cacheKey() }
+                .take(maxCount)
+                .filter { app -> peek(app) == null }
+                .toList()
+            if (candidates.isEmpty()) return@replace
+
             candidates.chunked(LAUNCHER_ICON_PRELOAD_PARALLELISM).forEach { batch ->
                 batch.map { app ->
                     async { load(app) }
@@ -169,10 +233,13 @@ internal object LauncherAppIconCache {
             .forEach(cache::remove)
     }
 
-    fun clear() = synchronized(stateLock) {
-        generation += 1L
-        packageGenerations.clear()
-        cache.evictAll()
+    fun clear() {
+        preloadRunner.cancel()
+        synchronized(stateLock) {
+            generation += 1L
+            packageGenerations.clear()
+            cache.evictAll()
+        }
     }
 
     private fun isCurrentStamp(
