@@ -115,6 +115,15 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             .sortedBy { it.rank }
         assertTrue(migratedPrimary.all { it.cellX != null && it.cellY != null })
 
+        assertEquals(
+            WorkspacePrimaryHomeSpatialResult.InvalidWorkspace,
+            spatialRepository.ensureGrid(columns = 3, rows = 5),
+        )
+        assertEquals(
+            WorkspacePrimaryHomeSpatialResult.InvalidWorkspace,
+            spatialRepository.ensureGrid(columns = 4, rows = 8),
+        )
+
         val expectedReplacement = WorkspaceRelationalSnapshot(
             favoriteKeys = REPLACEMENT_FAVORITES,
             dockKeys = listOf(DOCK_ONE, DOCK_TWO, DOCK_THREE, DOCK_FOUR, DOCK_FIVE),
