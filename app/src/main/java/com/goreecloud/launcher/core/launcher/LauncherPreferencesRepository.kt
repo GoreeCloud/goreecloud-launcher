@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -615,19 +616,17 @@ class LauncherPreferencesRepository(
     fun setGestureAction(
         gesture: LauncherHomeGesture,
         action: LauncherGestureAction,
-    ) {
-        scope.launch {
-            dataStore.edit { values ->
-                val key = when (gesture) {
-                    LauncherHomeGesture.SWIPE_UP -> Keys.gestureSwipeUpAction
-                    LauncherHomeGesture.SWIPE_DOWN -> Keys.gestureSwipeDownAction
-                    LauncherHomeGesture.SWIPE_LEFT -> Keys.gestureSwipeLeftAction
-                    LauncherHomeGesture.SWIPE_RIGHT -> Keys.gestureSwipeRightAction
-                    LauncherHomeGesture.DOUBLE_TAP -> Keys.gestureDoubleTapAction
-                    LauncherHomeGesture.TAP_AND_HOLD -> Keys.gestureTapAndHoldAction
-                }
-                values[key] = action.storageValue
+    ): Job = scope.launch {
+        dataStore.edit { values ->
+            val key = when (gesture) {
+                LauncherHomeGesture.SWIPE_UP -> Keys.gestureSwipeUpAction
+                LauncherHomeGesture.SWIPE_DOWN -> Keys.gestureSwipeDownAction
+                LauncherHomeGesture.SWIPE_LEFT -> Keys.gestureSwipeLeftAction
+                LauncherHomeGesture.SWIPE_RIGHT -> Keys.gestureSwipeRightAction
+                LauncherHomeGesture.DOUBLE_TAP -> Keys.gestureDoubleTapAction
+                LauncherHomeGesture.TAP_AND_HOLD -> Keys.gestureTapAndHoldAction
             }
+            values[key] = action.storageValue
         }
     }
 
