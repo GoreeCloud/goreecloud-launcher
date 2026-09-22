@@ -169,6 +169,70 @@ enum class LauncherWallpaperShade(val storageValue: String) {
     }
 }
 
+
+enum class LauncherHomeGesture(val displayName: String) {
+    SWIPE_UP("Swipe up"),
+    SWIPE_DOWN("Swipe down"),
+    SWIPE_LEFT("Swipe left"),
+    SWIPE_RIGHT("Swipe right"),
+    DOUBLE_TAP("Double-tap"),
+    TAP_AND_HOLD("Tap and hold"),
+}
+
+enum class LauncherGestureActionType(
+    val storageValue: String,
+    val displayName: String,
+) {
+    NONE("none", "None"),
+    APPS("apps", "Apps"),
+    UNIVERSAL_SEARCH("universal_search", "Universal Search"),
+    LAUNCHER_SETTINGS("launcher_settings", "Launcher settings"),
+    HOME_EDITOR("home_editor", "Home editor"),
+    WALLPAPER("wallpaper", "Wallpaper"),
+    THEME_MANAGER("theme_manager", "Theme Manager"),
+    OPEN_APP("open_app", "Open app"),
+}
+
+data class LauncherGestureAction(
+    val type: LauncherGestureActionType,
+    val appKey: String? = null,
+) {
+    val storageValue: String
+        get() = when (type) {
+            LauncherGestureActionType.OPEN_APP ->
+                appKey?.takeIf { it.isNotBlank() }?.let { "app:$it" }
+                    ?: LauncherGestureActionType.NONE.storageValue
+            else -> type.storageValue
+        }
+
+    companion object {
+        fun builtIn(type: LauncherGestureActionType): LauncherGestureAction =
+            LauncherGestureAction(type = type)
+
+        fun openApp(appKey: String): LauncherGestureAction =
+            LauncherGestureAction(
+                type = LauncherGestureActionType.OPEN_APP,
+                appKey = appKey,
+            )
+
+        fun fromStorage(
+            value: String?,
+            fallback: LauncherGestureAction,
+        ): LauncherGestureAction {
+            if (value == null) return fallback
+            if (value.startsWith("app:")) {
+                val key = value.removePrefix("app:")
+                return if (key.isBlank()) fallback else openApp(key)
+            }
+
+            val type = LauncherGestureActionType.entries
+                .firstOrNull { it != LauncherGestureActionType.OPEN_APP && it.storageValue == value }
+                ?: return fallback
+            return builtIn(type)
+        }
+    }
+}
+
 data class LauncherExperiencePreferences(
     val homeCardStyle: LauncherHomeCardStyle = LauncherHomeCardStyle.CLOCK,
     val showHomeQuickActions: Boolean = false,
@@ -186,6 +250,18 @@ data class LauncherExperiencePreferences(
     val homeSpacing: LauncherHomeSpacing = LauncherHomeSpacing.BALANCED,
     val dockStyle: LauncherDockStyle = LauncherDockStyle.GLASS,
     val wallpaperShade: LauncherWallpaperShade = LauncherWallpaperShade.SOFT,
+    val swipeUpAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
+    val swipeDownAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH),
+    val swipeLeftAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+    val swipeRightAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+    val doubleTapAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+    val tapAndHoldAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.HOME_EDITOR),
     val starterLayoutApplied: Boolean = false,
 )
 
@@ -239,6 +315,12 @@ class LauncherPreferencesRepository(
         val homeSpacing = stringPreferencesKey("home_spacing")
         val dockStyle = stringPreferencesKey("dock_style")
         val wallpaperShade = stringPreferencesKey("wallpaper_shade")
+        val gestureSwipeUpAction = stringPreferencesKey("gesture_swipe_up_action")
+        val gestureSwipeDownAction = stringPreferencesKey("gesture_swipe_down_action")
+        val gestureSwipeLeftAction = stringPreferencesKey("gesture_swipe_left_action")
+        val gestureSwipeRightAction = stringPreferencesKey("gesture_swipe_right_action")
+        val gestureDoubleTapAction = stringPreferencesKey("gesture_double_tap_action")
+        val gestureTapAndHoldAction = stringPreferencesKey("gesture_tap_and_hold_action")
         val starterLayoutApplied = booleanPreferencesKey("starter_layout_applied")
         val homeLabelOverrides = stringPreferencesKey("home_label_overrides_v1")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
@@ -291,6 +373,30 @@ class LauncherPreferencesRepository(
                 homeSpacing = LauncherHomeSpacing.fromStorage(values[Keys.homeSpacing]),
                 dockStyle = LauncherDockStyle.fromStorage(values[Keys.dockStyle]),
                 wallpaperShade = LauncherWallpaperShade.fromStorage(values[Keys.wallpaperShade]),
+                swipeUpAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureSwipeUpAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
+                ),
+                swipeDownAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureSwipeDownAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH),
+                ),
+                swipeLeftAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureSwipeLeftAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+                ),
+                swipeRightAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureSwipeRightAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+                ),
+                doubleTapAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureDoubleTapAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+                ),
+                tapAndHoldAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureTapAndHoldAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.HOME_EDITOR),
+                ),
                 starterLayoutApplied = values[Keys.starterLayoutApplied] ?: false,
             )
         }
@@ -502,6 +608,25 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.wallpaperShade] = shade.storageValue
+            }
+        }
+    }
+
+    fun setGestureAction(
+        gesture: LauncherHomeGesture,
+        action: LauncherGestureAction,
+    ) {
+        scope.launch {
+            dataStore.edit { values ->
+                val key = when (gesture) {
+                    LauncherHomeGesture.SWIPE_UP -> Keys.gestureSwipeUpAction
+                    LauncherHomeGesture.SWIPE_DOWN -> Keys.gestureSwipeDownAction
+                    LauncherHomeGesture.SWIPE_LEFT -> Keys.gestureSwipeLeftAction
+                    LauncherHomeGesture.SWIPE_RIGHT -> Keys.gestureSwipeRightAction
+                    LauncherHomeGesture.DOUBLE_TAP -> Keys.gestureDoubleTapAction
+                    LauncherHomeGesture.TAP_AND_HOLD -> Keys.gestureTapAndHoldAction
+                }
+                values[key] = action.storageValue
             }
         }
     }
