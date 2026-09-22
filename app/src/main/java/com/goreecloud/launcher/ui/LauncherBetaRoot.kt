@@ -1342,7 +1342,7 @@ private fun HomeFavoriteTile(
     val iconSize = (50f * iconScale.coerceIn(0.85f, 1.15f)).dp
     val swipeThreshold = with(LocalDensity.current) { 42.dp.toPx() }
     val dragModifier = if (dragData != null) {
-        Modifier.dragAndDropSource { dragData.toTransferData() }
+        Modifier.dragAndDropSource(transferData = { _ -> dragData.toTransferData() })
     } else {
         Modifier
     }
@@ -3498,7 +3498,7 @@ private fun LauncherAppTile(
     val iconSize = (base * iconScale.coerceIn(0.85f, 1.15f)).dp
     val swipeThreshold = with(LocalDensity.current) { 42.dp.toPx() }
     val dragModifier = if (dragData != null) {
-        Modifier.dragAndDropSource { dragData.toTransferData() }
+        Modifier.dragAndDropSource(transferData = { _ -> dragData.toTransferData() })
     } else {
         Modifier
     }
@@ -3609,7 +3609,7 @@ private fun LauncherAppListRow(
     val icon = rememberLauncherAppIcon(app)
     val iconSize = (44f * iconScale.coerceIn(0.85f, 1.15f)).dp
     val dragModifier = if (dragData != null) {
-        Modifier.dragAndDropSource { dragData.toTransferData() }
+        Modifier.dragAndDropSource(transferData = { _ -> dragData.toTransferData() })
     } else {
         Modifier
     }
