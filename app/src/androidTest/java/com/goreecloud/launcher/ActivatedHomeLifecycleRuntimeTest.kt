@@ -27,6 +27,7 @@ import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativeWriteResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
+import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResult
 import com.goreecloud.launcher.core.workspace.db.WorkspacePrimaryHomeSpatialResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRoomPlacementRepository
@@ -366,6 +367,171 @@ class ActivatedHomeLifecycleRuntimeTest {
                 LauncherHomeGesture.SWIPE_DOWN,
                 previousSwipeDown,
             ).join()
+            if (!alreadyDefaultHome) {
+                runShellCommand(
+                    "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+                )
+            }
+        }
+    }
+
+    @Test
+    fun appManagementMovesBetweenPrimaryAndSecondaryHomePages() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val roleManager = context.getSystemService(RoleManager::class.java)
+        val alreadyDefaultHome =
+            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+
+        if (!alreadyDefaultHome) {
+            runShellCommand(
+                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+            )
+            withTimeout(10_000) {
+                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    delay(100)
+                }
+            }
+        }
+
+        var createdPageId: String? = null
+        var transferRuntime: WorkspaceProductionRuntimeCoordinator? = null
+
+        try {
+            val apps = withTimeout(10_000) {
+                LauncherAppsRepository(context).apps.first { candidates ->
+                    candidates.any { it.componentName.packageName != context.packageName }
+                }
+            }
+            val candidate = apps.first { it.componentName.packageName != context.packageName }
+            val candidateKey = candidate.workspaceKey()
+            val repository = WorkspaceRepository(context)
+            repository.ensureDefaults(
+                favoriteKeys = listOf(candidateKey),
+                dockKeys = emptyList(),
+            )
+
+            val scenario = ActivityScenario.launch(MainActivity::class.java)
+            try {
+                withTimeout(15_000) {
+                    repository.state.first { it.authority == WorkspaceAuthority.ROOM }
+                }
+
+                val preferences = LauncherPreferencesRepository(context).preferences.first()
+                val dao = LauncherDatabaseProvider.get(context).workspaceDao()
+                val roomPlacement = WorkspaceRoomPlacementRepository(
+                    authorityRepository = repository,
+                    workspaceDaoProvider = { dao },
+                )
+                val baseline = roomPlacement.replace(
+                    favoriteKeys = listOf(candidateKey),
+                    dockKeys = emptyList(),
+                    homeGrid = WorkspaceGridPlacement.Grid(
+                        columns = preferences.homeColumns,
+                        rows = preferences.homeRows,
+                    ),
+                )
+                check(baseline is WorkspaceRoomWriteResult.Written)
+
+                val runtime = WorkspaceProductionRuntimeCoordinator(
+                    authorityRepository = repository,
+                    workspaceDaoProvider = { dao },
+                )
+                transferRuntime = runtime
+                val pageId = "home:test-transfer:" + System.nanoTime()
+                val created = runtime.createHomePage(pageId)
+                check(created is WorkspacePagedRoomMutationResult.CreatedPage)
+                createdPageId = pageId
+
+                waitForDisplayedLabel(candidate.label.toString())
+
+                val primaryItem = withTimeout(10_000) {
+                    var item = dao
+                        .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                        .singleOrNull { it.appKey == candidateKey }
+                    while (item?.cellX == null || item.cellY == null) {
+                        delay(100)
+                        item = dao
+                            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                            .singleOrNull { it.appKey == candidateKey }
+                    }
+                    checkNotNull(item)
+                }
+                val primaryCellTag =
+                    "launcher-home-cell-${checkNotNull(primaryItem.cellX)}-${checkNotNull(primaryItem.cellY)}"
+
+                composeRule
+                    .onNodeWithTag(primaryCellTag, useUnmergedTree = true)
+                    .performTouchInput {
+                        down(center)
+                        advanceEventTime(700)
+                        up()
+                    }
+
+                val secondaryTargetLabel = "Page ${created.rank + 1} · 0 apps"
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithText(secondaryTargetLabel, useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText(secondaryTargetLabel, useUnmergedTree = true)
+                    .performClick()
+
+                withTimeout(10_000) {
+                    while (
+                        dao.readItems(listOf(pageId))
+                            .singleOrNull { it.appKey == candidateKey } == null
+                    ) {
+                        delay(100)
+                    }
+                }
+                waitForDisplayedLabel(candidate.label.toString())
+
+                composeRule
+                    .onNodeWithText(candidate.label.toString(), useUnmergedTree = true)
+                    .performTouchInput {
+                        down(center)
+                        advanceEventTime(700)
+                        up()
+                    }
+
+                val primaryTargetLabel = "Page 1 · 0 apps"
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithText(primaryTargetLabel, useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText(primaryTargetLabel, useUnmergedTree = true)
+                    .performClick()
+
+                val returned = withTimeout(10_000) {
+                    var item = dao
+                        .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                        .singleOrNull { it.appKey == candidateKey }
+                    while (item == null) {
+                        delay(100)
+                        item = dao
+                            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                            .singleOrNull { it.appKey == candidateKey }
+                    }
+                    item
+                }
+                check(returned.cellX in 0 until preferences.homeColumns)
+                check(returned.cellY in 0 until preferences.homeRows)
+                waitForDisplayedLabel(candidate.label.toString())
+            } finally {
+                scenario.close()
+            }
+        } finally {
+            val pageId = createdPageId
+            val runtime = transferRuntime
+            if (pageId != null && runtime != null) {
+                runCatching { runtime.deleteEmptyHomePage(pageId) }
+            }
             if (!alreadyDefaultHome) {
                 runShellCommand(
                     "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
