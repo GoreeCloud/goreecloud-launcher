@@ -220,11 +220,50 @@ class WorkspaceProductionRuntimeCoordinator(
         sourcePageId: String,
         appKey: String,
         targetPageId: String,
+        primaryColumns: Int? = null,
+        primaryRows: Int? = null,
     ): WorkspacePagedRoomMutationResult {
+        val primaryBoundary =
+            sourcePageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
+                targetPageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+        val primaryGrid = if (primaryBoundary) {
+            val columns = primaryColumns
+                ?: return WorkspacePagedRoomMutationResult.PrimaryPageProtected
+            val rows = primaryRows
+                ?: return WorkspacePagedRoomMutationResult.PrimaryPageProtected
+            when (val ready = ensurePrimaryHomeSpatialGrid(columns, rows)) {
+                is WorkspacePrimaryHomeSpatialResult.Ready -> {
+                    runCatching { WorkspaceGridPlacement.Grid(columns, rows) }.getOrNull()
+                        ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
+                }
+                WorkspacePrimaryHomeSpatialResult.Reserved -> {
+                    return WorkspacePagedRoomMutationResult.Reserved
+                }
+                WorkspacePrimaryHomeSpatialResult.Unavailable -> {
+                    return WorkspacePagedRoomMutationResult.Unavailable
+                }
+                WorkspacePrimaryHomeSpatialResult.InvalidWorkspace -> {
+                    return WorkspacePagedRoomMutationResult.InvalidWorkspace
+                }
+                WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged -> {
+                    return WorkspacePagedRoomMutationResult.StoredWorkspaceChanged
+                }
+                is WorkspacePrimaryHomeSpatialResult.Failed -> {
+                    return WorkspacePagedRoomMutationResult.Failed(ready.failureType)
+                }
+                is WorkspacePrimaryHomeSpatialResult.Moved -> {
+                    return WorkspacePagedRoomMutationResult.InvalidWorkspace
+                }
+            }
+        } else {
+            null
+        }
+
         val result = homeItemPageMover.moveAppToPage(
             sourcePageId = sourcePageId,
             appKey = appKey,
             targetPageId = targetPageId,
+            primaryGrid = primaryGrid,
         )
         if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
             refresh()
