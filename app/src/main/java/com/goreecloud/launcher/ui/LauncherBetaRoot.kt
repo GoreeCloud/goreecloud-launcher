@@ -597,7 +597,6 @@ private fun HomeSurface(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-
             if (experiencePreferences.showHomeQuickActions) {
                 HomeQuickActions(
                     onOpenApps = onOpenDrawer,
@@ -1398,11 +1397,21 @@ private fun LauncherUniversalSearchSurface(
     val providers = remember(apps) {
         LauncherBuiltInSearchProviderRegistry.providers(apps)
     }
-    val results = remember(providers, query) {
-        LauncherUniversalSearch.search(
+    val executionPolicy = remember {
+        com.goreecloud.launcher.core.launcher.LauncherSearchExecutionPolicy.cancellationOnly()
+    }
+    var results by remember(providers, query) {
+        mutableStateOf<List<LauncherSearchResult>>(emptyList())
+    }
+    var searchCompleted by remember(providers, query) { mutableStateOf(false) }
+
+    LaunchedEffect(providers, query) {
+        results = LauncherUniversalSearch.searchAsync(
             rawQuery = query,
             providers = providers,
+            policy = executionPolicy,
         )
+        searchCompleted = true
     }
 
     Box(
@@ -1463,7 +1472,11 @@ private fun LauncherUniversalSearchSurface(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        "No Launcher results match “" + query.trim() + "”",
+                        if (searchCompleted) {
+                            "No Launcher results match “" + query.trim() + "”"
+                        } else {
+                            "Searching…"
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
