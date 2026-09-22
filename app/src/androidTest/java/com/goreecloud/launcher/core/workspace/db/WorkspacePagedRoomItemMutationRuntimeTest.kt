@@ -123,6 +123,23 @@ class WorkspacePagedRoomItemMutationRuntimeTest {
         assertEquals(0, targetItems.getValue(MOVED_ITEM).cellX)
         assertEquals(0, targetItems.getValue(MOVED_ITEM).cellY)
 
+        val beforePrimaryWithoutGrid = dao
+            .readItems(listOf(TARGET_PAGE))
+            .associateBy { it.itemId }
+        assertEquals(
+            WorkspacePagedRoomMutationResult.PrimaryPageProtected,
+            repository.moveHomeItem(
+                grid = grid,
+                itemId = MOVED_ITEM,
+                targetPageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                targetPlacement = WorkspaceGridPlacement.Placement(MOVED_ITEM, 0, 0),
+            ),
+        )
+        assertEquals(
+            beforePrimaryWithoutGrid,
+            dao.readItems(listOf(TARGET_PAGE)).associateBy { it.itemId },
+        )
+
         val beforeRejectedMove = dao.readItems(listOf(TARGET_PAGE)).associateBy { it.itemId }
         assertEquals(
             WorkspacePagedRoomMutationResult.InvalidWorkspace,

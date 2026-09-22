@@ -294,6 +294,8 @@ class MainActivity : ComponentActivity() {
                                             sourcePageId = selectedPage.pageId,
                                             appKey = app.workspaceKey(),
                                             targetPageId = targetPageId,
+                                            homeColumns = launcherPreferences.homeColumns,
+                                            homeRows = launcherPreferences.homeRows,
                                         )
                                         if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
                                             selectedHomePageId = result.pageId
@@ -334,6 +336,7 @@ class MainActivity : ComponentActivity() {
                             homePageCount = renderedPages.size.coerceAtLeast(1),
                             homeResetSequence = homeResetSequenceValue,
                             homeLabelOverrides = homeLabelOverrides,
+                            homePages = renderedPages,
                             primaryHomePage = renderedPages.firstOrNull {
                                 it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
                             },
@@ -391,6 +394,22 @@ class MainActivity : ComponentActivity() {
                                             cellX = cellX,
                                             cellY = cellY,
                                         )
+                                    }
+                                }
+                            },
+                            onMoveFavoriteToPage = { app, targetPageId ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
+                                            sourcePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                                            appKey = app.workspaceKey(),
+                                            targetPageId = targetPageId,
+                                            homeColumns = launcherPreferences.homeColumns,
+                                            homeRows = launcherPreferences.homeRows,
+                                        )
+                                        if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
+                                            selectedHomePageId = result.pageId
+                                        }
                                     }
                                 }
                             },

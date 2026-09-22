@@ -262,9 +262,7 @@ fun ReadOnlyPagedHomeSurface(
         page.appKeys.mapNotNull(appsByKey::get)
     }
     val targetPages = remember(pages, page.pageId) {
-        pages.filterNot {
-            it.pageId == page.pageId || it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
-        }
+        pages.filterNot { it.pageId == page.pageId }
     }
 
     // The activity window asks Android to draw the system wallpaper underneath Launcher.

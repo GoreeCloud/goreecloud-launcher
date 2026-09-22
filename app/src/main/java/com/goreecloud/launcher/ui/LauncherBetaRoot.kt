@@ -94,7 +94,9 @@ import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceState
+import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
+import com.goreecloud.launcher.core.workspace.db.context
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeAtmosphere
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
@@ -123,6 +125,7 @@ fun LauncherBetaRoot(
     homePageCount: Int,
     homeResetSequence: Long,
     homeLabelOverrides: Map<String, String>,
+    homePages: List<WorkspaceRenderedHomePage>,
     primaryHomePage: WorkspaceRenderedHomePage?,
     onManageHomePages: () -> Unit,
     isDefaultHome: Boolean,
@@ -132,6 +135,7 @@ fun LauncherBetaRoot(
     onToggleDock: (LauncherActivityInfo) -> Unit,
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveFavoriteToCell: (LauncherActivityInfo, Int, Int) -> Unit,
+    onMoveFavoriteToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveDock: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onSetHomeLabelOverride: (LauncherActivityInfo, String?) -> Unit,
     onRequestUninstall: (LauncherActivityInfo) -> Unit,
@@ -366,6 +370,12 @@ fun LauncherBetaRoot(
             onToggleDock = { onToggleDock(app) },
             onMoveFavorite = { onMoveFavorite(app, it) },
             onMoveDock = { onMoveDock(app, it) },
+            targetHomePages = homePages.filterNot {
+                it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+            },
+            onMoveFavoriteToPage = { targetPageId ->
+                onMoveFavoriteToPage(app, targetPageId)
+            },
             homeLabelOverride = homeLabelOverrides[app.workspaceKey()],
             onSetHomeLabelOverride = { onSetHomeLabelOverride(app, it) },
             onRequestUninstall = { onRequestUninstall(app) },
@@ -3409,6 +3419,8 @@ private fun AppPlacementDialog(
     onToggleDock: () -> Unit,
     onMoveFavorite: (WorkspaceMoveDirection) -> Unit,
     onMoveDock: (WorkspaceMoveDirection) -> Unit,
+    targetHomePages: List<WorkspaceRenderedHomePage>,
+    onMoveFavoriteToPage: (String) -> Unit,
     homeLabelOverride: String?,
     onSetHomeLabelOverride: (String?) -> Unit,
     onRequestUninstall: () -> Unit,
@@ -3456,6 +3468,22 @@ private fun AppPlacementDialog(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = { onMoveDock(WorkspaceMoveDirection.EARLIER) }) { Text("Dock left") }
                         TextButton(onClick = { onMoveDock(WorkspaceMoveDirection.LATER) }) { Text("Dock right") }
+                    }
+                }
+
+                if (isFavorite && targetHomePages.isNotEmpty()) {
+                    Text("Move to another Home page", fontWeight = FontWeight.SemiBold)
+                    targetHomePages.forEach { target ->
+                        FilledTonalButton(
+                            onClick = {
+                                onMoveFavoriteToPage(target.pageId)
+                                onClose()
+                            },
+                            enabled = !layoutLocked,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(target.context().moveTargetLabel(target.rank + 1))
+                        }
                     }
                 }
 

@@ -133,13 +133,13 @@ Secondary authoritative Room pages render as ordinary icon grids. Tap an icon to
 
 When Home layout is unlocked, current secondary management actions can request:
 
-- move to another authoritative secondary Home page;
+- move to another authoritative Home page, including the protected-rank Page 1 primary Home when spatial state is valid;
 - move earlier/later to the nearest permitted free cell; and
 - exact one-cell moves left/right/up/down.
 
 These controls are intentionally behind long-press rather than permanently displayed under every icon. Current mutation callbacks are blocked while layout lock is enabled.
 
-The primary Home page supports authoritative within-page cell placement while remaining protected at HOME rank zero. Primary-to-secondary and secondary-to-primary page transfer remain separately gated.
+The primary Home page supports authoritative within-page cell placement while remaining protected at HOME rank zero. Long-press app management can explicitly move a primary app to a secondary Home page; secondary app management can move it back to Page 1. Return placement must fit the configured primary grid or the mutation fails closed.
 
 Exact-cell requests fail closed if the target is occupied or outside the authoritative grid. Secondary spatial mutations also fail closed when authority/placement health is invalid or when the workspace changes during the transaction. Unsupported item types are reported rather than falsely rendered as applications.
 
@@ -173,7 +173,7 @@ Naming a platform system does not mean every integration is currently implemente
 
 ## Current limitations
 
-Still incomplete or separately gated include mature cross-page drag/drop editing; primary↔secondary spatial movement; folders; shortcuts; widgets/AppWidgetHost; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
+Still incomplete or separately gated include mature cross-page drag/drop editing; folders; shortcuts; widgets/AppWidgetHost; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
 
 # Approved future product direction — not currently available
 

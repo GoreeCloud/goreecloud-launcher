@@ -15,9 +15,11 @@ enum class WorkspaceHomeSpatialDirection {
 }
 
 /**
- * Chooses deterministic placements for existing secondary HOME applications, then delegates every
- * write to [WorkspacePagedRoomMutationRepository.moveHomeItem]. The protected primary compatibility
- * page remains outside the spatial grid until a separately accepted primary-grid migration exists.
+ * Chooses deterministic placements for existing HOME applications, then delegates every write to
+ * [WorkspacePagedRoomMutationRepository.moveHomeItem]. Primary-page cross-page transfer is allowed
+ * only after the caller supplies the accepted configured primary grid; within-primary cell moves
+ * remain owned by [WorkspacePrimaryHomeSpatialRepository].
+ *
  * The preflight read never carries write authority: the delegated mutation re-reads and validates
  * the complete HOME snapshot.
  */
@@ -30,6 +32,8 @@ class WorkspaceHomeItemPageMover(
         sourcePageId: String,
         appKey: String,
         targetPageId: String,
+        homeColumns: Int,
+        homeRows: Int,
     ): WorkspacePagedRoomMutationResult {
         if (sourcePageId.isBlank() || appKey.isBlank() || targetPageId.isBlank()) {
             return WorkspacePagedRoomMutationResult.InvalidWorkspace
@@ -37,13 +41,20 @@ class WorkspaceHomeItemPageMover(
         if (sourcePageId == targetPageId) {
             return WorkspacePagedRoomMutationResult.InvalidWorkspace
         }
-        if (
+        val primaryGrid = runCatching {
+            WorkspaceGridPlacement.Grid(columns = homeColumns, rows = homeRows)
+        }.getOrNull() ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        val touchesPrimary =
             sourcePageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
-            targetPageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                targetPageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+
+        val context = when (
+            val read = readMoveContext(
+                sourcePageId = sourcePageId,
+                appKey = appKey,
+                includePrimary = touchesPrimary,
+            )
         ) {
-            return WorkspacePagedRoomMutationResult.PrimaryPageProtected
-        }
-        val context = when (val read = readMoveContext(sourcePageId, appKey)) {
             is MoveContextResult.Ready -> read.context
             is MoveContextResult.Failed -> return read.result
         }
@@ -51,18 +62,34 @@ class WorkspaceHomeItemPageMover(
             return WorkspacePagedRoomMutationResult.PageNotFound
         }
 
-        val grid = deriveGrid(context.items, context.source)
+        val domainGrid = if (touchesPrimary) {
+            deriveDomainGrid(context.items, context.source, primaryGrid)
+                ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        } else {
+            deriveGrid(context.items, context.source)
+        }
+        val targetGrid = if (touchesPrimary) {
+            deriveTargetGrid(
+                items = context.items,
+                source = context.source,
+                targetPageId = targetPageId,
+                primaryGrid = primaryGrid,
+            ) ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        } else {
+            domainGrid
+        }
         val targetPlacements = context.items
             .filter { it.pageId == targetPageId && it.itemId != context.source.itemId }
             .map(::toPlacement)
-        val target = firstAvailablePlacement(grid, targetPlacements, context.source)
+        val target = firstAvailablePlacement(targetGrid, targetPlacements, context.source)
             ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
 
         return mutationRepository.moveHomeItem(
-            grid = grid,
+            grid = domainGrid,
             itemId = context.source.itemId,
             targetPageId = targetPageId,
             targetPlacement = target,
+            primaryGrid = primaryGrid.takeIf { touchesPrimary },
         )
     }
 
@@ -77,7 +104,13 @@ class WorkspaceHomeItemPageMover(
         if (pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
             return WorkspacePagedRoomMutationResult.PrimaryPageProtected
         }
-        val context = when (val read = readMoveContext(pageId, appKey)) {
+        val context = when (
+            val read = readMoveContext(
+                sourcePageId = pageId,
+                appKey = appKey,
+                includePrimary = false,
+            )
+        ) {
             is MoveContextResult.Ready -> read.context
             is MoveContextResult.Failed -> return read.result
         }
@@ -112,7 +145,13 @@ class WorkspaceHomeItemPageMover(
         if (pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
             return WorkspacePagedRoomMutationResult.PrimaryPageProtected
         }
-        val context = when (val read = readMoveContext(pageId, appKey)) {
+        val context = when (
+            val read = readMoveContext(
+                sourcePageId = pageId,
+                appKey = appKey,
+                includePrimary = false,
+            )
+        ) {
             is MoveContextResult.Ready -> read.context
             is MoveContextResult.Failed -> return read.result
         }
@@ -154,7 +193,11 @@ class WorkspaceHomeItemPageMover(
         )
     }
 
-    private suspend fun readMoveContext(sourcePageId: String, appKey: String): MoveContextResult {
+    private suspend fun readMoveContext(
+        sourcePageId: String,
+        appKey: String,
+        includePrimary: Boolean,
+    ): MoveContextResult {
         val state = authorityRepository.state.first()
         if (!state.initialized || state.authority != WorkspaceAuthority.ROOM) {
             return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.Reserved)
@@ -171,13 +214,15 @@ class WorkspaceHomeItemPageMover(
                 return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.InvalidWorkspace)
             }
             val items = dao.readItems(pages.map { it.pageId })
-            val spatialItems = items.filterNot {
-                it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+            val movementItems = if (includePrimary) {
+                items
+            } else {
+                items.filterNot { it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID }
             }
-            if (spatialItems.any { it.cellX == null || it.cellY == null }) {
+            if (movementItems.any { it.cellX == null || it.cellY == null }) {
                 return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.InvalidWorkspace)
             }
-            val candidates = spatialItems.filter {
+            val candidates = movementItems.filter {
                 it.pageId == sourcePageId &&
                     it.itemType == WorkspaceItemType.APP &&
                     it.appKey == appKey
@@ -188,7 +233,7 @@ class WorkspaceHomeItemPageMover(
             if (candidates.size != 1) {
                 return MoveContextResult.Failed(WorkspacePagedRoomMutationResult.InvalidWorkspace)
             }
-            MoveContextResult.Ready(MoveContext(pages, spatialItems, candidates.single()))
+            MoveContextResult.Ready(MoveContext(pages, movementItems, candidates.single()))
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
@@ -207,6 +252,38 @@ class WorkspaceHomeItemPageMover(
         val columns = maxOf(MIN_HOME_COLUMNS, existingColumns, source.spanX)
         val rows = maxOf(1, existingRows + source.spanY)
         return WorkspaceGridPlacement.Grid(columns = columns, rows = rows)
+    }
+
+    private fun deriveDomainGrid(
+        items: List<WorkspaceItemEntity>,
+        source: WorkspaceItemEntity,
+        primaryGrid: WorkspaceGridPlacement.Grid,
+    ): WorkspaceGridPlacement.Grid? {
+        val existingColumns = items.maxOfOrNull { checkNotNull(it.cellX) + it.spanX } ?: 0
+        if (existingColumns > primaryGrid.columns || source.spanX > primaryGrid.columns) return null
+        val existingRows = items.maxOfOrNull { checkNotNull(it.cellY) + it.spanY } ?: 0
+        val rows = maxOf(primaryGrid.rows, existingRows, source.spanY)
+        return runCatching {
+            WorkspaceGridPlacement.Grid(columns = primaryGrid.columns, rows = rows)
+        }.getOrNull()
+    }
+
+    private fun deriveTargetGrid(
+        items: List<WorkspaceItemEntity>,
+        source: WorkspaceItemEntity,
+        targetPageId: String,
+        primaryGrid: WorkspaceGridPlacement.Grid,
+    ): WorkspaceGridPlacement.Grid? {
+        if (targetPageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) return primaryGrid
+        val targetRows = items
+            .asSequence()
+            .filter { it.pageId == targetPageId && it.itemId != source.itemId }
+            .maxOfOrNull { checkNotNull(it.cellY) + it.spanY }
+            ?: 0
+        val rows = maxOf(primaryGrid.rows, targetRows + source.spanY)
+        return runCatching {
+            WorkspaceGridPlacement.Grid(columns = primaryGrid.columns, rows = rows)
+        }.getOrNull()
     }
 
     private fun firstAvailablePlacement(
@@ -296,4 +373,5 @@ class WorkspaceHomeItemPageMover(
     private companion object {
         const val MIN_HOME_COLUMNS = 4
     }
+
 }

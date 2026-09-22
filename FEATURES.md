@@ -35,7 +35,7 @@ Current source includes:
 - App launch from rendered secondary Home pages.
 - Secondary Home pages rendered as ordinary icon grids instead of engineering panels.
 - Secondary app movement controls hidden behind long-press management rather than permanently displayed under each app.
-- App movement between authoritative secondary Home pages.
+- Explicit app movement between primary and secondary Home pages, plus secondary-to-secondary movement, through authoritative long-press management controls; return to primary is bounded by the configured primary grid.
 - Within-secondary-page nearest-free-cell earlier/later movement.
 - Guarded exact one-cell movement left/right/up/down that fails closed on occupied or out-of-bounds targets.
 - Guarded primary-Home compatibility-to-spatial migration in terminal Room authority, preserving rank-zero page identity while enabling persistent configured-grid cell placement, empty-cell drops, and occupied-cell swaps.
@@ -93,7 +93,6 @@ Important incomplete or separately gated work includes:
 - Production visual-identity review of the branding-assets-backed Launcher derivatives across required Android/system surfaces.
 - Production Room-authority recovery acceptance for the complete intended workspace experience.
 - Mature cross-page drag/drop and direct live span editing.
-- Primary-to-secondary/secondary-to-primary spatial item movement.
 - Populated-page deletion with recovery/undo semantics.
 - Complete folders, shortcuts, widgets/AppWidgetHost, folder/widget editing, and richer workspace editing.
 - Layout-lock enforcement and interaction acceptance for future placeable item types once folders, shortcuts, and widgets are implemented, plus representative-device five-second-hold acceptance.
