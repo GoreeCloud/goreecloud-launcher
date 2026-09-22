@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record.**  
-**Repository authority baseline:** `main` at `009371938ac3cab041cfb0893ede68e66e211a4f` (PR #201 merged September 22, 2026).  
+**Repository authority baseline:** `main` at `439943d7918e4d04e9f7bf62707dc55d4a2898cd` (PR #205 merged September 22, 2026).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation
@@ -15,7 +15,7 @@ Partially implemented capabilities remain open obligations in `PLANNED-FEATURES.
 
 ## Current verified source baseline
 
-The current repository `main` head is `009371938ac3cab041cfb0893ede68e66e211a4f`, the documentation/governance-only merge of PR #201. The latest source-bearing Launcher runtime remains `ec6640dda8522244d57a947db083aecb8b9cfe33`, the merge of PR #199, **Persist Universal Search provider preferences**. PR #199 exact head `5646ce68d998ec96797d29a8c470df96c6ceac57` passed Android CI run #620 / `35710385034` across validation, build, unit/schema checks, Development APK staging, Android 16 Room/runtime, and Android 16 transition-performance emulator lanes before merge. PR #201 exact head `bb9f5f7d2a91b771875b2aa4222d98b012bb7bda` passed Android CI run #635 across validation/build/unit/schema/APK staging plus both Android 16 emulator lanes before the repository-record migration was merged.
+The current repository `main` head and latest source-bearing Launcher runtime are `439943d7918e4d04e9f7bf62707dc55d4a2898cd`, the guarded squash merge of PR #205, **Cancel superseded Launcher icon preload work**. PR #205 exact head `f6696f4933b073e355c08e3871bd1f7365b4ceac` passed Android CI run #643 / `35758277303` across validation, build, unit/schema checks, Development APK staging, Android 16 Room/runtime, and Android 16 transition-performance emulator lanes before merge. Exact merged `main` then passed push Android CI run #644 / `35759394496` across the same configured validation and Android 16 emulator lanes. PR #205 builds on PR #199's provider-preference persistence and later repository-governance reconciliation without changing the Launcher lifecycle boundary.
 
 This is Development evidence. It does not establish physical-device performance, complete accessibility, personal/work/Shelter/private-space acceptance, Quickstep/Recents compatibility, complete Integral Platform System acceptance, protected production signing/distribution, Release Candidate, production, or Stable qualification.
 
@@ -52,6 +52,13 @@ This is Development evidence. It does not establish physical-device performance,
 - User Apps / Work Apps projection from Android `LauncherApps` inventory when non-primary profile inventory exists.
 - Search result identity labels that distinguish User and Work application matches where applicable.
 - Removal of the duplicate rendered drawer-search control so the Launcher-owned Universal Search surface remains the primary general Search experience.
+
+### Performance and icon handling
+
+- Shared process-local LRU caching for Android-provided badged launcher icons with package/profile invalidation stamps and single-flight cold-load sharing.
+- Bounded background icon warming with a 12 MiB cache budget, up to 128 candidates, and controlled batches of three while visible cold icons retain lazy fallback behavior.
+- Latest-snapshot preload ownership from PR #205: a new authoritative `LauncherApps` inventory warm request cancels the superseded preload tail, and complete cache/profile-topology invalidation cancels background preload work before generation reset. Already-started single-flight decodes remain reusable by newer callers, while stamp checks prevent invalidated results from re-entering the cache.
+- Transition diagnostics and Android 16 transition-performance emulator coverage remain available for Development validation; representative physical-device performance acceptance remains separate.
 
 ### Launcher settings and appearance
 
@@ -107,6 +114,7 @@ The PR #199 provider-control store remains deliberately separate from the strict
 | PR #195 | Exact head `f37fa1af628bf272946c79bccf57e3a846ae3ba6`; CI `35702386949`; merge `957f21a7a8904ee455c029e61d8a45466b725ed9` | UI-facing Search grouping and descriptive non-invoking explicit-handoff entries |
 | PR #198 | Exact head `74cf28e2cc989e3e88d3cdd3e252dd69be45a71e`; CI `35707597053`; merge `d2600bc3f0b2fce6d3c8d524a8aef536e43cd1cb`; merged-main CI `35708430142` | Versioned provider enable/order serialization contract |
 | PR #199 | Exact head `5646ce68d998ec96797d29a8c470df96c6ceac57`; CI `35710385034`; merge `ec6640dda8522244d57a947db083aecb8b9cfe33` | Dedicated DataStore persistence for provider enable/order controls |
+| PR #205 | Exact head `f6696f4933b073e355c08e3871bd1f7365b4ceac`; Android CI #643 / `35758277303`; merge `439943d7918e4d04e9f7bf62707dc55d4a2898cd`; merged-main Android CI #644 / `35759394496` | Cancel superseded background icon-preload tails while preserving bounded cache, invalidation, and single-flight behavior |
 
 ## Material limitations
 
