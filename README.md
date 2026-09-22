@@ -141,9 +141,9 @@ Still incomplete or separately gated:
 - complete Theme Manager behavior, icon-pack discovery/application, icon masking, Deep Dark, wallpaper palettes, expression controls, and broader configurable gestures;
 - representative-device Theme Manager navigation/persistence/accessibility, focus order, and spoken-announcement timing acceptance;
 - layout-lock coverage for future folders/shortcuts/widgets once those item types are implemented, plus representative physical-device five-second-hold acceptance;
-- embedded/polished Index result presentation beyond the current activity handoff;
-- Index providers for files/photos/documents/contacts/calendar and first-party searchable-content contracts;
-- GoreeCloud Search provider implementation in Index;
+- expanded Launcher Universal Search presentation beyond the current installed-app provider foundation;
+- Launcher providers for files/photos/documents/contacts/calendar, settings/actions, and first-party searchable-content contracts;
+- optional GoreeCloud Search and GoreeCloud Index provider/backend integrations once separately stable;
 - versioned local Launcher backup/restore plus later authorized continuity integrations;
 - complete production Launcher identity acceptance;
 - complete Glaze Theme Engine behavior;
