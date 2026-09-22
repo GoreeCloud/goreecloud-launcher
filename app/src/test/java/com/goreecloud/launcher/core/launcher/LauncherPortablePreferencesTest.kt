@@ -17,7 +17,7 @@ class LauncherPortablePreferencesTest {
             showLabels = false,
             iconScale = 1.15f,
             layoutLocked = true,
-            indexHomeMode = GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
+            universalSearchHomeMode = LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
         )
 
         val first = LauncherPortablePreferences.encode(preferences)
