@@ -122,6 +122,9 @@ class ActivatedHomeLifecycleRuntimeTest {
         val roleManager = context.getSystemService(RoleManager::class.java)
         val alreadyDefaultHome =
             roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+        val preferencesRepository = LauncherPreferencesRepository(context)
+        val previousSwipeUp = preferencesRepository.experiencePreferences.first().swipeUpAction
+        val appsAction = LauncherGestureAction.builtIn(LauncherGestureActionType.APPS)
 
         if (!alreadyDefaultHome) {
             runShellCommand(
@@ -166,6 +169,15 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
 
                 waitForDisplayedLabel(candidate.label.toString())
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-home-swipe-up-apps",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
 
                 composeRule
                     .onNodeWithText(candidate.label.toString(), useUnmergedTree = true)
@@ -189,6 +201,15 @@ class ActivatedHomeLifecycleRuntimeTest {
                 scenario.close()
             }
         } finally {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.SWIPE_UP,
+                previousSwipeUp,
+            )
+            withTimeout(30_000) {
+                preferencesRepository.experiencePreferences.first {
+                    it.swipeUpAction == previousSwipeUp
+                }
+            }
             if (!alreadyDefaultHome) {
                 runShellCommand(
                     "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
@@ -443,10 +464,20 @@ class ActivatedHomeLifecycleRuntimeTest {
                     }
 
                 composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule.onAllNodesWithText("Launcher settings", useUnmergedTree = true)
+                    composeRule
+                        .onAllNodesWithText(
+                            "Home, apps, dock, search and Glaze",
+                            useUnmergedTree = true,
+                        )
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
+                composeRule
+                    .onNodeWithText(
+                        "Home, apps, dock, search and Glaze",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
                 Unit
             } finally {
                 scenario.close()
