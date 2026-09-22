@@ -138,6 +138,11 @@ class ActivatedHomeLifecycleRuntimeTest {
         }
 
         try {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.SWIPE_UP,
+                appsAction,
+            ).join()
+
             val apps = withTimeout(10_000) {
                 LauncherAppsRepository(context).apps.first { candidates ->
                     candidates.any { it.componentName.packageName != context.packageName }
@@ -204,12 +209,7 @@ class ActivatedHomeLifecycleRuntimeTest {
             preferencesRepository.setGestureAction(
                 LauncherHomeGesture.SWIPE_UP,
                 previousSwipeUp,
-            )
-            withTimeout(30_000) {
-                preferencesRepository.experiencePreferences.first {
-                    it.swipeUpAction == previousSwipeUp
-                }
-            }
+            ).join()
             if (!alreadyDefaultHome) {
                 runShellCommand(
                     "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
@@ -417,12 +417,7 @@ class ActivatedHomeLifecycleRuntimeTest {
             preferencesRepository.setGestureAction(
                 LauncherHomeGesture.SWIPE_UP,
                 configuredAction,
-            )
-            withTimeout(30_000) {
-                preferencesRepository.experiencePreferences.first {
-                    it.swipeUpAction == configuredAction
-                }
-            }
+            ).join()
 
             val apps = withTimeout(30_000) {
                 LauncherAppsRepository(context).apps.first { candidates ->
@@ -486,12 +481,7 @@ class ActivatedHomeLifecycleRuntimeTest {
             preferencesRepository.setGestureAction(
                 LauncherHomeGesture.SWIPE_UP,
                 previousSwipeUp,
-            )
-            withTimeout(30_000) {
-                preferencesRepository.experiencePreferences.first {
-                    it.swipeUpAction == previousSwipeUp
-                }
-            }
+            ).join()
             if (!alreadyDefaultHome) {
                 runShellCommand(
                     "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
