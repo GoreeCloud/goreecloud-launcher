@@ -415,7 +415,10 @@ class MainActivity : ComponentActivity() {
                             onSetHomeSpacing = launcherPreferencesRepository::setHomeSpacing,
                             onSetDockStyle = launcherPreferencesRepository::setDockStyle,
                             onSetWallpaperShade = launcherPreferencesRepository::setWallpaperShade,
-                            onSetGestureAction = launcherPreferencesRepository::setGestureAction,
+                            onSetGestureAction = { gesture, action ->
+                                launcherPreferencesRepository.setGestureAction(gesture, action)
+                                Unit
+                            },
                             onSetHomeLabelOverride = { app, label ->
                                 launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
                             },
