@@ -518,7 +518,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                             .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
                             .singleOrNull { it.appKey == candidateKey }
                     }
-                    item
+                    checkNotNull(item)
                 }
                 check(returned.cellX in 0 until preferences.homeColumns)
                 check(returned.cellY in 0 until preferences.homeRows)
