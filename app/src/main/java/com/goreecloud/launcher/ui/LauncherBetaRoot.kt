@@ -88,6 +88,13 @@ import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegist
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
 import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
+import com.goreecloud.launcher.core.launcher.LauncherSearchExplicitHandoffProvider
+import com.goreecloud.launcher.core.launcher.LauncherSearchPresentationPolicy
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderInvocationMode
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderUserControlPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchResult
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
@@ -122,6 +129,7 @@ fun LauncherBetaRoot(
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
+    searchProviderPreferences: LauncherSearchProviderPreferenceDecodeResult?,
     homePageCount: Int,
     homeResetSequence: Long,
     homeLabelOverrides: Map<String, String>,
@@ -146,6 +154,8 @@ fun LauncherBetaRoot(
     onSetIconScale: (Float) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
     onSetUniversalSearchHomeMode: (LauncherUniversalSearchHomeMode) -> Unit,
+    onSetSearchProviderPreferences: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
+    onResetSearchProviderPreferences: () -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
     onSetShowHomePageIndicator: (Boolean) -> Unit,
@@ -265,6 +275,9 @@ fun LauncherBetaRoot(
             )
             LauncherSurfaceMode.SEARCH -> LauncherUniversalSearchSurface(
                 apps = apps,
+                searchProviderPreferences = searchProviderPreferences,
+                onSetSearchProviderPreferences = onSetSearchProviderPreferences,
+                onResetSearchProviderPreferences = onResetSearchProviderPreferences,
                 onLaunchApp = onLaunchApp,
                 onNavigate = { destination ->
                     when (destination) {
@@ -1391,13 +1404,39 @@ private fun EmptyWorkspaceCard(
 @Composable
 private fun LauncherUniversalSearchSurface(
     apps: List<LauncherActivityInfo>,
+    searchProviderPreferences: LauncherSearchProviderPreferenceDecodeResult?,
+    onSetSearchProviderPreferences: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
+    onResetSearchProviderPreferences: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onNavigate: (LauncherSearchDestination) -> Unit,
     onBack: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val providers = remember(apps) {
-        LauncherBuiltInSearchProviderRegistry.providers(apps)
+    var showSources by rememberSaveable { mutableStateOf(false) }
+    val catalog = remember(apps) {
+        LauncherBuiltInSearchProviderRegistry.catalog(apps)
+    }
+    val providerControls = remember(catalog, searchProviderPreferences) {
+        searchProviderPreferences?.let { persisted ->
+            LauncherSearchProviderUserControlPolicy.normalize(
+                catalog = catalog,
+                persistedPreferences = persisted,
+            )
+        } ?: LauncherSearchProviderUserControlPolicy.normalize(
+            catalog = catalog,
+            requestedEnabledProviderIds = emptySet(),
+            requestedProviderOrder = emptyList(),
+        )
+    }
+    val providers = remember(catalog, providerControls, searchProviderPreferences) {
+        if (searchProviderPreferences == null) {
+            emptyList()
+        } else {
+            LauncherSearchProviderUserControlPolicy.automaticProviders(
+                catalog = catalog,
+                state = providerControls,
+            )
+        }
     }
     val executionPolicy = remember {
         com.goreecloud.launcher.core.launcher.LauncherSearchExecutionPolicy.cancellationOnly()
@@ -1405,15 +1444,32 @@ private fun LauncherUniversalSearchSurface(
     var results by remember(providers, query) {
         mutableStateOf<List<LauncherSearchResult>>(emptyList())
     }
-    var searchCompleted by remember(providers, query) { mutableStateOf(false) }
+    var searchCompleted by remember(providers, query, searchProviderPreferences) {
+        mutableStateOf(false)
+    }
 
-    LaunchedEffect(providers, query) {
+    LaunchedEffect(providers, query, searchProviderPreferences) {
+        if (searchProviderPreferences == null) {
+            results = emptyList()
+            searchCompleted = false
+            return@LaunchedEffect
+        }
+
+        searchCompleted = false
         results = LauncherUniversalSearch.searchAsync(
             rawQuery = query,
             providers = providers,
             policy = executionPolicy,
         )
         searchCompleted = true
+    }
+
+    val presentation = remember(query, results, providerControls) {
+        LauncherSearchPresentationPolicy.arrange(
+            rawQuery = query,
+            rankedResults = results,
+            providerControls = providerControls,
+        )
     }
 
     Box(
@@ -1442,74 +1498,393 @@ private fun LauncherUniversalSearchSurface(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
                     Text(
-                        "Universal Search",
+                        if (showSources) "Search Sources" else "Universal Search",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        "Launcher-owned local search and actions",
+                        if (showSources) {
+                            "Local source controls and privacy boundaries"
+                        } else {
+                            "Launcher-owned local search and actions"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                GlazeTextAction("Done", onBack)
+                Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
+                    GlazeTextAction(
+                        if (showSources) "Results" else "Sources",
+                    ) {
+                        showSources = !showSources
+                    }
+                    GlazeTextAction("Done", onBack)
+                }
             }
 
-            GlazeAppSearchField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier.fillMaxWidth(),
-                requestFocus = true,
-                placeholder = "Search apps, settings and actions",
-                inputTestTag = "launcher-universal-search-field",
-            )
-
-            if (results.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        if (searchCompleted) {
-                            "No Launcher results match “" + query.trim() + "”"
-                        } else {
-                            "Searching…"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+            if (showSources) {
+                LauncherSearchProviderManager(
+                    persistedPreferences = searchProviderPreferences,
+                    controls = providerControls,
+                    onSetPreferences = onSetSearchProviderPreferences,
+                    onResetPreferences = onResetSearchProviderPreferences,
+                    modifier = Modifier.weight(1f),
+                )
             } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                    contentPadding = PaddingValues(bottom = GlazeMetrics.space3),
-                ) {
-                    lazyItems(
-                        items = results,
-                        key = { result -> result.providerId + ":" + result.resultId },
-                    ) { result ->
-                        LauncherUniversalSearchResultRow(
-                            result = result,
-                            onClick = {
-                                when (val action = result.action) {
-                                    is LaunchApplicationSearchAction -> onLaunchApp(action.app)
-                                    is LauncherNavigateSearchAction -> onNavigate(action.destination)
-                                    null -> Unit
-                                    else -> Unit
-                                }
+                GlazeAppSearchField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    requestFocus = true,
+                    placeholder = "Search apps, settings and actions",
+                    inputTestTag = "launcher-universal-search-field",
+                )
+
+                val hasPresentedResults =
+                    presentation.hasLocalResults || presentation.hasExplicitHandoffProviders
+                if (!hasPresentedResults) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            when {
+                                searchProviderPreferences == null ->
+                                    "Loading local Search sources…"
+                                providers.isEmpty() ->
+                                    "Automatic local Search sources are disabled. Open Sources to enable one."
+                                !searchCompleted ->
+                                    "Searching…"
+                                query.isBlank() ->
+                                    "No local Launcher results are available."
+                                else ->
+                                    "No Launcher results match “" + query.trim() + "”"
                             },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                        contentPadding = PaddingValues(bottom = GlazeMetrics.space3),
+                    ) {
+                        if (presentation.applicationResults.isNotEmpty()) {
+                            item(key = "launcher-search-apps-heading") {
+                                LauncherSearchSectionHeader(
+                                    title = "Apps",
+                                    count = presentation.applicationResults.size,
+                                )
+                            }
+                            lazyItems(
+                                items = presentation.applicationResults,
+                                key = { result -> result.providerId + ":" + result.resultId },
+                            ) { result ->
+                                LauncherUniversalSearchResultRow(
+                                    result = result,
+                                    onClick = {
+                                        when (val action = result.action) {
+                                            is LaunchApplicationSearchAction -> onLaunchApp(action.app)
+                                            is LauncherNavigateSearchAction -> onNavigate(action.destination)
+                                            null -> Unit
+                                            else -> Unit
+                                        }
+                                    },
+                                )
+                            }
+                        }
+
+                        if (presentation.actionAndSettingResults.isNotEmpty()) {
+                            item(key = "launcher-search-actions-heading") {
+                                LauncherSearchSectionHeader(
+                                    title = "Launcher actions and settings",
+                                    count = presentation.actionAndSettingResults.size,
+                                )
+                            }
+                            lazyItems(
+                                items = presentation.actionAndSettingResults,
+                                key = { result -> result.providerId + ":" + result.resultId },
+                            ) { result ->
+                                LauncherUniversalSearchResultRow(
+                                    result = result,
+                                    onClick = {
+                                        when (val action = result.action) {
+                                            is LaunchApplicationSearchAction -> onLaunchApp(action.app)
+                                            is LauncherNavigateSearchAction -> onNavigate(action.destination)
+                                            null -> Unit
+                                            else -> Unit
+                                        }
+                                    },
+                                )
+                            }
+                        }
+
+                        if (presentation.explicitHandoffProviders.isNotEmpty()) {
+                            item(key = "launcher-search-handoff-heading") {
+                                LauncherSearchSectionHeader(
+                                    title = "Explicit handoff sources",
+                                    count = presentation.explicitHandoffProviders.size,
+                                )
+                            }
+                            lazyItems(
+                                items = presentation.explicitHandoffProviders,
+                                key = { provider -> provider.providerId },
+                            ) { provider ->
+                                LauncherSearchExplicitHandoffRow(provider)
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun LauncherSearchProviderManager(
+    persistedPreferences: LauncherSearchProviderPreferenceDecodeResult?,
+    controls: LauncherSearchProviderControlState,
+    onSetPreferences: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
+    onResetPreferences: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val controlsReady = persistedPreferences != null
+    val statusMessage = when (persistedPreferences) {
+        null ->
+            "Loading saved source controls. Automatic Search stays off until loading completes."
+        LauncherSearchProviderPreferenceDecodeResult.Absent ->
+            "Using privacy-safe local defaults. Source choices stay on this device."
+        is LauncherSearchProviderPreferenceDecodeResult.Loaded ->
+            "Using your saved source choices. Only enabled automatic-local sources receive typed queries."
+        is LauncherSearchProviderPreferenceDecodeResult.Invalid ->
+            "Saved source controls could not be read. Automatic Search is disabled until you reset or choose a source."
+        is LauncherSearchProviderPreferenceDecodeResult.UnsupportedVersion ->
+            "Saved source controls use an unsupported version. Automatic Search is disabled until you reset or choose a source."
+    }
+
+    LazyColumn(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("launcher-search-source-manager"),
+        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        contentPadding = PaddingValues(bottom = GlazeMetrics.space3),
+    ) {
+        item(key = "launcher-search-source-policy") {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(GlazeMetrics.space3),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    Text(
+                        "Privacy-first provider controls",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        statusMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "Network, remote-processing, authorization-requiring, retaining, and third-party sources are never sent typed queries automatically.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(
+                        onClick = onResetPreferences,
+                        enabled = controlsReady,
+                    ) {
+                        Text("Use safe defaults")
+                    }
+                }
+            }
+        }
+
+        lazyItems(
+            items = controls.orderedOptions,
+            key = { option -> option.providerId },
+        ) { option ->
+            val providerIndex = controls.orderedOptions.indexOfFirst {
+                it.providerId == option.providerId
+            }
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.64f),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(GlazeMetrics.space3),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                option.displayName,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                option.privacySummary,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                when (option.invocationMode) {
+                                    LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL ->
+                                        "Automatic local source"
+                                    LauncherSearchProviderInvocationMode.EXPLICIT_USER_HANDOFF ->
+                                        "Explicit handoff only"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        Switch(
+                            checked = controls.isEnabled(option.providerId),
+                            onCheckedChange = { enabled ->
+                                onSetPreferences(
+                                    LauncherSearchProviderUserControlPolicy.withProviderEnabled(
+                                        state = controls,
+                                        providerId = option.providerId,
+                                        enabled = enabled,
+                                    ),
+                                )
+                            },
+                            enabled = controlsReady,
+                            modifier = Modifier.testTag(
+                                "launcher-search-source-" + option.providerId,
+                            ),
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        TextButton(
+                            onClick = {
+                                onSetPreferences(
+                                    LauncherSearchProviderUserControlPolicy.moveProviderBy(
+                                        state = controls,
+                                        providerId = option.providerId,
+                                        offset = -1,
+                                    ),
+                                )
+                            },
+                            enabled = controlsReady && providerIndex > 0,
+                        ) {
+                            Text("Earlier")
+                        }
+                        TextButton(
+                            onClick = {
+                                onSetPreferences(
+                                    LauncherSearchProviderUserControlPolicy.moveProviderBy(
+                                        state = controls,
+                                        providerId = option.providerId,
+                                        offset = 1,
+                                    ),
+                                )
+                            },
+                            enabled = controlsReady &&
+                                providerIndex >= 0 &&
+                                providerIndex < controls.orderedOptions.lastIndex,
+                        ) {
+                            Text("Later")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherSearchSectionHeader(
+    title: String,
+    count: Int,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = GlazeMetrics.space1),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            count.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun LauncherSearchExplicitHandoffRow(
+    provider: LauncherSearchExplicitHandoffProvider,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.56f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(GlazeMetrics.space3),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                provider.displayName,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                provider.privacySummary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "Explicit handoff required · query not sent automatically",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
