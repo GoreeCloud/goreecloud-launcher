@@ -33,7 +33,7 @@ class LauncherPreferencesTest {
         val defaults = LauncherPreferences()
 
         assertFalse(defaults.layoutLocked)
-        assertEquals(GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY, defaults.indexHomeMode)
+        assertEquals(LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY, defaults.universalSearchHomeMode)
     }
 
     @Test
@@ -129,18 +129,18 @@ class LauncherPreferencesTest {
     }
 
     @Test
-    fun indexHomeModeStorageDecodingFailsSafeToPermanent() {
+    fun universalSearchHomeModeStorageDecodingFailsSafeToPermanent() {
         assertEquals(
-            GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
-            GoreeCloudIndexHomeMode.fromStorage("swipe_down_only"),
+            LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
+            LauncherUniversalSearchHomeMode.fromStorage("swipe_down_only"),
         )
         assertEquals(
-            GoreeCloudIndexHomeMode.PERMANENT,
-            GoreeCloudIndexHomeMode.fromStorage("unknown"),
+            LauncherUniversalSearchHomeMode.PERMANENT,
+            LauncherUniversalSearchHomeMode.fromStorage("unknown"),
         )
         assertEquals(
-            GoreeCloudIndexHomeMode.PERMANENT,
-            GoreeCloudIndexHomeMode.fromStorage(null),
+            LauncherUniversalSearchHomeMode.PERMANENT,
+            LauncherUniversalSearchHomeMode.fromStorage(null),
         )
     }
 }
