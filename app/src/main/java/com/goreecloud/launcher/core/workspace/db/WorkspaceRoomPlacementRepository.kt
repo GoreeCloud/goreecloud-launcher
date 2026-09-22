@@ -66,15 +66,74 @@ class WorkspaceRoomPlacementRepository(
         if (!isRoomAuthoritative()) return WorkspaceRoomWriteResult.Reserved
         val workspaceDao = workspaceDaoOrNull() ?: return WorkspaceRoomWriteResult.Unavailable
         val normalized = WorkspaceRoomPlacementModel.normalize(favoriteKeys, dockKeys)
-        val expected = WorkspaceLegacyImportMapper.map(
-            favoriteKeys = normalized.favoriteKeys,
-            dockKeys = normalized.dockKeys,
-        )
 
         return try {
+            val currentPrimary = workspaceDao
+                .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                .sortedBy { it.rank }
+            val currentCompatibility = currentPrimary.all { it.cellX == null && it.cellY == null }
+            val currentSpatial = currentPrimary.all { it.cellX != null && it.cellY != null }
+            if (!currentCompatibility && !currentSpatial) {
+                return WorkspaceRoomWriteResult.Mismatch
+            }
+
+            val expected = WorkspaceLegacyImportMapper.map(
+                favoriteKeys = normalized.favoriteKeys,
+                dockKeys = normalized.dockKeys,
+            )
+            val expectedDock = expected.items.filter {
+                it.pageId == WorkspaceLegacyImportMapper.DOCK_PAGE_ID
+            }
+            val currentByKey = currentPrimary
+                .mapNotNull { item -> item.appKey?.let { it to item } }
+                .toMap()
+            if (currentByKey.size != currentPrimary.size) {
+                return WorkspaceRoomWriteResult.Mismatch
+            }
+
+            val primaryItems = if (currentPrimary.isNotEmpty() && currentCompatibility) {
+                expected.items.filter { it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID }
+            } else {
+                val columns = maxOf(
+                    WorkspacePrimaryHomeGridMigrationPlanner.PRIMARY_HOME_COLUMNS,
+                    (currentPrimary.mapNotNull { it.cellX }.maxOrNull() ?: -1) + 1,
+                )
+                val occupied = mutableSetOf<Pair<Int, Int>>()
+                val retained = normalized.favoriteKeys.mapNotNull(currentByKey::get)
+                retained.forEach { item ->
+                    val x = item.cellX ?: return WorkspaceRoomWriteResult.Mismatch
+                    val y = item.cellY ?: return WorkspaceRoomWriteResult.Mismatch
+                    if (x < 0 || y < 0 || !occupied.add(x to y)) {
+                        return WorkspaceRoomWriteResult.Mismatch
+                    }
+                }
+
+                normalized.favoriteKeys.mapIndexed { rank, appKey ->
+                    currentByKey[appKey]?.copy(rank = rank)
+                        ?: run {
+                            var index = 0
+                            var coordinate: Pair<Int, Int>
+                            do {
+                                coordinate = (index % columns) to (index / columns)
+                                index += 1
+                            } while (coordinate in occupied)
+                            occupied.add(coordinate)
+                            WorkspaceItemEntity(
+                                itemId = "legacy:home:$appKey",
+                                pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                                itemType = WorkspaceItemType.APP,
+                                appKey = appKey,
+                                rank = rank,
+                                cellX = coordinate.first,
+                                cellY = coordinate.second,
+                            )
+                        }
+                }
+            }
+
             workspaceDao.replaceLegacySnapshot(
                 pages = expected.pages,
-                items = expected.items,
+                items = primaryItems + expectedDock,
             )
             val actual = WorkspaceCanonicalRoomPlacementReader.read(workspaceDao)
                 ?: return WorkspaceRoomWriteResult.Mismatch
