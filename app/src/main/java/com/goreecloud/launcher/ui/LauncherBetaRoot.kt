@@ -85,6 +85,7 @@ import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
 import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegistry
+import com.goreecloud.launcher.core.launcher.LauncherInstalledAppsSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
 import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
