@@ -174,6 +174,61 @@ class WorkspaceRepository(
         }
     }
 
+    suspend fun moveHomeToDock(key: String, targetDockKey: String?) {
+        mutateDragPlacement { current ->
+            WorkspaceDragPlacementPolicy.moveHomeToDock(
+                favoriteKeys = current.favoriteKeys,
+                dockKeys = current.dockKeys,
+                key = key,
+                targetDockKey = targetDockKey,
+            )
+        }
+    }
+
+    suspend fun moveDockToHome(key: String, homeLimit: Int) {
+        mutateDragPlacement { current ->
+            WorkspaceDragPlacementPolicy.moveDockToHome(
+                favoriteKeys = current.favoriteKeys,
+                dockKeys = current.dockKeys,
+                key = key,
+                homeLimit = homeLimit,
+            )
+        }
+    }
+
+    suspend fun copyDrawerToHome(key: String, homeLimit: Int) {
+        mutateDragPlacement { current ->
+            WorkspaceDragPlacementPolicy.copyDrawerToHome(
+                favoriteKeys = current.favoriteKeys,
+                dockKeys = current.dockKeys,
+                key = key,
+                homeLimit = homeLimit,
+            )
+        }
+    }
+
+    suspend fun copyDrawerToDock(key: String, targetDockKey: String?) {
+        mutateDragPlacement { current ->
+            WorkspaceDragPlacementPolicy.copyDrawerToDock(
+                favoriteKeys = current.favoriteKeys,
+                dockKeys = current.dockKeys,
+                key = key,
+                targetDockKey = targetDockKey,
+            )
+        }
+    }
+
+    suspend fun reorderDockByDrop(key: String, targetDockKey: String?) {
+        mutateDragPlacement { current ->
+            WorkspaceDragPlacementPolicy.reorderDock(
+                favoriteKeys = current.favoriteKeys,
+                dockKeys = current.dockKeys,
+                key = key,
+                targetDockKey = targetDockKey,
+            )
+        }
+    }
+
     suspend fun markRoomVerified(expectedState: WorkspaceState): Boolean {
         if (!expectedState.initialized) return false
         val expectedFingerprint = WorkspaceSnapshotFingerprint.of(expectedState)
@@ -229,6 +284,25 @@ class WorkspaceRepository(
         }
 
         return promoted
+    }
+
+    private suspend fun mutateDragPlacement(
+        transform: (WorkspaceDragPlacement) -> WorkspaceDragPlacement,
+    ) {
+        dataStore.edit { preferences ->
+            if (authorityOf(preferences) == WorkspaceAuthority.ROOM) return@edit
+            invalidateRoomVerification(preferences)
+            val current = WorkspaceDragPlacement(
+                favoriteKeys = WorkspaceCodec.decode(preferences[Keys.favorites]),
+                dockKeys = WorkspaceCodec.decode(preferences[Keys.dock]),
+            )
+            val updated = transform(current)
+            preferences[Keys.favorites] = WorkspaceCodec.encode(updated.favoriteKeys.distinct())
+            preferences[Keys.dock] = WorkspaceCodec.encode(
+                updated.dockKeys.distinct().take(MAX_DOCK_ITEMS)
+            )
+            preferences[Keys.initialized] = true
+        }
     }
 
     private fun decodeState(preferences: Preferences): WorkspaceState = WorkspaceState(
