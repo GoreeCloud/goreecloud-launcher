@@ -97,6 +97,100 @@ class LauncherSearchProviderUserControlPolicyTest {
     }
 
     @Test
+    fun absentPersistedStateUsesDefaultsButInvalidAndUnsupportedFailClosed() {
+        val first = registration(providerId = "first")
+        val second = registration(providerId = "second")
+        val catalog = LauncherSearchProviderContract.evaluate(listOf(first, second))
+
+        val absent = LauncherSearchProviderUserControlPolicy.normalize(
+            catalog = catalog,
+            persistedPreferences = LauncherSearchProviderPreferenceDecodeResult.Absent,
+        )
+        assertEquals(setOf("first", "second"), absent.enabledProviderIds)
+
+        val invalid = LauncherSearchProviderUserControlPolicy.normalize(
+            catalog = catalog,
+            persistedPreferences = LauncherSearchProviderPreferenceDecodeResult.Invalid(
+                LauncherSearchProviderPreferenceInvalidReason.INVALID_STRUCTURE,
+            ),
+        )
+        assertTrue(invalid.enabledProviderIds.isEmpty())
+        assertTrue(LauncherSearchProviderUserControlPolicy.automaticProviders(catalog, invalid).isEmpty())
+
+        val unsupported = LauncherSearchProviderUserControlPolicy.normalize(
+            catalog = catalog,
+            persistedPreferences = LauncherSearchProviderPreferenceDecodeResult.UnsupportedVersion(2),
+        )
+        assertTrue(unsupported.enabledProviderIds.isEmpty())
+        assertTrue(LauncherSearchProviderUserControlPolicy.automaticProviders(catalog, unsupported).isEmpty())
+    }
+
+    @Test
+    fun loadedPersistedStatePreservesExplicitSelectionAndOrder() {
+        val first = registration(providerId = "first")
+        val second = registration(providerId = "second")
+        val catalog = LauncherSearchProviderContract.evaluate(listOf(first, second))
+        val persisted = LauncherSearchProviderPreferenceDecodeResult.Loaded(
+            LauncherSearchProviderPreferenceSnapshot(
+                enabledProviderIds = setOf("second"),
+                providerOrder = listOf("second", "first"),
+            ),
+        )
+
+        val state = LauncherSearchProviderUserControlPolicy.normalize(
+            catalog = catalog,
+            persistedPreferences = persisted,
+        )
+
+        assertEquals(listOf("second", "first"), state.orderedOptions.map { it.providerId })
+        assertEquals(setOf("second"), state.enabledProviderIds)
+        assertEquals(listOf("second"), automaticProviderIds(catalog, state))
+    }
+
+    @Test
+    fun providerControlMutationsPersistOnlyKnownProvidersAndPreserveEnablement() {
+        val first = registration(providerId = "first")
+        val second = registration(providerId = "second")
+        val catalog = LauncherSearchProviderContract.evaluate(listOf(first, second))
+        val state = LauncherSearchProviderUserControlPolicy.normalize(
+            catalog = catalog,
+            requestedEnabledProviderIds = setOf("first"),
+            requestedProviderOrder = listOf("first", "second"),
+        )
+
+        val disabled = LauncherSearchProviderUserControlPolicy.withProviderEnabled(
+            state = state,
+            providerId = "first",
+            enabled = false,
+        )
+        assertTrue(disabled.enabledProviderIds.isEmpty())
+        assertEquals(listOf("first", "second"), disabled.providerOrder)
+
+        val unknown = LauncherSearchProviderUserControlPolicy.withProviderEnabled(
+            state = state,
+            providerId = "unknown",
+            enabled = true,
+        )
+        assertEquals(setOf("first"), unknown.enabledProviderIds)
+        assertEquals(listOf("first", "second"), unknown.providerOrder)
+
+        val moved = LauncherSearchProviderUserControlPolicy.moveProviderBy(
+            state = state,
+            providerId = "second",
+            offset = -1,
+        )
+        assertEquals(setOf("first"), moved.enabledProviderIds)
+        assertEquals(listOf("second", "first"), moved.providerOrder)
+
+        val outOfBounds = LauncherSearchProviderUserControlPolicy.moveProviderBy(
+            state = state,
+            providerId = "first",
+            offset = -1,
+        )
+        assertEquals(listOf("first", "second"), outOfBounds.providerOrder)
+    }
+
+    @Test
     fun requestedOrderDropsUnknownAndDuplicatesThenAppendsNewProviders() {
         val first = registration(providerId = "first")
         val second = registration(providerId = "second")
