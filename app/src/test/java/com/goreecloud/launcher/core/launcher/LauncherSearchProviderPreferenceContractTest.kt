@@ -102,6 +102,20 @@ class LauncherSearchProviderPreferenceContractTest {
     }
 
     @Test
+    fun base64ProviderIdWithMalformedUtf8FailsClosed() {
+        val result = LauncherSearchProviderPreferenceContract.decode(
+            "goreecloud-launcher-search-provider-preferences-v1\nenabled=wyg\norder=",
+        )
+
+        assertEquals(
+            LauncherSearchProviderPreferenceDecodeResult.Invalid(
+                LauncherSearchProviderPreferenceInvalidReason.INVALID_PROVIDER_ID_ENCODING,
+            ),
+            result,
+        )
+    }
+
+    @Test
     fun duplicateProviderIdsAreRejectedDuringDecode() {
         val result = LauncherSearchProviderPreferenceContract.decode(
             "goreecloud-launcher-search-provider-preferences-v1\nenabled=ZHVwbGljYXRl,ZHVwbGljYXRl\norder=",
