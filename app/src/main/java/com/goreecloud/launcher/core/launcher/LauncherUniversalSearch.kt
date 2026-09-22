@@ -395,19 +395,22 @@ object LauncherBuiltInSearchProviderRegistry {
     fun providers(apps: List<LauncherActivityInfo>): List<LauncherSearchProvider> =
         catalog(apps).providers
 
-    private fun builtInRegistration(
-        provider: LauncherSearchProvider,
-    ): LauncherSearchProviderRegistration = LauncherSearchProviderRegistration(
-        provider = provider,
-        metadata = LauncherSearchProviderMetadata(
-            providerId = provider.id,
+    internal fun metadataFor(providerId: String): LauncherSearchProviderMetadata =
+        LauncherSearchProviderMetadata(
+            providerId = providerId,
             contractVersion = LauncherSearchProviderContract.currentVersion,
             provenance = LauncherSearchProviderProvenance.LAUNCHER_BUILT_IN,
             offlineBehavior = LauncherSearchOfflineBehavior.LOCAL_ONLY,
             authorizationRequirement = LauncherSearchAuthorizationRequirement.NONE,
             remoteProcessing = LauncherSearchRemoteProcessing.NONE,
             queryRetention = LauncherSearchQueryRetention.NONE,
-        ),
+        )
+
+    private fun builtInRegistration(
+        provider: LauncherSearchProvider,
+    ): LauncherSearchProviderRegistration = LauncherSearchProviderRegistration(
+        provider = provider,
+        metadata = metadataFor(provider.id),
     )
 }
 
