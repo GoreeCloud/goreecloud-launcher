@@ -184,7 +184,6 @@ enum class LauncherGestureActionType(
     val displayName: String,
 ) {
     NONE("none", "None"),
-    HOME("home", "Home"),
     APPS("apps", "Apps"),
     UNIVERSAL_SEARCH("universal_search", "Universal Search"),
     LAUNCHER_SETTINGS("launcher_settings", "Launcher settings"),
