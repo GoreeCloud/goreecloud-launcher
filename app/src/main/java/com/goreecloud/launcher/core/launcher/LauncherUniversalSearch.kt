@@ -181,16 +181,16 @@ object LauncherSearchProviderContract {
     fun evaluate(
         registrations: List<LauncherSearchProviderRegistration>,
     ): LauncherSearchProviderCatalog {
-        val seenIds = mutableSetOf<String>()
+        val acceptedIds = mutableSetOf<String>()
         val accepted = mutableListOf<LauncherSearchProviderRegistration>()
         val rejected = mutableListOf<LauncherSearchProviderRejection>()
 
         registrations.forEach { registration ->
             val providerId = registration.provider.id
             val rejectionReason = when {
-                !seenIds.add(providerId) -> LauncherSearchProviderRejectionReason.DUPLICATE_PROVIDER_ID
                 !isCompatible(registration.metadata.contractVersion) ->
                     LauncherSearchProviderRejectionReason.INCOMPATIBLE_CONTRACT_VERSION
+                !acceptedIds.add(providerId) -> LauncherSearchProviderRejectionReason.DUPLICATE_PROVIDER_ID
                 else -> null
             }
 
