@@ -2,6 +2,7 @@ package com.goreecloud.launcher.ui
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherActivityInfo
+import android.os.Process
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -70,6 +71,7 @@ import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerEntryMode
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDrawerNavigation
+import com.goreecloud.launcher.core.launcher.LauncherDrawerProfileKind
 import com.goreecloud.launcher.core.launcher.LauncherDrawerSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherDrawerSpacing
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
@@ -83,7 +85,6 @@ import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
 import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegistry
-import com.goreecloud.launcher.core.launcher.LauncherInstalledAppsSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
 import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
@@ -91,6 +92,7 @@ import com.goreecloud.launcher.core.launcher.LauncherSearchResult
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
+import com.goreecloud.launcher.core.launcher.launcherDrawerProfilePages
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceState
@@ -1588,6 +1590,7 @@ private fun LauncherUniversalSearchResultRow(
 }
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 private fun AppDrawerSurface(
     apps: List<LauncherActivityInfo>,
     preferences: LauncherPreferences,
@@ -1599,24 +1602,31 @@ private fun AppDrawerSurface(
     onHome: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
-    val installedAppsProvider = remember(apps) {
-        LauncherInstalledAppsSearchProvider(apps)
+    val primaryUser = remember { Process.myUserHandle() }
+    val profilePages = remember(apps, primaryUser) {
+        launcherDrawerProfilePages(
+            items = apps,
+            primaryUser = primaryUser,
+            userOf = { app -> app.user },
+        )
     }
-    val filteredApps = remember(installedAppsProvider, query) {
-        LauncherUniversalSearch.search(
-            rawQuery = query,
-            providers = listOf(installedAppsProvider),
-        ).mapNotNull { result ->
-            (result.action as? LaunchApplicationSearchAction)?.app
+    var selectedProfileName by rememberSaveable {
+        mutableStateOf(LauncherDrawerProfileKind.USER.name)
+    }
+    val selectedProfileKind = runCatching {
+        LauncherDrawerProfileKind.valueOf(selectedProfileName)
+    }.getOrDefault(LauncherDrawerProfileKind.USER)
+    val selectedPage = profilePages.firstOrNull { page -> page.kind == selectedProfileKind }
+        ?: profilePages.first()
+
+    LaunchedEffect(profilePages.map { page -> page.kind }, selectedProfileKind) {
+        if (profilePages.none { page -> page.kind == selectedProfileKind }) {
+            selectedProfileName = LauncherDrawerProfileKind.USER.name
         }
     }
+
     val dismissThreshold = with(LocalDensity.current) { 56.dp.toPx() }
     val glass = experiencePreferences.drawerBackdrop == LauncherDrawerBackdrop.GLASS
-    val searchAtBottom =
-        experiencePreferences.drawerSearchPlacement == LauncherDrawerSearchPlacement.BOTTOM
-    val searchFirst =
-        experiencePreferences.drawerEntryMode == LauncherDrawerEntryMode.SEARCH_FIRST
     val drawerSurfaceColor = if (glass) {
         GlazeAtmosphere.canvasBlack.copy(alpha = 0.76f)
     } else {
@@ -1626,6 +1636,12 @@ private fun AppDrawerSurface(
         Color.White.copy(alpha = 0.68f)
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val layoutDescription = when (drawerLayoutMode) {
+        LauncherDrawerLayoutMode.GRID -> "Grid · ${preferences.drawerColumns} columns"
+        LauncherDrawerLayoutMode.COMPACT -> "Compact · ${preferences.drawerColumns} columns"
+        LauncherDrawerLayoutMode.LIST -> "Alphabetical list"
+        LauncherDrawerLayoutMode.CATEGORY -> "Grouped by app category"
     }
 
     Box(
@@ -1704,24 +1720,15 @@ private fun AppDrawerSurface(
                 ) {
                     Column {
                         Text(
-                            if (searchFirst) "Search apps" else "Apps",
+                            selectedPage.kind.displayName,
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            when {
-                                query.isNotBlank() ->
-                                    filteredApps.size.toString() + " matches"
-                                searchFirst ->
-                                    "Type to filter installed apps"
-                                experiencePreferences.showDrawerAppCount ->
-                                    filteredApps.size.toString() + " installed"
-                                else -> when (drawerLayoutMode) {
-                                    LauncherDrawerLayoutMode.GRID -> "Grid · ${preferences.drawerColumns} columns"
-                                    LauncherDrawerLayoutMode.COMPACT -> "Compact · ${preferences.drawerColumns} columns"
-                                    LauncherDrawerLayoutMode.LIST -> "Alphabetical list"
-                                    LauncherDrawerLayoutMode.CATEGORY -> "Grouped by app category"
-                                }
+                            if (experiencePreferences.showDrawerAppCount) {
+                                selectedPage.items.size.toString() + " installed · " + layoutDescription
+                            } else {
+                                layoutDescription
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = drawerSecondaryColor,
@@ -1733,39 +1740,107 @@ private fun AppDrawerSurface(
                     }
                 }
 
-                if (!searchAtBottom) {
+                if (profilePages.size > 1) {
                     Spacer(Modifier.height(GlazeMetrics.space3))
-                    GlazeAppSearchField(
-                        value = query,
-                        onValueChange = { query = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        darkSurface = glass,
-                        requestFocus = focusSearch,
+                    DrawerProfileTabs(
+                        pages = profilePages.map { page -> page.kind to page.items.size },
+                        selected = selectedPage.kind,
+                        onSelect = { kind -> selectedProfileName = kind.name },
+                        secondaryColor = drawerSecondaryColor,
                     )
                 }
 
                 Spacer(Modifier.height(GlazeMetrics.space2))
-                DrawerAppsContent(
-                    apps = filteredApps,
-                    query = query,
-                    preferences = preferences,
-                    drawerLayoutMode = drawerLayoutMode,
-                    experiencePreferences = experiencePreferences,
-                    onLaunchApp = onLaunchApp,
-                    onManageApp = onManageApp,
-                    onDismiss = onHome,
-                    secondaryColor = drawerSecondaryColor,
-                    modifier = Modifier.weight(1f),
-                )
+                if (selectedPage.items.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "No apps are available in " + selectedPage.kind.displayName + ".",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = drawerSecondaryColor,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                } else {
+                    DrawerAppsContent(
+                        apps = selectedPage.items,
+                        query = "",
+                        preferences = preferences,
+                        drawerLayoutMode = drawerLayoutMode,
+                        experiencePreferences = experiencePreferences,
+                        onLaunchApp = onLaunchApp,
+                        onManageApp = onManageApp,
+                        onDismiss = onHome,
+                        secondaryColor = drawerSecondaryColor,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+    }
+}
 
-                if (searchAtBottom) {
-                    Spacer(Modifier.height(GlazeMetrics.space2))
-                    GlazeAppSearchField(
-                        value = query,
-                        onValueChange = { query = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        darkSurface = glass,
-                        requestFocus = focusSearch,
+@Composable
+private fun DrawerProfileTabs(
+    pages: List<Pair<LauncherDrawerProfileKind, Int>>,
+    selected: LauncherDrawerProfileKind,
+    onSelect: (LauncherDrawerProfileKind) -> Unit,
+    secondaryColor: Color,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("launcher-drawer-profile-tabs"),
+        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+    ) {
+        pages.forEach { (kind, count) ->
+            val isSelected = kind == selected
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(
+                        if (kind == LauncherDrawerProfileKind.USER) {
+                            "launcher-drawer-profile-user"
+                        } else {
+                            "launcher-drawer-profile-work"
+                        },
+                    ),
+                onClick = { onSelect(kind) },
+                shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                } else {
+                    Color.Transparent
+                },
+                border = BorderStroke(
+                    1.dp,
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.46f)
+                    } else {
+                        secondaryColor.copy(alpha = 0.20f)
+                    },
+                ),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        kind.displayName + " · " + count,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            secondaryColor
+                        },
+                        maxLines = 1,
                     )
                 }
             }
@@ -2190,6 +2265,7 @@ private fun DrawerPageDots(
 
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 private fun LauncherSettingsRootSurface(
     apps: List<LauncherActivityInfo>,
     preferences: LauncherPreferences,
@@ -2441,24 +2517,8 @@ private fun LauncherSettingsRootSurface(
                 SettingsReadOnlyRow("Core provider", "Installed apps · Launcher")
             }
 
-            SettingsSection("App drawer", "Layout, density and background") {
-                Text(
-                    "Open mode",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                ChoiceRow(
-                    choices = listOf("Browse", "Search first"),
-                    selected = if (
-                        experiencePreferences.drawerEntryMode == LauncherDrawerEntryMode.SEARCH_FIRST
-                    ) "Search first" else "Browse",
-                    onChoice = {
-                        onSetDrawerEntryMode(
-                            if (it == "Search first") LauncherDrawerEntryMode.SEARCH_FIRST
-                            else LauncherDrawerEntryMode.BROWSE,
-                        )
-                    },
-                )
+            SettingsSection("App drawer", "Profiles, layout, density and background") {
+                SettingsReadOnlyRow("Profiles", "User Apps · Work Apps when available")
                 Text(
                     "Layout",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2557,23 +2617,6 @@ private fun LauncherSettingsRootSurface(
                         onChoice = { onSetDrawerPageRows(it.toInt()) },
                     )
                 }
-                Text(
-                    "Search position",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                ChoiceRow(
-                    choices = listOf("Top", "Bottom"),
-                    selected = if (
-                        experiencePreferences.drawerSearchPlacement == LauncherDrawerSearchPlacement.TOP
-                    ) "Top" else "Bottom",
-                    onChoice = {
-                        onSetDrawerSearchPlacement(
-                            if (it == "Top") LauncherDrawerSearchPlacement.TOP
-                            else LauncherDrawerSearchPlacement.BOTTOM,
-                        )
-                    },
-                )
                 SettingSwitch("Show app labels", preferences.showLabels, onSetShowLabels)
                 SettingSwitch(
                     "Show app count",

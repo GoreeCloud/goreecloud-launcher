@@ -229,12 +229,18 @@ class ActivatedHomeLifecycleRuntimeTest {
                     }
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
-                    composeRule.onAllNodesWithText("Apps", useUnmergedTree = true)
+                    composeRule.onAllNodesWithText("User Apps", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
-                composeRule.onNodeWithText("Apps", useUnmergedTree = true).assertIsDisplayed()
-                composeRule.onNodeWithText("Search apps", useUnmergedTree = true).assertIsDisplayed()
+                composeRule
+                    .onNodeWithText("User Apps", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                check(
+                    composeRule.onAllNodesWithText("Search apps", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isEmpty(),
+                )
                 Unit
             } finally {
                 scenario.close()
@@ -601,7 +607,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                     }
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
-                    composeRule.onAllNodesWithText("Search apps", useUnmergedTree = true)
+                    composeRule.onAllNodesWithText("User Apps", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
@@ -609,7 +615,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 runShellCommand("input keyevent KEYCODE_HOME")
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
-                    composeRule.onAllNodesWithText("Search apps", useUnmergedTree = true)
+                    composeRule.onAllNodesWithText("User Apps", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .isEmpty()
                 }
