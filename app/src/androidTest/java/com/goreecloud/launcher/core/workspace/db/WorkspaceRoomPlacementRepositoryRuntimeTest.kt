@@ -9,6 +9,7 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
+import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +69,7 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             placementRepository.replace(
                 favoriteKeys = REPLACEMENT_FAVORITES,
                 dockKeys = REPLACEMENT_DOCK_WITH_DUPLICATES,
+                homeGrid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5),
             ),
         )
 
@@ -96,6 +98,32 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             placementRepository.read(),
         )
 
+        val spatialRepository = WorkspacePrimaryHomeSpatialRepository(
+            authorityRepository = authorityRepository,
+            workspaceDaoProvider = { database.workspaceDao() },
+        )
+        assertEquals(
+            WorkspacePrimaryHomeSpatialResult.Ready(
+                changed = true,
+                columns = 4,
+                rows = 5,
+            ),
+            spatialRepository.ensureGrid(columns = 4, rows = 5),
+        )
+        val migratedPrimary = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .sortedBy { it.rank }
+        assertTrue(migratedPrimary.all { it.cellX != null && it.cellY != null })
+
+        assertEquals(
+            WorkspacePrimaryHomeSpatialResult.InvalidWorkspace,
+            spatialRepository.ensureGrid(columns = 3, rows = 5),
+        )
+        assertEquals(
+            WorkspacePrimaryHomeSpatialResult.InvalidWorkspace,
+            spatialRepository.ensureGrid(columns = 4, rows = 8),
+        )
+
         val expectedReplacement = WorkspaceRelationalSnapshot(
             favoriteKeys = REPLACEMENT_FAVORITES,
             dockKeys = listOf(DOCK_ONE, DOCK_TWO, DOCK_THREE, DOCK_FOUR, DOCK_FIVE),
@@ -105,11 +133,24 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             placementRepository.replace(
                 favoriteKeys = REPLACEMENT_FAVORITES,
                 dockKeys = REPLACEMENT_DOCK_WITH_DUPLICATES,
+                homeGrid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5),
             ),
         )
         assertEquals(
             WorkspaceRoomReadResult.Loaded(expectedReplacement),
             placementRepository.read(),
+        )
+        val spatialReplacement = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .sortedBy { it.rank }
+        assertEquals(REPLACEMENT_FAVORITES, spatialReplacement.mapNotNull { it.appKey })
+        assertTrue(
+            spatialReplacement.all {
+                it.cellX != null &&
+                    it.cellY != null &&
+                    it.cellX in 0 until 4 &&
+                    it.cellY in 0 until 5
+            }
         )
 
         val legacyStateAfterRoomWrite = authorityRepository.state.first()
