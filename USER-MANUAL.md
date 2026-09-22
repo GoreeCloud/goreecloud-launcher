@@ -79,7 +79,7 @@ Open **Apps** from Home to browse the launchable application inventory exposed t
 
 Use the **Search apps** field to search the installed-application inventory locally. This Apps view is a specialized Launcher-owned view backed by the same installed-app provider foundation used for Universal Search. It does not require Internet access.
 
-Long-press an app to open its current placement dialog. When the Home layout is unlocked, you can add/remove it from Home or the Dock and use accessible earlier/later ordering controls. When the layout is locked, the dialog explains the lock and disables those current placement changes.
+Long-press an app to open its current placement dialog. When the Home layout is unlocked, you can add/remove it from Home or the Dock and use accessible earlier/later ordering controls. For a Home app, the dialog can also save a Launcher-local Home label override or reset it to the application label. **Uninstall app** delegates to Android's system uninstall confirmation; Launcher does not silently remove packages. When the layout is locked, the dialog explains the lock and disables current placement changes.
 
 ## Launcher settings
 
