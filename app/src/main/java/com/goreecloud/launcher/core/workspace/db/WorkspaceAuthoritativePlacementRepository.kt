@@ -3,6 +3,7 @@ package com.goreecloud.launcher.core.workspace.db
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceCodec
+import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import kotlinx.coroutines.flow.first
@@ -74,7 +75,11 @@ class WorkspaceAuthoritativePlacementRepository(
         }
     }
 
-    suspend fun toggleFavorite(key: String): WorkspaceAuthoritativeWriteResult = mutate(
+    suspend fun toggleFavorite(
+        key: String,
+        homeGrid: WorkspaceGridPlacement.Grid? = null,
+    ): WorkspaceAuthoritativeWriteResult = mutate(
+        homeGrid = homeGrid,
         legacyMutation = { authorityRepository.toggleFavorite(key) },
         roomMutation = { snapshot ->
             snapshot.copy(favoriteKeys = WorkspaceCodec.toggled(snapshot.favoriteKeys, key))
@@ -141,6 +146,7 @@ class WorkspaceAuthoritativePlacementRepository(
     )
 
     private suspend fun mutate(
+        homeGrid: WorkspaceGridPlacement.Grid? = null,
         legacyMutation: suspend () -> Unit,
         roomMutation: (WorkspaceRelationalSnapshot) -> WorkspaceRelationalSnapshot,
     ): WorkspaceAuthoritativeWriteResult {
@@ -162,11 +168,12 @@ class WorkspaceAuthoritativePlacementRepository(
                     )
                 }
             }
-            WorkspaceAuthority.ROOM -> mutateRoom(roomMutation)
+            WorkspaceAuthority.ROOM -> mutateRoom(homeGrid, roomMutation)
         }
     }
 
     private suspend fun mutateRoom(
+        homeGrid: WorkspaceGridPlacement.Grid?,
         transform: (WorkspaceRelationalSnapshot) -> WorkspaceRelationalSnapshot,
     ): WorkspaceAuthoritativeWriteResult {
         val roomRepository = roomRepository()
@@ -189,6 +196,7 @@ class WorkspaceAuthoritativePlacementRepository(
             val write = roomRepository.replace(
                 favoriteKeys = requested.favoriteKeys,
                 dockKeys = requested.dockKeys,
+                homeGrid = homeGrid,
             )
         ) {
             WorkspaceRoomWriteResult.Reserved -> WorkspaceAuthoritativeWriteResult.AuthorityChanged
