@@ -104,4 +104,32 @@ class LauncherUniversalSearchTest {
             (results.single().action as LauncherNavigateSearchAction).destination,
         )
     }
+
+    @Test
+    fun coreActionsProviderExposesTrustedHomeAppearanceActions() {
+        val provider = LauncherCoreActionsSearchProvider()
+
+        val editHome = provider.search("edit home").single()
+        assertEquals(
+            LauncherSearchDestination.HOME_EDITOR,
+            (editHome.action as LauncherNavigateSearchAction).destination,
+        )
+
+        val wallpaper = provider.search("wallpaper").first()
+        assertEquals("Wallpaper", wallpaper.title)
+        assertEquals(LauncherSearchCategory.SETTING, wallpaper.category)
+        assertEquals(
+            LauncherSearchDestination.WALLPAPER,
+            (wallpaper.action as LauncherNavigateSearchAction).destination,
+        )
+
+        val themeManager = provider.search("theme").single()
+        assertEquals("Theme Manager", themeManager.title)
+        assertEquals(LauncherSearchCategory.SETTING, themeManager.category)
+        assertEquals(
+            LauncherSearchDestination.THEME_MANAGER,
+            (themeManager.action as LauncherNavigateSearchAction).destination,
+        )
+    }
+
 }
