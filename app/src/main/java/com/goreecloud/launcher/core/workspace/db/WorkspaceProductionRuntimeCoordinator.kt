@@ -359,15 +359,14 @@ class WorkspaceProductionRuntimeCoordinator(
         if (key !in written.snapshot.favoriteKeys) return written
         if (written.snapshot.source != WorkspacePlacementSource.ROOM) return written
 
-        return when (
-            primaryHomeSpatialRepository.moveAppToCell(
-                appKey = key,
-                columns = columns,
-                rows = rows,
-                cellX = cellX,
-                cellY = cellY,
-            )
-        ) {
+        val placement = primaryHomeSpatialRepository.moveAppToCell(
+            appKey = key,
+            columns = columns,
+            rows = rows,
+            cellX = cellX,
+            cellY = cellY,
+        )
+        return when (placement) {
             is WorkspacePrimaryHomeSpatialResult.Moved -> {
                 refresh()
                 written
@@ -379,22 +378,8 @@ class WorkspaceProductionRuntimeCoordinator(
             WorkspacePrimaryHomeSpatialResult.InvalidWorkspace,
             WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged ->
                 WorkspaceAuthoritativeWriteResult.Mismatch
-            is WorkspacePrimaryHomeSpatialResult.Failed -> {
-                WorkspaceAuthoritativeWriteResult.Failed(
-                    primaryHomeSpatialRepository
-                        .moveAppToCell(
-                            appKey = key,
-                            columns = columns,
-                            rows = rows,
-                            cellX = cellX,
-                            cellY = cellY,
-                        )
-                        .let { result ->
-                            (result as? WorkspacePrimaryHomeSpatialResult.Failed)?.failureType
-                                ?: "PrimaryHomePlacementFailed"
-                        }
-                )
-            }
+            is WorkspacePrimaryHomeSpatialResult.Failed ->
+                WorkspaceAuthoritativeWriteResult.Failed(placement.failureType)
             is WorkspacePrimaryHomeSpatialResult.Ready ->
                 WorkspaceAuthoritativeWriteResult.Mismatch
         }
