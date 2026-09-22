@@ -54,6 +54,30 @@ class LauncherPreferencesTest {
         assertEquals(LauncherHomeSearchPlacement.BOTTOM, defaults.homeSearchPlacement)
         assertEquals(LauncherHomeSearchStyle.GLASS, defaults.homeSearchStyle)
         assertEquals(LauncherHomeSpacing.BALANCED, defaults.homeSpacing)
+        assertEquals(
+            LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
+            defaults.swipeUpAction,
+        )
+        assertEquals(
+            LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH),
+            defaults.swipeDownAction,
+        )
+        assertEquals(
+            LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+            defaults.swipeLeftAction,
+        )
+        assertEquals(
+            LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+            defaults.swipeRightAction,
+        )
+        assertEquals(
+            LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+            defaults.doubleTapAction,
+        )
+        assertEquals(
+            LauncherGestureAction.builtIn(LauncherGestureActionType.HOME_EDITOR),
+            defaults.tapAndHoldAction,
+        )
     }
 
     @Test
@@ -117,6 +141,36 @@ class LauncherPreferencesTest {
         assertEquals(LauncherHomeSpacing.COMPACT, LauncherHomeSpacing.fromStorage("compact"))
         assertEquals(LauncherHomeSpacing.AIRY, LauncherHomeSpacing.fromStorage("airy"))
         assertEquals(LauncherHomeSpacing.BALANCED, LauncherHomeSpacing.fromStorage("unknown"))
+    }
+
+
+    @Test
+    fun gestureActionStorageRoundTripsBuiltInsAndAppTargets() {
+        val settings = LauncherGestureAction.builtIn(LauncherGestureActionType.LAUNCHER_SETTINGS)
+        assertEquals("launcher_settings", settings.storageValue)
+        assertEquals(
+            settings,
+            LauncherGestureAction.fromStorage("launcher_settings", LauncherGestureAction.builtIn(LauncherGestureActionType.NONE)),
+        )
+
+        val app = LauncherGestureAction.openApp("10:com.goreecloud.camera/.MainActivity")
+        assertEquals("app:10:com.goreecloud.camera/.MainActivity", app.storageValue)
+        assertEquals(
+            app,
+            LauncherGestureAction.fromStorage(
+                app.storageValue,
+                LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+            ),
+        )
+    }
+
+    @Test
+    fun gestureActionStorageFailsSafeToConfiguredFallback() {
+        val fallback = LauncherGestureAction.builtIn(LauncherGestureActionType.APPS)
+
+        assertEquals(fallback, LauncherGestureAction.fromStorage("unknown", fallback))
+        assertEquals(fallback, LauncherGestureAction.fromStorage("app:", fallback))
+        assertEquals(fallback, LauncherGestureAction.fromStorage(null, fallback))
     }
 
     @Test
