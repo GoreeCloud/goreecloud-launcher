@@ -2,6 +2,7 @@ package com.goreecloud.launcher.core.launcher
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LauncherUniversalSearchTest {
@@ -76,5 +77,31 @@ class LauncherUniversalSearchTest {
         }
 
         assertEquals(1, LauncherUniversalSearch.search("camera", listOf(provider)).size)
+    }
+
+    @Test
+    fun coreActionsProviderReturnsTypedSettingsDestination() {
+        val result = LauncherCoreActionsSearchProvider()
+            .search("settings")
+            .single()
+
+        assertEquals("Launcher settings", result.title)
+        assertEquals(LauncherSearchCategory.SETTING, result.category)
+        assertEquals(
+            LauncherSearchDestination.SETTINGS,
+            (result.action as LauncherNavigateSearchAction).destination,
+        )
+    }
+
+    @Test
+    fun coreActionsProviderSearchesActionMetadataLocally() {
+        val results = LauncherCoreActionsSearchProvider().search("drawer")
+
+        assertEquals(listOf("Apps"), results.map { it.title })
+        assertTrue(results.all { it.providerId == LauncherCoreActionsSearchProvider.PROVIDER_ID })
+        assertEquals(
+            LauncherSearchDestination.APPS,
+            (results.single().action as LauncherNavigateSearchAction).destination,
+        )
     }
 }
