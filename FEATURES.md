@@ -25,12 +25,12 @@ Current source includes:
 - Persisted System / Light / Dark appearance selection.
 - Persisted Home layout-lock state and Launcher Universal Search Home-entry mode. The strict v1 persistence/backup wire key remains `index_home_mode` only for backward compatibility.
 - Locally persisted Favorites and a bounded five-item Dock.
-- Long-press app placement management with accessible earlier/later controls.
-- Current layout-lock gating for implemented Favorite, Dock, Home-page, and secondary spatial mutation callbacks while ordinary app launching and page selection remain usable.
+- Long-press app placement management with accessible earlier/later controls, plus direct primary-Home long-press drag placement into occupied or empty configured grid cells.
+- Current layout-lock gating for implemented Favorite, Dock, primary/secondary spatial, and Home-page mutation callbacks while ordinary app launching and page selection remain usable.
 - A five-second locked-state Home hold control with progressive feedback, with the Launcher Settings switch retained as the deterministic non-gesture unlock path.
 - Room-backed authoritative workspace cutover/read foundations.
 - Multi-page Home projection from authoritative Room state.
-- Home page selection, creation, guarded secondary-page reordering, and guarded deletion of eligible empty secondary pages while the protected primary compatibility page remains rank zero.
+- Home page selection, creation, guarded secondary-page reordering, and guarded deletion of eligible empty secondary pages while the primary Home page remains protected at rank zero.
 - Compact/lazy Home page selector with authoritative accessibility context.
 - App launch from rendered secondary Home pages.
 - Secondary Home pages rendered as ordinary icon grids instead of engineering panels.
@@ -38,7 +38,7 @@ Current source includes:
 - App movement between authoritative secondary Home pages.
 - Within-secondary-page nearest-free-cell earlier/later movement.
 - Guarded exact one-cell movement left/right/up/down that fails closed on occupied or out-of-bounds targets.
-- Protection of the canonical primary Favorites compatibility page from secondary spatial moves and page-rank changes until a separate primary-grid migration is accepted.
+- Guarded primary-Home compatibility-to-spatial migration in terminal Room authority, preserving rank-zero page identity while enabling persistent configured-grid cell placement, empty-cell drops, and occupied-cell swaps.
 - Development presentation of unsupported workspace-item counts instead of silently hiding their presence.
 - Launcher-owned Universal Search Home entry through the **Search GoreeCloud** affordance in Permanent mode and one-finger downward Home invocation in both supported entry modes. Earlier Index activity-handoff revisions remain historical provenance.
 - Scoped `MAIN` + `LAUNCHER` package visibility for app discovery without the legacy Index search-action query, `QUERY_ALL_PACKAGES`, or Launcher Internet permission.
@@ -92,8 +92,8 @@ Important incomplete or separately gated work includes:
 - A fully polished Glaze UI Universal Search/result experience and complete rendered/native/accessibility acceptance.
 - Production visual-identity review of the branding-assets-backed Launcher derivatives across required Android/system surfaces.
 - Production Room-authority recovery acceptance for the complete intended workspace experience.
-- Mature cross-page drag/drop and direct live cell/span editing.
-- Primary compatibility-page grid migration and primary-to-secondary/secondary-to-primary spatial item movement.
+- Mature cross-page drag/drop and direct live span editing.
+- Primary-to-secondary/secondary-to-primary spatial item movement.
 - Populated-page deletion with recovery/undo semantics.
 - Complete folders, shortcuts, widgets/AppWidgetHost, folder/widget editing, and richer workspace editing.
 - Layout-lock enforcement and interaction acceptance for future placeable item types once folders, shortcuts, and widgets are implemented, plus representative-device five-second-hold acceptance.
