@@ -70,7 +70,12 @@ import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppsSearchProvider
+import com.goreecloud.launcher.core.launcher.LauncherCoreActionsSearchProvider
+import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
+import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
+import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
+import com.goreecloud.launcher.core.launcher.LauncherSearchResult
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
@@ -89,7 +94,7 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-enum class LauncherSurfaceMode { HOME, DRAWER, SETTINGS }
+enum class LauncherSurfaceMode { HOME, SEARCH, DRAWER, SETTINGS }
 
 @Composable
 fun LauncherBetaRoot(
@@ -208,8 +213,7 @@ fun LauncherBetaRoot(
                 onManageHomePages = onManageHomePages,
                 onLaunchApp = onLaunchApp,
                 onOpenLauncherSearch = {
-                    drawerSearchRequested = true
-                    surfaceModeName = LauncherSurfaceMode.DRAWER.name
+                    surfaceModeName = LauncherSurfaceMode.SEARCH.name
                 },
                 onManageApp = { selectedApp = it },
                 onOpenDrawer = {
@@ -219,6 +223,28 @@ fun LauncherBetaRoot(
                 },
                 onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
                 onOpenWallpaperPicker = onOpenWallpaperPicker,
+            )
+            LauncherSurfaceMode.SEARCH -> LauncherUniversalSearchSurface(
+                apps = apps,
+                onLaunchApp = onLaunchApp,
+                onNavigate = { destination ->
+                    when (destination) {
+                        LauncherSearchDestination.HOME -> {
+                            drawerSearchRequested = false
+                            surfaceModeName = LauncherSurfaceMode.HOME.name
+                        }
+                        LauncherSearchDestination.APPS -> {
+                            drawerSearchRequested = false
+                            surfaceModeName = LauncherSurfaceMode.DRAWER.name
+                        }
+                        LauncherSearchDestination.SETTINGS -> {
+                            surfaceModeName = LauncherSurfaceMode.SETTINGS.name
+                        }
+                    }
+                },
+                onBack = {
+                    surfaceModeName = LauncherSurfaceMode.HOME.name
+                },
             )
             LauncherSurfaceMode.DRAWER -> AppDrawerSurface(
                 apps = apps,
@@ -980,6 +1006,194 @@ private fun EmptyWorkspaceCard(
                 )
             }
             GlazeTextAction("Apps", onOpenApps)
+        }
+    }
+}
+
+@Composable
+private fun LauncherUniversalSearchSurface(
+    apps: List<LauncherActivityInfo>,
+    onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onNavigate: (LauncherSearchDestination) -> Unit,
+    onBack: () -> Unit,
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val installedAppsProvider = remember(apps) {
+        LauncherInstalledAppsSearchProvider(apps)
+    }
+    val coreActionsProvider = remember {
+        LauncherCoreActionsSearchProvider()
+    }
+    val results = remember(installedAppsProvider, coreActionsProvider, query) {
+        LauncherUniversalSearch.search(
+            rawQuery = query,
+            providers = listOf(coreActionsProvider, installedAppsProvider),
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.background,
+                        GlazeAtmosphere.softAqua.copy(alpha = 0.07f),
+                        MaterialTheme.colorScheme.background,
+                    ),
+                ),
+            ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "Universal Search",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        "Launcher-owned local search and actions",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                GlazeTextAction("Done", onBack)
+            }
+
+            GlazeAppSearchField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                requestFocus = true,
+                placeholder = "Search apps, settings and actions",
+            )
+
+            if (results.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "No Launcher results match “" + query.trim() + "”",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    contentPadding = PaddingValues(bottom = GlazeMetrics.space3),
+                ) {
+                    lazyItems(
+                        items = results,
+                        key = { result -> result.providerId + ":" + result.resultId },
+                    ) { result ->
+                        LauncherUniversalSearchResultRow(
+                            result = result,
+                            onClick = {
+                                when (val action = result.action) {
+                                    is LaunchApplicationSearchAction -> onLaunchApp(action.app)
+                                    is LauncherNavigateSearchAction -> onNavigate(action.destination)
+                                    null -> Unit
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherUniversalSearchResultRow(
+    result: LauncherSearchResult,
+    onClick: () -> Unit,
+) {
+    val categoryLabel = when (result.category) {
+        LauncherSearchCategory.APPLICATION -> "App"
+        LauncherSearchCategory.SETTING -> "Setting"
+        LauncherSearchCategory.ACTION -> "Action"
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.64f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = GlazeMetrics.space3, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Surface(
+                modifier = Modifier.size(42.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        when (result.category) {
+                            LauncherSearchCategory.APPLICATION -> "◫"
+                            LauncherSearchCategory.SETTING -> "⚙"
+                            LauncherSearchCategory.ACTION -> "→"
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    result.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                result.subtitle?.takeIf { it.isNotBlank() }?.let { subtitle ->
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Text(
+                categoryLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -2303,6 +2517,7 @@ private fun GlazeAppSearchField(
     modifier: Modifier = Modifier,
     darkSurface: Boolean = false,
     requestFocus: Boolean = false,
+    placeholder: String = "Search apps",
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -2347,7 +2562,7 @@ private fun GlazeAppSearchField(
                     Box(Modifier.weight(1f)) {
                         if (value.isBlank()) {
                             Text(
-                                "Search apps",
+                                placeholder,
                                 color = if (darkSurface) Color.White.copy(alpha = 0.62f)
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyLarge,
