@@ -48,6 +48,7 @@ import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResult
 import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
+import com.goreecloud.launcher.core.workspace.db.WorkspacePrimaryHomeSpatialResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.HomePageDots
@@ -333,6 +334,9 @@ class MainActivity : ComponentActivity() {
                             homePageCount = renderedPages.size.coerceAtLeast(1),
                             homeResetSequence = homeResetSequenceValue,
                             homeLabelOverrides = homeLabelOverrides,
+                            primaryHomePage = renderedPages.firstOrNull {
+                                it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                            },
                             onManageHomePages = {
                                 val secondaryPage = renderedPages.firstOrNull {
                                     it.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID
@@ -355,7 +359,11 @@ class MainActivity : ComponentActivity() {
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
-                                        workspaceRuntimeCoordinator.toggleFavorite(app.workspaceKey())
+                                        workspaceRuntimeCoordinator.toggleFavorite(
+                                            key = app.workspaceKey(),
+                                            homeColumns = launcherPreferences.homeColumns,
+                                            homeRows = launcherPreferences.homeRows,
+                                        )
                                     }
                                 }
                             },
@@ -373,12 +381,15 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             },
-                            onMoveFavoriteToTarget = { app, target ->
+                            onMoveFavoriteToCell = { app, cellX, cellY ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
-                                        workspaceRuntimeCoordinator.moveFavoriteToTarget(
-                                            app.workspaceKey(),
-                                            target.workspaceKey(),
+                                        workspaceRuntimeCoordinator.movePrimaryHomeAppToCell(
+                                            appKey = app.workspaceKey(),
+                                            columns = launcherPreferences.homeColumns,
+                                            rows = launcherPreferences.homeRows,
+                                            cellX = cellX,
+                                            cellY = cellY,
                                         )
                                     }
                                 }
@@ -392,7 +403,36 @@ class MainActivity : ComponentActivity() {
                             },
                             themeMode = themeMode,
                             onSetThemeMode = themeRepository::setMode,
-                            onSetHomeGrid = launcherPreferencesRepository::setHomeGrid,
+                            onSetHomeGrid = { columns, rows ->
+                                if (workspace.authority != WorkspaceAuthority.ROOM) {
+                                    launcherPreferencesRepository.setHomeGrid(columns, rows)
+                                } else {
+                                    lifecycleScope.launch {
+                                        when (
+                                            workspaceRuntimeCoordinator.ensurePrimaryHomeSpatialGrid(
+                                                columns = columns,
+                                                rows = rows,
+                                            )
+                                        ) {
+                                            is WorkspacePrimaryHomeSpatialResult.Ready -> {
+                                                launcherPreferencesRepository.setHomeGrid(columns, rows)
+                                            }
+                                            WorkspacePrimaryHomeSpatialResult.Reserved -> Unit
+                                            WorkspacePrimaryHomeSpatialResult.Unavailable,
+                                            WorkspacePrimaryHomeSpatialResult.InvalidWorkspace,
+                                            WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged,
+                                            is WorkspacePrimaryHomeSpatialResult.Failed,
+                                            is WorkspacePrimaryHomeSpatialResult.Moved -> {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "Home grid could not be changed safely.",
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                            }
+                                        }
+                                    }
+                                }
+                            },
                             onSetDrawerColumns = launcherPreferencesRepository::setDrawerColumns,
                             onSetDrawerLayoutMode = launcherPreferencesRepository::setDrawerLayoutMode,
                             onSetShowLabels = launcherPreferencesRepository::setShowLabels,

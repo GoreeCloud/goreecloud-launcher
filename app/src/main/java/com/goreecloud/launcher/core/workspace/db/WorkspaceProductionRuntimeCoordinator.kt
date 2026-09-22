@@ -1,6 +1,7 @@
 package com.goreecloud.launcher.core.workspace.db
 
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
+import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,6 +70,10 @@ class WorkspaceProductionRuntimeCoordinator(
         workspaceDaoProvider = workspaceDaoProvider,
         mutationRepository = pagedMutationRepository,
     )
+    private val primaryHomeSpatialRepository = WorkspacePrimaryHomeSpatialRepository(
+        authorityRepository = authorityRepository,
+        workspaceDaoProvider = workspaceDaoProvider,
+    )
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observePlacement(): Flow<WorkspaceAuthoritativePlacementState> = combine(
@@ -120,8 +125,46 @@ class WorkspaceProductionRuntimeCoordinator(
         return result
     }
 
-    suspend fun toggleFavorite(key: String): WorkspaceAuthoritativeWriteResult =
-        placementRepository.toggleFavorite(key)
+    suspend fun toggleFavorite(
+        key: String,
+        homeColumns: Int? = null,
+        homeRows: Int? = null,
+    ): WorkspaceAuthoritativeWriteResult {
+        val grid = if (homeColumns != null && homeRows != null) {
+            runCatching { WorkspaceGridPlacement.Grid(homeColumns, homeRows) }.getOrNull()
+                ?: return WorkspaceAuthoritativeWriteResult.Mismatch
+        } else {
+            null
+        }
+        return placementRepository.toggleFavorite(key, grid)
+    }
+
+    suspend fun ensurePrimaryHomeSpatialGrid(
+        columns: Int,
+        rows: Int,
+    ): WorkspacePrimaryHomeSpatialResult {
+        val result = primaryHomeSpatialRepository.ensureGrid(columns, rows)
+        if (result is WorkspacePrimaryHomeSpatialResult.Ready && result.changed) refresh()
+        return result
+    }
+
+    suspend fun movePrimaryHomeAppToCell(
+        appKey: String,
+        columns: Int,
+        rows: Int,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspacePrimaryHomeSpatialResult {
+        val result = primaryHomeSpatialRepository.moveAppToCell(
+            appKey = appKey,
+            columns = columns,
+            rows = rows,
+            cellX = cellX,
+            cellY = cellY,
+        )
+        if (result is WorkspacePrimaryHomeSpatialResult.Moved) refresh()
+        return result
+    }
 
     suspend fun toggleDock(key: String): WorkspaceAuthoritativeWriteResult =
         placementRepository.toggleDock(key)

@@ -238,6 +238,43 @@ abstract class WorkspaceDao {
     }
 
     /**
+     * Replaces the complete primary HOME item set only when the primary page and item snapshot
+     * still exactly match the caller's observed state. Item identity must be preserved.
+     */
+    @Transaction
+    open suspend fun replacePrimaryHomeItemsIfSnapshotMatches(
+        expectedPage: WorkspacePageEntity,
+        expectedItems: List<WorkspaceItemEntity>,
+        updatedItems: List<WorkspaceItemEntity>,
+    ): Boolean {
+        if (
+            expectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
+            expectedPage.containerType != WorkspaceContainerType.HOME ||
+            expectedPage.rank != 0
+        ) return false
+
+        val currentPage = readPages(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID)).singleOrNull()
+            ?: return false
+        if (currentPage != expectedPage) return false
+
+        val currentItems = readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+        val currentById = currentItems.associateBy { it.itemId }
+        val expectedById = expectedItems.associateBy { it.itemId }
+        val updatedById = updatedItems.associateBy { it.itemId }
+        if (
+            currentById.size != currentItems.size ||
+            expectedById.size != expectedItems.size ||
+            updatedById.size != updatedItems.size ||
+            currentById != expectedById ||
+            updatedById.keys != expectedById.keys
+        ) return false
+        if (updatedItems.any { it.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID }) return false
+
+        if (updatedItems.isNotEmpty()) upsertItems(updatedItems)
+        return true
+    }
+
+    /**
      * Applies one item placement write only if the complete HOME page/item snapshot observed by
      * the caller is still current when this transaction executes. This prevents a validated
      * cross-page placement from overwriting a concurrent workspace mutation.

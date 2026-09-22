@@ -29,6 +29,13 @@ class WorkspacePagedHomeMapperTest {
         )
         assertEquals(emptyList<String>(), ready.pages[0].appKeys)
         assertEquals(listOf(APP_ONE, APP_TWO), ready.pages[1].appKeys)
+        assertEquals(
+            listOf(
+                WorkspaceRenderedHomeApp(APP_ONE, 0, 0, 1, 1),
+                WorkspaceRenderedHomeApp(APP_TWO, 1, 0, 1, 1),
+            ),
+            ready.pages[1].appPlacements,
+        )
         assertEquals(1, ready.pages[1].unsupportedItemCount)
     }
 

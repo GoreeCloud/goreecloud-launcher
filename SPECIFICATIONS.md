@@ -45,11 +45,11 @@ A one-finger downward gesture on the unobstructed Home search zone opens Launche
 
 Current supported settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps layout modes of Grid/Compact/List, Apps columns of 4/5/6 for grid-based modes, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and Launcher Universal Search Home-entry mode.
 
-When layout lock is enabled, current Favorite, Dock, Home-page create/delete/reorder, secondary-to-secondary movement, and current secondary spatial mutation callbacks are blocked at the Launcher composition boundary. App launching, Home page selection, navigation, and non-placement presentation settings remain usable. Primary placement-dialog mutation controls are disabled while locked.
+When layout lock is enabled, current Favorite, Dock, primary Home cell placement, Home-page create/delete/reorder, secondary-to-secondary movement, and current secondary spatial mutation callbacks are blocked at the Launcher composition boundary. App launching, Home page selection, navigation, and non-placement presentation settings remain usable. Primary placement-dialog mutation controls are disabled while locked.
 
 The current locked-state Home UI provides an intentional five-second hold control with visible progress. Completing the hold disables the persisted lock. Launcher Settings remains the deterministic non-gesture unlock path. Representative physical-device hold/gesture/accessibility acceptance remains separately gated.
 
-The primary `WorkspaceLegacyImportMapper.HOME_PAGE_ID` page remains the protected compatibility representation for Favorites. Its canonical compatibility items retain null grid coordinates and its rank remains zero. The presentation grid does not silently convert this authority model into the secondary spatial model.
+The primary `WorkspaceLegacyImportMapper.HOME_PAGE_ID` page remains protected at HOME rank zero. Before spatial activation its canonical Favorites rows may retain null grid coordinates; under terminal Room authority a guarded exact-snapshot migration can convert those rows to bounded authoritative coordinates for the configured Home grid. Direct primary Home drag then persists empty-cell placement or occupied-cell swaps through the same Room authority.
 
 ### Apps
 
@@ -61,7 +61,7 @@ The Apps filter is a specialized Launcher-owned view backed by the installed-app
 
 Launcher Settings is a distinct scrollable surface. Current persisted settings include Home grid, Apps layout (Grid/Compact/List), Apps columns, app-label visibility, icon-size presentation, System/Light/Dark appearance, **Lock Home screen layout**, and the Launcher Universal Search **Permanent on Home / Swipe down only** entry choice. Drawer layout remains local presentation state outside the strict seven-field `goreecloud-launcher-preferences/1` backup/recovery format until a separately versioned portability extension is accepted.
 
-Current settings changes do not widen Room workspace mutation authority. The layout-lock preference restricts Launcher mutation dispatch; the Universal Search entry preference controls Launcher-owned invocation presentation only.
+Most settings remain presentation/policy state. Home-grid changes are the bounded exception after primary spatial activation: Launcher validates or safely reflows authoritative primary Home coordinates through the existing Room mutation boundary before persisting a smaller/different grid. The layout-lock preference restricts Launcher mutation dispatch; the Universal Search entry preference controls Launcher-owned invocation presentation only.
 
 The native Theme Manager catalog/surface and direct persisted appearance-selection API are composed into Launcher Settings under the integrated V1.6 source mapping. Settings uses a saveable/fail-closed sub-destination model; stale destination values restore to Settings root. The current appearance is represented as non-actionable selected state, and only a different supported appearance invokes caller-owned persistence. V1.6 presentation context can simplify raised material when Reduced Transparency or constrained performance is authoritatively supplied, while broader runtime profile wiring and complete Glaze Theme Engine behavior remain separately implementation- and acceptance-gated.
 
@@ -69,7 +69,7 @@ Launcher Settings must also provide explicit local/offline-capable **Backup Laun
 
 ## Home layout lock behavior and boundary
 
-The current layout lock protects every placement-changing path presently implemented by the Launcher composition layer: primary Favorite/Dock membership and ordering, Home page creation/deletion/reordering, secondary-to-secondary application moves, and current within-secondary-page spatial movement. UI controls are disabled where practical, and the underlying callbacks are also gated so a stale or missed presentation control cannot dispatch a mutation while the current preference is locked.
+The current layout lock protects every placement-changing path presently implemented by the Launcher composition layer: primary Favorite/Dock membership and ordering, primary Home cell placement, Home page creation/deletion/reordering, secondary-to-secondary application moves, and current within-secondary-page spatial movement. UI controls are disabled where practical, and the underlying callbacks are also gated so a stale or missed presentation control cannot dispatch a mutation while the current preference is locked.
 
 Normal application launching, page selection, search invocation, Apps navigation, Settings access, and presentation settings remain available because they do not mutate authoritative workspace placement.
 
@@ -104,11 +104,12 @@ Current Development source supports:
 - secondary-to-secondary page movement;
 - within-secondary-page nearest-free-cell earlier/later movement;
 - guarded exact one-cell left/right/up/down movement;
-- fail-closed movement for collisions, invalid bounds, malformed/ambiguous placement, stale snapshots, or primary-page spatial source/target requests;
-- canonical primary/Dock compatibility validation before secondary spatial writes; and
+- fail-closed movement for collisions, invalid bounds, malformed/ambiguous placement, or stale snapshots;
+- guarded primary compatibility-to-spatial migration and within-primary-page cell placement while preserving primary rank zero;
+- canonical primary/Dock validation before secondary spatial writes; and
 - a Launcher-level layout-lock gate that prevents these implemented page/item mutation calls from being dispatched while locked.
 
-Primary-grid coordinates and primary↔secondary spatial item movement require a separate accepted migration.
+Primary↔secondary spatial item movement remains separately gated; current primary spatial authority is within-page only.
 
 ## Native Universal Search architecture and optional Search/Index integration
 
@@ -255,7 +256,7 @@ Stable qualification still requires, as applicable:
 - accepted configurable Universal Search Home-entry modes and non-gesture accessibility behavior;
 - accepted versioned Launcher backup/restore behavior and safe migration/rebinding semantics;
 - complete intended workspace/user flows and recovery semantics;
-- accepted primary compatibility-page grid migration and complete intended cross-page movement semantics;
+- accepted primary spatial placement behavior and complete intended cross-page movement semantics;
 - folders/widgets/shortcuts required by release scope;
 - mature cross-page placement editing and accessible alternatives;
 - representative-device, rotation/posture, performance, physical-interaction, universal-search gesture, five-second unlock, and accessibility acceptance;
