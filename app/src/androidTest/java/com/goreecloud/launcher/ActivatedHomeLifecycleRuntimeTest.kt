@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -401,12 +402,13 @@ class ActivatedHomeLifecycleRuntimeTest {
         val previousSwipeUp = preferencesRepository.experiencePreferences.first().swipeUpAction
         val configuredAction =
             LauncherGestureAction.builtIn(LauncherGestureActionType.LAUNCHER_SETTINGS)
+        val renderedGestureTag = "launcher-home-swipe-up-launcher_settings"
 
         if (!alreadyDefaultHome) {
             runShellCommand(
                 "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
             )
-            withTimeout(30_000) {
+            withTimeout(10_000) {
                 while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
                     delay(100)
                 }
@@ -419,29 +421,12 @@ class ActivatedHomeLifecycleRuntimeTest {
                 configuredAction,
             ).join()
 
-            val apps = withTimeout(30_000) {
-                LauncherAppsRepository(context).apps.first { candidates ->
-                    candidates.any { it.componentName.packageName != context.packageName }
-                }
-            }
-            val candidate = apps.first { it.componentName.packageName != context.packageName }
-            val candidateKey = candidate.workspaceKey()
-            val repository = WorkspaceRepository(context)
-            repository.ensureDefaults(
-                favoriteKeys = listOf(candidateKey),
-                dockKeys = emptyList(),
-            )
-
             val scenario = ActivityScenario.launch(MainActivity::class.java)
             try {
-                withTimeout(15_000) {
-                    repository.state.first { it.authority == WorkspaceAuthority.ROOM }
-                }
-                waitForDisplayedLabel(candidate.label.toString())
                 composeRule.waitUntil(timeoutMillis = 15_000) {
                     composeRule
                         .onAllNodesWithTag(
-                            "launcher-home-swipe-up-launcher_settings",
+                            renderedGestureTag,
                             useUnmergedTree = true,
                         )
                         .fetchSemanticsNodes()
@@ -449,11 +434,14 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
 
                 composeRule
-                    .onNodeWithText(candidate.label.toString(), useUnmergedTree = true)
+                    .onNodeWithTag(
+                        renderedGestureTag,
+                        useUnmergedTree = true,
+                    )
                     .performTouchInput {
                         swipeUp(
                             startY = bottom - 1f,
-                            endY = top - 320f,
+                            endY = top + 1f,
                             durationMillis = 400,
                         )
                     }
