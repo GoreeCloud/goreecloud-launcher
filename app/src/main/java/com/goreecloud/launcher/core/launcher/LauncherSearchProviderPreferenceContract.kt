@@ -1,5 +1,8 @@
 package com.goreecloud.launcher.core.launcher
 
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 
@@ -182,8 +185,17 @@ object LauncherSearchProviderPreferenceContract {
         val decoded = mutableListOf<String>()
         encodedIds.split(',').forEach { encodedId ->
             val providerId = try {
-                String(decoder.decode(encodedId), StandardCharsets.UTF_8)
+                val providerBytes = decoder.decode(encodedId)
+                StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(providerBytes))
+                    .toString()
             } catch (_: IllegalArgumentException) {
+                return DecodedProviderIds.Invalid(
+                    LauncherSearchProviderPreferenceInvalidReason.INVALID_PROVIDER_ID_ENCODING,
+                )
+            } catch (_: CharacterCodingException) {
                 return DecodedProviderIds.Invalid(
                     LauncherSearchProviderPreferenceInvalidReason.INVALID_PROVIDER_ID_ENCODING,
                 )
