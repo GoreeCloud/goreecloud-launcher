@@ -12,6 +12,7 @@ AUTHORITATIVE_PLACEMENT_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "l
 AUTHORITATIVE_PLACEMENT_OBSERVER = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceAuthoritativePlacementObserver.kt"
 PRODUCTION_RUNTIME_COORDINATOR = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceProductionRuntimeCoordinator.kt"
 PLACEMENT_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspaceRoomPlacementRepository.kt"
+PRIMARY_HOME_SPATIAL_REPOSITORY = PRODUCTION_ROOT / "com" / "goreecloud" / "launcher" / "core" / "workspace" / "db" / "WorkspacePrimaryHomeSpatialRepository.kt
 
 NON_EXECUTABLE_KOTLIN = re.compile(
     r'""".*?"""|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|/\*.*?\*/|//[^\n]*',
@@ -126,6 +127,23 @@ for path in PRODUCTION_ROOT.rglob("*.kt"):
     elif runtime_references:
         errors.append(
             "Production workspace runtime activation is outside MainActivity: "
+            f"{path.relative_to(ROOT)}"
+        )
+
+    spatial_references = text.count("WorkspacePrimaryHomeSpatialRepository(")
+    if path == PRIMARY_HOME_SPATIAL_REPOSITORY:
+        if spatial_references != 1:
+            errors.append(
+                "WorkspacePrimaryHomeSpatialRepository.kt must contain exactly its class declaration."
+            )
+    elif path == PRODUCTION_RUNTIME_COORDINATOR:
+        if spatial_references != 1:
+            errors.append(
+                "WorkspaceProductionRuntimeCoordinator.kt must instantiate primary Home spatial authority exactly once."
+            )
+    elif spatial_references:
+        errors.append(
+            "Primary Home spatial access is outside WorkspaceProductionRuntimeCoordinator: "
             f"{path.relative_to(ROOT)}"
         )
 

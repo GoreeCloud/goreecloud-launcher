@@ -2,6 +2,7 @@ package com.goreecloud.launcher.core.workspace.db
 
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
+import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
@@ -62,19 +63,100 @@ class WorkspaceRoomPlacementRepository(
     suspend fun replace(
         favoriteKeys: List<String>,
         dockKeys: List<String>,
+        homeGrid: WorkspaceGridPlacement.Grid? = null,
     ): WorkspaceRoomWriteResult {
         if (!isRoomAuthoritative()) return WorkspaceRoomWriteResult.Reserved
         val workspaceDao = workspaceDaoOrNull() ?: return WorkspaceRoomWriteResult.Unavailable
         val normalized = WorkspaceRoomPlacementModel.normalize(favoriteKeys, dockKeys)
-        val expected = WorkspaceLegacyImportMapper.map(
-            favoriteKeys = normalized.favoriteKeys,
-            dockKeys = normalized.dockKeys,
-        )
 
         return try {
+            val currentPrimary = workspaceDao
+                .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                .sortedBy { it.rank }
+            val currentCompatibility = currentPrimary.all { it.cellX == null && it.cellY == null }
+            val currentSpatial = currentPrimary.all { it.cellX != null && it.cellY != null }
+            if (!currentCompatibility && !currentSpatial) {
+                return WorkspaceRoomWriteResult.Mismatch
+            }
+
+            val expected = WorkspaceLegacyImportMapper.map(
+                favoriteKeys = normalized.favoriteKeys,
+                dockKeys = normalized.dockKeys,
+            )
+            val expectedDock = expected.items.filter {
+                it.pageId == WorkspaceLegacyImportMapper.DOCK_PAGE_ID
+            }
+            val currentByKey = currentPrimary
+                .mapNotNull { item -> item.appKey?.let { it to item } }
+                .toMap()
+            if (currentByKey.size != currentPrimary.size) {
+                return WorkspaceRoomWriteResult.Mismatch
+            }
+
+            val primaryItems = if (currentPrimary.isEmpty() || currentCompatibility) {
+                expected.items.filter { it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID }
+            } else {
+                val requestedKeys = normalized.favoriteKeys
+                val additions = requestedKeys.filterNot(currentByKey::containsKey)
+                val grid = if (additions.isNotEmpty()) {
+                    homeGrid ?: return WorkspaceRoomWriteResult.Mismatch
+                } else {
+                    homeGrid
+                }
+                val occupied = mutableSetOf<Pair<Int, Int>>()
+                val retained = requestedKeys.mapNotNull(currentByKey::get)
+                retained.forEach { item ->
+                    val x = item.cellX ?: return WorkspaceRoomWriteResult.Mismatch
+                    val y = item.cellY ?: return WorkspaceRoomWriteResult.Mismatch
+                    if (x < 0 || y < 0 || !occupied.add(x to y)) {
+                        return WorkspaceRoomWriteResult.Mismatch
+                    }
+                    if (grid != null && (x !in 0 until grid.columns || y !in 0 until grid.rows)) {
+                        return WorkspaceRoomWriteResult.Mismatch
+                    }
+                }
+
+                requestedKeys.mapIndexed { rank, appKey ->
+                    currentByKey[appKey]?.copy(rank = rank)
+                        ?: run {
+                            val activeGrid = grid ?: return WorkspaceRoomWriteResult.Mismatch
+                            val coordinate = firstFreeCell(activeGrid, occupied)
+                                ?: return WorkspaceRoomWriteResult.Mismatch
+                            occupied.add(coordinate)
+                            WorkspaceItemEntity(
+                                itemId = "legacy:home:$appKey",
+                                pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                                itemType = WorkspaceItemType.APP,
+                                appKey = appKey,
+                                rank = rank,
+                                cellX = coordinate.first,
+                                cellY = coordinate.second,
+                            )
+                        }
+                }.also { spatialItems ->
+                    if (grid != null) {
+                        val placements = spatialItems.map { item ->
+                            WorkspaceGridPlacement.Placement(
+                                itemId = item.itemId,
+                                cellX = item.cellX ?: return WorkspaceRoomWriteResult.Mismatch,
+                                cellY = item.cellY ?: return WorkspaceRoomWriteResult.Mismatch,
+                                spanX = item.spanX,
+                                spanY = item.spanY,
+                            )
+                        }
+                        if (
+                            WorkspaceGridPlacement.validate(grid, placements) !=
+                                WorkspaceGridPlacement.Validation.Valid
+                        ) {
+                            return WorkspaceRoomWriteResult.Mismatch
+                        }
+                    }
+                }
+            }
+
             workspaceDao.replaceLegacySnapshot(
                 pages = expected.pages,
-                items = expected.items,
+                items = primaryItems + expectedDock,
             )
             val actual = WorkspaceCanonicalRoomPlacementReader.read(workspaceDao)
                 ?: return WorkspaceRoomWriteResult.Mismatch
@@ -89,6 +171,19 @@ class WorkspaceRoomPlacementRepository(
         } catch (exception: Exception) {
             WorkspaceRoomWriteResult.Failed(exception::class.java.simpleName)
         }
+    }
+
+    private fun firstFreeCell(
+        grid: WorkspaceGridPlacement.Grid,
+        occupied: Set<Pair<Int, Int>>,
+    ): Pair<Int, Int>? {
+        for (cellY in 0 until grid.rows) {
+            for (cellX in 0 until grid.columns) {
+                val coordinate = cellX to cellY
+                if (coordinate !in occupied) return coordinate
+            }
+        }
+        return null
     }
 
     private suspend fun isRoomAuthoritative(): Boolean {

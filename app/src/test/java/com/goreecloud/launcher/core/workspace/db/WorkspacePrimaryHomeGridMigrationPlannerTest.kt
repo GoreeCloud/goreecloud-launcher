@@ -39,6 +39,38 @@ class WorkspacePrimaryHomeGridMigrationPlannerTest {
     }
 
     @Test
+    fun plansAgainstRequestedColumnsAndRows() {
+        val result = WorkspacePrimaryHomeGridMigrationPlanner.plan(
+            page = primaryPage(),
+            items = (0..5).map { rank -> primaryItem(rank, "app-$rank") },
+            columns = 5,
+            rows = 4,
+        )
+        assertTrue(result is WorkspacePrimaryHomeGridMigrationPlanningResult.Planned)
+        val plan = (result as WorkspacePrimaryHomeGridMigrationPlanningResult.Planned).plan
+        assertEquals(5, plan.grid.columns)
+        assertEquals(4, plan.grid.rows)
+        assertEquals(
+            0 to 1,
+            checkNotNull(plan.migratedItems.last().cellX) to
+                checkNotNull(plan.migratedItems.last().cellY),
+        )
+    }
+
+    @Test
+    fun requestedGridFailsClosedWhenFavoritesExceedCapacity() {
+        assertEquals(
+            WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems,
+            WorkspacePrimaryHomeGridMigrationPlanner.plan(
+                page = primaryPage(),
+                items = (0..16).map { rank -> primaryItem(rank, "app-$rank") },
+                columns = 4,
+                rows = 4,
+            ),
+        )
+    }
+
+    @Test
     fun emptyPrimaryPageRequiresNoMigrationPlan() {
         assertEquals(
             WorkspacePrimaryHomeGridMigrationPlanningResult.Empty,
@@ -105,7 +137,7 @@ class WorkspacePrimaryHomeGridMigrationPlannerTest {
     }
 
     @Test
-    fun acceptsAlreadySpatialStateOnlyWhenItMatchesDeterministicPlan() {
+    fun acceptsAlreadySpatialStateWhenItIsValidInsideRequestedGrid() {
         val alreadySpatial = listOf(
             primaryItem(rank = 0, appKey = "app-a").copy(cellX = 0, cellY = 0),
             primaryItem(rank = 1, appKey = "app-b").copy(cellX = 1, cellY = 0),
@@ -118,13 +150,21 @@ class WorkspacePrimaryHomeGridMigrationPlannerTest {
             WorkspacePrimaryHomeGridMigrationPlanner.plan(primaryPage(), alreadySpatial),
         )
 
-        val nonDeterministic = alreadySpatial.toMutableList().also {
+        val rearranged = alreadySpatial.toMutableList().also {
             it[0] = it[0].copy(cellX = 1, cellY = 0)
             it[1] = it[1].copy(cellX = 0, cellY = 0)
         }
         assertEquals(
+            WorkspacePrimaryHomeGridMigrationPlanningResult.AlreadySpatial,
+            WorkspacePrimaryHomeGridMigrationPlanner.plan(primaryPage(), rearranged),
+        )
+
+        val collision = rearranged.toMutableList().also {
+            it[1] = it[1].copy(cellX = 1, cellY = 0)
+        }
+        assertEquals(
             WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems,
-            WorkspacePrimaryHomeGridMigrationPlanner.plan(primaryPage(), nonDeterministic),
+            WorkspacePrimaryHomeGridMigrationPlanner.plan(primaryPage(), collision),
         )
     }
 
