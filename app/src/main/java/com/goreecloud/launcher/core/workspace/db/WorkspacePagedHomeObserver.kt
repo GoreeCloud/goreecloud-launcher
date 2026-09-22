@@ -25,11 +25,28 @@ sealed interface WorkspacePagedHomeState {
     data class RecoveryRequired(val reason: String) : WorkspacePagedHomeState
 }
 
+data class WorkspaceRenderedHomeApp(
+    val appKey: String,
+    val cellX: Int?,
+    val cellY: Int?,
+    val spanX: Int,
+    val spanY: Int,
+)
+
 data class WorkspaceRenderedHomePage(
     val pageId: String,
     val rank: Int,
     val appKeys: List<String>,
     val unsupportedItemCount: Int,
+    val appPlacements: List<WorkspaceRenderedHomeApp> = appKeys.map { appKey ->
+        WorkspaceRenderedHomeApp(
+            appKey = appKey,
+            cellX = null,
+            cellY = null,
+            spanX = 1,
+            spanY = 1,
+        )
+    },
 )
 
 object WorkspacePagedHomeMapper {
@@ -68,6 +85,15 @@ object WorkspacePagedHomeMapper {
                 rank = page.rank,
                 appKeys = appItems.map { checkNotNull(it.appKey) },
                 unsupportedItemCount = pageItems.count { it.itemType != WorkspaceItemType.APP },
+                appPlacements = appItems.map { item ->
+                    WorkspaceRenderedHomeApp(
+                        appKey = checkNotNull(item.appKey),
+                        cellX = item.cellX,
+                        cellY = item.cellY,
+                        spanX = item.spanX,
+                        spanY = item.spanY,
+                    )
+                },
             )
         }
         return WorkspacePagedHomeState.Ready(rendered)
