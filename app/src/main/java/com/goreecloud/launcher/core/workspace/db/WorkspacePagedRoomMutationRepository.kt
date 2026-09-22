@@ -243,13 +243,22 @@ class WorkspacePagedRoomMutationRepository(
                 return WorkspacePagedRoomMutationResult.PrimaryPageProtected
             }
 
-            if (storedItems.any { it.cellX == null || it.cellY == null }) {
+            val movementPages = if (touchesPrimary) {
+                storedPages
+            } else {
+                storedPages.filterNot {
+                    it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                }
+            }
+            val movementPageIds = movementPages.map { it.pageId }.toSet()
+            val movementItems = storedItems.filter { it.pageId in movementPageIds }
+            if (movementItems.any { it.cellX == null || it.cellY == null }) {
                 return WorkspacePagedRoomMutationResult.InvalidWorkspace
             }
 
-            val itemsByPage = storedItems.groupBy { it.pageId }
-            val resolvedPrimaryGrid = primaryGrid
-            if (resolvedPrimaryGrid != null) {
+            val itemsByPage = movementItems.groupBy { it.pageId }
+            if (touchesPrimary) {
+                val resolvedPrimaryGrid = checkNotNull(primaryGrid)
                 val primaryPlacements = itemsByPage[WorkspaceLegacyImportMapper.HOME_PAGE_ID]
                     .orEmpty()
                     .map(::toGridPlacement)
@@ -273,7 +282,7 @@ class WorkspacePagedRoomMutationRepository(
                 }
             }
 
-            val domainPages = storedPages.map { page ->
+            val domainPages = movementPages.map { page ->
                 WorkspacePagedPlacement.Page(
                     pageId = page.pageId,
                     rank = page.rank,
