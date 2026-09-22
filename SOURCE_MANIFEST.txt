@@ -110,4 +110,4 @@ scripts/check_manifest.py
 scripts/check_privacy.py
 scripts/check_room_cutover.py
 scripts/check_room_schema.py
-settings.gradle.kts
+settings.gradle.kts\napp/src/main/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearch.kt\napp/src/test/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearchTest.kt\n
