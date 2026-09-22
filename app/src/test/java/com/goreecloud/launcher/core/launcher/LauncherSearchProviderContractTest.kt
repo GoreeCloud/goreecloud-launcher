@@ -121,6 +121,37 @@ class LauncherSearchProviderContractTest {
     }
 
     @Test
+    fun incompatibleRegistrationDoesNotClaimIdFromLaterCompatibleProvider() {
+        val incompatible = stubProvider("shared")
+        val compatible = stubProvider("shared")
+        val current = LauncherSearchProviderContract.currentVersion
+
+        val catalog = LauncherSearchProviderContract.evaluate(
+            listOf(
+                registration(
+                    provider = incompatible,
+                    version = LauncherSearchProviderContractVersion(
+                        major = current.major,
+                        minor = current.minor + 1,
+                    ),
+                ),
+                registration(compatible),
+            ),
+        )
+
+        assertEquals(listOf(compatible), catalog.providers)
+        assertEquals(
+            listOf(
+                LauncherSearchProviderRejection(
+                    providerId = "shared",
+                    reason = LauncherSearchProviderRejectionReason.INCOMPATIBLE_CONTRACT_VERSION,
+                ),
+            ),
+            catalog.rejections,
+        )
+    }
+
+    @Test
     fun registrationRequiresMetadataIdentityToMatchProvider() {
         var rejected = false
         try {
