@@ -1,5 +1,11 @@
 package com.goreecloud.launcher.core.launcher
 
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -80,6 +86,110 @@ class LauncherUniversalSearchTest {
     }
 
     @Test
+    fun asyncSearchTimesOutSlowProviderWithoutSuppressingFastResults() = runBlocking {
+        val slow = object : LauncherSearchProvider, LauncherAsyncSearchProvider {
+            override val id = "slow"
+
+            override fun search(rawQuery: String): List<LauncherSearchResult> =
+                error("async provider should use searchAsync")
+
+            override suspend fun searchAsync(
+                request: LauncherSearchRequest,
+            ): List<LauncherSearchResult> {
+                delay(5_000)
+                return listOf(searchResult(id, "slow", "Slow", 500))
+            }
+        }
+        val fast = object : LauncherSearchProvider {
+            override val id = "fast"
+
+            override fun search(rawQuery: String): List<LauncherSearchResult> =
+                listOf(searchResult(id, "fast", "Fast", 100))
+        }
+
+        val results = LauncherUniversalSearch.searchAsync(
+            rawQuery = "f",
+            providers = listOf(slow, fast),
+            policy = LauncherSearchExecutionPolicy(providerTimeoutMillis = 50),
+        )
+
+        assertEquals(listOf("Fast"), results.map { it.title })
+    }
+
+    @Test
+    fun asyncProviderFailureDoesNotDisableOtherResults() = runBlocking {
+        val failing = object : LauncherSearchProvider, LauncherAsyncSearchProvider {
+            override val id = "failing-async"
+
+            override fun search(rawQuery: String): List<LauncherSearchResult> =
+                error("async provider should use searchAsync")
+
+            override suspend fun searchAsync(
+                request: LauncherSearchRequest,
+            ): List<LauncherSearchResult> {
+                error("provider failed")
+            }
+        }
+        val working = object : LauncherSearchProvider {
+            override val id = "working"
+
+            override fun search(rawQuery: String): List<LauncherSearchResult> =
+                listOf(searchResult(id, "1", "Alpha", 200))
+        }
+
+        val results = LauncherUniversalSearch.searchAsync(
+            rawQuery = "a",
+            providers = listOf(failing, working),
+            policy = LauncherSearchExecutionPolicy(providerTimeoutMillis = 1_000),
+        )
+
+        assertEquals(listOf("Alpha"), results.map { it.title })
+    }
+
+    @Test
+    fun asyncSearchPropagatesCallerCancellation() = runBlocking {
+        val started = CompletableDeferred<Unit>()
+        val provider = object : LauncherSearchProvider, LauncherAsyncSearchProvider {
+            override val id = "cancellable"
+
+            override fun search(rawQuery: String): List<LauncherSearchResult> =
+                error("async provider should use searchAsync")
+
+            override suspend fun searchAsync(
+                request: LauncherSearchRequest,
+            ): List<LauncherSearchResult> {
+                started.complete(Unit)
+                awaitCancellation()
+            }
+        }
+
+        val job = launch {
+            LauncherUniversalSearch.searchAsync(
+                rawQuery = "camera",
+                providers = listOf(provider),
+                policy = LauncherSearchExecutionPolicy(providerTimeoutMillis = 10_000),
+            )
+        }
+
+        started.await()
+        job.cancelAndJoin()
+
+        assertTrue(job.isCancelled)
+    }
+
+    @Test
+    fun asyncExecutionPolicyRejectsNonPositiveTimeout() {
+        var rejected = false
+        try {
+            LauncherSearchExecutionPolicy(providerTimeoutMillis = 0)
+        } catch (_: IllegalArgumentException) {
+            rejected = true
+        }
+
+        assertTrue(rejected)
+    }
+
+    @Test
     fun coreActionsProviderReturnsTypedSettingsDestination() {
         val result = LauncherCoreActionsSearchProvider()
             .search("settings")
@@ -135,4 +245,17 @@ class LauncherUniversalSearchTest {
         )
     }
 
+    private fun searchResult(
+        providerId: String,
+        resultId: String,
+        title: String,
+        score: Int,
+    ): LauncherSearchResult = LauncherSearchResult(
+        providerId = providerId,
+        resultId = resultId,
+        title = title,
+        subtitle = null,
+        category = LauncherSearchCategory.ACTION,
+        score = score,
+    )
 }
