@@ -1860,8 +1860,8 @@ private fun LauncherSettingsRootSurface(
 
             SettingsSection("Search", "Home access and Launcher Universal Search") {
                 ChoiceRow(
-                    choices = listOf("Swipe down", "Show bar"),
-                    selected = if (preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT) "Show bar" else "Swipe down",
+                    choices = listOf("Gesture only", "Show bar"),
+                    selected = if (preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT) "Show bar" else "Gesture only",
                     onChoice = {
                         onSetUniversalSearchHomeMode(
                             if (it == "Show bar") LauncherUniversalSearchHomeMode.PERMANENT
