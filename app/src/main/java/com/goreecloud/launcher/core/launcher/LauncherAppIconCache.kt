@@ -11,11 +11,14 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 
 internal const val LAUNCHER_ICON_DECODE_SIZE_PX = 144
-internal const val LAUNCHER_ICON_CACHE_MAX_KIB = 8 * 1024
-internal const val LAUNCHER_ICON_PRELOAD_COUNT = 48
+internal const val LAUNCHER_ICON_CACHE_MAX_KIB = 12 * 1024
+internal const val LAUNCHER_ICON_PRELOAD_COUNT = 128
+internal const val LAUNCHER_ICON_PRELOAD_PARALLELISM = 3
 
 internal data class LauncherIconCacheKey(
     val user: UserHandle,
@@ -27,7 +30,7 @@ private data class LauncherIconPackageKey(
     val packageName: String,
 )
 
-private data class LauncherIconCacheStamp(
+internal data class LauncherIconCacheStamp(
     val generation: Long,
     val packageGeneration: Long,
 )
@@ -85,6 +88,16 @@ internal object LauncherAppIconCache {
         cache.get(app.cacheKey())
     }
 
+    /**
+     * Stable presentation identity for Compose icon state.
+     *
+     * The stamp changes only when the complete icon cache or this app's package scope is invalidated,
+     * so ordinary LauncherApps snapshot object churn does not discard an already-warm icon.
+     */
+    fun stamp(app: LauncherActivityInfo): LauncherIconCacheStamp = synchronized(stateLock) {
+        stampFor(app)
+    }
+
     fun preload(
         apps: List<LauncherActivityInfo>,
         maxCount: Int = LAUNCHER_ICON_PRELOAD_COUNT,
@@ -97,12 +110,14 @@ internal object LauncherAppIconCache {
             .toList()
         if (candidates.isEmpty()) return
 
-        // Keep package-refresh priority deterministic and avoid a cold-drawer burst of dozens of
-        // concurrent bitmap decodes. The cache remains asynchronous; candidates are decoded in the
-        // order supplied by LauncherAppsRepository.
+        // Warm a substantially larger bounded drawer set without moving drawable decoding onto the
+        // UI thread. Small batches finish materially faster than one-at-a-time preloading while
+        // keeping decode/binder pressure controlled on representative mobile hardware.
         loadScope.launch {
-            candidates.forEach { app ->
-                load(app)
+            candidates.chunked(LAUNCHER_ICON_PRELOAD_PARALLELISM).forEach { batch ->
+                batch.map { app ->
+                    async { load(app) }
+                }.awaitAll()
             }
         }
     }

@@ -27,6 +27,23 @@ class LauncherUniversalSearchTest {
     }
 
     @Test
+    fun zeroScoreBrowseResultsPreserveProviderOrder() {
+        val provider = object : LauncherSearchProvider {
+            override val id = "browse"
+
+            override fun search(rawQuery: String): List<LauncherSearchResult> =
+                listOf(
+                    searchResult(id, "beta", "Beta", 0),
+                    searchResult(id, "alpha", "Alpha", 0),
+                )
+        }
+
+        val results = LauncherUniversalSearch.search("", listOf(provider))
+
+        assertEquals(listOf("Beta", "Alpha"), results.map { it.title })
+    }
+
+    @Test
     fun providerFailureDoesNotDisableOtherResults() {
         val failing = object : LauncherSearchProvider {
             override val id = "failing"
