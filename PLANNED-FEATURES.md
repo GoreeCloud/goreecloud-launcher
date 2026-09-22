@@ -3,7 +3,7 @@
 **Record type:** Repository planned/open feature inventory  
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
-**Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record.**  
+**Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record. Legacy Drive roadmap retirement was subsequently verified after PR #203.**  
 **Repository authority baseline:** `main` at `009371938ac3cab041cfb0893ede68e66e211a4f` (PR #201 merged September 22, 2026).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
@@ -18,12 +18,12 @@ Source/build/unit/schema/managed-emulator evidence does not by itself establish 
 This inventory was migrated from:
 
 - retired repository `FEATURE-ROADMAP.md`;
-- `GoreeCloud/Feature Roadmap/GoreeCloud Launcher/FEATURE-ROADMAP.docx`; and
+- retired `GoreeCloud/Feature Roadmap/GoreeCloud Launcher/FEATURE-ROADMAP.docx`; and
 - current authoritative repository/PR evidence.
 
-PR #201 merged the replacement feature records and retired `FEATURE-ROADMAP.md` from authoritative `main`. The Drive roadmap is older than the current repository state and is retained only as a migration source until its verified deletion gate is completed. Where lifecycle state conflicts, verified repository evidence controls. Drive-only historical context is preserved where material rather than being used to downgrade newer verified implementation state.
+PR #201 merged the replacement feature records and retired `FEATURE-ROADMAP.md` from authoritative `main`. PR #203 then reconciled the repository-native authority records against the verified post-migration state. After authoritative `main` readback, the legacy Launcher Drive roadmap was deleted and its former file ID no longer resolves. Where lifecycle state had conflicted during migration, verified repository evidence controlled. Drive-only historical context was preserved where material rather than being used to downgrade newer verified implementation state.
 
-The former roadmap synchronization obligation (`GOV-01`) is superseded by the September 22, 2026 repository-native standard. Google Drive is no longer a permitted active or mirrored roadmap authority.
+The former roadmap synchronization obligation (`GOV-01`) is superseded by the September 22, 2026 repository-native standard. Google Drive is no longer a permitted active, mirrored, backup, convenience, or historical-shadow roadmap authority.
 
 ## Open feature and acceptance obligations
 
@@ -41,7 +41,7 @@ The former roadmap synchronization obligation (`GOV-01`) is superseded by the Se
 | `LCH-P1-05` | Nine Integral Platform Systems: GoreeCloud Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, GoreeCloud Mesh, GoreeCloud Identity, GoreeCloud Policy, and GoreeCloud Observability. GoreeCloud Sync remains separately governed. | P1 / High | **Partial / unresolved.** Platform Contract evaluation exists, but complete evidence-backed runtime integration and application acceptance remain incomplete. Unsupported or unverified integration states must remain blocked/nonconformant rather than being omitted or promoted. |
 | `LCH-M4-01` | Advanced intelligence after core Universal Search stabilization: local suggestions, smart folders, contextual Glaze Cards, natural-language assistance, and optional GoreeCloud Search / GoreeCloud Index provider integration without transferring Launcher Universal Search ownership. | Later / Medium | **Planned / deferred until prerequisites.** Requires separate authority, privacy, security, offline, failure-isolation, user-control, and acceptance contracts. |
 | `LCH-RC-01` | Release-candidate qualification: accessibility, representative physical-device testing, performance/latency profiling, privacy/security review, recovery/rollback, reproducible signing/provenance, and release approval. | RC gate / High | **Open.** Phase A remains open/not passed. No Release Candidate, production, or Stable state is claimed. |
-| `GOV-01` | Maintain repository and Drive roadmap synchronization. | Governance | **Superseded September 22, 2026.** Replaced by the repository-native governance standard. No ongoing Drive roadmap synchronization is authorized. Legacy Drive roadmap is migration-source-only until verified deletion. |
+| `GOV-01` | Maintain repository and Drive roadmap synchronization. | Governance | **Superseded September 22, 2026; legacy Drive source retired.** Replaced by the repository-native governance standard. No ongoing Drive roadmap synchronization is authorized, and the successfully migrated Launcher Drive roadmap has been deleted after authoritative verification. |
 | `GOV-02` | Ensure actionable open obligations are represented in GoreeCloud Tasks Management where required. | Governance / High | **Ongoing.** Issue #80 and the centralized GitHub Improvement Task List carry applicable active obligations. Avoid duplicate task records. |
 | `GOV-03` | Preserve evidence-backed lifecycle state and do not mark features complete, cancelled, superseded, Release Candidate, Stable, or production-approved without authoritative evidence. | Governance / High | **Ongoing.** Launcher remains Development. |
 
@@ -89,7 +89,7 @@ The former roadmap synchronization obligation (`GOV-01`) is superseded by the Se
 
 ## Historical migration context
 
-The Drive roadmap includes a September 12–13, 2026 Launcher experience-expansion reference to `LAUNCHER-EXPERIENCE-EXPANSION.md`. That historical reference is preserved here for traceability but does not override current repository implementation or lifecycle evidence.
+The retired Drive roadmap included a September 12–13, 2026 Launcher experience-expansion reference to `LAUNCHER-EXPERIENCE-EXPANSION.md`. That historical reference is preserved here for traceability but does not override current repository implementation or lifecycle evidence.
 
 Earlier roadmap revisions that assigned Universal Search ownership or provider/ranking authority differently remain historical provenance for their exact revisions. The current architecture assigns core Universal Search ownership to GoreeCloud Launcher; GoreeCloud Search and GoreeCloud Index may later integrate only as optional providers/backends.
 
