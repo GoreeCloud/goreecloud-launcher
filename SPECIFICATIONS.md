@@ -41,9 +41,9 @@ Launcher must remain original GoreeCloud-owned software built from the ground up
 
 The rebuilt primary Home is a launcher-style surface rather than an engineering Favorites screen. Android renders the system wallpaper behind the launcher window through the native window-wallpaper contract, requiring no wallpaper/storage privilege. The primary surface renders the current Home application grid, Dock, Apps affordance, Launcher Settings affordance, and—when the selected entry mode is **Permanent on Home**—a Search GoreeCloud affordance that invokes GoreeCloud Index.
 
-A one-finger downward gesture on the unobstructed Home search zone invokes GoreeCloud Index in both supported Home-entry modes. **Swipe down only** removes the persistent Search GoreeCloud affordance without changing Index authority or the gesture handoff.
+A one-finger downward gesture on the unobstructed Home search zone opens Launcher Universal Search in both supported Home-entry modes. **Swipe down only** removes the persistent Search GoreeCloud affordance while retaining the Launcher-owned search gesture.
 
-Current supported settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps layout modes of Grid/Compact/List, Apps columns of 4/5/6 for grid-based modes, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and GoreeCloud Index Home-entry mode.
+Current supported settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps layout modes of Grid/Compact/List, Apps columns of 4/5/6 for grid-based modes, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and Launcher Universal Search Home-entry mode.
 
 When layout lock is enabled, current Favorite, Dock, Home-page create/delete/reorder, secondary-to-secondary movement, and current secondary spatial mutation callbacks are blocked at the Launcher composition boundary. App launching, Home page selection, navigation, and non-placement presentation settings remain usable. Primary placement-dialog mutation controls are disabled while locked.
 
@@ -55,11 +55,11 @@ The primary `WorkspaceLegacyImportMapper.HOME_PAGE_ID` page remains the protecte
 
 The Apps surface displays the launchable inventory provided through `LauncherApps`, supports user-selectable Grid, Compact, and List presentation modes, supports a narrow local filter by label/package, and launches selected applications. Grid and Compact consume the existing bounded column setting; List is a single-column row presentation. Long-press opens current placement management. Home page controls do not overlay the Apps surface.
 
-The Apps filter is a Launcher-specific navigation feature. It is not GoreeCloud Index and must not become a second universal-search provider/ranking pipeline. While layout lock is enabled, placement management may still be opened to explain state, but current placement mutation controls are disabled.
+The Apps filter is a specialized Launcher-owned view backed by the installed-app Universal Search provider. Android `LauncherApps` remains inventory authority, and the drawer remains narrower than the full Universal Search surface. While layout lock is enabled, placement management may still be opened to explain state, but current placement mutation controls are disabled.
 
 ### Launcher Settings
 
-Launcher Settings is a distinct scrollable surface. Current persisted settings include Home grid, Apps layout (Grid/Compact/List), Apps columns, app-label visibility, icon-size presentation, System/Light/Dark appearance, **Lock Home screen layout**, and the GoreeCloud Index **Permanent on Home / Swipe down only** entry choice. Drawer layout remains local presentation state outside the strict seven-field `goreecloud-launcher-preferences/1` backup/recovery format until a separately versioned portability extension is accepted.
+Launcher Settings is a distinct scrollable surface. Current persisted settings include Home grid, Apps layout (Grid/Compact/List), Apps columns, app-label visibility, icon-size presentation, System/Light/Dark appearance, **Lock Home screen layout**, and the Launcher Universal Search **Permanent on Home / Swipe down only** entry choice. Drawer layout remains local presentation state outside the strict seven-field `goreecloud-launcher-preferences/1` backup/recovery format until a separately versioned portability extension is accepted.
 
 Current settings changes do not widen Room workspace mutation authority. The layout-lock preference restricts Launcher mutation dispatch; the Index-entry preference controls Launcher-owned invocation presentation only.
 
@@ -191,9 +191,9 @@ The controlling architecture principle is: **GoreeCloud Launcher owns Universal 
 
 ### Current Development handoff provenance and migration boundary
 
-Current Development history includes an explicit Index handoff through `com.goreecloud.index.action.SEARCH`, production package `com.goreecloud.index`, Development package `com.goreecloud.index.dev`, persisted Index-oriented Home-entry terminology, and tests/PR evidence that previously treated Index as universal provider/ranking authority.
+Historical Development revisions include an explicit Index handoff through `com.goreecloud.index.action.SEARCH`, production package `com.goreecloud.index`, Development package `com.goreecloud.index.dev`, persisted Index-oriented Home-entry terminology, and tests/PR evidence that previously treated Index as universal provider/ranking authority. Current source removes that mandatory activity handoff and package-visibility query, routes Home search directly to Launcher, and preserves the legacy v1 `index_home_mode` persistence/wire key only for backup/recovery compatibility.
 
-Those records remain truthful for the exact revisions that implemented them. They are now **historical/current-state implementation evidence, not the controlling future architecture**. Migration must occur in bounded source-bearing tranches that update code paths, settings terminology, tests, user-facing copy, package-visibility assumptions, provider contracts, fallback behavior, and documentation together.
+Those records remain truthful for the exact revisions that implemented them. They are historical implementation evidence, not the controlling architecture. The first source-bearing migration tranche implements the Launcher provider/result foundation for installed apps, removes the mandatory Index handoff, updates active search terminology, preserves strict v1 backup compatibility, and routes Home entry directly into Launcher search. Broader providers, actions, categories, commands, shortcuts, history/recency, contextual resources, and optional Search/Index backends remain open.
 
 Launcher PR #53 and PR #57 remain historical evidence for the original Index handoff and persisted entry modes. Later PRs, including the local installed-app fallback work, also remain provenance. None of that evidence by itself establishes completion of the Native Universal Search migration, representative-device acceptance, Release Candidate qualification, production readiness, or Stable status.
 
