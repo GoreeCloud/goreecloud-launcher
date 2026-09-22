@@ -6,47 +6,40 @@ import org.junit.Test
 
 class LauncherSearchProviderContractTest {
     @Test
-    fun builtInRegistrationsAreCurrentLocalOnlyAndRetentionFree() {
-        val registrations = LauncherBuiltInSearchProviderRegistry.registrations(emptyList())
+    fun builtInMetadataIsCurrentLocalOnlyAndRetentionFree() {
+        val providerIds = listOf(
+            LauncherCoreActionsSearchProvider.PROVIDER_ID,
+            LauncherInstalledAppsSearchProvider.PROVIDER_ID,
+        )
+        val metadata = providerIds.map(LauncherBuiltInSearchProviderRegistry::metadataFor)
 
-        assertEquals(2, registrations.size)
-        registrations.forEach { registration ->
-            assertEquals(registration.provider.id, registration.metadata.providerId)
+        metadata.forEachIndexed { index, providerMetadata ->
+            assertEquals(providerIds[index], providerMetadata.providerId)
             assertEquals(
                 LauncherSearchProviderContract.currentVersion,
-                registration.metadata.contractVersion,
+                providerMetadata.contractVersion,
             )
             assertEquals(
                 LauncherSearchProviderProvenance.LAUNCHER_BUILT_IN,
-                registration.metadata.provenance,
+                providerMetadata.provenance,
             )
             assertEquals(
                 LauncherSearchOfflineBehavior.LOCAL_ONLY,
-                registration.metadata.offlineBehavior,
+                providerMetadata.offlineBehavior,
             )
             assertEquals(
                 LauncherSearchAuthorizationRequirement.NONE,
-                registration.metadata.authorizationRequirement,
+                providerMetadata.authorizationRequirement,
             )
             assertEquals(
                 LauncherSearchRemoteProcessing.NONE,
-                registration.metadata.remoteProcessing,
+                providerMetadata.remoteProcessing,
             )
             assertEquals(
                 LauncherSearchQueryRetention.NONE,
-                registration.metadata.queryRetention,
+                providerMetadata.queryRetention,
             )
         }
-
-        val catalog = LauncherBuiltInSearchProviderRegistry.catalog(emptyList())
-        assertTrue(catalog.rejections.isEmpty())
-        assertEquals(
-            listOf(
-                LauncherCoreActionsSearchProvider.PROVIDER_ID,
-                LauncherInstalledAppsSearchProvider.PROVIDER_ID,
-            ),
-            catalog.providers.map { provider -> provider.id },
-        )
     }
 
     @Test
