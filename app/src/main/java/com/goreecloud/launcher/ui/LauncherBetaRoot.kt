@@ -20,7 +20,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -67,10 +66,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
@@ -117,8 +114,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.abs
-import kotlin.math.roundToInt
 
 enum class LauncherSurfaceMode { HOME, SEARCH, DRAWER, SETTINGS, THEME_MANAGER }
 
@@ -327,8 +322,8 @@ fun LauncherBetaRoot(
             ),
     ) {
         AnimatedContent(
-        targetState = surfaceMode,
-        transitionSpec = {
+            targetState = surfaceMode,
+            transitionSpec = {
             val profile = LauncherSurfaceTransitionPolicy.resolve(
                 initial = initialState,
                 target = targetState,
@@ -531,6 +526,11 @@ private fun HomeSurface(
     homeEditorRequestSequence: Long,
     homeLabelOverrides: Map<String, String>,
     primaryHomePage: WorkspaceRenderedHomePage?,
+    activeDrag: LauncherAppDragData?,
+    dragPoint: Offset?,
+    homeCellBounds: MutableMap<Pair<Int, Int>, Rect>,
+    dockItemBounds: MutableMap<String, Rect>,
+    onDockBoundsChanged: (Rect) -> Unit,
     onManageHomePages: () -> Unit,
     onMoveFavoriteToCell: (LauncherActivityInfo, Int, Int) -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
@@ -548,6 +548,22 @@ private fun HomeSurface(
     val dockApps = remember(appsByKey, workspace.dockKeys) {
         workspace.dockKeys.mapNotNull(appsByKey::get).take(MAX_DOCK_ITEMS)
     }
+
+    LaunchedEffect(preferences.homeColumns, preferences.homeRows) {
+        homeCellBounds.keys
+            .filter { (cellX, cellY) ->
+                cellX !in 0 until preferences.homeColumns ||
+                    cellY !in 0 until preferences.homeRows
+            }
+            .forEach(homeCellBounds::remove)
+    }
+    LaunchedEffect(dockApps.map { it.workspaceKey() }) {
+        val visibleDockKeys = dockApps.map { it.workspaceKey() }.toSet()
+        dockItemBounds.keys
+            .filterNot(visibleDockKeys::contains)
+            .forEach(dockItemBounds::remove)
+    }
+
     val swipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     var showHomeEditor by rememberSaveable { mutableStateOf(false) }
@@ -753,11 +769,12 @@ private fun HomeSurface(
 
             Spacer(Modifier.weight(1f))
 
-            if (favoriteApps.isEmpty() && dockApps.isEmpty()) {
+            if (favoriteApps.isEmpty() && dockApps.isEmpty() && activeDrag == null) {
                 EmptyWorkspaceCard(
                     onOpenApps = onOpenDrawer,
                 )
-            } else if (favoriteApps.isNotEmpty()) {
+            }
+            if (favoriteApps.isNotEmpty() || activeDrag != null) {
                 HomeFavoritesGrid(
                     apps = favoriteApps,
                     columns = preferences.homeColumns,
@@ -768,9 +785,11 @@ private fun HomeSurface(
                     spacing = experiencePreferences.homeSpacing,
                     layoutLocked = preferences.layoutLocked,
                     homeLabelOverrides = homeLabelOverrides,
+                    cellBounds = homeCellBounds,
+                    activeDrag = activeDrag,
+                    dragPoint = dragPoint,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
-                    onMoveAppToCell = onMoveFavoriteToCell,
                     onSwipeUp = {
                         executeGestureAction(experiencePreferences.swipeUpAction)
                     },
@@ -789,11 +808,16 @@ private fun HomeSurface(
                 )
             }
 
-            if (dockApps.isNotEmpty()) {
+            if (dockApps.isNotEmpty() || activeDrag != null) {
                 GlazeDock(
                     apps = dockApps,
                     iconScale = preferences.iconScale,
                     style = experiencePreferences.dockStyle,
+                    layoutLocked = preferences.layoutLocked,
+                    activeDrag = activeDrag,
+                    dragPoint = dragPoint,
+                    onDockBoundsChanged = onDockBoundsChanged,
+                    dockItemBounds = dockItemBounds,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
                     onSwipeUp = {
@@ -1197,9 +1221,11 @@ private fun HomeFavoritesGrid(
     spacing: LauncherHomeSpacing,
     layoutLocked: Boolean,
     homeLabelOverrides: Map<String, String>,
+    cellBounds: MutableMap<Pair<Int, Int>, Rect>,
+    activeDrag: LauncherAppDragData?,
+    dragPoint: Offset?,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
-    onMoveAppToCell: (LauncherActivityInfo, Int, Int) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ) {
@@ -1241,8 +1267,6 @@ private fun HomeFavoritesGrid(
             }
         }
     }
-    val cellBounds = remember { mutableStateMapOf<Pair<Int, Int>, Rect>() }
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(gridSpacing),
@@ -1255,6 +1279,8 @@ private fun HomeFavoritesGrid(
                 repeat(columns) { cellX ->
                     val coordinate = cellX to cellY
                     val app = appByCell[coordinate]
+                    val cellHovered = activeDrag != null &&
+                        dragPoint?.let { point -> cellBounds[coordinate]?.contains(point) } == true
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -1262,7 +1288,12 @@ private fun HomeFavoritesGrid(
                             .testTag("launcher-home-cell-$cellX-$cellY")
                             .onGloballyPositioned {
                                 cellBounds[coordinate] = it.boundsInRoot()
-                            },
+                            }
+                            .background(
+                                if (cellHovered) Color.White.copy(alpha = 0.10f)
+                                else Color.Transparent,
+                                RoundedCornerShape(GlazeMetrics.radiusLarge),
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (app != null) {
@@ -1273,21 +1304,14 @@ private fun HomeFavoritesGrid(
                                 iconScale = iconScale,
                                 showLabel = showLabels,
                                 layoutLocked = layoutLocked,
+                                dragData = if (layoutLocked) null else {
+                                    LauncherAppDragData(
+                                        appKey = appKey,
+                                        origin = LauncherAppDragOrigin.HOME,
+                                    )
+                                },
                                 onLaunchApp = onLaunchApp,
                                 onManageApp = onManageApp,
-                                onDrop = { dropPoint ->
-                                    val target = cellBounds.entries
-                                        .firstOrNull { it.value.contains(dropPoint) }
-                                        ?.key
-                                        ?: cellBounds.entries.minByOrNull { entry ->
-                                            val dx = entry.value.center.x - dropPoint.x
-                                            val dy = entry.value.center.y - dropPoint.y
-                                            dx * dx + dy * dy
-                                        }?.key
-                                    if (target != null) {
-                                        onMoveAppToCell(app, target.first, target.second)
-                                    }
-                                },
                                 onSwipeUp = onSwipeUp,
                                 onSwipeDown = onSwipeDown,
                                 modifier = Modifier.fillMaxSize(),
@@ -1307,110 +1331,68 @@ private fun HomeFavoriteTile(
     iconScale: Float,
     showLabel: Boolean,
     layoutLocked: Boolean,
+    dragData: LauncherAppDragData?,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
-    onDrop: (Offset) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val icon = rememberLauncherAppIcon(app)
     val iconSize = (50f * iconScale.coerceIn(0.85f, 1.15f)).dp
-    val moveThreshold = with(LocalDensity.current) { 14.dp.toPx() }
     val swipeThreshold = with(LocalDensity.current) { 42.dp.toPx() }
-    var dragging by remember(app.componentName, app.user) { mutableStateOf(false) }
-    var dragOffset by remember(app.componentName, app.user) { mutableStateOf(Offset.Zero) }
-    var tileBounds by remember(app.componentName, app.user) { mutableStateOf<Rect?>(null) }
-    var dragStartCenter by remember(app.componentName, app.user) { mutableStateOf<Offset?>(null) }
-
-    val gestureModifier = if (layoutLocked) {
-        Modifier.combinedClickable(
-            onClick = { onLaunchApp(app) },
-            onLongClick = { onManageApp(app) },
-        )
+    val dragModifier = if (dragData != null) {
+        Modifier.dragAndDropSource { dragData.toTransferData() }
     } else {
         Modifier
-            .pointerInput(app.componentName, app.user, moveThreshold) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = {
-                        dragging = true
-                        dragOffset = Offset.Zero
-                        dragStartCenter = tileBounds?.center
-                    },
-                    onDrag = { change, amount ->
-                        change.consume()
-                        dragOffset += amount
-                    },
-                    onDragEnd = {
-                        val moved =
-                            abs(dragOffset.x) >= moveThreshold || abs(dragOffset.y) >= moveThreshold
-                        if (moved) {
-                            val startPoint = dragStartCenter ?: tileBounds?.center
-                            if (startPoint != null) onDrop(startPoint + dragOffset)
-                        } else {
-                            onManageApp(app)
-                        }
-                        dragging = false
-                        dragOffset = Offset.Zero
-                        dragStartCenter = null
-                    },
-                    onDragCancel = {
-                        dragging = false
-                        dragOffset = Offset.Zero
-                        dragStartCenter = null
-                    },
-                )
-            }
-            .pointerInput(onSwipeUp, onSwipeDown, swipeThreshold) {
-                var drag = 0f
-                var triggered = false
-                detectVerticalDragGestures(
-                    onDragStart = {
-                        drag = 0f
-                        triggered = false
-                    },
-                    onDragCancel = {
-                        drag = 0f
-                        triggered = false
-                    },
-                    onDragEnd = {
-                        drag = 0f
-                        triggered = false
-                    },
-                    onVerticalDrag = { change, amount ->
-                        if (!dragging) {
-                            change.consume()
-                            if (!triggered) {
-                                drag += amount
-                                when {
-                                    drag <= -swipeThreshold -> {
-                                        triggered = true
-                                        onSwipeUp()
-                                    }
-                                    drag >= swipeThreshold -> {
-                                        triggered = true
-                                        onSwipeDown()
-                                    }
-                                }
+    }
+    val swipeModifier = if (layoutLocked) {
+        Modifier
+    } else {
+        Modifier.pointerInput(onSwipeUp, onSwipeDown, swipeThreshold) {
+            var drag = 0f
+            var triggered = false
+            detectVerticalDragGestures(
+                onDragStart = {
+                    drag = 0f
+                    triggered = false
+                },
+                onDragCancel = {
+                    drag = 0f
+                    triggered = false
+                },
+                onDragEnd = {
+                    drag = 0f
+                    triggered = false
+                },
+                onVerticalDrag = { change, amount ->
+                    change.consume()
+                    if (!triggered) {
+                        drag += amount
+                        when {
+                            drag <= -swipeThreshold -> {
+                                triggered = true
+                                onSwipeUp()
+                            }
+                            drag >= swipeThreshold -> {
+                                triggered = true
+                                onSwipeDown()
                             }
                         }
-                    },
-                )
-            }
-            .clickable(enabled = !dragging) { onLaunchApp(app) }
+                    }
+                },
+            )
+        }
     }
 
     Column(
         modifier = modifier
-            .onGloballyPositioned { tileBounds = it.boundsInRoot() }
-            .zIndex(if (dragging) 1f else 0f)
-            .offset {
-                IntOffset(
-                    dragOffset.x.roundToInt(),
-                    dragOffset.y.roundToInt(),
-                )
-            }
-            .then(gestureModifier)
+            .then(dragModifier)
+            .then(swipeModifier)
+            .combinedClickable(
+                onClick = { onLaunchApp(app) },
+                onLongClick = { onManageApp(app) },
+            )
             .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -2097,6 +2079,12 @@ private fun DrawerAppsContent(
                             compact = drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT,
                             onClick = { onLaunchApp(app) },
                             onLongClick = { onManageApp(app) },
+                            dragData = if (preferences.layoutLocked) null else {
+                                LauncherAppDragData(
+                                    appKey = app.workspaceKey(),
+                                    origin = LauncherAppDragOrigin.DRAWER,
+                                )
+                            },
                             modifier = Modifier.height(
                                 if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) compactTileHeight
                                 else gridTileHeight,
@@ -2149,6 +2137,12 @@ private fun DrawerAppsContent(
                         compact = false,
                         onClick = { onLaunchApp(app) },
                         onLongClick = { onManageApp(app) },
+                        dragData = if (preferences.layoutLocked) null else {
+                            LauncherAppDragData(
+                                appKey = app.workspaceKey(),
+                                origin = LauncherAppDragOrigin.DRAWER,
+                            )
+                        },
                         modifier = Modifier.height(gridTileHeight),
                     )
                 }
@@ -2178,6 +2172,12 @@ private fun DrawerAppsContent(
                         compact = true,
                         onClick = { onLaunchApp(app) },
                         onLongClick = { onManageApp(app) },
+                        dragData = if (preferences.layoutLocked) null else {
+                            LauncherAppDragData(
+                                appKey = app.workspaceKey(),
+                                origin = LauncherAppDragOrigin.DRAWER,
+                            )
+                        },
                         modifier = Modifier.height(compactTileHeight),
                     )
                 }
@@ -2203,6 +2203,12 @@ private fun DrawerAppsContent(
                         iconScale = preferences.iconScale,
                         onClick = { onLaunchApp(app) },
                         onLongClick = { onManageApp(app) },
+                        dragData = if (preferences.layoutLocked) null else {
+                            LauncherAppDragData(
+                                appKey = app.workspaceKey(),
+                                origin = LauncherAppDragOrigin.DRAWER,
+                            )
+                        },
                     )
                 }
             }
@@ -2258,6 +2264,12 @@ private fun DrawerAppsContent(
                                     compact = false,
                                     onClick = { onLaunchApp(app) },
                                     onLongClick = { onManageApp(app) },
+                                    dragData = if (preferences.layoutLocked) null else {
+                                        LauncherAppDragData(
+                                            appKey = app.workspaceKey(),
+                                            origin = LauncherAppDragOrigin.DRAWER,
+                                        )
+                                    },
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(gridTileHeight),
@@ -3375,6 +3387,11 @@ private fun GlazeDock(
     apps: List<LauncherActivityInfo>,
     iconScale: Float,
     style: LauncherDockStyle,
+    layoutLocked: Boolean,
+    activeDrag: LauncherAppDragData?,
+    dragPoint: Offset?,
+    onDockBoundsChanged: (Rect) -> Unit,
+    dockItemBounds: MutableMap<String, Rect>,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     onSwipeUp: () -> Unit,
@@ -3395,17 +3412,26 @@ private fun GlazeDock(
         LauncherDockStyle.GLASS -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.24f)
         LauncherDockStyle.EDGE -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.40f)
     }
-    val border = if (style == LauncherDockStyle.CLEAR) {
-        null
-    } else {
-        BorderStroke(
+    var measuredBounds by remember { mutableStateOf<Rect?>(null) }
+    val dockHovered = activeDrag != null &&
+        dragPoint?.let { point -> measuredBounds?.contains(point) } == true
+    val border = when {
+        dockHovered -> BorderStroke(2.dp, Color.White.copy(alpha = 0.58f))
+        style == LauncherDockStyle.CLEAR -> null
+        else -> BorderStroke(
             1.dp,
             Color.White.copy(alpha = if (style == LauncherDockStyle.EDGE) 0.12f else 0.10f),
         )
     }
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .onGloballyPositioned {
+                val bounds = it.boundsInRoot()
+                measuredBounds = bounds
+                onDockBoundsChanged(bounds)
+            },
         shape = shape,
         color = color,
         border = border,
@@ -3418,18 +3444,34 @@ private fun GlazeDock(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            apps.forEach { app ->
-                LauncherAppTile(
-                    app = app,
-                    iconScale = iconScale,
-                    showLabel = false,
-                    compact = true,
-                    onClick = { onLaunchApp(app) },
-                    onLongClick = { onManageApp(app) },
-                    onSwipeUp = onSwipeUp,
-                    onSwipeDown = onSwipeDown,
-                    modifier = Modifier.size(60.dp),
+            if (apps.isEmpty() && activeDrag != null) {
+                Text(
+                    "Drop in Dock",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.76f),
                 )
+            } else {
+                apps.forEach { app ->
+                    val appKey = app.workspaceKey()
+                    LauncherAppTile(
+                        app = app,
+                        iconScale = iconScale,
+                        showLabel = false,
+                        compact = true,
+                        dragData = if (layoutLocked) null else {
+                            LauncherAppDragData(
+                                appKey = appKey,
+                                origin = LauncherAppDragOrigin.DOCK,
+                            )
+                        },
+                        onBoundsChanged = { dockItemBounds[appKey] = it },
+                        onClick = { onLaunchApp(app) },
+                        onLongClick = { onManageApp(app) },
+                        onSwipeUp = onSwipeUp,
+                        onSwipeDown = onSwipeDown,
+                        modifier = Modifier.size(60.dp),
+                    )
+                }
             }
         }
     }
@@ -3445,6 +3487,8 @@ private fun LauncherAppTile(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier,
+    dragData: LauncherAppDragData? = null,
+    onBoundsChanged: ((Rect) -> Unit)? = null,
     onSwipeUp: (() -> Unit)? = null,
     onSwipeDown: (() -> Unit)? = null,
     labelOnWallpaper: Boolean = false,
@@ -3453,6 +3497,11 @@ private fun LauncherAppTile(
     val base = if (compact) 50f else 52f
     val iconSize = (base * iconScale.coerceIn(0.85f, 1.15f)).dp
     val swipeThreshold = with(LocalDensity.current) { 42.dp.toPx() }
+    val dragModifier = if (dragData != null) {
+        Modifier.dragAndDropSource { dragData.toTransferData() }
+    } else {
+        Modifier
+    }
     val gestureModifier = if (onSwipeUp != null || onSwipeDown != null) {
         Modifier.pointerInput(onSwipeUp, onSwipeDown, swipeThreshold) {
             var drag = 0f
@@ -3494,6 +3543,10 @@ private fun LauncherAppTile(
 
     Column(
         modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                onBoundsChanged?.invoke(coordinates.boundsInRoot())
+            }
+            .then(dragModifier)
             .then(gestureModifier)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 2.dp, vertical = 2.dp),
@@ -3551,14 +3604,21 @@ private fun LauncherAppListRow(
     iconScale: Float,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    dragData: LauncherAppDragData? = null,
 ) {
     val icon = rememberLauncherAppIcon(app)
     val iconSize = (44f * iconScale.coerceIn(0.85f, 1.15f)).dp
+    val dragModifier = if (dragData != null) {
+        Modifier.dragAndDropSource { dragData.toTransferData() }
+    } else {
+        Modifier
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
+            .then(dragModifier)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
