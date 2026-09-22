@@ -1,6 +1,8 @@
 package com.goreecloud.launcher.core.launcher
 
 import android.content.pm.LauncherActivityInfo
+import android.os.Process
+import android.os.UserHandle
 import java.text.Normalizer
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
@@ -94,9 +96,13 @@ data class LauncherNavigateSearchAction(
 /**
  * First built-in Universal Search provider. Android LauncherApps remains application-inventory
  * authority; this provider only projects that authoritative inventory into Launcher search.
+ *
+ * Results expose a small profile label so same-name personal/work applications are distinguishable
+ * without merging or reclassifying Android's authoritative per-user inventory.
  */
 class LauncherInstalledAppsSearchProvider(
     private val apps: List<LauncherActivityInfo>,
+    private val primaryUser: UserHandle = Process.myUserHandle(),
 ) : LauncherSearchProvider {
     override val id: String = PROVIDER_ID
 
@@ -104,9 +110,11 @@ class LauncherInstalledAppsSearchProvider(
         apps.mapNotNull { app ->
             val label = app.label.toString()
             val packageName = app.componentName.packageName
+            val profileLabel = if (app.user == primaryUser) "User" else "Work"
+            val subtitle = "$profileLabel · $packageName"
             val score = LauncherSearchTextRanking.score(
                 title = label,
-                subtitle = packageName,
+                subtitle = subtitle,
                 rawQuery = rawQuery,
             ) ?: return@mapNotNull null
 
@@ -114,7 +122,7 @@ class LauncherInstalledAppsSearchProvider(
                 providerId = id,
                 resultId = app.user.hashCode().toString() + ":" + app.componentName.flattenToString(),
                 title = label,
-                subtitle = packageName,
+                subtitle = subtitle,
                 category = LauncherSearchCategory.APPLICATION,
                 score = score,
                 action = LaunchApplicationSearchAction(app),
@@ -301,15 +309,23 @@ object LauncherUniversalSearch {
 
     private fun normalizeResults(
         results: List<LauncherSearchResult>,
-    ): List<LauncherSearchResult> =
-        results
-            .distinctBy { result -> result.providerId to result.resultId }
-            .sortedWith(
-                compareByDescending<LauncherSearchResult> { it.score }
-                    .thenBy { LauncherSearchTextRanking.normalize(it.title) }
-                    .thenBy { it.providerId }
-                    .thenBy { it.resultId },
-            )
+    ): List<LauncherSearchResult> {
+        val distinctResults = results.distinctBy { result -> result.providerId to result.resultId }
+
+        // Blank app-drawer browsing produces zero-scored results from the already normalized
+        // LauncherApps inventory. Preserve that provider order instead of normalizing every title
+        // and sorting the full list again on drawer entry/recomposition.
+        if (distinctResults.all { result -> result.score == 0 }) {
+            return distinctResults
+        }
+
+        return distinctResults.sortedWith(
+            compareByDescending<LauncherSearchResult> { it.score }
+                .thenBy { LauncherSearchTextRanking.normalize(it.title) }
+                .thenBy { it.providerId }
+                .thenBy { it.resultId },
+        )
+    }
 }
 
 /**
