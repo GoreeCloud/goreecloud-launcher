@@ -42,6 +42,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePagedHomeOb
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePagedRoomMutationRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePostCutoverStartupCoordinator.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePrimaryHomeGridMigrationPlanner.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePrimaryHomeSpatialRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceProductionPromotionCoordinator.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceProductionRuntimeCoordinator.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePromotionRehearsal.kt
