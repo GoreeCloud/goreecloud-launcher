@@ -30,11 +30,23 @@ sealed interface WorkspacePrimaryHomeGridMigrationPlanningResult {
  */
 object WorkspacePrimaryHomeGridMigrationPlanner {
     const val PRIMARY_HOME_COLUMNS = 4
+    const val MIN_PRIMARY_HOME_COLUMNS = 4
+    const val MAX_PRIMARY_HOME_COLUMNS = 6
+    const val MIN_PRIMARY_HOME_ROWS = 4
+    const val MAX_PRIMARY_HOME_ROWS = 7
 
     fun plan(
         page: WorkspacePageEntity,
         items: List<WorkspaceItemEntity>,
+        columns: Int = PRIMARY_HOME_COLUMNS,
+        rows: Int? = null,
     ): WorkspacePrimaryHomeGridMigrationPlanningResult {
+        if (
+            columns !in MIN_PRIMARY_HOME_COLUMNS..MAX_PRIMARY_HOME_COLUMNS ||
+            (rows != null && rows !in MIN_PRIMARY_HOME_ROWS..MAX_PRIMARY_HOME_ROWS)
+        ) {
+            return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
+        }
         if (
             page.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
             page.containerType != WorkspaceContainerType.HOME ||
@@ -80,15 +92,22 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
             return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
         }
 
-        val rows = maxOf(1, (orderedItems.size + PRIMARY_HOME_COLUMNS - 1) / PRIMARY_HOME_COLUMNS)
+        val minimumRows = maxOf(1, (orderedItems.size + columns - 1) / columns)
+        if (minimumRows > MAX_PRIMARY_HOME_ROWS) {
+            return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
+        }
+        if (rows != null && minimumRows > rows) {
+            return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
+        }
+        val gridRows = rows ?: minimumRows
         val grid = WorkspaceGridPlacement.Grid(
-            columns = PRIMARY_HOME_COLUMNS,
-            rows = rows,
+            columns = columns,
+            rows = gridRows,
         )
         val migratedItems = orderedItems.map { item ->
             item.copy(
-                cellX = item.rank % PRIMARY_HOME_COLUMNS,
-                cellY = item.rank / PRIMARY_HOME_COLUMNS,
+                cellX = item.rank % columns,
+                cellY = item.rank / columns,
             )
         }
         val placements = migratedItems.map { item ->
@@ -105,10 +124,19 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
         }
 
         if (allSpatialCoordinates) {
-            val alreadySpatial = orderedItems.zip(migratedItems).all { (current, target) ->
-                current.cellX == target.cellX && current.cellY == target.cellY
+            val currentPlacements = orderedItems.map { item ->
+                WorkspaceGridPlacement.Placement(
+                    itemId = item.itemId,
+                    cellX = checkNotNull(item.cellX),
+                    cellY = checkNotNull(item.cellY),
+                    spanX = item.spanX,
+                    spanY = item.spanY,
+                )
             }
-            return if (alreadySpatial) {
+            return if (
+                WorkspaceGridPlacement.validate(grid, currentPlacements) ==
+                    WorkspaceGridPlacement.Validation.Valid
+            ) {
                 WorkspacePrimaryHomeGridMigrationPlanningResult.AlreadySpatial
             } else {
                 WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
