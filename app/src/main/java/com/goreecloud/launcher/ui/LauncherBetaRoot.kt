@@ -336,7 +336,6 @@ private fun HomeSurface(
     val executeGestureAction: (LauncherGestureAction) -> Unit = { action ->
         when (action.type) {
             LauncherGestureActionType.NONE -> Unit
-            LauncherGestureActionType.HOME -> Unit
             LauncherGestureActionType.APPS -> onOpenDrawer()
             LauncherGestureActionType.UNIVERSAL_SEARCH -> onOpenLauncherSearch()
             LauncherGestureActionType.LAUNCHER_SETTINGS -> onOpenSettings()
@@ -373,20 +372,6 @@ private fun HomeSurface(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(swipeThreshold) {
-                detectTapGestures(
-                    onDoubleTap = {
-                        currentExecuteGestureAction(
-                            currentGesturePreferences.doubleTapAction,
-                        )
-                    },
-                    onLongPress = {
-                        currentExecuteGestureAction(
-                            currentGesturePreferences.tapAndHoldAction,
-                        )
-                    },
-                )
-            }
             .pointerInput(swipeThreshold) {
                 var drag = Offset.Zero
                 var triggered = false
@@ -439,6 +424,25 @@ private fun HomeSurface(
                 )
             },
     ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .pointerInput(swipeThreshold) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            currentExecuteGestureAction(
+                                currentGesturePreferences.doubleTapAction,
+                            )
+                        },
+                        onLongPress = {
+                            currentExecuteGestureAction(
+                                currentGesturePreferences.tapAndHoldAction,
+                            )
+                        },
+                    )
+                },
+        )
+
         if (wallpaperShadeAlpha > 0f) {
             Box(
                 Modifier
