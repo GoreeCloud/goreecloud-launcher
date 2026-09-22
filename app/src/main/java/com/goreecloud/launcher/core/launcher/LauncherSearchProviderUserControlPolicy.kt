@@ -48,6 +48,39 @@ object LauncherSearchProviderUserControlPolicy {
         )
     }
 
+    /**
+     * Resolves the persisted preference result into the executable provider-control state.
+     *
+     * Absence keeps first-run privacy-safe defaults. A loaded snapshot preserves the user's explicit
+     * enabled set and ordering. Malformed or unsupported persisted state fails closed to no enabled
+     * providers instead of silently replacing the unreadable choice with automatic defaults.
+     */
+    fun normalize(
+        catalog: LauncherSearchProviderCatalog,
+        persistedPreferences: LauncherSearchProviderPreferenceDecodeResult,
+    ): LauncherSearchProviderControlState = when (persistedPreferences) {
+        LauncherSearchProviderPreferenceDecodeResult.Absent -> normalize(
+            catalog = catalog,
+            requestedEnabledProviderIds = null,
+            requestedProviderOrder = emptyList(),
+        )
+        is LauncherSearchProviderPreferenceDecodeResult.Loaded -> normalize(
+            catalog = catalog,
+            requestedEnabledProviderIds = persistedPreferences.snapshot.enabledProviderIds,
+            requestedProviderOrder = persistedPreferences.snapshot.providerOrder,
+        )
+        is LauncherSearchProviderPreferenceDecodeResult.UnsupportedVersion -> normalize(
+            catalog = catalog,
+            requestedEnabledProviderIds = emptySet(),
+            requestedProviderOrder = emptyList(),
+        )
+        is LauncherSearchProviderPreferenceDecodeResult.Invalid -> normalize(
+            catalog = catalog,
+            requestedEnabledProviderIds = emptySet(),
+            requestedProviderOrder = emptyList(),
+        )
+    }
+
     fun normalize(
         catalog: LauncherSearchProviderCatalog,
         requestedEnabledProviderIds: Set<String>?,
@@ -81,6 +114,65 @@ object LauncherSearchProviderUserControlPolicy {
         return LauncherSearchProviderControlState(
             orderedOptions = orderedOptions,
             enabledProviderIds = enabledProviderIds,
+        )
+    }
+
+    /**
+     * Builds the next persisted snapshot for one explicit enable/disable action.
+     *
+     * Unknown provider IDs are ignored so stale UI events cannot manufacture persisted authority for
+     * a provider that is not present in the accepted catalog-derived control state.
+     */
+    fun withProviderEnabled(
+        state: LauncherSearchProviderControlState,
+        providerId: String,
+        enabled: Boolean,
+    ): LauncherSearchProviderPreferenceSnapshot {
+        val knownProviderIds = state.orderedOptions.map { option -> option.providerId }
+        if (providerId !in knownProviderIds) {
+            return LauncherSearchProviderPreferenceSnapshot.fromControlState(state)
+        }
+
+        val enabledProviderIds = state.enabledProviderIds.toMutableSet()
+        if (enabled) {
+            enabledProviderIds += providerId
+        } else {
+            enabledProviderIds -= providerId
+        }
+        return LauncherSearchProviderPreferenceSnapshot(
+            enabledProviderIds = enabledProviderIds,
+            providerOrder = knownProviderIds,
+        )
+    }
+
+    /**
+     * Builds the next persisted snapshot for a bounded provider-order move.
+     *
+     * Moves outside the accepted ordering are no-ops. Enablement is preserved independently from
+     * ordering so reordering never grants a provider automatic execution authority.
+     */
+    fun moveProviderBy(
+        state: LauncherSearchProviderControlState,
+        providerId: String,
+        offset: Int,
+    ): LauncherSearchProviderPreferenceSnapshot {
+        val providerOrder = state.orderedOptions
+            .map { option -> option.providerId }
+            .toMutableList()
+        val currentIndex = providerOrder.indexOf(providerId)
+        if (currentIndex < 0 || offset == 0) {
+            return LauncherSearchProviderPreferenceSnapshot.fromControlState(state)
+        }
+        val targetIndex = currentIndex + offset
+        if (targetIndex !in providerOrder.indices) {
+            return LauncherSearchProviderPreferenceSnapshot.fromControlState(state)
+        }
+
+        providerOrder.removeAt(currentIndex)
+        providerOrder.add(targetIndex, providerId)
+        return LauncherSearchProviderPreferenceSnapshot(
+            enabledProviderIds = state.enabledProviderIds,
+            providerOrder = providerOrder,
         )
     }
 
