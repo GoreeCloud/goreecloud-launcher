@@ -418,8 +418,12 @@ class ActivatedHomeLifecycleRuntimeTest {
                 waitForDisplayedLabel(firstApp.label.toString())
                 waitForDisplayedLabel(secondApp.label.toString())
 
-                val occupied = dao
+                val spatialItems = dao
                     .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                val sourceItem = checkNotNull(spatialItems.singleOrNull { it.appKey == firstKey })
+                val sourceX = checkNotNull(sourceItem.cellX)
+                val sourceY = checkNotNull(sourceItem.cellY)
+                val occupied = spatialItems
                     .mapNotNull { item ->
                         val x = item.cellX
                         val y = item.cellY
@@ -436,27 +440,32 @@ class ActivatedHomeLifecycleRuntimeTest {
                 checkNotNull(target) { "Primary Home runtime test requires at least one empty cell." }
                 val targetX = target.first
                 val targetY = target.second
+                val sourceTag = "launcher-home-cell-$sourceX-$sourceY"
                 val targetTag = "launcher-home-cell-$targetX-$targetY"
 
                 composeRule.waitUntil(timeoutMillis = 15_000) {
                     composeRule
-                        .onAllNodesWithTag(targetTag, useUnmergedTree = true)
+                        .onAllNodesWithTag(sourceTag, useUnmergedTree = true)
                         .fetchSemanticsNodes()
-                        .isNotEmpty()
+                        .isNotEmpty() &&
+                        composeRule
+                            .onAllNodesWithTag(targetTag, useUnmergedTree = true)
+                            .fetchSemanticsNodes()
+                            .isNotEmpty()
                 }
 
-                val firstBounds = composeRule
-                    .onNodeWithText(firstApp.label.toString(), useUnmergedTree = true)
+                val sourceBounds = composeRule
+                    .onNodeWithTag(sourceTag, useUnmergedTree = true)
                     .fetchSemanticsNode()
                     .boundsInRoot
                 val targetBounds = composeRule
                     .onNodeWithTag(targetTag, useUnmergedTree = true)
                     .fetchSemanticsNode()
                     .boundsInRoot
-                val delta = targetBounds.center - firstBounds.center
+                val delta = targetBounds.center - sourceBounds.center
 
                 composeRule
-                    .onNodeWithText(firstApp.label.toString(), useUnmergedTree = true)
+                    .onNodeWithTag(sourceTag, useUnmergedTree = true)
                     .performTouchInput {
                         down(center)
                         advanceEventTime(700)
