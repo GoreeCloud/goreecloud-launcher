@@ -220,11 +220,38 @@ class WorkspaceProductionRuntimeCoordinator(
         sourcePageId: String,
         appKey: String,
         targetPageId: String,
+        homeColumns: Int,
+        homeRows: Int,
     ): WorkspacePagedRoomMutationResult {
+        if (
+            sourcePageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
+            targetPageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+        ) {
+            when (val ready = primaryHomeSpatialRepository.ensureGrid(homeColumns, homeRows)) {
+                is WorkspacePrimaryHomeSpatialResult.Ready -> {
+                    if (ready.changed) refresh()
+                }
+                WorkspacePrimaryHomeSpatialResult.Reserved ->
+                    return WorkspacePagedRoomMutationResult.Reserved
+                WorkspacePrimaryHomeSpatialResult.Unavailable ->
+                    return WorkspacePagedRoomMutationResult.Unavailable
+                WorkspacePrimaryHomeSpatialResult.InvalidWorkspace ->
+                    return WorkspacePagedRoomMutationResult.InvalidWorkspace
+                WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged ->
+                    return WorkspacePagedRoomMutationResult.StoredWorkspaceChanged
+                is WorkspacePrimaryHomeSpatialResult.Failed ->
+                    return WorkspacePagedRoomMutationResult.Failed(ready.failureType)
+                is WorkspacePrimaryHomeSpatialResult.Moved ->
+                    return WorkspacePagedRoomMutationResult.InvalidWorkspace
+            }
+        }
+
         val result = homeItemPageMover.moveAppToPage(
             sourcePageId = sourcePageId,
             appKey = appKey,
             targetPageId = targetPageId,
+            homeColumns = homeColumns,
+            homeRows = homeRows,
         )
         if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
             refresh()
