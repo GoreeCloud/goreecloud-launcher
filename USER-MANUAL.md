@@ -17,7 +17,7 @@ You can change the default launcher later through Android system settings. Exact
 The primary Home experience is a launcher-style surface. Android renders the device wallpaper behind the launcher window, and Home presents the persisted application grid and Dock over that surface without requesting wallpaper-storage privileges.
 
 - Tap an app icon to launch it.
-- Long-press a supported Home or Dock icon to manage its placement.
+- Long-press and drag a primary Home icon to any visible configured Home grid cell. Dropping onto an empty cell places it there; dropping onto an occupied cell swaps the two primary Home positions. Long-press without moving opens placement management.
 - Open **Apps** from the Home affordance to browse installed launchable applications.
 - Open **Launcher settings** to change supported Home, Apps, icon, label, appearance, layout-lock, and Launcher Universal Search entry preferences.
 - Swipe one finger downward through the unobstructed Home gesture zone to open Launcher Universal Search by default. This assignment can be changed under **Launcher settings → Gestures**.
@@ -26,7 +26,7 @@ The primary Home experience is a launcher-style surface. Android renders the dev
 
 The launcher discovers launchable activities through Android `LauncherApps` across available profiles. The manifest uses a scoped `MAIN` + `LAUNCHER` package-visibility query without requesting broad `QUERY_ALL_PACKAGES` access; core search no longer requires the legacy GoreeCloud Index search-action query.
 
-The primary Home page is still the protected Favorites compatibility representation used by the current Room-authority path. It remains HOME rank zero and is not yet a secondary spatial grid page.
+The primary Home page remains the protected HOME rank-zero page. Under terminal Room authority, Launcher can migrate its legacy null-coordinate Favorites rows into authoritative grid coordinates on demand; subsequent primary Home drags persist those coordinates without creating a second workspace authority.
 
 ## Launcher Universal Search from Home
 
@@ -50,7 +50,7 @@ The broader approved Universal Search scope—files/documents, people, settings,
 
 Launcher Settings includes **Lock Home screen layout**.
 
-When the lock is enabled, current placement-changing operations are blocked for the item/page types that Launcher currently implements. This includes current Favorite and Dock membership/order changes, Home-page creation/deletion/reordering, moving supported applications between secondary Home pages, and current within-secondary-page movement controls.
+When the lock is enabled, current placement-changing operations are blocked for the item/page types that Launcher currently implements. This includes Favorite and Dock membership/order changes, primary Home cell placement, Home-page creation/deletion/reordering, moving supported applications between secondary Home pages, and current within-secondary-page movement controls.
 
 The following normal actions remain available while Home is locked:
 
@@ -79,7 +79,7 @@ Open **Apps** from Home to browse the launchable application inventory exposed t
 
 Use the **Search apps** field to search the installed-application inventory locally. This Apps view is a specialized Launcher-owned view backed by the same installed-app provider foundation used for Universal Search. It does not require Internet access.
 
-Long-press an app to open its current placement dialog. When the Home layout is unlocked, you can add/remove it from Home or the Dock and use accessible earlier/later ordering controls. When the layout is locked, the dialog explains the lock and disables those current placement changes.
+Long-press an app to open its current placement dialog. When the Home layout is unlocked, you can add/remove it from Home or the Dock and use accessible earlier/later ordering controls. For a Home app, the dialog can also save a Launcher-local Home label override or reset it to the application label. **Uninstall app** delegates to Android's system uninstall confirmation; Launcher does not silently remove packages. When the layout is locked, the dialog explains the lock and disables current placement changes.
 
 ## Launcher settings
 
@@ -87,7 +87,7 @@ The current Development settings surface is scrollable and persists supported ch
 
 ### Home screen grid
 
-Current presets cover Home grids from 4 to 6 columns and 4 to 7 rows through the supported preset combinations in the UI. Changing the grid affects rendered Home density; it does not migrate the protected primary compatibility page into the secondary spatial-authority model.
+Current presets cover Home grids from 4 to 6 columns and 4 to 7 rows through the supported preset combinations in the UI. Once primary Home spatial placement is active, a grid-size change is applied only after the current primary placements can be validated or safely reflowed into the requested grid; a change that cannot preserve all current Home apps fails closed.
 
 The Home screen settings card also contains the **Lock Home screen layout** switch described above.
 
@@ -139,7 +139,7 @@ When Home layout is unlocked, current secondary management actions can request:
 
 These controls are intentionally behind long-press rather than permanently displayed under every icon. Current mutation callbacks are blocked while layout lock is enabled.
 
-The protected primary Favorites compatibility page is not offered as a secondary spatial source or destination. Primary-to-secondary and secondary-to-primary movement require a separately accepted primary-grid/compatibility migration.
+The primary Home page supports authoritative within-page cell placement while remaining protected at HOME rank zero. Primary-to-secondary and secondary-to-primary page transfer remain separately gated.
 
 Exact-cell requests fail closed if the target is occupied or outside the authoritative grid. Secondary spatial mutations also fail closed when authority/placement health is invalid or when the workspace changes during the transaction. Unsupported item types are reported rather than falsely rendered as applications.
 
@@ -173,7 +173,7 @@ Naming a platform system does not mean every integration is currently implemente
 
 ## Current limitations
 
-Still incomplete or separately gated include mature cross-page drag/drop editing; primary compatibility-page grid migration and primary↔secondary spatial movement; folders; shortcuts; widgets/AppWidgetHost; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
+Still incomplete or separately gated include mature cross-page drag/drop editing; primary↔secondary spatial movement; folders; shortcuts; widgets/AppWidgetHost; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
 
 # Approved future product direction — not currently available
 
