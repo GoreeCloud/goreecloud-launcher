@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. PR #203 reconciled the post-migration authority records, and legacy Launcher Drive roadmap/changelog retirement was subsequently verified.**  
-**Repository authority baseline:** `main` at `439943d7918e4d04e9f7bf62707dc55d4a2898cd` (PR #205). Latest source-bearing Launcher runtime is the same commit.  
+**Repository authority baseline:** `main` at `0af5d6753d1dca98de432f24f8703fe5bae85e2c` (PR #207). Latest source-bearing Launcher runtime is the same commit.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
@@ -30,6 +30,35 @@ The migrated historical record is stored in these repository-local segments:
 7. [September 16–22, 2026 — Glaze/Platform stabilization through Universal Search presentation structure](docs/changelog-history/2026-09-16-to-2026-09-22.md)
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
+
+## September 22, 2026 — PR #207 stabilized persisted Universal Search provider controls
+
+**Change type:** Universal Search; privacy controls; local persistence reconciliation; Development implementation.
+
+PR #207, **Fail closed on unreadable Universal Search provider preferences**, was guarded-squash merged to `main` as `0af5d6753d1dca98de432f24f8703fe5bae85e2c`.
+
+Implemented:
+
+- added policy-level reconciliation from the persisted provider-preference decode result into executable provider-control state;
+- preserved privacy-safe automatic-local defaults only when provider-control storage is genuinely absent;
+- preserved explicit loaded enablement and provider order;
+- made malformed or unsupported persisted state fail closed to no enabled automatic providers instead of silently restoring defaults;
+- added bounded provider enable/disable and ordering mutation helpers that emit the existing versioned provider-control snapshot;
+- ignored stale or unknown provider IDs during mutation and preserved enablement independently from ordering; and
+- added focused JVM regression coverage for absent, loaded, invalid, unsupported, stale-ID, enable/disable, and ordering semantics.
+
+Privacy/trust boundary:
+
+- no typed queries, results, history, usage/frequency signals, credentials, authorization grants, or provider payloads were added to persistence;
+- no networking, external provider discovery/invocation, Android permission, telemetry, or cross-profile authority was added; and
+- rendered provider management, runtime Compose/DataStore collection, external handoff execution, provider-specific consent, and portable backup adoption remain separate open work.
+
+Validation:
+
+- exact PR head `f823ab9c1cb406116b68fe1f7c20cefef1ad6575` passed Android CI run #647 / `35794625569` across validate/build/unit/schema/APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes;
+- guarded squash merge commit: `0af5d6753d1dca98de432f24f8703fe5bae85e2c`.
+
+**Lifecycle boundary:** Development only. This tranche hardens persisted provider-control semantics but does not render the provider manager, connect the persisted state to live Search UI/provider fan-out, establish representative-device Search acceptance, or satisfy Release Candidate, production, or Stable gates. Issue #80 remains open.
 
 ## September 22, 2026 — PR #205 cancelled superseded Launcher icon preload work
 
