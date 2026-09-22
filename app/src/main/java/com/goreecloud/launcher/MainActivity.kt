@@ -392,6 +392,7 @@ class MainActivity : ComponentActivity() {
                             onSetHomeSpacing = launcherPreferencesRepository::setHomeSpacing,
                             onSetDockStyle = launcherPreferencesRepository::setDockStyle,
                             onSetWallpaperShade = launcherPreferencesRepository::setWallpaperShade,
+                            onSetGestureAction = launcherPreferencesRepository::setGestureAction,
                             onOpenWallpaperPicker = ::openWallpaperPicker,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
