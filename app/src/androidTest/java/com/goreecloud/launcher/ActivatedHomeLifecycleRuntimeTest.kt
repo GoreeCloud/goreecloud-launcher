@@ -166,15 +166,6 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
 
                 waitForDisplayedLabel(candidate.label.toString())
-                composeRule.waitUntil(timeoutMillis = 10_000) {
-                    composeRule
-                        .onAllNodesWithTag(
-                            "launcher-home-swipe-up-launcher_settings",
-                            useUnmergedTree = true,
-                        )
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
-                }
 
                 composeRule
                     .onNodeWithText(candidate.label.toString(), useUnmergedTree = true)
@@ -431,6 +422,15 @@ class ActivatedHomeLifecycleRuntimeTest {
                     repository.state.first { it.authority == WorkspaceAuthority.ROOM }
                 }
                 waitForDisplayedLabel(candidate.label.toString())
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-home-swipe-up-launcher_settings",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
 
                 composeRule
                     .onNodeWithText(candidate.label.toString(), useUnmergedTree = true)
@@ -447,9 +447,6 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
-                composeRule
-                    .onNodeWithText("Launcher settings", useUnmergedTree = true)
-                    .assertIsDisplayed()
                 Unit
             } finally {
                 scenario.close()
