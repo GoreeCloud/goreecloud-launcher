@@ -12,6 +12,10 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
+import com.goreecloud.launcher.core.launcher.LauncherGestureAction
+import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
+import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
+import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
@@ -356,6 +360,100 @@ class ActivatedHomeLifecycleRuntimeTest {
                 scenario.close()
             }
         } finally {
+            if (!alreadyDefaultHome) {
+                runShellCommand(
+                    "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+                )
+            }
+        }
+    }
+
+    @Test
+    fun configuredSwipeUpCanOpenLauncherSettings() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val roleManager = context.getSystemService(RoleManager::class.java)
+        val alreadyDefaultHome =
+            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+        val preferencesRepository = LauncherPreferencesRepository(context)
+        val previousSwipeUp = preferencesRepository.experiencePreferences.first().swipeUpAction
+        val configuredAction =
+            LauncherGestureAction.builtIn(LauncherGestureActionType.LAUNCHER_SETTINGS)
+
+        if (!alreadyDefaultHome) {
+            runShellCommand(
+                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+            )
+            withTimeout(10_000) {
+                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    delay(100)
+                }
+            }
+        }
+
+        try {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.SWIPE_UP,
+                configuredAction,
+            )
+            withTimeout(10_000) {
+                preferencesRepository.experiencePreferences.first {
+                    it.swipeUpAction == configuredAction
+                }
+            }
+
+            val apps = withTimeout(10_000) {
+                LauncherAppsRepository(context).apps.first { candidates ->
+                    candidates.any { it.componentName.packageName != context.packageName }
+                }
+            }
+            val candidate = apps.first { it.componentName.packageName != context.packageName }
+            val candidateKey = candidate.workspaceKey()
+            val repository = WorkspaceRepository(context)
+            repository.ensureDefaults(
+                favoriteKeys = listOf(candidateKey),
+                dockKeys = emptyList(),
+            )
+
+            val scenario = ActivityScenario.launch(MainActivity::class.java)
+            try {
+                withTimeout(15_000) {
+                    repository.state.first { it.authority == WorkspaceAuthority.ROOM }
+                }
+                waitForDisplayedLabel(candidate.label.toString())
+
+                composeRule
+                    .onNodeWithText(candidate.label.toString(), useUnmergedTree = true)
+                    .performTouchInput {
+                        swipeUp(
+                            startY = bottom - 1f,
+                            endY = top - 320f,
+                            durationMillis = 400,
+                        )
+                    }
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule.onAllNodesWithText("Launcher settings", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText("Launcher settings", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                Unit
+            } finally {
+                scenario.close()
+            }
+        } finally {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.SWIPE_UP,
+                previousSwipeUp,
+            )
+            withTimeout(10_000) {
+                preferencesRepository.experiencePreferences.first {
+                    it.swipeUpAction == previousSwipeUp
+                }
+            }
             if (!alreadyDefaultHome) {
                 runShellCommand(
                     "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
