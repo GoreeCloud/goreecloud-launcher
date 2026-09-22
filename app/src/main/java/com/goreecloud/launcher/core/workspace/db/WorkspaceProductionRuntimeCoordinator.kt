@@ -69,6 +69,10 @@ class WorkspaceProductionRuntimeCoordinator(
         workspaceDaoProvider = workspaceDaoProvider,
         mutationRepository = pagedMutationRepository,
     )
+    private val primaryHomeSpatialRepository = WorkspacePrimaryHomeSpatialRepository(
+        authorityRepository = authorityRepository,
+        workspaceDaoProvider = workspaceDaoProvider,
+    )
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observePlacement(): Flow<WorkspaceAuthoritativePlacementState> = combine(
@@ -122,6 +126,33 @@ class WorkspaceProductionRuntimeCoordinator(
 
     suspend fun toggleFavorite(key: String): WorkspaceAuthoritativeWriteResult =
         placementRepository.toggleFavorite(key)
+
+    suspend fun ensurePrimaryHomeSpatialGrid(
+        columns: Int,
+        rows: Int,
+    ): WorkspacePrimaryHomeSpatialResult {
+        val result = primaryHomeSpatialRepository.ensureGrid(columns, rows)
+        if (result is WorkspacePrimaryHomeSpatialResult.Ready && result.migrated) refresh()
+        return result
+    }
+
+    suspend fun movePrimaryHomeAppToCell(
+        appKey: String,
+        columns: Int,
+        rows: Int,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspacePrimaryHomeSpatialResult {
+        val result = primaryHomeSpatialRepository.moveAppToCell(
+            appKey = appKey,
+            columns = columns,
+            rows = rows,
+            cellX = cellX,
+            cellY = cellY,
+        )
+        if (result is WorkspacePrimaryHomeSpatialResult.Moved) refresh()
+        return result
+    }
 
     suspend fun toggleDock(key: String): WorkspaceAuthoritativeWriteResult =
         placementRepository.toggleDock(key)
