@@ -55,7 +55,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
-import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction\nimport com.goreecloud.launcher.core.launcher.LauncherDockStyle
+import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerEntryMode
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
@@ -68,7 +69,9 @@ import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
-import com.goreecloud.launcher.core.launcher.LauncherInstalledAppsSearchProvider\nimport com.goreecloud.launcher.core.launcher.LauncherPreferences\nimport com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
+import com.goreecloud.launcher.core.launcher.LauncherInstalledAppsSearchProvider
+import com.goreecloud.launcher.core.launcher.LauncherPreferences
+import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
