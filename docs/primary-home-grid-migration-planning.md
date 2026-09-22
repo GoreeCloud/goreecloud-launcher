@@ -1,62 +1,72 @@
-# Primary Home Grid Migration Planning — Development
+# Primary Home Grid Migration and Spatial Placement — Development
 
 ## Purpose
 
-This Development slice establishes a pure planning contract for a future migration of the protected primary HOME compatibility projection into explicit grid coordinates. It does not perform that migration.
+This Development slice activates the previously planned primary HOME compatibility-to-grid migration under the existing terminal Room workspace authority. It gives the protected rank-zero primary Home page authoritative cell coordinates without introducing a second placement store or changing the Room schema.
 
-The current authoritative primary page remains `home:0`, rank 0, and continues to represent ordered Favorites through the accepted compatibility model. Canonical primary application rows intentionally retain null `cellX` and `cellY` values. Existing secondary pages remain the only active spatial editing domain.
+The primary page remains `home:0`, HOME rank 0. Existing legacy Favorites rows may begin with null `cellX` / `cellY`; the first accepted spatial operation migrates those rows into the configured Home grid through a guarded exact-snapshot Room transaction.
 
-## Deterministic planning contract
+## Supported grid contract
 
-`WorkspacePrimaryHomeGridMigrationPlanner` accepts only the exact current primary compatibility shape:
+Primary Home spatial placement is bounded to the Launcher-supported Home presets:
 
-- page identity must be `home:0`;
-- the page must be a HOME container at rank 0;
-- primary application ranks must be contiguous from zero;
-- every row must be a canonical legacy primary APP item with a nonblank application key and matching `legacy:home:<appKey>` identity;
-- spans must remain `1x1` for this compatibility migration foundation;
-- item identities and application keys must be unique; and
-- coordinates must either all be null, or all already match the deterministic target exactly.
+- 4–6 columns;
+- 4–7 rows;
+- current primary application items remain 1×1 APP rows;
+- item identity remains `legacy:home:<appKey>`;
+- application ranks remain contiguous membership/order metadata; and
+- coordinates must be unique, non-negative, collision-free, and inside the active grid.
 
-For a canonical null-coordinate primary page, ranks are mapped row-major into the current four-column primary Home presentation:
+A requested grid that cannot contain every current primary Home item fails closed. The migration planner must not silently expand beyond the requested Home rows or columns.
 
-- `cellX = rank % 4`
-- `cellY = rank / 4`
-- grid rows are the minimum number needed to contain the ordered Favorites, with at least one row.
+## Migration and resize behavior
 
-The resulting candidate placements are validated through the existing framework-independent `WorkspaceGridPlacement` contract before a plan is returned.
+For a canonical null-coordinate primary page, `WorkspacePrimaryHomeGridMigrationPlanner` maps Favorites row-major into the requested configured grid. `WorkspacePrimaryHomeSpatialRepository.ensureGrid` applies the migration only after terminal Room authority and only when the exact primary page/item snapshot still matches the observed state.
 
-An empty canonical primary page returns `Empty`. A primary page that already has the exact deterministic coordinates returns `AlreadySpatial`. Mixed null/spatial coordinates, half-null coordinates, changed identities, non-contiguous ranks, noncanonical spans, or spatial coordinates that differ from the deterministic plan fail closed as invalid input.
+For an already-spatial primary page, valid coordinates remain authoritative. If the user selects a smaller supported grid, Launcher preserves coordinates that remain valid and deterministically reflows out-of-bounds items into available cells before persisting the new grid preference. If every item cannot be represented safely in the requested grid, the grid change is rejected.
 
-## Authority boundary
+The primary Home page identity and rank are never changed by this migration.
 
-This planner is intentionally pure. It:
+## Direct primary Home placement
 
-- does not open or write Room;
-- does not change `WorkspaceLegacyImportMapper`;
-- does not change `WorkspaceCanonicalRoomPlacementReader` or the current canonical compatibility definition;
-- does not change workspace authority state;
-- does not change `WorkspaceProductionRuntimeCoordinator`;
-- does not expose a new Home UI action;
-- does not alter page ordering or cross-page movement policy; and
-- does not change the Room schema.
+The primary Home renderer consumes authoritative `cellX` / `cellY` values projected through `WorkspacePagedHomeObserver`. All configured grid cells are renderable drop targets, including empty cells.
 
-Therefore, the accepted primary compatibility projection remains null-coordinate and protected at rank 0 even when a valid migration plan can be derived.
+When Home layout is unlocked:
 
-## Required later activation gate
+- long-press and drag an icon to an empty cell to persist that cell;
+- long-press and drag onto an occupied cell to swap the two primary Home positions;
+- long-press without a movement gesture opens the existing placement-management dialog; and
+- the layout-lock gate blocks primary cell mutation when the Home layout is locked.
 
-A later, separately reviewed migration-application slice is required before primary spatial editing can become authoritative. That gate must define and validate, at minimum:
+Movement is written through `WorkspacePrimaryHomeSpatialRepository.moveAppToCell`, which rechecks authority, grid bounds, canonical primary state, collisions, and the complete primary item snapshot before committing.
 
-- the exact transactional compare-and-set/snapshot boundary for converting the current primary rows;
-- the canonical-reader transition from null-coordinate compatibility rows to accepted spatial primary rows;
-- startup, recreation, recovery, and concurrency behavior during and after the transition;
-- compatibility with current Favorite/Dock mutation semantics;
-- preservation of primary rank-zero protection unless a later product decision explicitly changes it;
-- Android 16 file-backed runtime evidence for the real migration transaction; and
-- user-facing movement/editing only after the migration is authoritative and healthy.
+## Favorite membership and grid changes
 
-## Acceptance boundary
+After spatial activation, Favorite reorder/removal preserves retained cell coordinates. Adding a Favorite requires the current configured Home grid and places the new item into the first free in-bounds cell. If no safe cell exists, the write fails closed.
 
-This is planning evidence only. It does not implement primary-to-secondary or secondary-to-primary movement, primary drag/drop, arbitrary coordinate editing, folders, shortcuts, widgets, physical-device acceptance, signed release packaging, production release acceptance, or Stable qualification.
+Changing the configured Home grid invokes spatial validation/reflow before the DataStore presentation preference is changed, so the UI cannot intentionally switch to a grid that would orphan current authoritative Home placements.
 
-No Android permission, `INTERNET` permission, network behavior, dependency, telemetry, analytics, advertising, sponsorship, attribution, tracking capability, or Room schema change is introduced.
+## Canonical read and recovery boundary
+
+`WorkspaceCanonicalRoomPlacementReader` accepts either:
+
+1. the exact legacy null-coordinate primary compatibility form; or
+2. a bounded, collision-free spatial primary form.
+
+Dock compatibility rows remain null-coordinate. Mixed null/spatial primary rows, duplicate/colliding positions, malformed identities, non-contiguous ranks, unsupported spans, or coordinates outside the supported maximum Home grid fail closed.
+
+Startup, recreation, and Room-authoritative observation therefore continue to use one canonical workspace authority before and after spatial activation.
+
+## Current acceptance boundary
+
+This Development implementation covers primary within-page spatial placement and migration only. It does **not** establish:
+
+- primary-to-secondary or secondary-to-primary spatial page transfer;
+- mature cross-page drag/drop;
+- widgets, folders, shortcuts, or arbitrary item spans on primary Home;
+- overlapping elements or sub-grid positioning;
+- representative physical-device acceptance;
+- signed production release acceptance; or
+- Stable qualification.
+
+No Android permission, `INTERNET` permission, network behavior, telemetry, analytics, advertising, sponsorship, or Room schema change is introduced by this slice.
