@@ -2,7 +2,7 @@
 
 ## Current availability
 
-GoreeCloud Launcher is a **Development** Android HOME application. It is not yet a signed production/Stable release. Current source provides a substantially rebuilt daily-launcher shell with a real Home surface, scoped launchable-app discovery, Apps, Launcher Settings, local placement controls, persisted presentation preferences, a Launcher-owned Universal Search foundation, Home layout locking, configurable Universal Search Home entry, and the guarded terminal-Room multi-page Home foundation.
+GoreeCloud Launcher is a **Development** Android HOME application. It is not yet a signed production/Stable release. Current source provides a substantially rebuilt daily-launcher shell with a real Home surface, scoped launchable-app discovery, Apps, Launcher Settings, local placement controls, persisted presentation preferences, a Launcher-owned Universal Search foundation, Home layout locking, configurable Home gestures, configurable Universal Search Home presentation, and the guarded terminal-Room multi-page Home foundation.
 
 Features described under **Approved future product direction** are planned/target capabilities and are **not currently available** unless a current-behavior section explicitly says otherwise.
 
@@ -20,7 +20,7 @@ The primary Home experience is a launcher-style surface. Android renders the dev
 - Long-press a supported Home or Dock icon to manage its placement.
 - Open **Apps** from the Home affordance to browse installed launchable applications.
 - Open **Launcher settings** to change supported Home, Apps, icon, label, appearance, layout-lock, and Launcher Universal Search entry preferences.
-- Swipe one finger downward through the unobstructed Home search zone to open Launcher Universal Search.
+- Swipe one finger downward through the unobstructed Home gesture zone to open Launcher Universal Search by default. This assignment can be changed under **Launcher settings → Gestures**.
 - Favorites and Dock are seeded from installed launchable apps on first run when needed.
 - The Dock is currently bounded to five items.
 
@@ -30,17 +30,17 @@ The primary Home page is still the protected Favorites compatibility representat
 
 ## Launcher Universal Search from Home
 
-**GoreeCloud Launcher owns Universal Search.** Swipe down on the unobstructed Home search zone opens the Launcher-owned search surface. When the Home search bar is enabled, tapping **Search GoreeCloud** opens the same Launcher surface.
+**GoreeCloud Launcher owns Universal Search.** Swipe down on the unobstructed Home gesture zone opens the Launcher-owned search surface by default; the assignment can be changed under **Launcher settings → Gestures**. When the Home search bar is enabled, tapping **Search GoreeCloud** always opens Launcher Universal Search.
 
 Launcher Settings provides two Home-entry modes:
 
 ### Permanent on Home
 
-Home keeps the **Search GoreeCloud** affordance visible, and the one-finger downward gesture also opens Launcher Universal Search.
+Home keeps the **Search GoreeCloud** affordance visible. Swipe down opens Launcher Universal Search by default, but the gesture can be reassigned in **Launcher settings → Gestures**.
 
-### Swipe down only
+### Gesture only
 
-The persistent Search GoreeCloud affordance is hidden. The one-finger downward Home gesture remains available and opens Launcher Universal Search.
+The persistent Search GoreeCloud affordance is hidden. Swipe down still opens Launcher Universal Search by default, but any supported Home gesture can be assigned to search under **Launcher settings → Gestures**.
 
 The current Development search foundation provides installed-application results through a native Launcher provider backed by Android `LauncherApps`. It performs local deterministic matching/ranking and does not require GoreeCloud Index, GoreeCloud Search, Internet access, or telemetry.
 
@@ -93,7 +93,7 @@ The Home screen settings card also contains the **Lock Home screen layout** swit
 
 ### Universal Search
 
-Choose **Permanent on Home** or **Swipe down only**. Swipe-down invocation remains active in both modes; Permanent mode additionally keeps the Search GoreeCloud affordance visible.
+Choose **Permanent on Home** or **Gesture only**. Permanent mode keeps the Search GoreeCloud affordance visible; Gesture only removes the persistent Home bar. Search can still be assigned to any supported Home gesture under **Launcher settings → Gestures**.
 
 ### Apps screen
 
@@ -173,7 +173,7 @@ Naming a platform system does not mean every integration is currently implemente
 
 ## Current limitations
 
-Still incomplete or separately gated include mature cross-page drag/drop editing; primary compatibility-page grid migration and primary↔secondary spatial movement; folders; shortcuts; widgets/AppWidgetHost; complete Theme Manager/icon-pack/masking behavior; broader configurable gestures; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
+Still incomplete or separately gated include mature cross-page drag/drop editing; primary compatibility-page grid migration and primary↔secondary spatial movement; folders; shortcuts; widgets/AppWidgetHost; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
 
 # Approved future product direction — not currently available
 
@@ -195,7 +195,9 @@ GoreeCloud Search may later provide optional advanced search, semantic/query-pro
 
 ## Appearance and gestures
 
-The intended personalization surface includes a native Theme Manager, icon packs, icon masking, bounded icon scaling/normalization, GoreeCloud/adaptive themed icons, icon shapes, wallpaper-derived palettes, custom colors/transparency, custom Home/Apps/folder/dock styling, richer gesture assignments, reduced-motion behavior, and high-contrast/accessibility preferences.
+Launcher settings includes a **Gestures** section for Home-surface assignments. Swipe up, Swipe down, Swipe left, Swipe right, Double-tap, and Tap and hold can each be mapped independently to None, Apps, Launcher Universal Search, Launcher settings, Home editor, Wallpaper, Theme Manager, or a currently launchable app. Defaults preserve Swipe up → Apps, Swipe down → Universal Search, and Tap and hold → Home editor. App targets resolve through Android `LauncherApps`; if a selected app is removed or unavailable in its profile, the gesture fails safely without dispatching an unvalidated intent. Swipe left/right, Double-tap, and Tap and hold apply to empty Home space so long-press drag/reorder and app placement controls remain authoritative.
+
+The broader personalization direction still includes icon packs, icon masking, bounded icon scaling/normalization, GoreeCloud/adaptive themed icons, icon shapes, wallpaper-derived palettes, custom colors/transparency, custom Home/Apps/folder/dock styling, additional gesture and registered-command targets, reduced-motion behavior, and high-contrast/accessibility preferences.
 
 ## Smart information and cards
 
