@@ -4,7 +4,7 @@
 
 **Active Development. Not Stable. Production/release acceptance is incomplete.**
 
-GoreeCloud Launcher is GoreeCloud's first-party native Android launcher and the intended home, application-navigation, personalization, and contextual-access experience for GoreeCloud devices. It is also a primary Android invocation/presentation surface for GoreeCloud Index, the canonical GoreeCloud unified/universal search and indexing authority.
+GoreeCloud Launcher is GoreeCloud's first-party native Android launcher and the intended home, application-navigation, personalization, contextual-access, and native Universal Search experience for GoreeCloud devices. The approved planned architecture assigns the user-facing Universal Search experience and core provider framework to Launcher. Current Development source still contains historical GoreeCloud Index handoff behavior; that exact-revision implementation evidence is preserved until deliberately migrated.
 
 This repository specification describes both current implementation architecture and approved product direction. [FEATURES.md](FEATURES.md) maintains the detailed capability inventory. A target capability is not an implementation or acceptance claim unless repository evidence separately establishes that state.
 
@@ -12,7 +12,7 @@ This repository specification describes both current implementation architecture
 
 Launcher is intended to serve as the personalized front door to GoreeCloud: applications, files, people, devices, search, information, services, privacy controls, security state, continuity features, and contextual actions in one adaptive interface.
 
-Universal search presented from Launcher is powered by GoreeCloud Index. Launcher remains authoritative for Launcher-specific interaction and state; it does not own a parallel universal index or cross-provider ranking authority.
+Universal Search presented from Launcher is a first-party Launcher capability. Launcher owns its search UI, provider framework, core local indexing required for the Launcher experience, result aggregation/ranking, permission-aware filtering, categories, recents/history, commands, shortcuts, and contextual actions. GoreeCloud Search and GoreeCloud Index may later enhance this experience as optional providers/backends once stable, but neither is required for core Launcher Universal Search.
 
 Launcher intelligence and personalization should remain transparent and user-controlled.
 
@@ -25,13 +25,13 @@ Launcher must remain original GoreeCloud-owned software built from the ground up
 - Kotlin + Jetpack Compose with Android-native APIs where launcher contracts require them.
 - Android HOME-role onboarding remains user-controlled through platform role authority.
 - `LauncherApps` remains authoritative for launchable-activity discovery and profile-aware application identity.
-- Android package visibility is scoped to launchable `MAIN` + `LAUNCHER` activities plus the bounded GoreeCloud Index search action; broad `QUERY_ALL_PACKAGES` access is not used.
+- Android package visibility is scoped to launchable `MAIN` + `LAUNCHER` activities. Current Development revisions also contain a bounded GoreeCloud Index search action for the historical handoff; the approved Native Universal Search architecture does not make that handoff a core dependency. Broad `QUERY_ALL_PACKAGES` access is not used.
 - Home, Apps, and Launcher Settings are separate product surfaces.
 - Presentation and Launcher-policy preferences are persisted locally with DataStore.
 - Workspace persistence and placement use the guarded Room-backed workspace model for terminal Room paths.
 - Rendered paged Home state is projected from authoritative workspace state; UI convenience is not a second placement authority.
 - Home layout lock is a Launcher mutation policy layered over the authoritative workspace APIs; it is not a workspace persistence authority.
-- Universal search invocation is delegated through an explicit GoreeCloud Index action contract rather than duplicating Index provider/index/ranking logic inside Launcher.
+- Current Development revisions delegate the legacy universal-search handoff through an explicit GoreeCloud Index action contract. That is preserved as implementation provenance only. The approved planned architecture replaces that dependency with a Launcher-owned native Universal Search provider framework and core local search/index path.
 - GLAZE UI V1.6 / 1.6.0 is the current required design-system target for Launcher. Integrated source-bearing PR #128 maps authoritative repository source to exact Stable release source `a7180679ea851389e0f3004515f9a25f420e716d` and adds first-party V1.6 presentation-policy primitives. Fresh rendered/accessibility/adaptive/device/performance/rollback/release acceptance remains required; source mapping alone is Development evidence only.
 - Privacy, security, continuity, identity, design, and cross-service responsibilities remain separated into applicable GoreeCloud platform-system boundaries.
 
@@ -110,93 +110,92 @@ Current Development source supports:
 
 Primary-grid coordinates and primary↔secondary spatial item movement require a separate accepted migration.
 
-## GoreeCloud Index integration and universal search authority
+## Native Universal Search architecture and optional Search/Index integration
 
 ### Authority model
 
-**GoreeCloud Index is the canonical unified/universal first-party search and indexing authority.** It owns universal query lifecycle, provider discovery, authorization-aware query dispatch, local indexing where required, common result normalization, source provenance, ranking, grouping, deduplication, and universal result actions.
+**GoreeCloud Launcher owns Universal Search.** Launcher owns the user-facing search UI, query/result orchestration for the Launcher experience, native provider framework, core local indexing required for that experience, result aggregation and ranking, permission-aware source filtering, categories, recents/history, commands, shortcuts, contextual actions, and standardized provider APIs.
 
-GoreeCloud Launcher is a primary Android invocation and presentation surface for Index. Launcher owns Home interaction, gesture detection, launcher-specific navigation, and Launcher-owned context exposed through explicit provider contracts. Launcher must not maintain a rival hidden cross-provider index, normalization pipeline, or universal ranking engine.
+Core Launcher Universal Search must remain functional when GoreeCloud Search and GoreeCloud Index are absent, disabled, unavailable, or not production-ready. Search and Index may enhance Launcher later, but neither service is a prerequisite or authority owner for core Launcher Universal Search.
 
-A user-facing Launcher entry point may be described as Launcher Unified Search when referring to the interaction surface, but its universal results are Index-powered.
+Android remains authoritative for installed/launchable application identity through `LauncherApps` and the applicable profile/package contracts. Launcher Universal Search must consume authoritative source contracts rather than inventing competing application identity.
 
-### Default interaction and current Development handoff
+### Search as a discovery and action layer
 
-A **one-finger downward swipe on an unobstructed Home-screen area** is the current direct Launcher gesture for opening GoreeCloud Index universal search.
+Universal Search is both a discovery surface and an action surface. Depending on source capability and authorization, results may expose actions such as:
 
-Launcher supports two persisted Home-entry modes:
+- launch an application or invoke an application shortcut;
+- open, share, move, or inspect a supported file/resource;
+- open a person/profile and invoke an approved communication action;
+- navigate directly to a Launcher or supported system setting;
+- execute a GoreeCloud command or registered provider action;
+- invoke a contextual workspace action; and
+- resolve an appropriate natural-language request where a separately accepted provider supports it.
 
-- **Permanent on Home** — keep the Search GoreeCloud Index affordance visible on Home while retaining swipe-down invocation.
-- **Swipe down only** — hide the persistent Home affordance while retaining one-finger downward invocation.
+External intents, deep links, provider payloads, command definitions, and cross-application records are untrusted input and require validation before action dispatch.
 
-The preference controls Launcher invocation/presentation only; it does not transfer indexing or ranking authority from GoreeCloud Index to Launcher.
+### Native provider architecture
 
-The Development integration invokes the explicit action `com.goreecloud.index.action.SEARCH`. The bounded handoff recognizes the production Index package `com.goreecloud.index` and Development package `com.goreecloud.index.dev`. If no compatible Index activity resolves, Launcher reports the unavailable state instead of silently substituting an independent universal-search implementation.
+GoreeCloud applications and platform services should register searchable resources, actions, shortcuts, commands, and supported metadata through versioned Launcher provider contracts. Provider contracts should define, as applicable:
 
-Accessible non-gesture search access remains a product requirement. The persistent Home affordance supplies a direct non-gesture path in Permanent mode; additional equivalent accessibility/keyboard/system entry behavior must be validated as the Index experience matures.
+- provider identity and source provenance;
+- supported resource/result types;
+- permission and authorization requirements;
+- searchable fields and query capabilities;
+- result and action schemas;
+- ranking metadata and freshness semantics;
+- offline behavior and cache/index policy;
+- privacy, minimization, retention, and remote-processing boundaries;
+- cancellation, timeout, failure isolation, and partial-result behavior; and
+- compatibility/versioning and migration behavior.
 
-### Search presentation quality target
+Launcher must fail soft around optional providers: one provider failure must not disable core Universal Search.
 
-The unified-search experience should achieve the immediacy, clarity, visual polish, and result legibility associated with leading modern universal-search products while remaining an original GoreeCloud design rather than a copy of Apple Spotlight, Pixel search, or another product. The current product target is **GLAZE UI V1.6 / 1.6.0 Stable**, with application-specific implementation and acceptance still evidence-gated.
+### Core searchable capability scope
 
-The intended Glaze UI search experience uses strong typography/hierarchy, a prominent immediately focused query field, restrained context-aware translucency/depth where useful, grouped source-aware result surfaces, clear provider/provenance cues, compact direct actions, bounded fluid motion, reduced-motion/reduced-transparency alternatives, predictable keyboard behavior, and first-class TalkBack/switch-access semantics. GoreeCloud Index owns the full result experience; Launcher owns Home invocation and any persistent Home entry affordance.
+Launcher Universal Search is intended to discover and act on, where authorized and implemented:
 
-### Launcher as an Index provider
+- applications and services;
+- files, folders, and documents;
+- people, teams, and organizations;
+- Launcher settings and supported system controls;
+- application actions and shortcuts;
+- GoreeCloud commands;
+- recent and frequently used resources;
+- cloud resources;
+- connected services;
+- contextual workspace resources; and
+- AI-assisted answers/actions where appropriate and separately governed.
 
-Launcher may expose installed applications, shortcuts/direct actions, Launcher actions/settings, folders, widgets, and other Launcher-owned contextual records through a versioned Index provider contract. Index must not bypass that contract by directly reading Launcher private persistence.
-
-The current Index Android foundation has its own scoped installed-applications provider. A richer Launcher provider is planned separately and must preserve Android `LauncherApps`, profile, shortcut, and Launcher workspace authority rather than duplicating or scraping private data.
-
-### Broader Index provider model
-
-Planned Index provider classes include:
-
-- installed applications and approved application actions;
-- contacts only when explicitly authorized;
-- calendar events through authoritative calendar/provider contracts;
-- photos, screenshots, videos, and other supported media through scoped Android media APIs;
-- files/documents exposed through supported Android document/provider access or user-granted locations;
-- explicit first-party GoreeCloud searchable-content contracts rather than scraping another app's private storage;
-- authorized GoreeCloud Drive content;
-- compatible connected-device providers when separately authorized;
-- extensions and optional third-party service providers under explicit trust/authorization boundaries; and
-- GoreeCloud Search for Internet/Web/current-information results.
-
-These providers belong to the Index query/provider pipeline rather than separate Launcher-owned universal-search logic.
+Work/private-profile isolation, user policy, source authorization, and privacy controls must prevent cross-profile or unauthorized result leakage.
 
 ### GoreeCloud Search boundary
 
-GoreeCloud Search is the first-party provider for Internet, Web, and current-information categories. Launcher reaches those categories through GoreeCloud Index when enabled and authorized. GoreeCloud Search does not own or receive the private Launcher state or unrelated local Index results by default. Local files, photos, contacts, installed-app inventory, Launcher history, and local result payloads must not be uploaded merely to produce local search results.
+GoreeCloud Search remains a separate first-party search/retrieval system. Once stable, it may integrate with Launcher as an optional advanced search/query/discovery provider or backend for capabilities such as advanced content retrieval, full-text search, cross-service search, semantic retrieval, query interpretation, advanced ranking, federation, filters, and operators.
 
-The integration should preserve Launcher’s current offline-capable/no-`INTERNET` core. Any later direct Launcher networking requires separate destination/privacy/failure review and acceptance.
+GoreeCloud Search does not become required for basic Launcher search. Local files, photos, contacts, application inventory, Launcher history, and unrelated local result payloads must not be uploaded merely to produce local results.
 
-### Android and GoreeCloud platform boundaries
+### GoreeCloud Index boundary
 
-Universal search does not justify unrestricted filesystem or package privileges. File/document coverage must use supported document providers, user-granted locations, app-owned provider contracts, Android search/index APIs, or other platform-compliant access. Media search must use scoped APIs. Work/private profile isolation must follow Android and GoreeCloud Identity policy.
+GoreeCloud Index remains a separate scalable indexing/retrieval system. Once stable, it may integrate with Launcher as an optional provider/backend for large-scale resource indexing, metadata/content catalogs, semantic indexing, cross-service indexing, high-performance retrieval, and background indexing pipelines.
 
-Privacy Shield governs applicable purpose/consent/minimization/retention/remote-processing controls. Wardveil Security governs applicable provider/action trust evidence. GoreeCloud Identity governs identity/profile/scoped authorization. GoreeCloud Mesh may coordinate bounded first-party provider discovery. Everkeep governs applicable durable configuration/continuity. Glaze UI governs the user-facing search presentation. None of these integrations may be inferred merely from UI labels.
+GoreeCloud Index does not own Launcher Universal Search and must not be required for the core Launcher experience.
 
-### Ranking and actions
+### Long-term layered responsibility
 
-Universal ranking belongs to Index. Exact/prefix matches should generally outrank weaker fuzzy matches. Optional recency/frequency/context signals must remain transparent, disableable, and appropriately local or authority-bounded. There is no sponsored, promoted, affiliate, or advertising ranking.
+- **Launcher** owns user-facing Universal Search, search UI, aggregation, actions, commands, shortcuts, provider framework, and the core local search/index path required for Launcher.
+- **GoreeCloud Search** may provide advanced search, retrieval, query processing, and discovery capabilities.
+- **GoreeCloud Index** may provide scalable indexing, metadata/content catalogs, and retrieval infrastructure.
 
-Supported results may expose direct actions such as launch app, invoke shortcut, open file/photo, contact communication action, open setting, open a GoreeCloud service result, or hand an online query to GoreeCloud Search. External intents, deep links, provider payloads, and cross-app searchable-content records are untrusted input and require validation.
+The controlling architecture principle is: **GoreeCloud Launcher owns Universal Search. GoreeCloud Search and GoreeCloud Index enhance Launcher once stable, but Launcher must not depend on either for core Universal Search.**
 
-### Privacy and controls
+### Current Development handoff provenance and migration boundary
 
-Sensitive/permissioned Index source categories must be independently controllable. History, provider controls, local/remote processing disclosure, and index/cache clearing belong to the applicable Index/platform contracts. Local providers should continue to function when remote providers are disabled or unavailable. Launcher does not gain universal-search authority merely because Index is temporarily unavailable.
+Current Development history includes an explicit Index handoff through `com.goreecloud.index.action.SEARCH`, production package `com.goreecloud.index`, Development package `com.goreecloud.index.dev`, persisted Index-oriented Home-entry terminology, and tests/PR evidence that previously treated Index as universal provider/ranking authority.
 
-### Current acceptance boundary
+Those records remain truthful for the exact revisions that implemented them. They are now **historical/current-state implementation evidence, not the controlling future architecture**. Migration must occur in bounded source-bearing tranches that update code paths, settings terminology, tests, user-facing copy, package-visibility assumptions, provider contracts, fallback behavior, and documentation together.
 
-Launcher PR #53 implemented the Search GoreeCloud Home affordance, one-finger downward invocation, scoped package visibility for the Index action, and bounded activity handoff. Exact PR head `b18cfa05a1b18243e52046ef581cb67fc3298a5f` passed Android CI run `33417830081`, including the Android 16 runtime-emulator suite, and merged to `main` as `fde148081cc292bcdfd7e221312fe830515331fb`. Push-triggered main CI run `33418531343` then passed both validate and Android 16/API 36 runtime-emulator jobs on the exact merge commit.
-
-GoreeCloud Index PR #1 established its initial Android Development foundation and merged as `331e97507a7b3b7ca3d930771915f1026bf2d4a8`; push-triggered Index validation run `33418751538` succeeded. The accepted Index slice includes its first scoped installed-applications provider and provider-neutral query/result/action engine.
-
-Launcher PR #57 implemented the persisted **Permanent on Home / Swipe down only** Index entry modes together with Home layout locking and its five-second Home unlock path. It merged with expected-head protection as `eca26aa28e1ec8dd18efd1fb5f3cf914be33a361`; push-triggered Android CI run `33434363744` passed both validate and the Android 16/API 36 runtime-emulator job on that exact merge commit.
-
-The repository's current Theme Manager work is mapped to the integrated V1.6 source boundary described in `docs/glaze-ui-adoption.md`. The Theme Manager is user-reachable through Launcher Settings and consumes the repository-local V1.6 presentation context, but this does not establish current application conformance, representative-device accessibility acceptance, or production eligibility.
-
-Contacts, files/documents, calendar, media, Drive, first-party app-content providers, connected devices, extensions, third-party providers, GoreeCloud Search integration, complete GLAZE UI V1.6 application adoption, representative-device accessibility/gesture acceptance, production signing/deployment, and Stable qualification remain separate gates.
+Launcher PR #53 and PR #57 remain historical evidence for the original Index handoff and persisted entry modes. Later PRs, including the local installed-app fallback work, also remain provenance. None of that evidence by itself establishes completion of the Native Universal Search migration, representative-device acceptance, Release Candidate qualification, production readiness, or Stable status.
 
 ## Official Launcher product identity specification
 
@@ -214,13 +213,13 @@ The existence of a canonical asset and synchronized Development derivatives does
 
 ## Approved product capability domains
 
-Detailed approved features are maintained in [FEATURES.md](FEATURES.md). Major domains include customizable Home/workspace, rich Apps organization, GoreeCloud Index-powered universal search, GoreeCloud Search Web/current-information provider integration through Index, native Theme Manager/icon packs/masking/scaling, Home layout locking, configurable Index Home entry, appearance/personalization, gestures, contextual experiences, feeds/cards, notifications, folders, widgets, adaptive Dock/layout/motion, application management, versioned local backup/restore plus optional continuity transports, and applicable GoreeCloud platform integrations.
+Detailed approved features are maintained in [FEATURES.md](FEATURES.md). Major domains include customizable Home/workspace, rich Apps organization, Launcher-owned native Universal Search with optional future GoreeCloud Search and GoreeCloud Index provider/backend integration, native Theme Manager/icon packs/masking/scaling, Home layout locking, configurable Index Home entry, appearance/personalization, gestures, contextual experiences, feeds/cards, notifications, folders, widgets, adaptive Dock/layout/motion, application management, versioned local backup/restore plus optional continuity transports, and applicable GoreeCloud platform integrations.
 
 ## GoreeCloud platform integration boundaries
 
 Naming an integration establishes no implementation claim. Each participating system must satisfy its own implementation, authorization, privacy, security, availability, and acceptance boundary.
 
-- **GoreeCloud Index** is the universal query/provider/index/normalization/ranking authority and accepts Launcher as an invocation/presentation surface and future provider.
+- **GoreeCloud Launcher Universal Search** owns the user-facing Universal Search experience and provider framework. **GoreeCloud Index** may later provide optional scalable indexing/retrieval infrastructure without owning Launcher search authority.
 - **Glaze UI / Design Center** governs visual hierarchy, components, motion, responsiveness, accessibility, adaptive layouts, wallpaper-aware presentation, and design-system acceptance.
 - **Privacy Shield / Privacy Center** governs personalization signals, sensitive search sources/results, history exposure, consent, location/usage-derived behavior, and user control.
 - **Wardveil Security / Security Center** governs applicable package trust, risky cross-application actions, security-state surfaces, and protection of Launcher configuration/search integration state.
@@ -228,13 +227,13 @@ Naming an integration establishes no implementation claim. Each participating sy
 - **GoreeCloud Identity** governs profiles, authentication/authorization, managed application visibility, and identity-aware continuity.
 - **GoreeCloud Mesh** governs authorized cross-device coordination, device awareness, handoff, connected-device results/cards, and coordinated Launcher state.
 - **GoreeCloud Drive** may provide authorized recent/searchable files/folders through its appropriate Index/provider contracts plus launcher shortcuts/widgets.
-- **GoreeCloud Search** provides optional Web/current-information results through Index without becoming local-index authority.
+- **GoreeCloud Search** may provide optional advanced search/retrieval, Web/current-information, query-processing, or federated discovery capabilities through Launcher provider/backend contracts without becoming required for core Launcher search.
 - **Sync/Backups/Location/Maps/Mail/Messenger/Calendar** may provide their approved integrations only where substantively implemented and accepted.
 
 ## Authority and privacy principles
 
 - Android remains authoritative for installed/launchable applications, platform roles, and operating-system launcher capabilities.
-- GoreeCloud Index remains authoritative for universal search orchestration/indexing/ranking; Launcher remains an invocation/presentation surface and source-specific participant.
+- GoreeCloud Launcher remains authoritative for the user-facing Universal Search experience, provider framework, core local search/index path, aggregation, ranking, actions, commands, and shortcuts. GoreeCloud Search and GoreeCloud Index are optional future enhancers once stable.
 - `GoreeCloud/goreecloud-branding-assets` remains authoritative for all GoreeCloud logos/icons/artwork; consumer repositories carry derivatives only.
 - GoreeCloud workspace persistence maintains one accepted placement authority at a time.
 - Home layout lock is a Launcher dispatch/mutation policy and must not create a second writable placement source of truth.
@@ -250,10 +249,10 @@ Naming an integration establishes no implementation claim. Each participating sy
 Stable qualification still requires, as applicable:
 
 - accepted production Launcher identity artwork and derivative asset pipeline from the canonical branding repository;
-- accepted GoreeCloud Index integration with the release-intended provider set and Launcher invocation/presentation behavior;
+- accepted Launcher Native Universal Search core behavior, provider framework, migration from legacy Index-oriented handoff/terminology, and any optional release-intended Search/Index provider integrations;
 - accepted native Theme Manager/icon-pack/masking/scaling behavior for release scope;
 - accepted Home layout-lock enforcement and accessible unlock behavior across all release-supported placeable content and representative devices;
-- accepted configurable Index Home-entry modes and non-gesture accessibility behavior;
+- accepted configurable Universal Search Home-entry modes and non-gesture accessibility behavior;
 - accepted versioned Launcher backup/restore behavior and safe migration/rebinding semantics;
 - complete intended workspace/user flows and recovery semantics;
 - accepted primary compatibility-page grid migration and complete intended cross-page movement semantics;
@@ -261,7 +260,7 @@ Stable qualification still requires, as applicable:
 - mature cross-page placement editing and accessible alternatives;
 - representative-device, rotation/posture, performance, physical-interaction, universal-search gesture, five-second unlock, and accessibility acceptance;
 - complete current Glaze UI application acceptance for the integrated GLAZE UI V1.6 / 1.6.0 Stable source mapping;
-- accepted applicable Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, Index, Search, Sync, Backup, and continuity integrations;
+- accepted applicable Privacy Shield, Wardveil Security, Everkeep, Identity, Mesh, optional Index/Search providers, Sync, Backup, and continuity integrations;
 - Android process-death and schema-upgrade recovery evidence;
 - signed distribution and upgrade/recovery validation; and
 - release/production evidence supporting every capability represented as implemented.
