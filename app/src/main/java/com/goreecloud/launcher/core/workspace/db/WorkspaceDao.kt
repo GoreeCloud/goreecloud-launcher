@@ -70,6 +70,9 @@ abstract class WorkspaceDao {
     @Query("DELETE FROM workspace_pages WHERE containerType = :containerType")
     protected abstract suspend fun deletePagesByContainer(containerType: String)
 
+    @Query("DELETE FROM workspace_items WHERE pageId IN (:pageIds)")
+    protected abstract suspend fun deleteItemsByPages(pageIds: List<String>)
+
     @Query("UPDATE workspace_pages SET rank = -(rank + 1) WHERE containerType = :containerType")
     protected abstract suspend fun stagePageRanks(containerType: String)
 
@@ -301,6 +304,54 @@ abstract class WorkspaceDao {
         if (updatedItem.itemId !in currentById) return false
 
         upsertItems(listOf(updatedItem))
+        return true
+    }
+
+    /**
+     * Replaces the complete HOME item set without changing HOME pages, but only while the caller's
+     * full observed page/item snapshot is still current. Item identities must be preserved. This is
+     * used for mutations that need to move one item across the primary HOME boundary while also
+     * compacting primary ranks atomically.
+     */
+    @Transaction
+    open suspend fun replaceHomeItemsIfSnapshotMatches(
+        expectedPages: List<WorkspacePageEntity>,
+        expectedItems: List<WorkspaceItemEntity>,
+        updatedItems: List<WorkspaceItemEntity>,
+    ): Boolean {
+        if (expectedPages.isEmpty()) return false
+        val currentPages = readPagesByContainer(WorkspaceContainerType.HOME)
+        if (currentPages != expectedPages) return false
+        if (currentPages.map { it.rank } != currentPages.indices.toList()) return false
+
+        val pageIds = currentPages.map { it.pageId }
+        val currentItems = readItems(pageIds).canonicalItems()
+        val expectedCanonical = expectedItems.canonicalItems()
+        val updatedCanonical = updatedItems.canonicalItems()
+        val currentById = currentItems.associateBy { it.itemId }
+        val expectedById = expectedCanonical.associateBy { it.itemId }
+        val updatedById = updatedCanonical.associateBy { it.itemId }
+        if (
+            currentById.size != currentItems.size ||
+            expectedById.size != expectedCanonical.size ||
+            updatedById.size != updatedCanonical.size ||
+            currentItems != expectedCanonical ||
+            updatedById.keys != expectedById.keys ||
+            updatedCanonical.any { it.pageId !in pageIds }
+        ) return false
+        if (
+            updatedCanonical.groupBy { it.pageId }.values.any { pageItems ->
+                pageItems.map { it.rank }.distinct().size != pageItems.size
+            }
+        ) return false
+
+        deleteItemsByPages(pageIds)
+        if (updatedCanonical.isNotEmpty()) upsertItems(updatedCanonical)
+
+        val applied = readItems(pageIds).canonicalItems()
+        check(applied == updatedCanonical) {
+            "HOME item replacement readback verification failed"
+        }
         return true
     }
 
