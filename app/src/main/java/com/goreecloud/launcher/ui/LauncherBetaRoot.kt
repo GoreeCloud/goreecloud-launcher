@@ -2027,7 +2027,7 @@ private fun LauncherSettingsRootSurface(
 
             SettingsSection("Gestures", "Current implemented shortcuts") {
                 SettingsReadOnlyRow("Swipe up", "Open Apps")
-                SettingsReadOnlyRow("Swipe down", "Open GoreeCloud Search")
+                SettingsReadOnlyRow("Swipe down", "Open Launcher Universal Search")
                 SettingsReadOnlyRow("Long-press Home", "Open Home editor")
                 SettingsReadOnlyRow("Long-press app", "Home and dock actions")
             }

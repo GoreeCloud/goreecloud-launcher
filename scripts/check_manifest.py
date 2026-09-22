@@ -57,4 +57,14 @@ if "android.permission.QUERY_ALL_PACKAGES" in text:
     print("Broad QUERY_ALL_PACKAGES visibility is not permitted.")
     sys.exit(1)
 
-print("Manifest guard passed.")
+ui = Path(__file__).resolve().parents[1] / "app/src/main/java/com/goreecloud/launcher/ui/LauncherBetaRoot.kt"
+ui_text = ui.read_text(encoding="utf-8")
+for forbidden_label in (
+    "Open GoreeCloud Search",
+    "Open GoreeCloud Index",
+):
+    if forbidden_label in ui_text:
+        print("Legacy external-search authority label is not permitted:", forbidden_label)
+        sys.exit(1)
+
+print("Manifest and Launcher search-authority guards passed.")
