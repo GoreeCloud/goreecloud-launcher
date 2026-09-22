@@ -74,8 +74,6 @@ import com.goreecloud.launcher.core.launcher.LauncherDrawerSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherDrawerSpacing
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
-import com.goreecloud.launcher.core.launcher.LauncherHomeDragPolicy
-import com.goreecloud.launcher.core.launcher.LauncherHomeDragTarget
 import com.goreecloud.launcher.core.launcher.LauncherHomeLabelPolicy
 import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
@@ -96,6 +94,7 @@ import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceState
+import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeAtmosphere
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
@@ -124,6 +123,7 @@ fun LauncherBetaRoot(
     homePageCount: Int,
     homeResetSequence: Long,
     homeLabelOverrides: Map<String, String>,
+    primaryHomePage: WorkspaceRenderedHomePage?,
     onManageHomePages: () -> Unit,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
@@ -131,7 +131,7 @@ fun LauncherBetaRoot(
     onToggleFavorite: (LauncherActivityInfo) -> Unit,
     onToggleDock: (LauncherActivityInfo) -> Unit,
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
-    onMoveFavoriteToTarget: (LauncherActivityInfo, LauncherActivityInfo) -> Unit,
+    onMoveFavoriteToCell: (LauncherActivityInfo, Int, Int) -> Unit,
     onMoveDock: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onSetHomeLabelOverride: (LauncherActivityInfo, String?) -> Unit,
     onRequestUninstall: (LauncherActivityInfo) -> Unit,
@@ -241,8 +241,9 @@ fun LauncherBetaRoot(
                 experiencePreferences = experiencePreferences,
                 homePageCount = homePageCount,
                 homeLabelOverrides = homeLabelOverrides,
+                primaryHomePage = primaryHomePage,
                 onManageHomePages = onManageHomePages,
-                onMoveFavoriteToTarget = onMoveFavoriteToTarget,
+                onMoveFavoriteToCell = onMoveFavoriteToCell,
                 onLaunchApp = onLaunchApp,
                 onOpenLauncherSearch = {
                     drawerSearchRequested = false
@@ -369,8 +370,9 @@ private fun HomeSurface(
     experiencePreferences: LauncherExperiencePreferences,
     homePageCount: Int,
     homeLabelOverrides: Map<String, String>,
+    primaryHomePage: WorkspaceRenderedHomePage?,
     onManageHomePages: () -> Unit,
-    onMoveFavoriteToTarget: (LauncherActivityInfo, LauncherActivityInfo) -> Unit,
+    onMoveFavoriteToCell: (LauncherActivityInfo, Int, Int) -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onOpenLauncherSearch: () -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
@@ -594,6 +596,8 @@ private fun HomeSurface(
                 HomeFavoritesGrid(
                     apps = favoriteApps,
                     columns = preferences.homeColumns,
+                    rows = preferences.homeRows,
+                    primaryHomePage = primaryHomePage,
                     iconScale = preferences.iconScale,
                     showLabels = preferences.showLabels,
                     spacing = experiencePreferences.homeSpacing,
@@ -601,7 +605,7 @@ private fun HomeSurface(
                     homeLabelOverrides = homeLabelOverrides,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
-                    onMoveAppToTarget = onMoveFavoriteToTarget,
+                    onMoveAppToCell = onMoveFavoriteToCell,
                     onSwipeUp = {
                         executeGestureAction(experiencePreferences.swipeUpAction)
                     },
@@ -1021,6 +1025,8 @@ private fun HomeAtAGlance(
 private fun HomeFavoritesGrid(
     apps: List<LauncherActivityInfo>,
     columns: Int,
+    rows: Int,
+    primaryHomePage: WorkspaceRenderedHomePage?,
     iconScale: Float,
     showLabels: Boolean,
     spacing: LauncherHomeSpacing,
@@ -1028,7 +1034,7 @@ private fun HomeFavoritesGrid(
     homeLabelOverrides: Map<String, String>,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
-    onMoveAppToTarget: (LauncherActivityInfo, LauncherActivityInfo) -> Unit,
+    onMoveAppToCell: (LauncherActivityInfo, Int, Int) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ) {
@@ -1042,66 +1048,87 @@ private fun HomeFavoritesGrid(
         LauncherHomeSpacing.BALANCED -> 78.dp
         LauncherHomeSpacing.AIRY -> 86.dp
     }
-    val boundsByKey = remember { mutableStateMapOf<String, Rect>() }
+    val storedPlacements = remember(primaryHomePage) {
+        primaryHomePage?.appPlacements?.associateBy { it.appKey }.orEmpty()
+    }
+    val useSpatialPlacement = remember(apps, storedPlacements, columns, rows) {
+        apps.isNotEmpty() && apps.all { app ->
+            val placement = storedPlacements[app.workspaceKey()]
+            placement?.cellX != null &&
+                placement.cellY != null &&
+                placement.cellX in 0 until columns &&
+                placement.cellY in 0 until rows
+        }
+    }
+    val appByCell = remember(apps, storedPlacements, useSpatialPlacement, columns, rows) {
+        buildMap<Pair<Int, Int>, LauncherActivityInfo> {
+            if (useSpatialPlacement) {
+                apps.forEach { app ->
+                    val placement = storedPlacements[app.workspaceKey()] ?: return@forEach
+                    val cellX = placement.cellX ?: return@forEach
+                    val cellY = placement.cellY ?: return@forEach
+                    put(cellX to cellY, app)
+                }
+            } else {
+                apps.take(columns * rows).forEachIndexed { index, app ->
+                    put((index % columns) to (index / columns), app)
+                }
+            }
+        }
+    }
+    val cellBounds = remember { mutableStateMapOf<Pair<Int, Int>, Rect>() }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(gridSpacing),
     ) {
-        apps.chunked(columns).forEach { rowApps ->
+        repeat(rows) { cellY ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(gridSpacing),
             ) {
-                rowApps.forEach { app ->
-                    val appKey = app.workspaceKey()
-                    HomeFavoriteTile(
-                        app = app,
-                        displayLabel = homeLabelOverrides[appKey] ?: app.label.toString(),
-                        iconScale = iconScale,
-                        showLabel = showLabels,
-                        layoutLocked = layoutLocked,
-                        onLaunchApp = onLaunchApp,
-                        onManageApp = onManageApp,
-                        onBoundsChanged = { boundsByKey[appKey] = it },
-                        onDrop = { dragOffset ->
-                            val sourceBounds = boundsByKey[appKey]
-                            if (sourceBounds != null) {
-                                val drop = sourceBounds.center + dragOffset
-                                val targetKey = LauncherHomeDragPolicy.nearestTargetKey(
-                                    sourceKey = appKey,
-                                    dropX = drop.x,
-                                    dropY = drop.y,
-                                    targets = apps.mapNotNull { candidate ->
-                                        val candidateKey = candidate.workspaceKey()
-                                        boundsByKey[candidateKey]?.let { bounds ->
-                                            LauncherHomeDragTarget(
-                                                key = candidateKey,
-                                                centerX = bounds.center.x,
-                                                centerY = bounds.center.y,
-                                            )
-                                        }
-                                    },
-                                )
-                                if (targetKey != null) {
-                                    val target = apps.firstOrNull {
-                                        it.workspaceKey() == targetKey
-                                    }
-                                    if (target != null) {
-                                        onMoveAppToTarget(app, target)
-                                    }
-                                }
-                            }
-                        },
-                        onSwipeUp = onSwipeUp,
-                        onSwipeDown = onSwipeDown,
+                repeat(columns) { cellX ->
+                    val coordinate = cellX to cellY
+                    val app = appByCell[coordinate]
+                    Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(tileHeight),
-                    )
-                }
-                repeat(columns - rowApps.size) {
-                    Spacer(Modifier.weight(1f))
+                            .height(tileHeight)
+                            .testTag("launcher-home-cell-$cellX-$cellY")
+                            .onGloballyPositioned {
+                                cellBounds[coordinate] = it.boundsInRoot()
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (app != null) {
+                            val appKey = app.workspaceKey()
+                            HomeFavoriteTile(
+                                app = app,
+                                displayLabel = homeLabelOverrides[appKey] ?: app.label.toString(),
+                                iconScale = iconScale,
+                                showLabel = showLabels,
+                                layoutLocked = layoutLocked,
+                                onLaunchApp = onLaunchApp,
+                                onManageApp = onManageApp,
+                                onDrop = { dropPoint ->
+                                    val target = cellBounds.entries
+                                        .firstOrNull { it.value.contains(dropPoint) }
+                                        ?.key
+                                        ?: cellBounds.entries.minByOrNull { entry ->
+                                            val dx = entry.value.center.x - dropPoint.x
+                                            val dy = entry.value.center.y - dropPoint.y
+                                            dx * dx + dy * dy
+                                        }?.key
+                                    if (target != null) {
+                                        onMoveAppToCell(app, target.first, target.second)
+                                    }
+                                },
+                                onSwipeUp = onSwipeUp,
+                                onSwipeDown = onSwipeDown,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1117,7 +1144,6 @@ private fun HomeFavoriteTile(
     layoutLocked: Boolean,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
-    onBoundsChanged: (Rect) -> Unit,
     onDrop: (Offset) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
@@ -1129,6 +1155,8 @@ private fun HomeFavoriteTile(
     val swipeThreshold = with(LocalDensity.current) { 42.dp.toPx() }
     var dragging by remember(app.componentName, app.user) { mutableStateOf(false) }
     var dragOffset by remember(app.componentName, app.user) { mutableStateOf(Offset.Zero) }
+    var tileBounds by remember(app.componentName, app.user) { mutableStateOf<Rect?>(null) }
+    var dragStartCenter by remember(app.componentName, app.user) { mutableStateOf<Offset?>(null) }
 
     val gestureModifier = if (layoutLocked) {
         Modifier.combinedClickable(
@@ -1142,6 +1170,7 @@ private fun HomeFavoriteTile(
                     onDragStart = {
                         dragging = true
                         dragOffset = Offset.Zero
+                        dragStartCenter = tileBounds?.center
                     },
                     onDrag = { change, amount ->
                         change.consume()
@@ -1151,16 +1180,19 @@ private fun HomeFavoriteTile(
                         val moved =
                             abs(dragOffset.x) >= moveThreshold || abs(dragOffset.y) >= moveThreshold
                         if (moved) {
-                            onDrop(dragOffset)
+                            val startPoint = dragStartCenter ?: tileBounds?.center
+                            if (startPoint != null) onDrop(startPoint + dragOffset)
                         } else {
                             onManageApp(app)
                         }
                         dragging = false
                         dragOffset = Offset.Zero
+                        dragStartCenter = null
                     },
                     onDragCancel = {
                         dragging = false
                         dragOffset = Offset.Zero
+                        dragStartCenter = null
                     },
                 )
             }
@@ -1205,7 +1237,7 @@ private fun HomeFavoriteTile(
 
     Column(
         modifier = modifier
-            .onGloballyPositioned { onBoundsChanged(it.boundsInRoot()) }
+            .onGloballyPositioned { tileBounds = it.boundsInRoot() }
             .zIndex(if (dragging) 1f else 0f)
             .offset {
                 IntOffset(
