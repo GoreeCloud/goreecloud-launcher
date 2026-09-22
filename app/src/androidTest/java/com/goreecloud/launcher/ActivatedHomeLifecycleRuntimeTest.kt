@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -210,6 +211,96 @@ class ActivatedHomeLifecycleRuntimeTest {
             preferencesRepository.setGestureAction(
                 LauncherHomeGesture.SWIPE_UP,
                 previousSwipeUp,
+            ).join()
+            if (!alreadyDefaultHome) {
+                runShellCommand(
+                    "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+                )
+            }
+        }
+    }
+
+    @Test
+    fun configuredSwipeDownStartingOnWorkspaceAppContentOpensUniversalSearch() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val roleManager = context.getSystemService(RoleManager::class.java)
+        val alreadyDefaultHome =
+            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+        val preferencesRepository = LauncherPreferencesRepository(context)
+        val previousSwipeDown = preferencesRepository.experiencePreferences.first().swipeDownAction
+        val searchAction =
+            LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH)
+
+        if (!alreadyDefaultHome) {
+            runShellCommand(
+                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+            )
+            withTimeout(10_000) {
+                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    delay(100)
+                }
+            }
+        }
+
+        try {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.SWIPE_DOWN,
+                searchAction,
+            ).join()
+
+            val apps = withTimeout(10_000) {
+                LauncherAppsRepository(context).apps.first { candidates ->
+                    candidates.any { it.componentName.packageName != context.packageName }
+                }
+            }
+            val candidate = apps.first { it.componentName.packageName != context.packageName }
+            val candidateKey = candidate.workspaceKey()
+            val repository = WorkspaceRepository(context)
+            repository.ensureDefaults(
+                favoriteKeys = listOf(candidateKey),
+                dockKeys = emptyList(),
+            )
+
+            val scenario = ActivityScenario.launch(MainActivity::class.java)
+            try {
+                withTimeout(15_000) {
+                    repository.state.first { it.authority == WorkspaceAuthority.ROOM }
+                }
+                waitForDisplayedLabel(candidate.label.toString())
+
+                composeRule
+                    .onNodeWithText(candidate.label.toString(), useUnmergedTree = true)
+                    .performTouchInput {
+                        swipeDown(
+                            startY = top + 1f,
+                            endY = bottom + 320f,
+                            durationMillis = 400,
+                        )
+                    }
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule.onAllNodesWithText("Universal Search", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText("Universal Search", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                composeRule
+                    .onNodeWithText(
+                        "Search apps, settings and actions",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+                Unit
+            } finally {
+                scenario.close()
+            }
+        } finally {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.SWIPE_DOWN,
+                previousSwipeDown,
             ).join()
             if (!alreadyDefaultHome) {
                 runShellCommand(
