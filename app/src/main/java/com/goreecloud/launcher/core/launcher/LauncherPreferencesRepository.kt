@@ -190,6 +190,7 @@ enum class LauncherGestureActionType(
     LAUNCHER_SETTINGS("launcher_settings", "Launcher settings"),
     HOME_EDITOR("home_editor", "Home editor"),
     WALLPAPER("wallpaper", "Wallpaper"),
+    THEME_MANAGER("theme_manager", "Theme Manager"),
     OPEN_APP("open_app", "Open app"),
 }
 
