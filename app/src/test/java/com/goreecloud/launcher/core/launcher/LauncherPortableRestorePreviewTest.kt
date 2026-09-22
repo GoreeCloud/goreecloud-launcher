@@ -39,7 +39,7 @@ class LauncherPortableRestorePreviewTest {
             showLabels = false,
             iconScale = 1.1f,
             layoutLocked = true,
-            indexHomeMode = GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
+            universalSearchHomeMode = LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
         )
 
         val result = LauncherPortableRestorePreview.inspect(
@@ -60,7 +60,7 @@ class LauncherPortableRestorePreviewTest {
         assertFalse(summary.showLabels)
         assertEquals(1.1f, summary.iconScale)
         assertTrue(summary.layoutLocked)
-        assertEquals(GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY, summary.indexHomeMode)
+        assertEquals(LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY, summary.universalSearchHomeMode)
         assertTrue(ready.reviewToken.matches(Regex("[0-9a-f]{64}")))
     }
 

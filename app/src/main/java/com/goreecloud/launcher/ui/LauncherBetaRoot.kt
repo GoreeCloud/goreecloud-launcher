@@ -54,7 +54,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import com.goreecloud.launcher.core.launcher.GoreeCloudIndexHomeMode
+import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
+import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerEntryMode
@@ -68,7 +69,9 @@ import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
+import com.goreecloud.launcher.core.launcher.LauncherInstalledAppsSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
+import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
@@ -100,7 +103,6 @@ fun LauncherBetaRoot(
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
-    onOpenUniversalSearch: () -> Boolean,
     onToggleFavorite: (LauncherActivityInfo) -> Unit,
     onToggleDock: (LauncherActivityInfo) -> Unit,
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
@@ -113,7 +115,7 @@ fun LauncherBetaRoot(
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
-    onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
+    onSetUniversalSearchHomeMode: (LauncherUniversalSearchHomeMode) -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
     onSetShowHomePageIndicator: (Boolean) -> Unit,
@@ -205,8 +207,7 @@ fun LauncherBetaRoot(
                 homePageCount = homePageCount,
                 onManageHomePages = onManageHomePages,
                 onLaunchApp = onLaunchApp,
-                onOpenUniversalSearch = onOpenUniversalSearch,
-                onOpenLocalSearch = {
+                onOpenLauncherSearch = {
                     drawerSearchRequested = true
                     surfaceModeName = LauncherSurfaceMode.DRAWER.name
                 },
@@ -250,7 +251,7 @@ fun LauncherBetaRoot(
                         onSetShowLabels = onSetShowLabels,
                         onSetIconScale = onSetIconScale,
                         onSetLayoutLocked = onSetLayoutLocked,
-                        onSetIndexHomeMode = onSetIndexHomeMode,
+                        onSetUniversalSearchHomeMode = onSetUniversalSearchHomeMode,
                         onSetHomeCardStyle = onSetHomeCardStyle,
                         onSetShowHomeQuickActions = onSetShowHomeQuickActions,
                         onSetShowHomePageIndicator = onSetShowHomePageIndicator,
@@ -299,8 +300,7 @@ private fun HomeSurface(
     homePageCount: Int,
     onManageHomePages: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
-    onOpenUniversalSearch: () -> Boolean,
-    onOpenLocalSearch: () -> Unit,
+    onOpenLauncherSearch: () -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -329,14 +329,10 @@ private fun HomeSurface(
         LauncherWallpaperShade.SOFT -> 0.18f
         LauncherWallpaperShade.STRONG -> 0.34f
     }
-    val showPermanentSearch = preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT
+    val showPermanentSearch = preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT
     val searchAtTop =
         experiencePreferences.homeSearchPlacement == LauncherHomeSearchPlacement.TOP
-    val openSearch = {
-        if (!onOpenUniversalSearch()) {
-            onOpenLocalSearch()
-        }
-    }
+    val openSearch = onOpenLauncherSearch
 
     Box(
         modifier = Modifier
@@ -344,7 +340,7 @@ private fun HomeSurface(
             .pointerInput(Unit) {
                 detectTapGestures(onLongPress = { showHomeEditor = true })
             }
-            .pointerInput(onOpenUniversalSearch, onOpenDrawer, swipeThreshold) {
+            .pointerInput(onOpenLauncherSearch, onOpenDrawer, swipeThreshold) {
                 var drag = 0f
                 var triggered = false
                 detectVerticalDragGestures(
@@ -419,7 +415,7 @@ private fun HomeSurface(
 
             if (showPermanentSearch && searchAtTop) {
                 GlazeSearchCapsule(
-                    value = "Search apps & GoreeCloud",
+                    value = "Search GoreeCloud",
                     style = experiencePreferences.homeSearchStyle,
                     onClick = openSearch,
                     modifier = Modifier.fillMaxWidth(),
@@ -456,7 +452,7 @@ private fun HomeSurface(
 
             if (showPermanentSearch && !searchAtTop) {
                 GlazeSearchCapsule(
-                    value = "Search apps & GoreeCloud",
+                    value = "Search GoreeCloud",
                     style = experiencePreferences.homeSearchStyle,
                     onClick = openSearch,
                     modifier = Modifier.fillMaxWidth(),
@@ -595,7 +591,7 @@ private fun HomeEditorPreview(
     }
     val searchAtTop =
         experiencePreferences.homeSearchPlacement == LauncherHomeSearchPlacement.TOP
-    val showSearch = preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT
+    val showSearch = preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT
 
     Surface(
         modifier = Modifier
@@ -1001,13 +997,15 @@ private fun AppDrawerSurface(
     onOpenSettings: () -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val filteredApps = remember(apps, query) {
-        apps.filter { app ->
-            LauncherLocalAppSearch.matches(
-                label = app.label.toString(),
-                packageName = app.componentName.packageName,
-                rawQuery = query,
-            )
+    val installedAppsProvider = remember(apps) {
+        LauncherInstalledAppsSearchProvider(apps)
+    }
+    val filteredApps = remember(installedAppsProvider, query) {
+        LauncherUniversalSearch.search(
+            rawQuery = query,
+            providers = listOf(installedAppsProvider),
+        ).mapNotNull { result ->
+            (result.action as? LaunchApplicationSearchAction)?.app
         }
     }
     val dismissThreshold = with(LocalDensity.current) { 56.dp.toPx() }
@@ -1602,7 +1600,7 @@ private fun LauncherSettingsRootSurface(
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
-    onSetIndexHomeMode: (GoreeCloudIndexHomeMode) -> Unit,
+    onSetUniversalSearchHomeMode: (LauncherUniversalSearchHomeMode) -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
     onSetShowHomePageIndicator: (Boolean) -> Unit,
@@ -1779,18 +1777,18 @@ private fun LauncherSettingsRootSurface(
                 SettingsReadOnlyRow("Edit", "Long-press an app")
             }
 
-            SettingsSection("Search", "Home access and launcher search") {
+            SettingsSection("Search", "Home access and Launcher Universal Search") {
                 ChoiceRow(
                     choices = listOf("Swipe down", "Show bar"),
-                    selected = if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) "Show bar" else "Swipe down",
+                    selected = if (preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT) "Show bar" else "Swipe down",
                     onChoice = {
-                        onSetIndexHomeMode(
-                            if (it == "Show bar") GoreeCloudIndexHomeMode.PERMANENT
-                            else GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
+                        onSetUniversalSearchHomeMode(
+                            if (it == "Show bar") LauncherUniversalSearchHomeMode.PERMANENT
+                            else LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
                         )
                     },
                 )
-                if (preferences.indexHomeMode == GoreeCloudIndexHomeMode.PERMANENT) {
+                if (preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT) {
                     Text(
                         "Home bar position",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1832,7 +1830,7 @@ private fun LauncherSettingsRootSurface(
                     )
                 }
                 SettingsReadOnlyRow("Home gesture", "Swipe down")
-                SettingsReadOnlyRow("App drawer", "Search installed apps")
+                SettingsReadOnlyRow("Core provider", "Installed apps · Launcher")
             }
 
             SettingsSection("App drawer", "Layout, density and background") {
@@ -2029,7 +2027,7 @@ private fun LauncherSettingsRootSurface(
 
             SettingsSection("Gestures", "Current implemented shortcuts") {
                 SettingsReadOnlyRow("Swipe up", "Open Apps")
-                SettingsReadOnlyRow("Swipe down", "Open GoreeCloud Search")
+                SettingsReadOnlyRow("Swipe down", "Open Launcher Universal Search")
                 SettingsReadOnlyRow("Long-press Home", "Open Home editor")
                 SettingsReadOnlyRow("Long-press app", "Home and dock actions")
             }

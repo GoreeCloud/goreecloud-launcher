@@ -15,7 +15,7 @@ class LauncherPortableStoredPreferencePolicyTest {
                 showLabels = null,
                 iconScale = null,
                 layoutLocked = null,
-                indexHomeMode = null,
+                universalSearchHomeMode = null,
             ),
         )
 
@@ -36,7 +36,7 @@ class LauncherPortableStoredPreferencePolicyTest {
                 showLabels = false,
                 iconScale = 1.15f,
                 layoutLocked = true,
-                indexHomeMode = GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY.storageValue,
+                universalSearchHomeMode = LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY.storageValue,
             ),
         )
 
@@ -48,7 +48,7 @@ class LauncherPortableStoredPreferencePolicyTest {
                 showLabels = false,
                 iconScale = 1.15f,
                 layoutLocked = true,
-                indexHomeMode = GoreeCloudIndexHomeMode.SWIPE_DOWN_ONLY,
+                universalSearchHomeMode = LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
             ),
             (result as LauncherPortableStoredPreferencePolicy.DecodeResult.Success).preferences,
         )
@@ -64,7 +64,7 @@ class LauncherPortableStoredPreferencePolicyTest {
                 showLabels = true,
                 iconScale = 1.0f,
                 layoutLocked = false,
-                indexHomeMode = GoreeCloudIndexHomeMode.PERMANENT.storageValue,
+                universalSearchHomeMode = LauncherUniversalSearchHomeMode.PERMANENT.storageValue,
             ),
         )
 
@@ -81,7 +81,7 @@ class LauncherPortableStoredPreferencePolicyTest {
                 showLabels = true,
                 iconScale = 1.0f,
                 layoutLocked = false,
-                indexHomeMode = "unknown",
+                universalSearchHomeMode = "unknown",
             ),
         )
         assertTrue(invalidMode is LauncherPortableStoredPreferencePolicy.DecodeResult.Invalid)
@@ -94,7 +94,7 @@ class LauncherPortableStoredPreferencePolicyTest {
                 showLabels = true,
                 iconScale = Float.NaN,
                 layoutLocked = false,
-                indexHomeMode = null,
+                universalSearchHomeMode = null,
             ),
         )
         assertTrue(nonFinite is LauncherPortableStoredPreferencePolicy.DecodeResult.Invalid)
@@ -107,7 +107,7 @@ class LauncherPortableStoredPreferencePolicyTest {
                 showLabels = true,
                 iconScale = 1.0005f,
                 layoutLocked = false,
-                indexHomeMode = null,
+                universalSearchHomeMode = null,
             ),
         )
         assertTrue(nonCanonical is LauncherPortableStoredPreferencePolicy.DecodeResult.Invalid)
