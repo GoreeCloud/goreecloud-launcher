@@ -5,7 +5,7 @@ import android.os.ParcelFileDescriptor
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -168,11 +168,12 @@ class ActivatedHomeLifecycleRuntimeTest {
                 waitForDisplayedLabel(candidate.label.toString())
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule
-                        .onNodeWithTag(
+                        .onAllNodesWithTag(
                             "launcher-home-swipe-up-launcher_settings",
                             useUnmergedTree = true,
                         )
-                        .fetchSemanticsNodeOrNull() != null
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
                 }
 
                 composeRule
