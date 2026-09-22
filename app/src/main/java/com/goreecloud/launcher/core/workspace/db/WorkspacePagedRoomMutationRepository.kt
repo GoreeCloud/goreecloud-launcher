@@ -212,6 +212,7 @@ class WorkspacePagedRoomMutationRepository(
         itemId: String,
         targetPageId: String,
         targetPlacement: WorkspaceGridPlacement.Placement,
+        primaryGrid: WorkspaceGridPlacement.Grid? = null,
     ): WorkspacePagedRoomMutationResult {
         if (!isRoomAuthoritative()) return WorkspacePagedRoomMutationResult.Reserved
         val dao = workspaceDaoOrNull() ?: return WorkspacePagedRoomMutationResult.Unavailable
@@ -235,12 +236,43 @@ class WorkspacePagedRoomMutationRepository(
             if (targetPlacement.itemId != itemId) {
                 return WorkspacePagedRoomMutationResult.ItemIdentityMismatch
             }
+            val touchesPrimary =
+                sourceItem.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
+                    targetPageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+            if (touchesPrimary && primaryGrid == null) {
+                return WorkspacePagedRoomMutationResult.PrimaryPageProtected
+            }
 
             if (storedItems.any { it.cellX == null || it.cellY == null }) {
                 return WorkspacePagedRoomMutationResult.InvalidWorkspace
             }
 
             val itemsByPage = storedItems.groupBy { it.pageId }
+            val resolvedPrimaryGrid = primaryGrid
+            if (resolvedPrimaryGrid != null) {
+                val primaryPlacements = itemsByPage[WorkspaceLegacyImportMapper.HOME_PAGE_ID]
+                    .orEmpty()
+                    .map(::toGridPlacement)
+                if (
+                    WorkspaceGridPlacement.validate(resolvedPrimaryGrid, primaryPlacements) !=
+                    WorkspaceGridPlacement.Validation.Valid
+                ) {
+                    return WorkspacePagedRoomMutationResult.InvalidWorkspace
+                }
+                if (targetPageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+                    val finalPrimaryPlacements = primaryPlacements
+                        .filterNot { it.itemId == itemId } + targetPlacement
+                    if (
+                        WorkspaceGridPlacement.validate(
+                            resolvedPrimaryGrid,
+                            finalPrimaryPlacements,
+                        ) != WorkspaceGridPlacement.Validation.Valid
+                    ) {
+                        return WorkspacePagedRoomMutationResult.InvalidWorkspace
+                    }
+                }
+            }
+
             val domainPages = storedPages.map { page ->
                 WorkspacePagedPlacement.Page(
                     pageId = page.pageId,
@@ -324,6 +356,15 @@ class WorkspacePagedRoomMutationRepository(
             WorkspacePagedRoomMutationResult.Failed(exception::class.java.simpleName)
         }
     }
+
+    private fun toGridPlacement(item: WorkspaceItemEntity): WorkspaceGridPlacement.Placement =
+        WorkspaceGridPlacement.Placement(
+            itemId = item.itemId,
+            cellX = checkNotNull(item.cellX),
+            cellY = checkNotNull(item.cellY),
+            spanX = item.spanX,
+            spanY = item.spanY,
+        )
 
     private suspend fun isRoomAuthoritative(): Boolean {
         val state = authorityRepository.state.first()
