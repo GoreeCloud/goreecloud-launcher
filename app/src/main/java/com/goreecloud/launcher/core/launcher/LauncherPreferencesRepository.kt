@@ -220,7 +220,8 @@ class LauncherPreferencesRepository(
         val showLabels = booleanPreferencesKey("show_labels")
         val iconScale = floatPreferencesKey("icon_scale")
         val layoutLocked = booleanPreferencesKey("layout_locked")
-        // Legacy DataStore key is retained for strict v1 backup/recovery compatibility.\n        val universalSearchHomeMode = stringPreferencesKey("index_home_mode")
+        // Legacy DataStore key is retained for strict v1 backup/recovery compatibility.
+        val universalSearchHomeMode = stringPreferencesKey("index_home_mode")
         val drawerLayoutMode = stringPreferencesKey("drawer_layout_mode")
         val homeCardStyle = stringPreferencesKey("home_card_style")
         val showHomeQuickActions = booleanPreferencesKey("show_home_quick_actions")
