@@ -62,14 +62,22 @@ class WorkspaceHomeItemPageMover(
             return WorkspacePagedRoomMutationResult.PageNotFound
         }
 
-        val domainGrid = deriveDomainGrid(context.items, context.source, primaryGrid)
-            ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
-        val targetGrid = deriveTargetGrid(
-            items = context.items,
-            source = context.source,
-            targetPageId = targetPageId,
-            primaryGrid = primaryGrid,
-        ) ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        val domainGrid = if (touchesPrimary) {
+            deriveDomainGrid(context.items, context.source, primaryGrid)
+                ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        } else {
+            deriveGrid(context.items, context.source)
+        }
+        val targetGrid = if (touchesPrimary) {
+            deriveTargetGrid(
+                items = context.items,
+                source = context.source,
+                targetPageId = targetPageId,
+                primaryGrid = primaryGrid,
+            ) ?: return WorkspacePagedRoomMutationResult.InvalidWorkspace
+        } else {
+            domainGrid
+        }
         val targetPlacements = context.items
             .filter { it.pageId == targetPageId && it.itemId != context.source.itemId }
             .map(::toPlacement)
