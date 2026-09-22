@@ -1417,11 +1417,10 @@ private fun LauncherUniversalSearchSurface(
             GlazeAppSearchField(
                 value = query,
                 onValueChange = { query = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("launcher-universal-search-field"),
+                modifier = Modifier.fillMaxWidth(),
                 requestFocus = true,
                 placeholder = "Search apps, settings and actions",
+                inputTestTag = "launcher-universal-search-field",
             )
 
             if (results.isEmpty()) {
@@ -3077,6 +3076,7 @@ private fun GlazeAppSearchField(
     darkSurface: Boolean = false,
     requestFocus: Boolean = false,
     placeholder: String = "Search apps",
+    inputTestTag: String? = null,
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -3110,6 +3110,9 @@ private fun GlazeAppSearchField(
                 .fillMaxWidth()
                 .height(54.dp)
                 .focusRequester(focusRequester)
+                .then(
+                    inputTestTag?.let { tag -> Modifier.testTag(tag) } ?: Modifier,
+                )
                 .padding(horizontal = GlazeMetrics.space4),
             decorationBox = { innerTextField ->
                 Row(
