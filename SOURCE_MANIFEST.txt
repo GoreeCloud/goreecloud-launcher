@@ -6,6 +6,7 @@ app/build.gradle.kts
 app/proguard-rules.pro
 app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json
 app/src/androidTest/java/com/goreecloud/launcher/ActivatedHomeLifecycleRuntimeTest.kt
+app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementObserverRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessRuntimeTest.kt
@@ -21,9 +22,9 @@ app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoom
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceStartupReconcilerRuntimeTest.kt
 app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
-app/src/main/java/com/goreecloud/launcher/core/launcher/GoreeCloudIndexIntegration.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPreferencesRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearch.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthority.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceGridPlacement.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspacePagedPlacement.kt
@@ -69,6 +70,7 @@ app/src/main/res/values/themes.xml
 app/src/main/res/xml/backup_rules.xml
 app/src/main/res/xml/data_extraction_rules.xml
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPreferencesTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearchTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/GlazeMotionExperimentalConsumerTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthorityTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceCodecTest.kt
@@ -110,4 +112,4 @@ scripts/check_manifest.py
 scripts/check_privacy.py
 scripts/check_room_cutover.py
 scripts/check_room_schema.py
-settings.gradle.kts
+settings.gradle.kts\napp/src/main/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearch.kt\napp/src/test/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearchTest.kt\n
