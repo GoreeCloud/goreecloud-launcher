@@ -49,8 +49,8 @@ if not has_launcher_query:
     print("Missing MAIN/LAUNCHER visibility query required for complete app discovery.")
     sys.exit(1)
 
-if not has_index_search_query:
-    print("Missing bounded GoreeCloud Index search visibility query.")
+if has_index_search_query:
+    print("Legacy GoreeCloud Index search visibility query must not be required by core Launcher search.")
     sys.exit(1)
 
 if "android.permission.QUERY_ALL_PACKAGES" in text:
