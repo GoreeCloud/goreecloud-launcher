@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record.**  
-**Repository authority baseline:** `main` at `439943d7918e4d04e9f7bf62707dc55d4a2898cd` (PR #205 merged September 22, 2026).  
+**Repository authority baseline:** `main` at `0af5d6753d1dca98de432f24f8703fe5bae85e2c` (PR #207 merged September 22, 2026).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation
@@ -15,7 +15,7 @@ Partially implemented capabilities remain open obligations in `PLANNED-FEATURES.
 
 ## Current verified source baseline
 
-The current repository `main` head and latest source-bearing Launcher runtime are `439943d7918e4d04e9f7bf62707dc55d4a2898cd`, the guarded squash merge of PR #205, **Cancel superseded Launcher icon preload work**. PR #205 exact head `f6696f4933b073e355c08e3871bd1f7365b4ceac` passed Android CI run #643 / `35758277303` across validation, build, unit/schema checks, Development APK staging, Android 16 Room/runtime, and Android 16 transition-performance emulator lanes before merge. Exact merged `main` then passed push Android CI run #644 / `35759394496` across the same configured validation and Android 16 emulator lanes. PR #205 builds on PR #199's provider-preference persistence and later repository-governance reconciliation without changing the Launcher lifecycle boundary.
+The current repository `main` head and latest source-bearing Launcher runtime are `0af5d6753d1dca98de432f24f8703fe5bae85e2c`, the guarded squash merge of PR #207, **Stabilize persisted Search provider controls**. PR #207 exact head `f823ab9c1cb406116b68fe1f7c20cefef1ad6575` passed Android CI run #647 / `35794625569` across validation, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. This source baseline builds on PR #205's bounded latest-snapshot icon-preload cancellation and PR #199's dedicated provider-preference DataStore without changing the Launcher lifecycle boundary.
 
 This is Development evidence. It does not establish physical-device performance, complete accessibility, personal/work/Shelter/private-space acceptance, Quickstep/Recents compatibility, complete Integral Platform System acceptance, protected production signing/distribution, Release Candidate, production, or Stable qualification.
 
@@ -82,8 +82,9 @@ GoreeCloud Launcher owns the user-facing Universal Search experience. Current im
 - UI-facing result-presentation model that keeps already-ranked application matches separate from Launcher action/settings results and can expose enabled explicit-handoff providers descriptively without invoking them or attaching the query payload.
 - Versioned fail-closed serialization contract for provider enablement and explicit provider order, preserving absent-versus-explicit-empty semantics while excluding typed queries, results, history, usage/frequency signals, credentials, grants, and provider payloads (PR #198).
 - Launcher-local dedicated Preferences DataStore persistence for that provider enable/order snapshot, with explicit `read`, `set`, and `clear` boundaries; absence remains distinct from an explicitly empty enabled-provider selection and malformed/unsupported stored data fails closed (PR #199).
+- Persisted provider-control reconciliation and mutation policy: absent storage adopts only privacy-safe automatic-local defaults; loaded snapshots preserve explicit enable/order choices; malformed or unsupported stored values resolve fail-closed to zero automatic providers; and bounded enable/disable plus ordering helpers emit only the existing versioned provider-control snapshot (PR #207).
 
-The PR #199 provider-control store remains deliberately separate from the strict portable-preference v1 backup/recovery contract. Portable adoption remains planned work.
+The PR #199 provider-control store and PR #207 reconciliation/mutation policy remain deliberately separate from the strict portable-preference v1 backup/recovery contract. Portable adoption and rendered runtime management remain planned work.
 
 ### Privacy and local-first boundaries
 
@@ -115,6 +116,7 @@ The PR #199 provider-control store remains deliberately separate from the strict
 | PR #198 | Exact head `74cf28e2cc989e3e88d3cdd3e252dd69be45a71e`; CI `35707597053`; merge `d2600bc3f0b2fce6d3c8d524a8aef536e43cd1cb`; merged-main CI `35708430142` | Versioned provider enable/order serialization contract |
 | PR #199 | Exact head `5646ce68d998ec96797d29a8c470df96c6ceac57`; CI `35710385034`; merge `ec6640dda8522244d57a947db083aecb8b9cfe33` | Dedicated DataStore persistence for provider enable/order controls |
 | PR #205 | Exact head `f6696f4933b073e355c08e3871bd1f7365b4ceac`; Android CI #643 / `35758277303`; merge `439943d7918e4d04e9f7bf62707dc55d4a2898cd`; merged-main Android CI #644 / `35759394496` | Cancel superseded background icon-preload tails while preserving bounded cache, invalidation, and single-flight behavior |
+| PR #207 | Exact head `f823ab9c1cb406116b68fe1f7c20cefef1ad6575`; Android CI #647 / `35794625569`; merge `0af5d6753d1dca98de432f24f8703fe5bae85e2c` | Fail-closed persisted provider-control reconciliation plus bounded enable/order mutation helpers |
 
 ## Material limitations
 
