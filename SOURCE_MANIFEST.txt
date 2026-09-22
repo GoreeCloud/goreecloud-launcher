@@ -10,6 +10,7 @@ app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableR
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementObserverRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessRuntimeTest.kt
+app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceHomeItemPageMoverRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspacePagedHomeObserverRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspacePagedRoomItemMutationRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspacePagedRoomMutationRepositoryRuntimeTest.kt
@@ -37,6 +38,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritati
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessCoordinator.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceEntities.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceHomeItemPageMover.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapper.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePagedHomeObserver.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePagedRoomMutationRepository.kt
