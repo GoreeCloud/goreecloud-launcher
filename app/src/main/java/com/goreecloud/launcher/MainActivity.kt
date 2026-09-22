@@ -379,7 +379,7 @@ class MainActivity : ComponentActivity() {
                             onSetShowLabels = launcherPreferencesRepository::setShowLabels,
                             onSetIconScale = launcherPreferencesRepository::setIconScale,
                             onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,
-                            onSetIndexHomeMode = launcherPreferencesRepository::setIndexHomeMode,
+                            onSetUniversalSearchHomeMode = launcherPreferencesRepository::setUniversalSearchHomeMode,
                             onSetHomeCardStyle = launcherPreferencesRepository::setHomeCardStyle,
                             onSetShowHomeQuickActions = launcherPreferencesRepository::setShowHomeQuickActions,
                             onSetShowHomePageIndicator = launcherPreferencesRepository::setShowHomePageIndicator,
@@ -522,6 +522,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun openUniversalSearch(query: String? = null): Boolean =
-        indexIntegration.openSearch(query)
 }
