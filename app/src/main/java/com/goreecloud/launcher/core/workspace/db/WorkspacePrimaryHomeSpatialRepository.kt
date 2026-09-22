@@ -27,7 +27,14 @@ class WorkspacePrimaryHomeSpatialRepository(
 ) {
     suspend fun ensureGrid(columns: Int, rows: Int): WorkspacePrimaryHomeSpatialResult {
         if (!isRoomAuthoritative()) return WorkspacePrimaryHomeSpatialResult.Reserved
-        if (columns <= 0 || rows <= 0) return WorkspacePrimaryHomeSpatialResult.InvalidWorkspace
+        if (
+            columns !in WorkspacePrimaryHomeGridMigrationPlanner.MIN_PRIMARY_HOME_COLUMNS..
+                WorkspacePrimaryHomeGridMigrationPlanner.MAX_PRIMARY_HOME_COLUMNS ||
+            rows !in WorkspacePrimaryHomeGridMigrationPlanner.MIN_PRIMARY_HOME_ROWS..
+                WorkspacePrimaryHomeGridMigrationPlanner.MAX_PRIMARY_HOME_ROWS
+        ) {
+            return WorkspacePrimaryHomeSpatialResult.InvalidWorkspace
+        }
         val dao = workspaceDaoOrNull() ?: return WorkspacePrimaryHomeSpatialResult.Unavailable
         return try {
             val page = primaryPage(dao) ?: return WorkspacePrimaryHomeSpatialResult.InvalidWorkspace
