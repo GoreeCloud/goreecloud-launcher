@@ -3,8 +3,8 @@
 **Record type:** Repository implemented-feature inventory  
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
-**Migration state:** Candidate on `migration/repository-feature-records`; becomes authoritative only after accepted merge to the repository default branch.  
-**Evidence baseline:** `main` at `ec6640dda8522244d57a947db083aecb8b9cfe33` (PR #199 merged September 22, 2026).  
+**Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record.**  
+**Repository authority baseline:** `main` at `009371938ac3cab041cfb0893ede68e66e211a4f` (PR #201 merged September 22, 2026).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation
@@ -15,7 +15,7 @@ Partially implemented capabilities remain open obligations in `PLANNED-FEATURES.
 
 ## Current verified source baseline
 
-The current repository `main` head is `ec6640dda8522244d57a947db083aecb8b9cfe33`, the merge of PR #199, **Persist Universal Search provider preferences**. PR #199 exact head `5646ce68d998ec96797d29a8c470df96c6ceac57` passed Android CI run #620 / `35710385034` across validation, build, unit/schema checks, Development APK staging, Android 16 Room/runtime, and Android 16 transition-performance emulator lanes before merge.
+The current repository `main` head is `009371938ac3cab041cfb0893ede68e66e211a4f`, the documentation/governance-only merge of PR #201. The latest source-bearing Launcher runtime remains `ec6640dda8522244d57a947db083aecb8b9cfe33`, the merge of PR #199, **Persist Universal Search provider preferences**. PR #199 exact head `5646ce68d998ec96797d29a8c470df96c6ceac57` passed Android CI run #620 / `35710385034` across validation, build, unit/schema checks, Development APK staging, Android 16 Room/runtime, and Android 16 transition-performance emulator lanes before merge. PR #201 exact head `bb9f5f7d2a91b771875b2aa4222d98b012bb7bda` passed Android CI run #635 across validation/build/unit/schema/APK staging plus both Android 16 emulator lanes before the repository-record migration was merged.
 
 This is Development evidence. It does not establish physical-device performance, complete accessibility, personal/work/Shelter/private-space acceptance, Quickstep/Recents compatibility, complete Integral Platform System acceptance, protected production signing/distribution, Release Candidate, production, or Stable qualification.
 

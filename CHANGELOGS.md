@@ -3,19 +3,19 @@
 **Record type:** Repository change history  
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
-**Migration state:** Candidate on `migration/repository-feature-records`; the legacy Drive chronology has been imported and indexed here, but this record becomes authoritative only after accepted merge and default-branch readback.  
-**Current source baseline:** `main` at `ec6640dda8522244d57a947db083aecb8b9cfe33` (PR #199).  
+**Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. Drive-source retirement remains the final migration cleanup gate.**  
+**Repository authority baseline:** `main` at `009371938ac3cab041cfb0893ede68e66e211a4f` (PR #201). Latest source-bearing Launcher runtime remains `ec6640dda8522244d57a947db083aecb8b9cfe33` (PR #199).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
 
-This file is the repository-local changelog authority candidate for GoreeCloud Launcher. The historical source was `GoreeCloud/Changelogs/Change Log — Launcher.docx`.
+This file is the authoritative repository-local human-readable change history for GoreeCloud Launcher. The historical Drive migration source was `GoreeCloud/Changelogs/Change Log — Launcher.docx`.
 
-The legacy Drive changelog has now been migrated into seven linked repository-local historical segments covering the retained chronology from August 21 through September 22, 2026. The migration is a normalized evidence-preserving Markdown import, not a byte-for-byte transcription. Event dates, material implementation state, PR/commit/CI/artifact evidence, lifecycle boundaries, corrections, and material architecture/privacy/security/governance context were preserved where available. Obsolete Drive-as-canonical maintenance instructions were not carried forward as current authority.
+The legacy Drive changelog was migrated into seven linked repository-local historical segments covering the retained chronology from August 21 through September 22, 2026. The migration is a normalized evidence-preserving Markdown import, not a byte-for-byte transcription. Event dates, material implementation state, PR/commit/CI/artifact evidence, lifecycle boundaries, corrections, and material architecture/privacy/security/governance context were preserved where available. Obsolete Drive-as-canonical maintenance instructions were not carried forward as current authority.
 
 Historical entries preserve their contemporaneous claims. Later architecture, terminology, or lifecycle state does not rewrite what an earlier entry established at its exact revision.
 
-The Drive source remains **migration-source-only** until this candidate is merged, read back from the authoritative default branch, and the final deletion gate is satisfied. No Drive deletion is authorized merely by completion of the branch-side import.
+The Drive source is now **migration-source-only** pending its verified deletion under the final retirement gate. Its temporary continued existence does not create parallel authority; this repository-local record is authoritative after PR #201 merge and default-branch readback.
 
 ## Imported historical chronology
 
@@ -31,26 +31,30 @@ The migrated historical record is stored in these repository-local segments:
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and PR #199, which post-date or extend the imported retained chronology, are recorded directly below.
 
-## Current migration reconciliation — September 22, 2026
-
-### Repository feature/changelog governance migration started
+## September 22, 2026 — PR #201 established repository-native feature and changelog authority
 
 **Change type:** Governance; documentation architecture; source-of-truth migration.
 
-Migration work began under **Standard — Repository Feature Tracking and Changelog Governance v1.0**.
+PR #201, **Migrate feature tracking and changelog governance**, completed the repository-side migration required by **Standard — Repository Feature Tracking and Changelog Governance v1.0**.
 
-Actions established on migration branch `migration/repository-feature-records`:
+Implemented and reconciled:
 
-- created candidate root-level `IMPLEMENTED-FEATURES.md`;
-- created candidate root-level `PLANNED-FEATURES.md`;
-- created candidate root-level `CHANGELOGS.md`;
-- reconciled current Launcher feature state against repository `FEATURE-ROADMAP.md`, the Drive `FEATURE-ROADMAP.docx`, current `FEATURES.md`, and live GitHub evidence;
-- identified the Drive roadmap as stale relative to newer repository implementation evidence;
-- preserved the former Drive-synchronization obligation as a superseded migration disposition instead of silently deleting it;
-- imported the meaningful historical Launcher changelog chronology into the seven repository-local history segments above; and
-- retained the Drive roadmap/changelog sources until authoritative-branch merge/readback and deletion verification are complete.
+- added root-level `IMPLEMENTED-FEATURES.md`, `PLANNED-FEATURES.md`, and `CHANGELOGS.md`;
+- migrated and dispositioned legacy roadmap obligations without promoting partial work to complete status;
+- imported the meaningful historical Launcher changelog chronology into the seven repository-local history segments above;
+- classified the former Drive-synchronization obligation as superseded rather than silently dropping it;
+- updated README authority to the repository-native records and prohibited feature/changelog synchronization back to Drive;
+- recorded the governance supersession on issue #80 without rewriting its historical evidence; and
+- retired root `FEATURE-ROADMAP.md` from authoritative `main` after its replacement records were verified on the migration branch.
 
-**Verification boundary:** The content-preservation import is complete on the migration branch, but the overall migration is not complete until the replacement records are accepted on the default branch, legacy repository references are retired, the old `FEATURE-ROADMAP.md` is removed through the reviewed migration, authoritative readback succeeds, and the migrated Drive sources are deleted and their removal verified.
+Validation and promotion:
+
+- exact PR head `bb9f5f7d2a91b771875b2aa4222d98b012bb7bda` passed Android CI run #635 / `35719798536` across validate/build/unit/schema/APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes;
+- PR #201 was squash-merged to `main` as `009371938ac3cab041cfb0893ede68e66e211a4f`;
+- default-branch readback verified the three required root records and imported changelog history; and
+- `FEATURE-ROADMAP.md` is retired from the reviewed migration result.
+
+**Remaining migration cleanup:** The former Drive `FEATURE-ROADMAP.docx` and `Change Log — Launcher.docx` records remain migration-source-only until their deletion and removal are verified. Their continued temporary presence does not supersede repository authority.
 
 ## September 22, 2026 — PR #199 persisted Universal Search provider preferences
 
@@ -94,7 +98,7 @@ Implemented:
 
 Validation:
 
-- exact PR head `74cf28e2cc989e3e88d3cdd3e252dd69be45a71e` passed Android CI run #618 / `35707597053` across validation, build, unit/schema checks, Development APK staging, Android 16 Room/runtime, and Android 16 transition-performance emulator lanes;
+- exact PR head `74cf28e2cc989e3e88d3cdd3e252dd69be45a71e` passed Android CI run #618 / `35707597053` across validate/build/unit/schema/APK staging, Android 16 Room/runtime, and Android 16 transition-performance emulator lanes;
 - guarded merge commit: `d2600bc3f0b2fce6d3c8d524a8aef536e43cd1cb`;
 - exact merged `main` then passed Android CI run #619 / `35708430142`.
 
@@ -108,6 +112,6 @@ Corrections must be additive and traceable. Do not silently rewrite older eviden
 
 ## Changelog maintenance rule
 
-After this migration is accepted, meaningful Launcher changes must be recorded in this repository-local `CHANGELOGS.md`, with supporting history under `docs/changelog-history/` when needed for volume or historical preservation. Google Drive must not receive a synchronized, mirrored, backup, convenience, or canonical changelog copy.
+Meaningful Launcher changes must be recorded in this repository-local `CHANGELOGS.md`, with supporting history under `docs/changelog-history/` when needed for volume or historical preservation. Google Drive must not receive a synchronized, mirrored, backup, convenience, or canonical changelog copy.
 
 A repository commit, pull request, CI run, or artifact alone is not proof of production deployment or runtime acceptance. Each entry must describe the evidence-backed lifecycle state actually established.
