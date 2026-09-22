@@ -17,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.pager.HorizontalPager
@@ -53,6 +54,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -79,6 +81,9 @@ import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
+import com.goreecloud.launcher.core.launcher.LauncherGestureAction
+import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
+import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppsSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
@@ -93,6 +98,7 @@ import com.goreecloud.launcher.ui.theme.GlazeThemeMode
 import com.goreecloud.launcher.ui.theme.GlazeV16MaterialRole
 import com.goreecloud.launcher.ui.theme.GlazeV16PresentationPolicy
 import com.goreecloud.launcher.ui.theme.LocalGlazeV16PresentationContext
+import com.goreecloud.launcher.ui.theme.ThemeManagerSurface
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -101,7 +107,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-enum class LauncherSurfaceMode { HOME, DRAWER, SETTINGS }
+enum class LauncherSurfaceMode { HOME, DRAWER, SETTINGS, THEME_MANAGER }
 
 @Composable
 fun LauncherBetaRoot(
@@ -149,6 +155,7 @@ fun LauncherBetaRoot(
     onSetHomeSpacing: (LauncherHomeSpacing) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
+    onSetGestureAction: (LauncherHomeGesture, LauncherGestureAction) -> Unit,
     onOpenWallpaperPicker: () -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
 ) {
@@ -243,6 +250,7 @@ fun LauncherBetaRoot(
                     surfaceModeName = LauncherSurfaceMode.DRAWER.name
                 },
                 onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
+                onOpenThemeManager = { surfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name },
                 onOpenWallpaperPicker = onOpenWallpaperPicker,
             )
             LauncherSurfaceMode.DRAWER -> AppDrawerSurface(
@@ -264,6 +272,7 @@ fun LauncherBetaRoot(
                 onSelectThemeMode = onSetThemeMode,
                 rootContent = { onOpenThemeManager ->
                     LauncherSettingsRootSurface(
+                        apps = apps,
                         preferences = preferences,
                         drawerLayoutMode = drawerLayoutMode,
                         experiencePreferences = experiencePreferences,
@@ -293,10 +302,16 @@ fun LauncherBetaRoot(
                         onSetHomeSpacing = onSetHomeSpacing,
                         onSetDockStyle = onSetDockStyle,
                         onSetWallpaperShade = onSetWallpaperShade,
+                        onSetGestureAction = onSetGestureAction,
                         onOpenThemeManager = onOpenThemeManager,
                         onBack = { surfaceModeName = LauncherSurfaceMode.HOME.name },
                     )
                 },
+            )
+            LauncherSurfaceMode.THEME_MANAGER -> ThemeManagerSurface(
+                selectedMode = themeMode,
+                onSelectMode = onSetThemeMode,
+                onBack = { surfaceModeName = LauncherSurfaceMode.HOME.name },
             )
         }
     }
@@ -334,6 +349,7 @@ private fun HomeSurface(
     onManageApp: (LauncherActivityInfo) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenThemeManager: () -> Unit,
     onOpenWallpaperPicker: () -> Unit,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
@@ -346,6 +362,25 @@ private fun HomeSurface(
     val swipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     var showHomeEditor by rememberSaveable { mutableStateOf(false) }
+
+    val executeGestureAction: (LauncherGestureAction) -> Unit = { action ->
+        when (action.type) {
+            LauncherGestureActionType.NONE -> Unit
+            LauncherGestureActionType.APPS -> onOpenDrawer()
+            LauncherGestureActionType.UNIVERSAL_SEARCH -> onOpenLauncherSearch()
+            LauncherGestureActionType.LAUNCHER_SETTINGS -> onOpenSettings()
+            LauncherGestureActionType.HOME_EDITOR -> showHomeEditor = true
+            LauncherGestureActionType.WALLPAPER -> onOpenWallpaperPicker()
+            LauncherGestureActionType.THEME_MANAGER -> onOpenThemeManager()
+            LauncherGestureActionType.OPEN_APP -> {
+                action.appKey
+                    ?.let(appsByKey::get)
+                    ?.let(onLaunchApp)
+            }
+        }
+    }
+    val currentGesturePreferences by rememberUpdatedState(experiencePreferences)
+    val currentExecuteGestureAction by rememberUpdatedState(executeGestureAction)
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -367,10 +402,11 @@ private fun HomeSurface(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures(onLongPress = { showHomeEditor = true })
-            }
-            .pointerInput(onOpenLauncherSearch, onOpenDrawer, swipeThreshold) {
+            .testTag(
+                "launcher-home-swipe-up-" +
+                    experiencePreferences.swipeUpAction.storageValue,
+            )
+            .pointerInput(swipeThreshold) {
                 var drag = 0f
                 var triggered = false
                 detectVerticalDragGestures(
@@ -393,11 +429,15 @@ private fun HomeSurface(
                             when {
                                 drag >= swipeThreshold -> {
                                     triggered = true
-                                    openSearch()
+                                    currentExecuteGestureAction(
+                                        currentGesturePreferences.swipeDownAction,
+                                    )
                                 }
                                 drag <= -swipeThreshold -> {
                                     triggered = true
-                                    onOpenDrawer()
+                                    currentExecuteGestureAction(
+                                        currentGesturePreferences.swipeUpAction,
+                                    )
                                 }
                             }
                         }
@@ -405,6 +445,63 @@ private fun HomeSurface(
                 )
             },
     ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .pointerInput(swipeThreshold) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            currentExecuteGestureAction(
+                                currentGesturePreferences.doubleTapAction,
+                            )
+                        },
+                        onLongPress = {
+                            currentExecuteGestureAction(
+                                currentGesturePreferences.tapAndHoldAction,
+                            )
+                        },
+                    )
+                }
+                .pointerInput(swipeThreshold) {
+                    var drag = 0f
+                    var triggered = false
+                    detectHorizontalDragGestures(
+                        onDragStart = {
+                            drag = 0f
+                            triggered = false
+                        },
+                        onDragCancel = {
+                            drag = 0f
+                            triggered = false
+                        },
+                        onDragEnd = {
+                            drag = 0f
+                            triggered = false
+                        },
+                        onHorizontalDrag = { change, amount ->
+                            change.consume()
+                            if (!triggered) {
+                                drag += amount
+                                when {
+                                    drag >= swipeThreshold -> {
+                                        triggered = true
+                                        currentExecuteGestureAction(
+                                            currentGesturePreferences.swipeRightAction,
+                                        )
+                                    }
+                                    drag <= -swipeThreshold -> {
+                                        triggered = true
+                                        currentExecuteGestureAction(
+                                            currentGesturePreferences.swipeLeftAction,
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                    )
+                },
+        )
+
         if (wallpaperShadeAlpha > 0f) {
             Box(
                 Modifier
@@ -478,8 +575,12 @@ private fun HomeSurface(
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
                     onMoveAppToTarget = onMoveFavoriteToTarget,
-                    onSwipeUp = onOpenDrawer,
-                    onSwipeDown = openSearch,
+                    onSwipeUp = {
+                        executeGestureAction(experiencePreferences.swipeUpAction)
+                    },
+                    onSwipeDown = {
+                        executeGestureAction(experiencePreferences.swipeDownAction)
+                    },
                 )
             }
 
@@ -499,8 +600,12 @@ private fun HomeSurface(
                     style = experiencePreferences.dockStyle,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
-                    onSwipeUp = onOpenDrawer,
-                    onSwipeDown = openSearch,
+                    onSwipeUp = {
+                        executeGestureAction(experiencePreferences.swipeUpAction)
+                    },
+                    onSwipeDown = {
+                        executeGestureAction(experiencePreferences.swipeDownAction)
+                    },
                 )
             }
 
@@ -1807,6 +1912,7 @@ private fun DrawerPageDots(
 
 @Composable
 private fun LauncherSettingsRootSurface(
+    apps: List<LauncherActivityInfo>,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
@@ -1836,9 +1942,13 @@ private fun LauncherSettingsRootSurface(
     onSetHomeSpacing: (LauncherHomeSpacing) -> Unit,
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
+    onSetGestureAction: (LauncherHomeGesture, LauncherGestureAction) -> Unit,
     onOpenThemeManager: () -> Unit,
     onBack: () -> Unit,
 ) {
+    var gestureToConfigure by remember { mutableStateOf<LauncherHomeGesture?>(null) }
+    val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
+
     Box(
         Modifier
             .fillMaxSize()
@@ -1998,8 +2108,8 @@ private fun LauncherSettingsRootSurface(
 
             SettingsSection("Search", "Home access and Launcher Universal Search") {
                 ChoiceRow(
-                    choices = listOf("Swipe down", "Show bar"),
-                    selected = if (preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT) "Show bar" else "Swipe down",
+                    choices = listOf("Gesture only", "Show bar"),
+                    selected = if (preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT) "Show bar" else "Gesture only",
                     onChoice = {
                         onSetUniversalSearchHomeMode(
                             if (it == "Show bar") LauncherUniversalSearchHomeMode.PERMANENT
@@ -2048,7 +2158,7 @@ private fun LauncherSettingsRootSurface(
                         },
                     )
                 }
-                SettingsReadOnlyRow("Home gesture", "Swipe down")
+                SettingsReadOnlyRow("Home gestures", "Configured in Gestures")
                 SettingsReadOnlyRow("Core provider", "Installed apps · Launcher")
             }
 
@@ -2244,11 +2354,30 @@ private fun LauncherSettingsRootSurface(
                 )
             }
 
-            SettingsSection("Gestures", "Current implemented shortcuts") {
-                SettingsReadOnlyRow("Swipe up", "Open Apps")
-                SettingsReadOnlyRow("Swipe down", "Open Launcher Universal Search")
-                SettingsReadOnlyRow("Long-press Home", "Open Home editor")
-                SettingsReadOnlyRow("Long-press app", "Home and dock actions")
+            SettingsSection(
+                "Gestures",
+                "Assign Home gestures to Launcher actions or installed apps",
+            ) {
+                LauncherHomeGesture.entries.forEach { gesture ->
+                    val action = when (gesture) {
+                        LauncherHomeGesture.SWIPE_UP -> experiencePreferences.swipeUpAction
+                        LauncherHomeGesture.SWIPE_DOWN -> experiencePreferences.swipeDownAction
+                        LauncherHomeGesture.SWIPE_LEFT -> experiencePreferences.swipeLeftAction
+                        LauncherHomeGesture.SWIPE_RIGHT -> experiencePreferences.swipeRightAction
+                        LauncherHomeGesture.DOUBLE_TAP -> experiencePreferences.doubleTapAction
+                        LauncherHomeGesture.TAP_AND_HOLD -> experiencePreferences.tapAndHoldAction
+                    }
+                    GestureAssignmentRow(
+                        gesture = gesture,
+                        actionLabel = gestureActionLabel(action, appsByKey),
+                        onClick = { gestureToConfigure = gesture },
+                    )
+                }
+                Text(
+                    "Swipe left/right, Double-tap, and Tap and hold apply to empty Home space so app drag/reorder and app long-press controls remain authoritative.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             SettingsSection("System", "Default HOME and Development status") {
@@ -2266,6 +2395,196 @@ private fun LauncherSettingsRootSurface(
             }
         }
     }
+
+    gestureToConfigure?.let { gesture ->
+        val currentAction = when (gesture) {
+            LauncherHomeGesture.SWIPE_UP -> experiencePreferences.swipeUpAction
+            LauncherHomeGesture.SWIPE_DOWN -> experiencePreferences.swipeDownAction
+            LauncherHomeGesture.SWIPE_LEFT -> experiencePreferences.swipeLeftAction
+            LauncherHomeGesture.SWIPE_RIGHT -> experiencePreferences.swipeRightAction
+            LauncherHomeGesture.DOUBLE_TAP -> experiencePreferences.doubleTapAction
+            LauncherHomeGesture.TAP_AND_HOLD -> experiencePreferences.tapAndHoldAction
+        }
+        GestureActionPickerDialog(
+            gesture = gesture,
+            currentAction = currentAction,
+            apps = apps,
+            onSelect = { action ->
+                onSetGestureAction(gesture, action)
+                gestureToConfigure = null
+            },
+            onDismiss = { gestureToConfigure = null },
+        )
+    }
+}
+
+private fun gestureActionLabel(
+    action: LauncherGestureAction,
+    appsByKey: Map<String, LauncherActivityInfo>,
+): String = when (action.type) {
+    LauncherGestureActionType.OPEN_APP ->
+        action.appKey
+            ?.let(appsByKey::get)
+            ?.label
+            ?.toString()
+            ?.let { "Open $it" }
+            ?: "Unavailable app"
+    else -> action.type.displayName
+}
+
+@Composable
+private fun GestureAssignmentRow(
+    gesture: LauncherHomeGesture,
+    actionLabel: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = GlazeMetrics.space3, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                gesture.displayName,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                actionLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.End,
+            )
+        }
+    }
+}
+
+@Composable
+private fun GestureActionPickerDialog(
+    gesture: LauncherHomeGesture,
+    currentAction: LauncherGestureAction,
+    apps: List<LauncherActivityInfo>,
+    onSelect: (LauncherGestureAction) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val builtInActions = remember {
+        listOf(
+            LauncherGestureActionType.NONE,
+            LauncherGestureActionType.APPS,
+            LauncherGestureActionType.UNIVERSAL_SEARCH,
+            LauncherGestureActionType.LAUNCHER_SETTINGS,
+            LauncherGestureActionType.HOME_EDITOR,
+            LauncherGestureActionType.WALLPAPER,
+            LauncherGestureActionType.THEME_MANAGER,
+        )
+    }
+    val sortedApps = remember(apps) {
+        apps.sortedWith(
+            compareBy<LauncherActivityInfo> { it.label.toString().lowercase(Locale.getDefault()) }
+                .thenBy { it.componentName.packageName },
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(gesture.displayName) },
+        text = {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                item {
+                    Text(
+                        "Launcher actions",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                lazyItems(builtInActions, key = { it.storageValue }) { type ->
+                    val selected = currentAction.type == type
+                    TextButton(
+                        onClick = {
+                            onSelect(LauncherGestureAction.builtIn(type))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(type.displayName)
+                            if (selected) {
+                                Text(
+                                    "Selected",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                        }
+                    }
+                }
+                item {
+                    Spacer(Modifier.height(GlazeMetrics.space2))
+                    Text(
+                        "Open app",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                lazyItems(
+                    items = sortedApps,
+                    key = { app -> app.workspaceKey() },
+                ) { app ->
+                    val appKey = app.workspaceKey()
+                    val selected =
+                        currentAction.type == LauncherGestureActionType.OPEN_APP &&
+                            currentAction.appKey == appKey
+                    TextButton(
+                        onClick = {
+                            onSelect(LauncherGestureAction.openApp(appKey))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(app.label.toString())
+                                Text(
+                                    app.componentName.packageName,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            if (selected) {
+                                Text(
+                                    "Selected",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable
