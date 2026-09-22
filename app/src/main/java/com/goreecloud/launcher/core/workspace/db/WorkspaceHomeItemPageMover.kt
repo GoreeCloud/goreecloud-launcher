@@ -72,6 +72,7 @@ class WorkspaceHomeItemPageMover(
             itemId = context.source.itemId,
             targetPageId = targetPageId,
             targetPlacement = target,
+            primaryGrid = primaryGrid,
         )
     }
 
