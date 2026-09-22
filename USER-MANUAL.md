@@ -20,7 +20,7 @@ The primary Home experience is a launcher-style surface. Android renders the dev
 - Long-press a supported Home or Dock icon to manage its placement.
 - Open **Apps** from the Home affordance to browse installed launchable applications.
 - Open **Launcher settings** to change supported Home, Apps, icon, label, appearance, layout-lock, and Launcher Universal Search entry preferences.
-- Swipe one finger downward through the unobstructed Home search zone to open Launcher Universal Search.
+- Swipe one finger downward through the unobstructed Home gesture zone to open Launcher Universal Search by default. This assignment can be changed under **Launcher settings → Gestures**.
 - Favorites and Dock are seeded from installed launchable apps on first run when needed.
 - The Dock is currently bounded to five items.
 
@@ -30,7 +30,7 @@ The primary Home page is still the protected Favorites compatibility representat
 
 ## Launcher Universal Search from Home
 
-**GoreeCloud Launcher owns Universal Search.** Swipe down on the unobstructed Home search zone opens the Launcher-owned search surface. When the Home search bar is enabled, tapping **Search GoreeCloud** opens the same Launcher surface.
+**GoreeCloud Launcher owns Universal Search.** Swipe down on the unobstructed Home gesture zone opens the Launcher-owned search surface by default; the assignment can be changed under **Launcher settings → Gestures**. When the Home search bar is enabled, tapping **Search GoreeCloud** always opens the same Launcher surface.
 
 Launcher Settings provides two Home-entry modes:
 
@@ -38,7 +38,7 @@ Launcher Settings provides two Home-entry modes:
 
 Home keeps the **Search GoreeCloud** affordance visible. Swipe down opens Launcher Universal Search by default, but the gesture can be reassigned in **Launcher settings → Gestures**.
 
-### Swipe down only
+### Gesture only
 
 The persistent Search GoreeCloud affordance is hidden. Swipe down remains available and opens Launcher Universal Search by default, but it can be reassigned in **Launcher settings → Gestures**.
 
@@ -93,7 +93,7 @@ The Home screen settings card also contains the **Lock Home screen layout** swit
 
 ### Universal Search
 
-Choose **Permanent on Home** or **Swipe down only**. Swipe-down invocation remains active in both modes; Permanent mode additionally keeps the Search GoreeCloud affordance visible.
+Choose **Permanent on Home** or **Gesture only**. Permanent mode keeps the Search GoreeCloud affordance visible; Gesture only removes the persistent Home bar. Search can still be assigned to any supported gesture under **Launcher settings → Gestures**.
 
 ### Apps screen
 
