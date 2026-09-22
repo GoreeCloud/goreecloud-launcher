@@ -520,8 +520,8 @@ class ActivatedHomeLifecycleRuntimeTest {
                     }
                     checkNotNull(item)
                 }
-                check(returned.cellX in 0 until preferences.homeColumns)
-                check(returned.cellY in 0 until preferences.homeRows)
+                check(checkNotNull(returned.cellX) in 0 until preferences.homeColumns)
+                check(checkNotNull(returned.cellY) in 0 until preferences.homeRows)
                 waitForDisplayedLabel(candidate.label.toString())
             } finally {
                 scenario.close()
