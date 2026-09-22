@@ -32,7 +32,9 @@ object LauncherPortablePreferences {
 
         val iconScaleMilli = iconScaleMilli(preferences.iconScale)
             ?: throw IllegalArgumentException("invalid launcher preferences: icon scale is not canonical")
-        // Version 1 intentionally retains the legacy "index_home_mode" wire key so existing\n        // backups remain byte-compatible while runtime search authority moves to Launcher.\n        val payload = listOf(
+        // Version 1 intentionally retains the legacy "index_home_mode" wire key so existing
+        // backups remain byte-compatible while runtime search authority moves to Launcher.
+        val payload = listOf(
             "format=$FORMAT",
             "version=$VERSION",
             "home_columns=${preferences.homeColumns}",
