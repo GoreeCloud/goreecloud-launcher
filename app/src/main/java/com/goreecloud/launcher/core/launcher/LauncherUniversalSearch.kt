@@ -30,8 +30,7 @@ interface LauncherSearchProvider {
  *
  * Providers implementing this interface are executed through [LauncherUniversalSearch.searchAsync]
  * without blocking the caller. The synchronous [LauncherSearchProvider.search] contract remains the
- * current built-in/local compatibility path until the rendered search surface is migrated to the
- * asynchronous execution path.
+ * built-in/local compatibility path for specialized synchronous surfaces such as drawer filtering.
  */
 interface LauncherAsyncSearchProvider {
     suspend fun searchAsync(request: LauncherSearchRequest): List<LauncherSearchResult>
@@ -44,17 +43,22 @@ data class LauncherSearchRequest(
 /**
  * Caller-owned execution policy for asynchronous provider aggregation.
  *
- * There is intentionally no product-default timeout here. The rendered search surface must choose
- * and validate its interaction budget from measured Launcher evidence rather than inheriting an
- * arbitrary value from the provider contract.
+ * There is intentionally no product-default timeout here. Callers may execute with cooperative
+ * cancellation only, or supply a measured positive provider timeout when they have evidence for an
+ * interaction budget. A timeout must not be invented merely to satisfy this contract.
  */
 data class LauncherSearchExecutionPolicy(
-    val providerTimeoutMillis: Long,
+    val providerTimeoutMillis: Long?,
 ) {
     init {
-        require(providerTimeoutMillis > 0L) {
-            "providerTimeoutMillis must be greater than zero"
+        require(providerTimeoutMillis == null || providerTimeoutMillis > 0L) {
+            "providerTimeoutMillis must be null or greater than zero"
         }
+    }
+
+    companion object {
+        fun cancellationOnly(): LauncherSearchExecutionPolicy =
+            LauncherSearchExecutionPolicy(providerTimeoutMillis = null)
     }
 }
 
@@ -256,15 +260,12 @@ object LauncherUniversalSearch {
         )
 
     /**
-     * Executes providers concurrently with caller-supplied per-provider timeouts.
+     * Executes providers concurrently with caller-owned cancellation/timeout policy.
      *
      * Providers that implement [LauncherAsyncSearchProvider] receive a cancellable suspend request.
      * Existing synchronous providers run on [Dispatchers.Default] so the caller is not blocked.
-     * Provider failures and provider-local timeouts fail soft to an empty contribution. Caller
-     * cancellation always propagates and is never converted into an ordinary provider failure.
-     *
-     * This method is the execution foundation for a future rendered-search migration. The current
-     * UI still uses [search], so UI query replacement/streaming semantics remain separate work.
+     * Provider failures and measured provider-local timeouts fail soft to an empty contribution.
+     * Caller cancellation always propagates and is never converted into an ordinary provider failure.
      */
     suspend fun searchAsync(
         rawQuery: String,
@@ -291,7 +292,7 @@ object LauncherUniversalSearch {
         policy: LauncherSearchExecutionPolicy,
     ): List<LauncherSearchResult> {
         return try {
-            withTimeoutOrNull(policy.providerTimeoutMillis) {
+            val executeProvider: suspend () -> List<LauncherSearchResult> = {
                 if (provider is LauncherAsyncSearchProvider) {
                     provider.searchAsync(request)
                 } else {
@@ -299,7 +300,13 @@ object LauncherUniversalSearch {
                         provider.search(request.rawQuery)
                     }
                 }
-            }.orEmpty()
+            }
+
+            policy.providerTimeoutMillis?.let { timeoutMillis ->
+                withTimeoutOrNull(timeoutMillis) {
+                    executeProvider()
+                }.orEmpty()
+            } ?: executeProvider()
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (_: Throwable) {
