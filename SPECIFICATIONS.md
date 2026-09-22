@@ -61,7 +61,7 @@ The Apps filter is a specialized Launcher-owned view backed by the installed-app
 
 Launcher Settings is a distinct scrollable surface. Current persisted settings include Home grid, Apps layout (Grid/Compact/List), Apps columns, app-label visibility, icon-size presentation, System/Light/Dark appearance, **Lock Home screen layout**, and the Launcher Universal Search **Permanent on Home / Swipe down only** entry choice. Drawer layout remains local presentation state outside the strict seven-field `goreecloud-launcher-preferences/1` backup/recovery format until a separately versioned portability extension is accepted.
 
-Current settings changes do not widen Room workspace mutation authority. The layout-lock preference restricts Launcher mutation dispatch; the Universal Search entry preference controls Launcher-owned invocation presentation only.
+Most settings remain presentation/policy state. Home-grid changes are the bounded exception after primary spatial activation: Launcher validates or safely reflows authoritative primary Home coordinates through the existing Room mutation boundary before persisting a smaller/different grid. The layout-lock preference restricts Launcher mutation dispatch; the Universal Search entry preference controls Launcher-owned invocation presentation only.
 
 The native Theme Manager catalog/surface and direct persisted appearance-selection API are composed into Launcher Settings under the integrated V1.6 source mapping. Settings uses a saveable/fail-closed sub-destination model; stale destination values restore to Settings root. The current appearance is represented as non-actionable selected state, and only a different supported appearance invokes caller-owned persistence. V1.6 presentation context can simplify raised material when Reduced Transparency or constrained performance is authoritatively supplied, while broader runtime profile wiring and complete Glaze Theme Engine behavior remain separately implementation- and acceptance-gated.
 
@@ -256,7 +256,7 @@ Stable qualification still requires, as applicable:
 - accepted configurable Universal Search Home-entry modes and non-gesture accessibility behavior;
 - accepted versioned Launcher backup/restore behavior and safe migration/rebinding semantics;
 - complete intended workspace/user flows and recovery semantics;
-- accepted primary compatibility-page grid migration and complete intended cross-page movement semantics;
+- accepted primary spatial placement behavior and complete intended cross-page movement semantics;
 - folders/widgets/shortcuts required by release scope;
 - mature cross-page placement editing and accessible alternatives;
 - representative-device, rotation/posture, performance, physical-interaction, universal-search gesture, five-second unlock, and accessibility acceptance;
