@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.goreecloud.launcher.core.launcher.GoreeCloudIndexIntegration
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
@@ -64,7 +63,6 @@ import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
-    private lateinit var indexIntegration: GoreeCloudIndexIntegration
     private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
@@ -92,7 +90,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         appsRepository = LauncherAppsRepository(this)
-        indexIntegration = GoreeCloudIndexIntegration(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
         themeRepository = GlazeThemeRepository(this)
         workspaceRepository = WorkspaceRepository(this)
@@ -342,7 +339,6 @@ class MainActivity : ComponentActivity() {
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
-                            onOpenUniversalSearch = { openUniversalSearch() },
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
@@ -379,7 +375,7 @@ class MainActivity : ComponentActivity() {
                             onSetShowLabels = launcherPreferencesRepository::setShowLabels,
                             onSetIconScale = launcherPreferencesRepository::setIconScale,
                             onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,
-                            onSetIndexHomeMode = launcherPreferencesRepository::setIndexHomeMode,
+                            onSetUniversalSearchHomeMode = launcherPreferencesRepository::setUniversalSearchHomeMode,
                             onSetHomeCardStyle = launcherPreferencesRepository::setHomeCardStyle,
                             onSetShowHomeQuickActions = launcherPreferencesRepository::setShowHomeQuickActions,
                             onSetShowHomePageIndicator = launcherPreferencesRepository::setShowHomePageIndicator,
@@ -522,6 +518,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun openUniversalSearch(query: String? = null): Boolean =
-        indexIntegration.openSearch(query)
 }
