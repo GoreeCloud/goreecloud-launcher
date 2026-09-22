@@ -6,6 +6,7 @@ import com.goreecloud.launcher.core.workspace.WorkspaceCodec
 import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
+import com.goreecloud.launcher.core.workspace.WorkspaceDragPlacementPolicy
 import kotlinx.coroutines.flow.first
 
 enum class WorkspacePlacementSource {
@@ -141,6 +142,107 @@ class WorkspaceAuthoritativePlacementRepository(
         roomMutation = { snapshot ->
             snapshot.copy(
                 dockKeys = WorkspaceCodec.movedToTarget(snapshot.dockKeys, key, targetKey)
+            )
+        },
+    )
+
+    suspend fun moveHomeToDock(
+        key: String,
+        targetDockKey: String?,
+    ): WorkspaceAuthoritativeWriteResult = mutate(
+        legacyMutation = { authorityRepository.moveHomeToDock(key, targetDockKey) },
+        roomMutation = { snapshot ->
+            val updated = WorkspaceDragPlacementPolicy.moveHomeToDock(
+                favoriteKeys = snapshot.favoriteKeys,
+                dockKeys = snapshot.dockKeys,
+                key = key,
+                targetDockKey = targetDockKey,
+            )
+            snapshot.copy(
+                favoriteKeys = updated.favoriteKeys,
+                dockKeys = updated.dockKeys,
+            )
+        },
+    )
+
+    suspend fun moveDockToHome(
+        key: String,
+        homeGrid: WorkspaceGridPlacement.Grid,
+    ): WorkspaceAuthoritativeWriteResult = mutate(
+        homeGrid = homeGrid,
+        legacyMutation = {
+            authorityRepository.moveDockToHome(key, homeGrid.columns * homeGrid.rows)
+        },
+        roomMutation = { snapshot ->
+            val updated = WorkspaceDragPlacementPolicy.moveDockToHome(
+                favoriteKeys = snapshot.favoriteKeys,
+                dockKeys = snapshot.dockKeys,
+                key = key,
+                homeLimit = homeGrid.columns * homeGrid.rows,
+            )
+            snapshot.copy(
+                favoriteKeys = updated.favoriteKeys,
+                dockKeys = updated.dockKeys,
+            )
+        },
+    )
+
+    suspend fun copyDrawerToHome(
+        key: String,
+        homeGrid: WorkspaceGridPlacement.Grid,
+    ): WorkspaceAuthoritativeWriteResult = mutate(
+        homeGrid = homeGrid,
+        legacyMutation = {
+            authorityRepository.copyDrawerToHome(key, homeGrid.columns * homeGrid.rows)
+        },
+        roomMutation = { snapshot ->
+            val updated = WorkspaceDragPlacementPolicy.copyDrawerToHome(
+                favoriteKeys = snapshot.favoriteKeys,
+                dockKeys = snapshot.dockKeys,
+                key = key,
+                homeLimit = homeGrid.columns * homeGrid.rows,
+            )
+            snapshot.copy(
+                favoriteKeys = updated.favoriteKeys,
+                dockKeys = updated.dockKeys,
+            )
+        },
+    )
+
+    suspend fun copyDrawerToDock(
+        key: String,
+        targetDockKey: String?,
+    ): WorkspaceAuthoritativeWriteResult = mutate(
+        legacyMutation = { authorityRepository.copyDrawerToDock(key, targetDockKey) },
+        roomMutation = { snapshot ->
+            val updated = WorkspaceDragPlacementPolicy.copyDrawerToDock(
+                favoriteKeys = snapshot.favoriteKeys,
+                dockKeys = snapshot.dockKeys,
+                key = key,
+                targetDockKey = targetDockKey,
+            )
+            snapshot.copy(
+                favoriteKeys = updated.favoriteKeys,
+                dockKeys = updated.dockKeys,
+            )
+        },
+    )
+
+    suspend fun reorderDockByDrop(
+        key: String,
+        targetDockKey: String?,
+    ): WorkspaceAuthoritativeWriteResult = mutate(
+        legacyMutation = { authorityRepository.reorderDockByDrop(key, targetDockKey) },
+        roomMutation = { snapshot ->
+            val updated = WorkspaceDragPlacementPolicy.reorderDock(
+                favoriteKeys = snapshot.favoriteKeys,
+                dockKeys = snapshot.dockKeys,
+                key = key,
+                targetDockKey = targetDockKey,
+            )
+            snapshot.copy(
+                favoriteKeys = updated.favoriteKeys,
+                dockKeys = updated.dockKeys,
             )
         },
     )
