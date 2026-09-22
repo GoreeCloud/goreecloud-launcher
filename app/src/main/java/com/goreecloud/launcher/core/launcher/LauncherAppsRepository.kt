@@ -58,6 +58,52 @@ internal fun launcherInventoryRefreshScope(
     -> LauncherInventoryRefreshScope.FULL
 }
 
+internal enum class LauncherDrawerProfileKind(
+    val displayName: String,
+) {
+    USER("User Apps"),
+    WORK("Work Apps"),
+}
+
+internal data class LauncherDrawerProfilePage<T>(
+    val kind: LauncherDrawerProfileKind,
+    val items: List<T>,
+)
+
+/**
+ * Partitions authoritative LauncherApps inventory into the initial two drawer profile pages.
+ *
+ * The primary Android user always owns the first User Apps page. Any non-primary profile inventory
+ * is grouped into Work Apps for this bounded Shelter/work-profile tranche. Android remains profile
+ * and inventory authority; the drawer only projects that inventory and preserves its established
+ * ordering within each page.
+ */
+internal fun <T, U> launcherDrawerProfilePages(
+    items: List<T>,
+    primaryUser: U,
+    userOf: (T) -> U,
+): List<LauncherDrawerProfilePage<T>> {
+    val userItems = items.filter { item -> userOf(item) == primaryUser }
+    val workItems = items.filterNot { item -> userOf(item) == primaryUser }
+
+    return buildList {
+        add(
+            LauncherDrawerProfilePage(
+                kind = LauncherDrawerProfileKind.USER,
+                items = userItems,
+            ),
+        )
+        if (workItems.isNotEmpty()) {
+            add(
+                LauncherDrawerProfilePage(
+                    kind = LauncherDrawerProfileKind.WORK,
+                    items = workItems,
+                ),
+            )
+        }
+    }
+}
+
 private data class LauncherPackageScope(
     val packageName: String,
     val user: UserHandle,
