@@ -1416,7 +1416,9 @@ private fun LauncherUniversalSearchSurface(
             GlazeAppSearchField(
                 value = query,
                 onValueChange = { query = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("launcher-universal-search-field"),
                 requestFocus = true,
                 placeholder = "Search apps, settings and actions",
             )
