@@ -20,12 +20,15 @@ import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
+import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativeWriteResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspacePrimaryHomeSpatialResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
+import com.goreecloud.launcher.core.workspace.db.WorkspaceRoomPlacementRepository
+import com.goreecloud.launcher.core.workspace.db.WorkspaceRoomWriteResult
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import java.io.FileInputStream
 import kotlinx.coroutines.delay
@@ -87,6 +90,22 @@ class ActivatedHomeLifecycleRuntimeTest {
                 withTimeout(15_000) {
                     repository.state.first { it.authority == WorkspaceAuthority.ROOM }
                 }
+                val preferences = LauncherPreferencesRepository(context).preferences.first()
+                val roomPlacement = WorkspaceRoomPlacementRepository(
+                    authorityRepository = repository,
+                    workspaceDaoProvider = {
+                        LauncherDatabaseProvider.get(context).workspaceDao()
+                    },
+                )
+                val baseline = roomPlacement.replace(
+                    favoriteKeys = listOf(firstKey),
+                    dockKeys = emptyList(),
+                    homeGrid = WorkspaceGridPlacement.Grid(
+                        columns = preferences.homeColumns,
+                        rows = preferences.homeRows,
+                    ),
+                )
+                check(baseline is WorkspaceRoomWriteResult.Written)
                 waitForDisplayedLabel(firstApp.label.toString())
 
                 scenario.recreate()
@@ -102,7 +121,6 @@ class ActivatedHomeLifecycleRuntimeTest {
                         LauncherDatabaseProvider.get(context).workspaceDao()
                     },
                 )
-                val preferences = LauncherPreferencesRepository(context).preferences.first()
                 val write = runtime.toggleFavorite(
                     key = secondKey,
                     homeColumns = preferences.homeColumns,
@@ -370,13 +388,21 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
 
                 val dao = LauncherDatabaseProvider.get(context).workspaceDao()
-                val baseline = WorkspaceLegacyImportMapper.map(
+                val preferences = LauncherPreferencesRepository(context).preferences.first()
+                val roomPlacement = WorkspaceRoomPlacementRepository(
+                    authorityRepository = repository,
+                    workspaceDaoProvider = { dao },
+                )
+                val baseline = roomPlacement.replace(
                     favoriteKeys = listOf(firstKey, secondKey),
                     dockKeys = emptyList(),
+                    homeGrid = WorkspaceGridPlacement.Grid(
+                        columns = preferences.homeColumns,
+                        rows = preferences.homeRows,
+                    ),
                 )
-                dao.replaceLegacySnapshot(baseline.pages, baseline.items)
+                check(baseline is WorkspaceRoomWriteResult.Written)
 
-                val preferences = LauncherPreferencesRepository(context).preferences.first()
                 val runtime = WorkspaceProductionRuntimeCoordinator(
                     authorityRepository = repository,
                     workspaceDaoProvider = {
