@@ -1906,7 +1906,7 @@ private fun LauncherSettingsRootSurface(
                         },
                     )
                 }
-                SettingsReadOnlyRow("Home gesture", "Swipe down")
+                SettingsReadOnlyRow("Home gestures", "Configured in Gestures")
                 SettingsReadOnlyRow("Core provider", "Installed apps · Launcher")
             }
 
@@ -2257,7 +2257,7 @@ private fun GestureActionPickerDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                items(builtInActions, key = { it.storageValue }) { type ->
+                lazyItems(builtInActions, key = { it.storageValue }) { type ->
                     val selected =
                         currentAction.type == type &&
                             currentAction.type != LauncherGestureActionType.OPEN_APP
