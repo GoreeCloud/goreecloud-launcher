@@ -23,6 +23,7 @@ import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativeWriteResult
+import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import java.io.FileInputStream
@@ -311,7 +312,7 @@ class ActivatedHomeLifecycleRuntimeTest {
     }
 
     @Test
-    fun longPressDragReordersPrimaryHomeApps() = runBlocking {
+    fun longPressDragMovesPrimaryHomeAppIntoEmptyCellAndPersists() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         val roleManager = context.getSystemService(RoleManager::class.java)
@@ -356,18 +357,38 @@ class ActivatedHomeLifecycleRuntimeTest {
                 withTimeout(15_000) {
                     repository.state.first { it.authority == WorkspaceAuthority.ROOM }
                 }
+
+                val dao = LauncherDatabaseProvider.get(context).workspaceDao()
+                val baseline = WorkspaceLegacyImportMapper.map(
+                    favoriteKeys = listOf(firstKey, secondKey),
+                    dockKeys = emptyList(),
+                )
+                dao.replaceLegacySnapshot(baseline.pages, baseline.items)
+
                 waitForDisplayedLabel(firstApp.label.toString())
                 waitForDisplayedLabel(secondApp.label.toString())
+
+                val preferences = LauncherPreferencesRepository(context).preferences.first()
+                val targetX = preferences.homeColumns - 1
+                val targetY = preferences.homeRows - 1
+                val targetTag = "launcher-home-cell-$targetX-$targetY"
+
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithTag(targetTag, useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
 
                 val firstBounds = composeRule
                     .onNodeWithText(firstApp.label.toString(), useUnmergedTree = true)
                     .fetchSemanticsNode()
                     .boundsInRoot
-                val secondBounds = composeRule
-                    .onNodeWithText(secondApp.label.toString(), useUnmergedTree = true)
+                val targetBounds = composeRule
+                    .onNodeWithTag(targetTag, useUnmergedTree = true)
                     .fetchSemanticsNode()
                     .boundsInRoot
-                val delta = secondBounds.center - firstBounds.center
+                val delta = targetBounds.center - firstBounds.center
 
                 composeRule
                     .onNodeWithText(firstApp.label.toString(), useUnmergedTree = true)
@@ -375,24 +396,40 @@ class ActivatedHomeLifecycleRuntimeTest {
                         down(center)
                         advanceEventTime(700)
                         moveTo(center + delta)
-                        advanceEventTime(100)
+                        advanceEventTime(120)
                         up()
                     }
 
-                val dao = LauncherDatabaseProvider.get(context).workspaceDao()
                 withTimeout(10_000) {
                     while (true) {
-                        val orderedKeys = dao
-                            .readItems(listOf(
-                                com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper.HOME_PAGE_ID
-                            ))
-                            .sortedBy { it.rank }
-                            .mapNotNull { it.appKey }
-                        if (orderedKeys.take(2) == listOf(secondKey, firstKey)) break
+                        val moved = dao
+                            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                            .singleOrNull { it.appKey == firstKey }
+                        if (moved?.cellX == targetX && moved.cellY == targetY) break
                         delay(100)
                     }
                 }
-                Unit
+
+                val afterMove = dao
+                    .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                    .sortedBy { it.rank }
+                val firstStored = checkNotNull(afterMove.singleOrNull { it.appKey == firstKey })
+                val secondStored = checkNotNull(afterMove.singleOrNull { it.appKey == secondKey })
+                assertEquals(targetX, firstStored.cellX)
+                assertEquals(targetY, firstStored.cellY)
+                check(firstStored.cellX != secondStored.cellX || firstStored.cellY != secondStored.cellY)
+
+                scenario.recreate()
+                withTimeout(15_000) {
+                    repository.state.first { it.authority == WorkspaceAuthority.ROOM }
+                }
+                waitForDisplayedLabel(firstApp.label.toString())
+
+                val afterRecreate = dao
+                    .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                    .single { it.appKey == firstKey }
+                assertEquals(targetX, afterRecreate.cellX)
+                assertEquals(targetY, afterRecreate.cellY)
             } finally {
                 scenario.close()
             }
