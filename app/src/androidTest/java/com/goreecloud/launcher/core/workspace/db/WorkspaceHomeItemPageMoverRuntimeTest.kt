@@ -9,6 +9,7 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
+import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -161,6 +162,116 @@ class WorkspaceHomeItemPageMoverRuntimeTest {
         assertEquals(
             WorkspacePagedRoomMutationResult.InvalidWorkspace,
             mover.moveAppToPage("home:2", APP_TWO, "home:2"),
+        )
+    }
+
+    @Test
+    fun primaryBoundaryMoveCompactsCanonicalRanksAndSupportsRoundTrip() = runBlocking {
+        val authorityRepository = WorkspaceRepository(openDataStore())
+        authorityRepository.ensureDefaults(
+            favoriteKeys = listOf(APP_ONE, APP_TWO),
+            dockKeys = emptyList(),
+        )
+        promoteRoomAuthority(authorityRepository)
+
+        val grid = WorkspaceGridPlacement.Grid(columns = 4, rows = 5)
+        val primarySpatialRepository = WorkspacePrimaryHomeSpatialRepository(
+            authorityRepository = authorityRepository,
+            workspaceDaoProvider = { database.workspaceDao() },
+        )
+        assertEquals(
+            WorkspacePrimaryHomeSpatialResult.Ready(
+                changed = true,
+                columns = 4,
+                rows = 5,
+            ),
+            primarySpatialRepository.ensureGrid(columns = 4, rows = 5),
+        )
+        database.workspaceDao().upsertPages(
+            listOf(WorkspacePageEntity("home:1", WorkspaceContainerType.HOME, 1))
+        )
+
+        val mover = WorkspaceHomeItemPageMover(
+            authorityRepository = authorityRepository,
+            workspaceDaoProvider = { database.workspaceDao() },
+            mutationRepository = WorkspacePagedRoomMutationRepository(
+                authorityRepository = authorityRepository,
+                workspaceDaoProvider = { database.workspaceDao() },
+            ),
+        )
+
+        assertEquals(
+            WorkspacePagedRoomMutationResult.UpdatedItem(
+                itemId = "legacy:home:$APP_ONE",
+                pageId = "home:1",
+                cellX = 0,
+                cellY = 0,
+                spanX = 1,
+                spanY = 1,
+            ),
+            mover.moveAppToPage(
+                sourcePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                appKey = APP_ONE,
+                targetPageId = "home:1",
+                primaryGrid = grid,
+            ),
+        )
+
+        val primaryAfterMoveOut = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .sortedBy { it.rank }
+        assertEquals(listOf(APP_TWO), primaryAfterMoveOut.map { it.appKey })
+        assertEquals(listOf(0), primaryAfterMoveOut.map { it.rank })
+        assertEquals(1, primaryAfterMoveOut.single().cellX)
+        assertEquals(0, primaryAfterMoveOut.single().cellY)
+        assertEquals(
+            WorkspaceRelationalSnapshot(
+                favoriteKeys = listOf(APP_TWO),
+                dockKeys = emptyList(),
+            ),
+            WorkspaceCanonicalRoomPlacementReader.read(database.workspaceDao()),
+        )
+
+        assertEquals(
+            WorkspacePagedRoomMutationResult.UpdatedItem(
+                itemId = "legacy:home:$APP_ONE",
+                pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                cellX = 0,
+                cellY = 0,
+                spanX = 1,
+                spanY = 1,
+            ),
+            mover.moveAppToPage(
+                sourcePageId = "home:1",
+                appKey = APP_ONE,
+                targetPageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                primaryGrid = grid,
+            ),
+        )
+
+        assertTrue(database.workspaceDao().readItems(listOf("home:1")).isEmpty())
+        val primaryAfterRoundTrip = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .sortedBy { it.rank }
+        assertEquals(listOf(APP_TWO, APP_ONE), primaryAfterRoundTrip.map { it.appKey })
+        assertEquals(listOf(0, 1), primaryAfterRoundTrip.map { it.rank })
+        assertEquals(1, primaryAfterRoundTrip[0].cellX)
+        assertEquals(0, primaryAfterRoundTrip[0].cellY)
+        assertEquals(0, primaryAfterRoundTrip[1].cellX)
+        assertEquals(0, primaryAfterRoundTrip[1].cellY)
+        assertEquals(
+            WorkspaceRelationalSnapshot(
+                favoriteKeys = listOf(APP_TWO, APP_ONE),
+                dockKeys = emptyList(),
+            ),
+            WorkspaceCanonicalRoomPlacementReader.read(database.workspaceDao()),
+        )
+        assertEquals(
+            WorkspacePostCutoverHealthResult.Healthy,
+            WorkspacePostCutoverHealthEvaluator(
+                repository = authorityRepository,
+                workspaceDaoProvider = { database.workspaceDao() },
+            ).evaluate(),
         )
     }
 

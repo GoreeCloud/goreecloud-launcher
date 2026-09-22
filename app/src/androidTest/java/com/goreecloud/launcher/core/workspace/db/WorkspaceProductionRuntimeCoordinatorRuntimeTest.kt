@@ -136,6 +136,68 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
     }
 
     @Test
+    fun terminalRoomRuntimeRoutesGuardedPrimaryBoundaryTransfer() = runBlocking {
+        val repository = WorkspaceRepository(openWorkspaceDataStore())
+        repository.ensureDefaults(INITIAL_FAVORITES, INITIAL_DOCK)
+        val runtime = runtime(repository) { database.workspaceDao() }
+
+        assertEquals(WorkspaceProductionRuntimeResult.RoomReady, runtime.reconcileAndActivate())
+        database.workspaceDao().upsertPages(
+            listOf(WorkspacePageEntity("home:1", WorkspaceContainerType.HOME, 1))
+        )
+
+        assertEquals(
+            WorkspacePagedRoomMutationResult.PrimaryPageProtected,
+            runtime.moveHomeAppToPage(
+                sourcePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                appKey = INITIAL_FAVORITES.first(),
+                targetPageId = "home:1",
+            ),
+        )
+        assertEquals(
+            WorkspacePagedRoomMutationResult.UpdatedItem(
+                itemId = "legacy:home:${INITIAL_FAVORITES.first()}",
+                pageId = "home:1",
+                cellX = 0,
+                cellY = 0,
+                spanX = 1,
+                spanY = 1,
+            ),
+            runtime.moveHomeAppToPage(
+                sourcePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                appKey = INITIAL_FAVORITES.first(),
+                targetPageId = "home:1",
+                primaryColumns = 4,
+                primaryRows = 5,
+            ),
+        )
+        assertReady(runtime, listOf(INITIAL_FAVORITES[1]), INITIAL_DOCK)
+
+        assertEquals(
+            WorkspacePagedRoomMutationResult.UpdatedItem(
+                itemId = "legacy:home:${INITIAL_FAVORITES.first()}",
+                pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                cellX = 0,
+                cellY = 0,
+                spanX = 1,
+                spanY = 1,
+            ),
+            runtime.moveHomeAppToPage(
+                sourcePageId = "home:1",
+                appKey = INITIAL_FAVORITES.first(),
+                targetPageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                primaryColumns = 4,
+                primaryRows = 5,
+            ),
+        )
+        assertReady(
+            runtime,
+            listOf(INITIAL_FAVORITES[1], INITIAL_FAVORITES[0]),
+            INITIAL_DOCK,
+        )
+    }
+
+    @Test
     fun terminalRoomUnavailabilityRequiresRecoveryAndNeverFallsBackToLegacyWrites() = runBlocking {
         val repository = WorkspaceRepository(openWorkspaceDataStore())
         repository.ensureDefaults(INITIAL_FAVORITES, INITIAL_DOCK)
