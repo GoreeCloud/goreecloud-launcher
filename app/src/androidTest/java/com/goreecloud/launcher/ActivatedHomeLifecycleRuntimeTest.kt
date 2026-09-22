@@ -333,6 +333,53 @@ class ActivatedHomeLifecycleRuntimeTest {
                     .assertIsDisplayed()
 
                 composeRule
+                    .onNodeWithText("Sources", useUnmergedTree = true)
+                    .performClick()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-search-source-manager",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText("Search Sources", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                composeRule
+                    .onNodeWithText("Apps", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                composeRule
+                    .onNodeWithText("Launcher actions", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-search-source-launcher.installed-apps",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-search-source-launcher.core-actions",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+
+                composeRule
+                    .onNodeWithText("Results", useUnmergedTree = true)
+                    .performClick()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-universal-search-field",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+
+                composeRule
                     .onNodeWithTag(
                         "launcher-universal-search-field",
                         useUnmergedTree = true,
