@@ -135,7 +135,7 @@ This does **not** make Launcher V1.6-conformant, `aligned-current-stable`, or pr
 Still incomplete or separately gated:
 
 - mature cross-page drag/drop and live span editing;
-- primary compatibility-page grid migration and primary↔secondary spatial movement;
+- primary↔secondary spatial movement;
 - populated-page deletion with confirmation/recovery/undo;
 - folders, shortcuts, widgets/AppWidgetHost, and richer workspace editing;
 - complete Theme Manager behavior, icon-pack discovery/application, icon masking, Deep Dark, wallpaper palettes, expression controls, and additional gesture/registered-command targets beyond the initial configurable Home-gesture set;
