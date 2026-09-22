@@ -24,6 +24,7 @@ import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativeWriteResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
+import com.goreecloud.launcher.core.workspace.db.WorkspacePrimaryHomeSpatialResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import java.io.FileInputStream
@@ -101,7 +102,12 @@ class ActivatedHomeLifecycleRuntimeTest {
                         LauncherDatabaseProvider.get(context).workspaceDao()
                     },
                 )
-                val write = runtime.toggleFavorite(secondKey)
+                val preferences = LauncherPreferencesRepository(context).preferences.first()
+                val write = runtime.toggleFavorite(
+                    key = secondKey,
+                    homeColumns = preferences.homeColumns,
+                    homeRows = preferences.homeRows,
+                )
                 check(write is WorkspaceAuthoritativeWriteResult.Written)
                 assertEquals(WorkspaceAuthority.ROOM, repository.state.first().authority)
 
@@ -172,7 +178,12 @@ class ActivatedHomeLifecycleRuntimeTest {
                     },
                 )
                 if (candidateKey !in repository.state.first().favoriteKeys) {
-                    val write = runtime.toggleFavorite(candidateKey)
+                    val preferences = LauncherPreferencesRepository(context).preferences.first()
+                    val write = runtime.toggleFavorite(
+                        key = candidateKey,
+                        homeColumns = preferences.homeColumns,
+                        homeRows = preferences.homeRows,
+                    )
                     check(write is WorkspaceAuthoritativeWriteResult.Written)
                 }
 
@@ -365,12 +376,40 @@ class ActivatedHomeLifecycleRuntimeTest {
                 )
                 dao.replaceLegacySnapshot(baseline.pages, baseline.items)
 
+                val preferences = LauncherPreferencesRepository(context).preferences.first()
+                val runtime = WorkspaceProductionRuntimeCoordinator(
+                    authorityRepository = repository,
+                    workspaceDaoProvider = {
+                        LauncherDatabaseProvider.get(context).workspaceDao()
+                    },
+                )
+                val spatialReady = runtime.ensurePrimaryHomeSpatialGrid(
+                    columns = preferences.homeColumns,
+                    rows = preferences.homeRows,
+                )
+                check(spatialReady is WorkspacePrimaryHomeSpatialResult.Ready)
+
                 waitForDisplayedLabel(firstApp.label.toString())
                 waitForDisplayedLabel(secondApp.label.toString())
 
-                val preferences = LauncherPreferencesRepository(context).preferences.first()
-                val targetX = preferences.homeColumns - 1
-                val targetY = preferences.homeRows - 1
+                val occupied = dao
+                    .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                    .mapNotNull { item ->
+                        val x = item.cellX
+                        val y = item.cellY
+                        if (x != null && y != null) x to y else null
+                    }
+                    .toSet()
+                val target = buildList {
+                    for (cellY in 0 until preferences.homeRows) {
+                        for (cellX in 0 until preferences.homeColumns) {
+                            add(cellX to cellY)
+                        }
+                    }
+                }.firstOrNull { it !in occupied }
+                checkNotNull(target) { "Primary Home runtime test requires at least one empty cell." }
+                val targetX = target.first
+                val targetY = target.second
                 val targetTag = "launcher-home-cell-$targetX-$targetY"
 
                 composeRule.waitUntil(timeoutMillis = 15_000) {
