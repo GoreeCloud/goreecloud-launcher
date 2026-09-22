@@ -30,7 +30,9 @@ sealed interface WorkspacePrimaryHomeGridMigrationPlanningResult {
  */
 object WorkspacePrimaryHomeGridMigrationPlanner {
     const val PRIMARY_HOME_COLUMNS = 4
+    const val MIN_PRIMARY_HOME_COLUMNS = 4
     const val MAX_PRIMARY_HOME_COLUMNS = 6
+    const val MIN_PRIMARY_HOME_ROWS = 4
     const val MAX_PRIMARY_HOME_ROWS = 7
 
     fun plan(
@@ -40,9 +42,8 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
         rows: Int? = null,
     ): WorkspacePrimaryHomeGridMigrationPlanningResult {
         if (
-            columns <= 0 ||
-            columns > MAX_PRIMARY_HOME_COLUMNS ||
-            (rows != null && (rows <= 0 || rows > MAX_PRIMARY_HOME_ROWS))
+            columns !in MIN_PRIMARY_HOME_COLUMNS..MAX_PRIMARY_HOME_COLUMNS ||
+            (rows != null && rows !in MIN_PRIMARY_HOME_ROWS..MAX_PRIMARY_HOME_ROWS)
         ) {
             return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
         }
