@@ -20,7 +20,7 @@ object LauncherPortableRestorePreview {
         val showLabels: Boolean,
         val iconScale: Float,
         val layoutLocked: Boolean,
-        val indexHomeMode: GoreeCloudIndexHomeMode,
+        val universalSearchHomeMode: LauncherUniversalSearchHomeMode,
     )
 
     sealed interface Result {
@@ -64,7 +64,7 @@ object LauncherPortableRestorePreview {
                     showLabels = preferences.showLabels,
                     iconScale = preferences.iconScale,
                     layoutLocked = preferences.layoutLocked,
-                    indexHomeMode = preferences.indexHomeMode,
+                    universalSearchHomeMode = preferences.universalSearchHomeMode,
                 ),
                 reviewToken = validation.reviewToken,
             )
