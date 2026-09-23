@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Process
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,10 +32,18 @@ import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
+import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
+import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferencesRepository
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderUserControlPolicy
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
 import com.goreecloud.launcher.core.launcher.StarterWorkspacePolicy
@@ -68,6 +77,7 @@ import java.util.UUID
 class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
+    private lateinit var searchProviderPreferencesRepository: LauncherSearchProviderPreferencesRepository
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
     private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
@@ -75,6 +85,24 @@ class MainActivity : ComponentActivity() {
     private val homeResetSequence = MutableStateFlow(0L)
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
+    private var pendingSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
+
+    private val searchSourcePermissionRequest =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val pending = pendingSearchProviderSnapshot
+            pendingSearchProviderSnapshot = null
+            if (granted && pending != null) {
+                lifecycleScope.launch {
+                    searchProviderPreferencesRepository.set(pending)
+                }
+            } else if (!granted) {
+                Toast.makeText(
+                    this,
+                    "That Search source remains disabled until Android permission is granted.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
 
     private val homeRoleRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -95,6 +123,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         appsRepository = LauncherAppsRepository(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
+        searchProviderPreferencesRepository = LauncherSearchProviderPreferencesRepository(this)
         themeRepository = GlazeThemeRepository(this)
         workspaceRepository = WorkspaceRepository(this)
         workspaceRuntimeCoordinator = WorkspaceProductionRuntimeCoordinator(
@@ -147,6 +176,9 @@ class MainActivity : ComponentActivity() {
             )
             val homeLabelOverrides by launcherPreferencesRepository.homeLabelOverrides.collectAsStateWithLifecycle(
                 initialValue = emptyMap(),
+            )
+            val searchProviderPreferences by searchProviderPreferencesRepository.preferences.collectAsStateWithLifecycle(
+                initialValue = LauncherSearchProviderPreferenceDecodeResult.Absent,
             )
             val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
                 initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
@@ -356,6 +388,24 @@ class MainActivity : ComponentActivity() {
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
+                            searchProviderPreferences = searchProviderPreferences,
+                            onSetSearchProviderEnabled = ::setSearchProviderEnabled,
+                            onLaunchShortcut = { action ->
+                                runCatching {
+                                    appsRepository.launchShortcut(
+                                        packageName = action.packageName,
+                                        shortcutId = action.shortcutId,
+                                        user = action.user,
+                                    )
+                                }.onFailure {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "That shortcut is no longer available.",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            },
+                            onOpenSearchUri = ::openSearchUri,
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
@@ -574,6 +624,44 @@ class MainActivity : ComponentActivity() {
         val manager = getSystemService(RoleManager::class.java)
         if (manager.isRoleAvailable(RoleManager.ROLE_HOME) && !manager.isRoleHeld(RoleManager.ROLE_HOME)) {
             homeRoleRequest.launch(manager.createRequestRoleIntent(RoleManager.ROLE_HOME))
+        }
+    }
+
+    private fun setSearchProviderEnabled(
+        state: LauncherSearchProviderControlState,
+        providerId: String,
+        enabled: Boolean,
+    ) {
+        val snapshot = LauncherSearchProviderUserControlPolicy.withProviderEnabled(
+            state = state,
+            providerId = providerId,
+            enabled = enabled,
+        )
+        val permission = LauncherLocalSearchPermissions.permissionFor(providerId)
+        if (
+            enabled &&
+            permission != null &&
+            ContextCompat.checkSelfPermission(this, permission) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingSearchProviderSnapshot = snapshot
+            searchSourcePermissionRequest.launch(permission)
+            return
+        }
+
+        lifecycleScope.launch {
+            searchProviderPreferencesRepository.set(snapshot)
+        }
+    }
+
+    private fun openSearchUri(action: LauncherOpenUriSearchAction) {
+        val intent = Intent(action.intentAction, Uri.parse(action.uri))
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(
+                this,
+                "No compatible app is available for this result.",
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
