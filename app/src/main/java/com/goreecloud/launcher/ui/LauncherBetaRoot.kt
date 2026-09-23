@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -6374,27 +6375,86 @@ private fun AppContextPopup(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 GlazeLauncherPopupAction(
                     label = if (isFavorite) "Remove from Home" else "Add to Home",
+                    symbol = GlazePopupActionSymbol.HOME,
                     onClick = onToggleFavorite,
                     enabled = !layoutLocked,
                 )
                 GlazeLauncherPopupAction(
                     label = if (isDocked) "Remove from Dock" else "Add to Dock",
+                    symbol = GlazePopupActionSymbol.DOCK,
                     onClick = onToggleDock,
                     enabled = !layoutLocked && !dockFull,
                 )
                 GlazeLauncherPopupAction(
                     label = "Add to folder",
+                    symbol = GlazePopupActionSymbol.FOLDER,
                     onClick = onAddToFolder,
                     enabled = canAddToFolder && !layoutLocked,
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                GlazeLauncherPopupAction(label = "App info", onClick = onOpenAppInfo)
+                GlazeLauncherPopupAction(label = "App info", symbol = GlazePopupActionSymbol.INFO, onClick = onOpenAppInfo)
                 GlazeLauncherPopupAction(
                     label = "Uninstall",
+                    symbol = GlazePopupActionSymbol.UNINSTALL,
                     onClick = onRequestUninstall,
                     destructive = true,
                 )
-                GlazeLauncherPopupAction(label = "More options", onClick = onMoreOptions)
+                GlazeLauncherPopupAction(label = "More options", symbol = GlazePopupActionSymbol.MORE, onClick = onMoreOptions)
+            }
+        }
+    }
+}
+
+private enum class GlazePopupActionSymbol { HOME, DOCK, FOLDER, INFO, UNINSTALL, MORE }
+
+/** Decorative vector geometry; labels remain the accessible action description. */
+@Composable
+private fun GlazePopupActionGlyph(symbol: GlazePopupActionSymbol, color: Color) {
+    Canvas(Modifier.size(22.dp)) {
+        val u = size.minDimension
+        val w = 1.8.dp.toPx()
+        fun segment(x1: Float, y1: Float, x2: Float, y2: Float) {
+            drawLine(color, Offset(x1 * u, y1 * u), Offset(x2 * u, y2 * u), strokeWidth = w)
+        }
+        when (symbol) {
+            GlazePopupActionSymbol.HOME -> {
+                segment(.14f, .45f, .50f, .14f)
+                segment(.50f, .14f, .86f, .45f)
+                segment(.24f, .38f, .24f, .86f)
+                segment(.76f, .38f, .76f, .86f)
+                segment(.24f, .86f, .76f, .86f)
+                segment(.45f, .86f, .45f, .62f)
+                segment(.45f, .62f, .58f, .62f)
+                segment(.58f, .62f, .58f, .86f)
+            }
+            GlazePopupActionSymbol.DOCK -> {
+                segment(.14f, .78f, .86f, .78f)
+                segment(.20f, .22f, .20f, .56f)
+                segment(.20f, .56f, .80f, .56f)
+                segment(.80f, .56f, .80f, .22f)
+                segment(.20f, .22f, .80f, .22f)
+            }
+            GlazePopupActionSymbol.FOLDER -> {
+                segment(.10f, .25f, .43f, .25f)
+                segment(.43f, .25f, .51f, .36f)
+                segment(.51f, .36f, .89f, .36f)
+                segment(.89f, .36f, .89f, .80f)
+                segment(.89f, .80f, .10f, .80f)
+                segment(.10f, .80f, .10f, .25f)
+            }
+            GlazePopupActionSymbol.INFO -> {
+                drawCircle(color, radius = u * .36f, center = Offset(u * .5f, u * .5f), style = Stroke(w))
+                drawCircle(color, radius = w * .65f, center = Offset(u * .5f, u * .33f))
+                segment(.50f, .47f, .50f, .70f)
+            }
+            GlazePopupActionSymbol.UNINSTALL -> {
+                segment(.24f, .24f, .76f, .76f)
+                segment(.76f, .24f, .24f, .76f)
+            }
+            GlazePopupActionSymbol.MORE -> {
+                drawCircle(color, radius = w * .78f, center = Offset(u * .27f, u * .5f))
+                drawCircle(color, radius = w * .78f, center = Offset(u * .5f, u * .5f))
+                drawCircle(color, radius = w * .78f, center = Offset(u * .73f, u * .5f))
             }
         }
     }
@@ -6404,6 +6464,7 @@ private fun AppContextPopup(
 @Composable
 private fun GlazeLauncherPopupAction(
     label: String,
+    symbol: GlazePopupActionSymbol,
     onClick: () -> Unit,
     enabled: Boolean = true,
     destructive: Boolean = false,
@@ -6418,7 +6479,14 @@ private fun GlazeLauncherPopupAction(
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = GlazeMetrics.space3),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
         ) {
+            val actionColor = when {
+                !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                destructive -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.onSurface
+            }
+            GlazePopupActionGlyph(symbol, actionColor)
             Text(
                 label,
                 style = MaterialTheme.typography.bodyMedium,
