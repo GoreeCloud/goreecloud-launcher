@@ -549,6 +549,7 @@ class MainActivity : ComponentActivity() {
                     if (!onPrimaryPage && selectedPage != null) {
                         ReadOnlyPagedHomeSurface(
                             apps = apps,
+                            folders = folders,
                             page = selectedPage,
                             pages = renderedPages,
                             homeColumns = launcherPreferences.homeColumns,
@@ -597,6 +598,12 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             },
+                            onRenameFolder = ::renameFolder,
+                            onDeleteFolder = ::deleteFolder,
+                            onAddAppToFolder = ::addAppToFolder,
+                            onRemoveAppFromFolder = ::removeAppFromFolder,
+                            onRemoveFolderFromHome = ::removeFolderFromHome,
+                            onMoveFolderToPage = ::moveFolderToPage,
                         )
                     } else {
                         LauncherBetaRoot(
