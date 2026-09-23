@@ -330,14 +330,6 @@ class LauncherCoreActionsSearchProvider : LauncherSearchProvider {
 
         private val entries = listOf(
             Entry(
-                id = "launcher-settings",
-                title = "Launcher settings",
-                subtitle = "Home, apps, dock, search and Glaze",
-                searchTerms = "settings preferences customize configuration",
-                category = LauncherSearchCategory.SETTING,
-                destination = LauncherSearchDestination.SETTINGS,
-            ),
-            Entry(
                 id = "apps",
                 title = "Apps",
                 subtitle = "Browse installed applications",
