@@ -2334,9 +2334,10 @@ private fun HomeFolderTile(
     modifier: Modifier = Modifier,
 ) {
     val appsByKey = remember(allApps) { allApps.associateBy { it.workspaceKey() } }
-    val previewApps = remember(folder, appsByKey) {
-        folder.appKeys.mapNotNull(appsByKey::get).take(4)
+    val folderApps = remember(folder, appsByKey) {
+        folder.appKeys.mapNotNull(appsByKey::get)
     }
+    val previewApps = remember(folderApps) { folderApps.take(4) }
     val dragThreshold = with(LocalDensity.current) { 12.dp.toPx() }
     var tileBounds by remember(folder.id) { mutableStateOf<Rect?>(null) }
     var dragStart by remember(folder.id) { mutableStateOf<Offset?>(null) }
@@ -2387,8 +2388,9 @@ private fun HomeFolderTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
+        Box(modifier = Modifier.size(52.dp)) {
         Surface(
-            modifier = Modifier.size(52.dp),
+            modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(16.dp),
             color = GlazeAtmosphere.canvasBlack.copy(alpha = 0.38f),
             border = BorderStroke(
@@ -2448,6 +2450,11 @@ private fun HomeFolderTile(
                     }
                 }
             }
+        }
+            LauncherFolderBadgeMark(
+                folderApps,
+                modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-5).dp),
+            )
         }
         if (showLabel) {
             Spacer(Modifier.height(4.dp))
