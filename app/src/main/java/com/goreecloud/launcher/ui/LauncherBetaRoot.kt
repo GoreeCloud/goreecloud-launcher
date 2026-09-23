@@ -4200,6 +4200,12 @@ private fun LauncherSettingsRootSurface(
         .collectAsState()
     val badgeAccess by com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.accessGranted
         .collectAsState()
+    val badgeStyle by com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.style
+        .collectAsState()
+    val badgeSize by com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.size
+        .collectAsState()
+    val badgeCorner by com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.corner
+        .collectAsState()
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
 
     Box(
@@ -4661,6 +4667,75 @@ private fun LauncherSettingsRootSurface(
                                     ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
                                 )
                             }
+                        },
+                    )
+                    Text(
+                        "Badge style",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    ChoiceRow(
+                        choices = listOf("Count", "Dot"),
+                        selected = if (badgeStyle ==
+                            com.goreecloud.launcher.core.launcher.LauncherBadgeStyle.DOT
+                        ) "Dot" else "Count",
+                        onChoice = { choice ->
+                            com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.setStyle(
+                                badgeContext,
+                                if (choice == "Dot")
+                                    com.goreecloud.launcher.core.launcher.LauncherBadgeStyle.DOT
+                                else com.goreecloud.launcher.core.launcher.LauncherBadgeStyle.COUNT,
+                            )
+                        },
+                    )
+                    Text(
+                        "Badge size",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    ChoiceRow(
+                        choices = listOf("Small", "Medium", "Large"),
+                        selected = badgeSize.name.lowercase()
+                            .replaceFirstChar { it.uppercase() },
+                        onChoice = { choice ->
+                            com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.setSize(
+                                badgeContext,
+                                com.goreecloud.launcher.core.launcher.LauncherBadgeSize.entries
+                                    .first { it.name.equals(choice, ignoreCase = true) },
+                            )
+                        },
+                    )
+                    Text(
+                        "Badge position",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    ChoiceRow(
+                        choices = listOf("Top left", "Top right", "Bottom left", "Bottom right"),
+                        selected = when (badgeCorner) {
+                            com.goreecloud.launcher.core.launcher.LauncherBadgeCorner.TOP_START ->
+                                "Top left"
+                            com.goreecloud.launcher.core.launcher.LauncherBadgeCorner.TOP_END ->
+                                "Top right"
+                            com.goreecloud.launcher.core.launcher.LauncherBadgeCorner.BOTTOM_START ->
+                                "Bottom left"
+                            com.goreecloud.launcher.core.launcher.LauncherBadgeCorner.BOTTOM_END ->
+                                "Bottom right"
+                        },
+                        onChoice = { choice ->
+                            val corner = when (choice) {
+                                "Top left" ->
+                                    com.goreecloud.launcher.core.launcher.LauncherBadgeCorner.TOP_START
+                                "Bottom left" ->
+                                    com.goreecloud.launcher.core.launcher.LauncherBadgeCorner.BOTTOM_START
+                                "Bottom right" ->
+                                    com.goreecloud.launcher.core.launcher.LauncherBadgeCorner.BOTTOM_END
+                                else ->
+                                    com.goreecloud.launcher.core.launcher.LauncherBadgeCorner.TOP_END
+                            }
+                            com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.setCorner(
+                                badgeContext, corner,
+                            )
                         },
                     )
                 }
