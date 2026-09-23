@@ -345,16 +345,19 @@ class ActivatedHomeLifecycleRuntimeTest {
                         )
                     }
 
+                // The Glaze Search redesign has an accessible floating panel rather than
+                // the old full-screen heading. Verify its stable UI semantics instead of
+                // presentation copy, preserving the real Home-gesture navigation check.
                 composeRule.waitUntil(timeoutMillis = 10_000) {
-                    composeRule.onAllNodesWithText("Universal Search", useUnmergedTree = true)
+                    composeRule
+                        .onAllNodesWithTag("launcher-glaze-search-panel", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
                 composeRule
-                    .onNodeWithText("Universal Search", useUnmergedTree = true)
+                    .onNodeWithTag("launcher-glaze-search-panel", useUnmergedTree = true)
                     .assertIsDisplayed()
-                // Universal Search uses a shorter, single-line search placeholder.
-                // Assert the stable input semantics rather than old presentation copy.
+                // Verify the editable Search field before executing a real Theme navigation.
                 composeRule
                     .onNodeWithTag(
                         "launcher-universal-search-field",
