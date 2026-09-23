@@ -31,6 +31,7 @@ import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
+import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
@@ -69,6 +70,7 @@ import java.util.UUID
 class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
+    private lateinit var localUsageRepository: LauncherLocalUsageRepository
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
     private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
@@ -96,6 +98,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         appsRepository = LauncherAppsRepository(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
+        localUsageRepository = LauncherLocalUsageRepository(this)
         themeRepository = GlazeThemeRepository(this)
         workspaceRepository = WorkspaceRepository(this)
         workspaceRuntimeCoordinator = WorkspaceProductionRuntimeCoordinator(
@@ -145,6 +148,9 @@ class MainActivity : ComponentActivity() {
             )
             val experiencePreferences by launcherPreferencesRepository.experiencePreferences.collectAsStateWithLifecycle(
                 initialValue = LauncherExperiencePreferences(),
+            )
+            val localLaunchCounts by localUsageRepository.launchCounts.collectAsStateWithLifecycle(
+                initialValue = emptyMap(),
             )
             val homeLabelOverrides by launcherPreferencesRepository.homeLabelOverrides.collectAsStateWithLifecycle(
                 initialValue = emptyMap(),
