@@ -73,7 +73,13 @@ class WorkspaceRoomPlacementRepository(
             val currentPrimary = workspaceDao
                 .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
                 .sortedBy { it.rank }
-            val currentCompatibility = currentPrimary.all { it.cellX == null && it.cellY == null }
+            val currentApps = currentPrimary.filter { it.itemType == WorkspaceItemType.APP }
+            val currentWidgets = currentPrimary.filter { it.itemType == WorkspaceItemType.WIDGET }
+            if (currentApps.size + currentWidgets.size != currentPrimary.size) {
+                return WorkspaceRoomWriteResult.Mismatch
+            }
+            val currentCompatibility =
+                currentWidgets.isEmpty() && currentApps.all { it.cellX == null && it.cellY == null }
             val currentSpatial = currentPrimary.all { it.cellX != null && it.cellY != null }
             if (!currentCompatibility && !currentSpatial) {
                 return WorkspaceRoomWriteResult.Mismatch
@@ -86,10 +92,10 @@ class WorkspaceRoomPlacementRepository(
             val expectedDock = expected.items.filter {
                 it.pageId == WorkspaceLegacyImportMapper.DOCK_PAGE_ID
             }
-            val currentByKey = currentPrimary
+            val currentByKey = currentApps
                 .mapNotNull { item -> item.appKey?.let { it to item } }
                 .toMap()
-            if (currentByKey.size != currentPrimary.size) {
+            if (currentByKey.size != currentApps.size) {
                 return WorkspaceRoomWriteResult.Mismatch
             }
 
@@ -98,32 +104,52 @@ class WorkspaceRoomPlacementRepository(
             } else {
                 val requestedKeys = normalized.favoriteKeys
                 val additions = requestedKeys.filterNot(currentByKey::containsKey)
-                val grid = if (additions.isNotEmpty()) {
-                    homeGrid ?: return WorkspaceRoomWriteResult.Mismatch
+                val grid = if (additions.isNotEmpty() || currentWidgets.isNotEmpty()) {
+                    homeGrid ?: WorkspaceGridPlacement.Grid(
+                        WorkspacePrimaryHomeGridMigrationPlanner.MAX_PRIMARY_HOME_COLUMNS,
+                        WorkspacePrimaryHomeGridMigrationPlanner.MAX_PRIMARY_HOME_ROWS,
+                    )
                 } else {
                     homeGrid
                 }
-                val occupied = mutableSetOf<Pair<Int, Int>>()
-                val retained = requestedKeys.mapNotNull(currentByKey::get)
-                retained.forEach { item ->
-                    val x = item.cellX ?: return WorkspaceRoomWriteResult.Mismatch
-                    val y = item.cellY ?: return WorkspaceRoomWriteResult.Mismatch
-                    if (x < 0 || y < 0 || !occupied.add(x to y)) {
-                        return WorkspaceRoomWriteResult.Mismatch
-                    }
-                    if (grid != null && (x !in 0 until grid.columns || y !in 0 until grid.rows)) {
-                        return WorkspaceRoomWriteResult.Mismatch
-                    }
+
+                val occupiedPlacements = currentWidgets.map { widget ->
+                    WorkspaceGridPlacement.Placement(
+                        itemId = widget.itemId,
+                        cellX = widget.cellX ?: return WorkspaceRoomWriteResult.Mismatch,
+                        cellY = widget.cellY ?: return WorkspaceRoomWriteResult.Mismatch,
+                        spanX = widget.spanX,
+                        spanY = widget.spanY,
+                    )
+                }.toMutableList()
+
+                val retainedApps = requestedKeys.mapNotNull(currentByKey::get)
+                retainedApps.forEach { item ->
+                    occupiedPlacements += WorkspaceGridPlacement.Placement(
+                        itemId = item.itemId,
+                        cellX = item.cellX ?: return WorkspaceRoomWriteResult.Mismatch,
+                        cellY = item.cellY ?: return WorkspaceRoomWriteResult.Mismatch,
+                        spanX = item.spanX,
+                        spanY = item.spanY,
+                    )
+                }
+                if (
+                    grid != null &&
+                    WorkspaceGridPlacement.validate(grid, occupiedPlacements) !=
+                        WorkspaceGridPlacement.Validation.Valid
+                ) {
+                    return WorkspaceRoomWriteResult.Mismatch
                 }
 
-                requestedKeys.mapIndexed { rank, appKey ->
+                val nextApps = requestedKeys.mapIndexed { rank, appKey ->
                     currentByKey[appKey]?.copy(rank = rank)
                         ?: run {
                             val activeGrid = grid ?: return WorkspaceRoomWriteResult.Mismatch
-                            val coordinate = firstFreeCell(activeGrid, occupied)
-                                ?: return WorkspaceRoomWriteResult.Mismatch
-                            occupied.add(coordinate)
-                            WorkspaceItemEntity(
+                            val coordinate = firstFreeCell(
+                                grid = activeGrid,
+                                occupied = occupiedPlacements,
+                            ) ?: return WorkspaceRoomWriteResult.Mismatch
+                            val item = WorkspaceItemEntity(
                                 itemId = "legacy:home:$appKey",
                                 pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
                                 itemType = WorkspaceItemType.APP,
@@ -132,8 +158,18 @@ class WorkspaceRoomPlacementRepository(
                                 cellX = coordinate.first,
                                 cellY = coordinate.second,
                             )
+                            occupiedPlacements += WorkspaceGridPlacement.Placement(
+                                itemId = item.itemId,
+                                cellX = coordinate.first,
+                                cellY = coordinate.second,
+                            )
+                            item
                         }
-                }.also { spatialItems ->
+                }
+                val rerankedWidgets = currentWidgets.mapIndexed { index, widget ->
+                    widget.copy(rank = nextApps.size + index)
+                }
+                (nextApps + rerankedWidgets).also { spatialItems ->
                     if (grid != null) {
                         val placements = spatialItems.map { item ->
                             WorkspaceGridPlacement.Placement(
@@ -175,12 +211,19 @@ class WorkspaceRoomPlacementRepository(
 
     private fun firstFreeCell(
         grid: WorkspaceGridPlacement.Grid,
-        occupied: Set<Pair<Int, Int>>,
+        occupied: List<WorkspaceGridPlacement.Placement>,
     ): Pair<Int, Int>? {
         for (cellY in 0 until grid.rows) {
             for (cellX in 0 until grid.columns) {
-                val coordinate = cellX to cellY
-                if (coordinate !in occupied) return coordinate
+                val candidate = WorkspaceGridPlacement.Placement(
+                    itemId = "candidate",
+                    cellX = cellX,
+                    cellY = cellY,
+                )
+                if (
+                    WorkspaceGridPlacement.validate(grid, occupied + candidate) ==
+                    WorkspaceGridPlacement.Validation.Valid
+                ) return cellX to cellY
             }
         }
         return null

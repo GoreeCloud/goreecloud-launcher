@@ -74,6 +74,10 @@ class WorkspaceProductionRuntimeCoordinator(
         authorityRepository = authorityRepository,
         workspaceDaoProvider = workspaceDaoProvider,
     )
+    private val widgetRepository = WorkspaceWidgetRepository(
+        authorityRepository = authorityRepository,
+        workspaceDaoProvider = workspaceDaoProvider,
+    )
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observePlacement(): Flow<WorkspaceAuthoritativePlacementState> = combine(
@@ -232,6 +236,80 @@ class WorkspaceProductionRuntimeCoordinator(
         targetDockKey: String?,
     ): WorkspaceAuthoritativeWriteResult =
         placementRepository.reorderDockByDrop(key, targetDockKey)
+
+    suspend fun addBuiltInWidget(
+        itemId: String,
+        typeId: String,
+        columns: Int,
+        rows: Int,
+    ): WorkspaceWidgetMutationResult {
+        val spatial = ensurePrimaryHomeSpatialGrid(columns, rows)
+        if (spatial !is WorkspacePrimaryHomeSpatialResult.Ready) {
+            return spatial.toWidgetMutationResult()
+        }
+        val result = widgetRepository.addBuiltInWidget(
+            itemId = itemId,
+            typeId = typeId,
+            columns = columns,
+            rows = rows,
+        )
+        if (result is WorkspaceWidgetMutationResult.Added) refresh()
+        return result
+    }
+
+    suspend fun addAndroidWidget(
+        itemId: String,
+        appWidgetId: Int,
+        providerComponent: String,
+        columns: Int,
+        rows: Int,
+        spanX: Int = 2,
+        spanY: Int = 2,
+    ): WorkspaceWidgetMutationResult {
+        val spatial = ensurePrimaryHomeSpatialGrid(columns, rows)
+        if (spatial !is WorkspacePrimaryHomeSpatialResult.Ready) {
+            return spatial.toWidgetMutationResult()
+        }
+        val result = widgetRepository.addAndroidWidget(
+            itemId = itemId,
+            appWidgetId = appWidgetId,
+            providerComponent = providerComponent,
+            columns = columns,
+            rows = rows,
+            spanX = spanX,
+            spanY = spanY,
+        )
+        if (result is WorkspaceWidgetMutationResult.Added) refresh()
+        return result
+    }
+
+    suspend fun removeWidget(itemId: String): WorkspaceWidgetMutationResult {
+        val result = widgetRepository.removeWidget(itemId)
+        if (result is WorkspaceWidgetMutationResult.Removed) refresh()
+        return result
+    }
+
+    suspend fun resizeWidget(
+        itemId: String,
+        columns: Int,
+        rows: Int,
+        spanX: Int,
+        spanY: Int,
+    ): WorkspaceWidgetMutationResult {
+        val spatial = ensurePrimaryHomeSpatialGrid(columns, rows)
+        if (spatial !is WorkspacePrimaryHomeSpatialResult.Ready) {
+            return spatial.toWidgetMutationResult()
+        }
+        val result = widgetRepository.resizeWidget(
+            itemId = itemId,
+            columns = columns,
+            rows = rows,
+            spanX = spanX,
+            spanY = spanY,
+        )
+        if (result is WorkspaceWidgetMutationResult.Resized) refresh()
+        return result
+    }
 
     suspend fun createHomePage(pageId: String): WorkspacePagedRoomMutationResult {
         val result = pagedMutationRepository.createHomePage(pageId)
@@ -412,6 +490,21 @@ class WorkspaceProductionRuntimeCoordinator(
         refreshEpoch.value += 1
     }
 }
+
+private fun WorkspacePrimaryHomeSpatialResult.toWidgetMutationResult():
+    WorkspaceWidgetMutationResult = when (this) {
+        WorkspacePrimaryHomeSpatialResult.Reserved -> WorkspaceWidgetMutationResult.Reserved
+        WorkspacePrimaryHomeSpatialResult.Unavailable -> WorkspaceWidgetMutationResult.Unavailable
+        WorkspacePrimaryHomeSpatialResult.InvalidWorkspace ->
+            WorkspaceWidgetMutationResult.InvalidWorkspace
+        WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged ->
+            WorkspaceWidgetMutationResult.StoredWorkspaceChanged
+        is WorkspacePrimaryHomeSpatialResult.Failed ->
+            WorkspaceWidgetMutationResult.Failed(failureType)
+        is WorkspacePrimaryHomeSpatialResult.Ready,
+        is WorkspacePrimaryHomeSpatialResult.Moved,
+        -> WorkspaceWidgetMutationResult.InvalidWorkspace
+    }
 
 private fun WorkspacePostCutoverHealthResult.toPlacementRecoveryReason():
     WorkspaceAuthoritativePlacementRecoveryReason = when (this) {

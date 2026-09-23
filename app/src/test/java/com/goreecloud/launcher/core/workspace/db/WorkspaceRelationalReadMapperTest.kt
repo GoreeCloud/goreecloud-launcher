@@ -1,5 +1,8 @@
 package com.goreecloud.launcher.core.workspace.db
 
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetCatalog
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetDescriptor
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetKeyCodec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -46,6 +49,45 @@ class WorkspaceRelationalReadMapperTest {
             WorkspaceRelationalReadMapper.map(
                 pages = expected.pages,
                 items = spatialItems,
+            ),
+        )
+    }
+
+    @Test
+    fun validSpatialWidgetDoesNotPolluteFavoriteCompatibilityProjection() {
+        val expected = WorkspaceLegacyImportMapper.map(
+            favoriteKeys = listOf("profile:alpha"),
+            dockKeys = listOf("profile:dock"),
+        )
+        val spatialApps = expected.items.map { item ->
+            if (item.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+                item.copy(cellX = 0, cellY = 0)
+            } else {
+                item
+            }
+        }
+        val widget = WorkspaceItemEntity(
+            itemId = "widget:builtin:test",
+            pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+            itemType = WorkspaceItemType.WIDGET,
+            appKey = WorkspaceWidgetKeyCodec.encode(
+                WorkspaceWidgetDescriptor.BuiltIn(WorkspaceWidgetCatalog.CLOCK),
+            ),
+            rank = 1,
+            cellX = 1,
+            cellY = 0,
+            spanX = 2,
+            spanY = 2,
+        )
+
+        assertEquals(
+            WorkspaceRelationalSnapshot(
+                favoriteKeys = listOf("profile:alpha"),
+                dockKeys = listOf("profile:dock"),
+            ),
+            WorkspaceRelationalReadMapper.map(
+                pages = expected.pages,
+                items = spatialApps + widget,
             ),
         )
     }

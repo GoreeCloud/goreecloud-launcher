@@ -3,6 +3,7 @@ package com.goreecloud.launcher.core.workspace.db
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceState
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetKeyCodec
 import kotlinx.coroutines.CancellationException
 
 data class WorkspaceRelationalSnapshot(
@@ -53,13 +54,27 @@ internal object WorkspaceRelationalReadMapper {
                 item.spanY == 1
         }
 
-        if (homeItems.any { !validCanonicalApp(it, "legacy:home:") }) return null
+        val homeApps = homeItems.filter { it.itemType == WorkspaceItemType.APP }
+        val homeWidgets = homeItems.filter { it.itemType == WorkspaceItemType.WIDGET }
+        if (homeApps.size + homeWidgets.size != homeItems.size) return null
+        if (homeApps.any { !validCanonicalApp(it, "legacy:home:") }) return null
         if (dockItems.any { !validCanonicalApp(it, "legacy:dock:") }) return null
-        if (homeItems.mapNotNull { it.appKey }.distinct().size != homeItems.size) return null
+        if (homeApps.mapNotNull { it.appKey }.distinct().size != homeApps.size) return null
         if (dockItems.mapNotNull { it.appKey }.distinct().size != dockItems.size) return null
+        if (
+            homeWidgets.any { item ->
+                item.itemId.isBlank() ||
+                    WorkspaceWidgetKeyCodec.decode(item.appKey) == null ||
+                    item.cellX == null ||
+                    item.cellY == null ||
+                    item.spanX <= 0 ||
+                    item.spanY <= 0
+            }
+        ) return null
         if (dockItems.any { it.cellX != null || it.cellY != null }) return null
 
-        val homeCompatibility = homeItems.all { it.cellX == null && it.cellY == null }
+        val homeCompatibility =
+            homeWidgets.isEmpty() && homeApps.all { it.cellX == null && it.cellY == null }
         val homeSpatial = homeItems.all { it.cellX != null && it.cellY != null }
         if (!homeCompatibility && !homeSpatial) return null
         if (homeSpatial) {
@@ -84,7 +99,7 @@ internal object WorkspaceRelationalReadMapper {
         }
 
         return WorkspaceRelationalSnapshot(
-            favoriteKeys = homeItems.map { checkNotNull(it.appKey) },
+            favoriteKeys = homeApps.sortedBy { it.rank }.map { checkNotNull(it.appKey) },
             dockKeys = dockItems.map { checkNotNull(it.appKey) },
         )
     }
