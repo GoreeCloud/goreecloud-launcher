@@ -3971,8 +3971,6 @@ private fun DrawerAppsContent(
                     }
                 }
             }
-    
-            }
         }
     }
 }
