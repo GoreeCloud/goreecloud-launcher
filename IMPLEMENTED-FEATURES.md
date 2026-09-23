@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record.**  
-**Repository authority baseline:** `main` at `c09e2d581f300271f762422eef206631769f73b1` (PR #223 merged September 22, 2026).  
+**Repository authority baseline:** `main` at `29badaae9e4b1ce0c6a697501ed5cc969cc79eaa` (PR #226 merged September 22, 2026).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation
@@ -15,7 +15,7 @@ Partially implemented capabilities remain open obligations in `PLANNED-FEATURES.
 
 ## Current verified source baseline
 
-The current repository `main` head and latest source-bearing Launcher runtime are `c09e2d581f300271f762422eef206631769f73b1`, the guarded squash merge of PR #223, **Use gesture-only app drawer dismissal**. PR #223 final exact head `2fe8ed2046daca56202ef07873a806a9b09a7c30` passed Android CI run #693 / `35813157287` across repository/privacy/identity/GLAZE/Room-cutover guards, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. The final runtime suite verifies that the app drawer opens from Home, exposes neither the former Settings action nor explicit close action in its header, and dismisses through a downward gesture back to Home. This baseline also includes PR #221's 5 × 6 starter Home/five-app Dock defaults, PR #219's AppWidgetHost-based Home widgets, PR #215's unified Home/Dock/App Drawer drag-and-edit interactions, and PR #212's source-manifest reconciliation.
+The current repository `main` head and latest source-bearing Launcher runtime are `29badaae9e4b1ce0c6a697501ed5cc969cc79eaa`, the guarded squash merge of PR #226, **Restack four built-in GoreeCloud wallpapers on current main**. PR #226 exact head `3d535cfee09a6995790cbc46371f7a55f8d4cdd8` passed Android CI run #698 / `35815073478` across repository/privacy/identity/GLAZE/Room-cutover guards, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. The current runtime includes four Launcher-owned Glaze wallpaper designs rendered locally and selectable through the existing Home/Universal Search Wallpaper action with Android system-picker fallback. This baseline also includes PR #223's gesture-only app-drawer dismissal, PR #221's 5 × 6 starter Home/five-app Dock defaults, PR #219's AppWidgetHost-based Home widgets, PR #215's unified Home/Dock/App Drawer drag-and-edit interactions, and PR #212's source-manifest reconciliation.
 
 This is Development evidence. It does not establish physical-device performance, complete accessibility, personal/work/Shelter/private-space acceptance, Quickstep/Recents compatibility, complete Integral Platform System acceptance, protected production signing/distribution, Release Candidate, production, or Stable qualification.
 
@@ -31,7 +31,9 @@ This is Development evidence. It does not establish physical-device performance,
 
 ### Home, workspace, pages, and Dock
 
-- Wallpaper-backed primary Home surface using Android system wallpaper presentation without wallpaper or storage privileges.
+- Wallpaper-backed primary Home surface using Android system wallpaper presentation.
+- Four Launcher-owned built-in Glaze wallpapers — Glaze Aurora, Glaze Horizon, Glaze Nocturne, and Glaze Cascade — rendered locally from inspectable source and selectable from the existing Home/Universal Search Wallpaper action.
+- Built-in wallpaper application uses the narrowly reviewed `SET_WALLPAPER` permission; the Android system wallpaper picker remains available as an explicit fallback, with no INTERNET, storage, analytics, ads, or remote-art dependency.
 - Persisted Favorites and a bounded five-item Dock.
 - Default 5 × 6 Home grid for a new Launcher preference store, while the existing supported grid presets remain configurable.
 - One-time starter layout that prefers Phone, Messages, Email/Mail, Browser, and Camera for the five Dock positions when matching apps are available.
