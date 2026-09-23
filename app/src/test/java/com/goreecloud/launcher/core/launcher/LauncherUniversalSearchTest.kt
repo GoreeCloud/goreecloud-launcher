@@ -234,16 +234,15 @@ class LauncherUniversalSearchTest {
     }
 
     @Test
-    fun coreActionsProviderReturnsTypedSettingsDestination() {
-        val result = LauncherCoreActionsSearchProvider()
-            .search("settings")
-            .single { it.title == "Launcher settings" }
+    fun coreActionsProviderDoesNotExposeDirectLauncherSettingsEntry() {
+        val results = LauncherCoreActionsSearchProvider().search("settings")
 
-        assertEquals("Launcher settings", result.title)
-        assertEquals(LauncherSearchCategory.SETTING, result.category)
-        assertEquals(
-            LauncherSearchDestination.SETTINGS,
-            (result.action as LauncherNavigateSearchAction).destination,
+        assertTrue(results.none { it.title == "Launcher settings" })
+        assertTrue(
+            results.none {
+                (it.action as? LauncherNavigateSearchAction)?.destination ==
+                    LauncherSearchDestination.SETTINGS
+            },
         )
     }
 
