@@ -295,6 +295,7 @@ fun LauncherBetaRoot(
     var showDetailedAppOptions by remember { mutableStateOf(false) }
     var selectedWidget by remember { mutableStateOf<WorkspaceRenderedHomeWidget?>(null) }
     var selectedFolderId by rememberSaveable { mutableStateOf<String?>(null) }
+    var folderAppPickerId by rememberSaveable { mutableStateOf<String?>(null) }
     var showFolderManager by rememberSaveable { mutableStateOf(false) }
     var folderManagerAddToHome by rememberSaveable { mutableStateOf(false) }
     var folderAssignmentAppKey by rememberSaveable { mutableStateOf<String?>(null) }
@@ -431,6 +432,7 @@ fun LauncherBetaRoot(
         showDetailedAppOptions = false
         selectedWidget = null
         selectedFolderId = null
+        folderAppPickerId = null
         showFolderManager = false
         folderAssignmentAppKey = null
         homeEditMode = false
@@ -795,6 +797,10 @@ fun LauncherBetaRoot(
                 isOnHome = folder.id in homeFolderIds,
                 onLaunchApp = onLaunchApp,
                 onRemoveApp = { app -> onRemoveAppFromFolder(folder.id, app) },
+                onAddApps = {
+                    selectedFolderId = null
+                    folderAppPickerId = folder.id
+                },
                 onRename = { name -> onRenameFolder(folder.id, name) },
                 onAddToHome = { onAddFolderToHome(folder) },
                 onRemoveFromHome = { onRemoveFolderFromHome(folder) },
@@ -803,6 +809,20 @@ fun LauncherBetaRoot(
                     onDeleteFolder(folder)
                 },
                 onDismiss = { selectedFolderId = null },
+            )
+        }
+
+    folderAppPickerId
+        ?.let { id -> folders.firstOrNull { it.id == id } }
+        ?.let { folder ->
+            LauncherFolderAppPickerSheet(
+                folder = folder,
+                availableApps = rootAppsByKey.values.toList(),
+                onAddApp = { app -> onAddAppToFolder(folder.id, app) },
+                onDismiss = {
+                    folderAppPickerId = null
+                    selectedFolderId = folder.id
+                },
             )
         }
 
@@ -5640,6 +5660,7 @@ private fun LauncherFolderContentsSheet(
     isOnHome: Boolean,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onRemoveApp: (LauncherActivityInfo) -> Unit,
+    onAddApps: () -> Unit,
     onRename: (String) -> Unit,
     onAddToHome: () -> Unit,
     onRemoveFromHome: () -> Unit,
@@ -5707,6 +5728,11 @@ private fun LauncherFolderContentsSheet(
                 },
             )
 
+            FilledTonalButton(
+                onClick = onAddApps,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Add apps") }
+
             if (memberApps.isEmpty()) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -5714,7 +5740,7 @@ private fun LauncherFolderContentsSheet(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
                 ) {
                     Text(
-                        "This folder is empty. Long-press an app and choose Add to folder.",
+                        "This folder is empty. Tap Add apps to choose applications.",
                         modifier = Modifier.padding(GlazeMetrics.space3),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -5818,6 +5844,132 @@ private fun LauncherFolderContentsSheet(
                 }
             },
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LauncherFolderAppPickerSheet(
+    folder: LauncherFolder,
+    availableApps: List<LauncherActivityInfo>,
+    onAddApp: (LauncherActivityInfo) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var query by rememberSaveable(folder.id) { mutableStateOf("") }
+    val visibleApps = remember(availableApps, query) {
+        availableApps
+            .asSequence()
+            .filter { app ->
+                query.isBlank() || app.label.toString().contains(query.trim(), ignoreCase = true)
+            }
+            .sortedWith(
+                compareBy<LauncherActivityInfo> { it.label.toString().lowercase(Locale.getDefault()) }
+                    .thenBy { it.workspaceKey() },
+            )
+            .toList()
+    }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Text(
+                "Add apps to ${folder.name}",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Select installed personal apps to include in this folder.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Search apps") },
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+            ) {
+                lazyItems(
+                    items = visibleApps,
+                    key = { it.workspaceKey() },
+                ) { app ->
+                    val icon = rememberLauncherAppIcon(app)
+                    val alreadyAdded = app.workspaceKey() in folder.appKeys
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onAddApp(app) },
+                        enabled = !alreadyAdded && folder.appKeys.size < 100,
+                        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (icon != null) {
+                                Image(
+                                    bitmap = icon,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.size(38.dp).launcherIconMask(),
+                                )
+                            }
+                            Text(
+                                app.label.toString(),
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                if (alreadyAdded) "Added" else "Add",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (alreadyAdded) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+            if (visibleApps.isEmpty()) {
+                Text(
+                    "No matching personal apps.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (folder.appKeys.size >= 100) {
+                Text(
+                    "This folder has reached its 100-app limit.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            FilledTonalButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Done") }
+            Spacer(Modifier.height(GlazeMetrics.space2))
+        }
     }
 }
 
