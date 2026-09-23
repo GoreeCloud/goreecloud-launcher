@@ -10,6 +10,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
@@ -85,6 +86,9 @@ import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
 import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegistry
+import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpaper
+import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpaperId
+import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpapers
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
 import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
@@ -115,6 +119,7 @@ import kotlin.math.roundToInt
 
 enum class LauncherSurfaceMode { HOME, SEARCH, DRAWER, SETTINGS, THEME_MANAGER }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LauncherBetaRoot(
     apps: List<LauncherActivityInfo>,
@@ -163,7 +168,8 @@ fun LauncherBetaRoot(
     onSetDockStyle: (LauncherDockStyle) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
     onSetGestureAction: (LauncherHomeGesture, LauncherGestureAction) -> Unit,
-    onOpenWallpaperPicker: () -> Unit,
+    onApplyBuiltInWallpaper: (LauncherBuiltInWallpaperId) -> Unit,
+    onOpenSystemWallpaperPicker: () -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
 ) {
     var surfaceModeName by rememberSaveable { mutableStateOf(LauncherSurfaceMode.HOME.name) }
@@ -172,6 +178,7 @@ fun LauncherBetaRoot(
     var selectedApp by remember { mutableStateOf<LauncherActivityInfo?>(null) }
     var drawerSearchRequested by rememberSaveable { mutableStateOf(false) }
     var homeEditorRequestSequence by remember { mutableStateOf(0L) }
+    var showWallpaperPicker by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(homeResetSequence) {
         drawerSearchRequested = false
@@ -261,7 +268,7 @@ fun LauncherBetaRoot(
                 },
                 onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
                 onOpenThemeManager = { surfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name },
-                onOpenWallpaperPicker = onOpenWallpaperPicker,
+                onOpenWallpaperPicker = { showWallpaperPicker = true },
             )
             LauncherSurfaceMode.SEARCH -> LauncherUniversalSearchSurface(
                 apps = apps,
@@ -285,7 +292,7 @@ fun LauncherBetaRoot(
                         }
                         LauncherSearchDestination.WALLPAPER -> {
                             surfaceModeName = LauncherSurfaceMode.HOME.name
-                            onOpenWallpaperPicker()
+                            showWallpaperPicker = true
                         }
                         LauncherSearchDestination.THEME_MANAGER -> {
                             surfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name
@@ -359,6 +366,26 @@ fun LauncherBetaRoot(
         }
     }
 
+    if (showWallpaperPicker) {
+        ModalBottomSheet(
+            onDismissRequest = { showWallpaperPicker = false },
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+            tonalElevation = 0.dp,
+        ) {
+            LauncherBuiltInWallpaperSheet(
+                wallpapers = LauncherBuiltInWallpapers.all,
+                onApply = { id ->
+                    showWallpaperPicker = false
+                    onApplyBuiltInWallpaper(id)
+                },
+                onOpenSystemPicker = {
+                    showWallpaperPicker = false
+                    onOpenSystemWallpaperPicker()
+                },
+            )
+        }
+    }
+
     selectedApp?.let { app ->
         AppPlacementDialog(
             app = app,
@@ -373,6 +400,137 @@ fun LauncherBetaRoot(
             onRequestUninstall = { onRequestUninstall(app) },
             onClose = { selectedApp = null },
         )
+    }
+}
+
+@Composable
+private fun LauncherBuiltInWallpaperSheet(
+    wallpapers: List<LauncherBuiltInWallpaper>,
+    onApply: (LauncherBuiltInWallpaperId) -> Unit,
+    onOpenSystemPicker: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "GoreeCloud Wallpapers",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "Four Launcher-owned Glaze designs, rendered locally on this device.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        wallpapers.chunked(2).forEach { rowWallpapers ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            ) {
+                rowWallpapers.forEach { wallpaper ->
+                    Surface(
+                        onClick = { onApply(wallpaper.id) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                        ),
+                    ) {
+                        Column {
+                            LauncherWallpaperPreview(
+                                wallpaper = wallpaper,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(142.dp),
+                            )
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Text(
+                                    wallpaper.name,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    wallpaper.description,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                }
+                if (rowWallpapers.size == 1) {
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+
+        OutlinedButton(
+            onClick = onOpenSystemPicker,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("More wallpapers from Android")
+        }
+        Spacer(Modifier.height(GlazeMetrics.space1))
+    }
+}
+
+@Composable
+private fun LauncherWallpaperPreview(
+    wallpaper: LauncherBuiltInWallpaper,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(wallpaper.startColor),
+                        Color(wallpaper.middleColor),
+                        Color(wallpaper.endColor),
+                    ),
+                ),
+            ),
+    ) {
+        Canvas(Modifier.matchParentSize()) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(wallpaper.accentColor).copy(alpha = 0.72f),
+                        Color.Transparent,
+                    ),
+                    center = Offset(size.width * 0.18f, size.height * 0.24f),
+                    radius = size.maxDimension * 0.72f,
+                ),
+                radius = size.maxDimension * 0.72f,
+                center = Offset(size.width * 0.18f, size.height * 0.24f),
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(wallpaper.secondaryAccentColor).copy(alpha = 0.60f),
+                        Color.Transparent,
+                    ),
+                    center = Offset(size.width * 0.86f, size.height * 0.70f),
+                    radius = size.maxDimension * 0.62f,
+                ),
+                radius = size.maxDimension * 0.62f,
+                center = Offset(size.width * 0.86f, size.height * 0.70f),
+            )
+        }
     }
 }
 
