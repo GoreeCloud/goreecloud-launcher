@@ -5065,11 +5065,17 @@ private fun IconPackPickerRow(
 @Composable
 private fun SettingSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label)
+        Text(
+            label,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
@@ -6271,38 +6277,39 @@ private fun AppContextPopup(
                 TextButton(
                     onClick = onToggleFavorite,
                     enabled = !layoutLocked,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
                     Text(if (isFavorite) "Remove from Home" else "Add to Home")
                 }
-                TextButton(
-                    onClick = onToggleDock,
-                    enabled = !layoutLocked && !dockFull,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
-                    Text(if (isDocked) "Remove from Dock" else "Add to Dock")
+                    TextButton(
+                        onClick = onToggleDock,
+                        enabled = !layoutLocked && !dockFull,
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    ) { Text(if (isDocked) "Remove from Dock" else "Add to Dock") }
+                    TextButton(
+                        onClick = onAddToFolder,
+                        enabled = canAddToFolder,
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    ) { Text("Add to folder") }
                 }
-                TextButton(
-                    onClick = onAddToFolder,
-                    enabled = canAddToFolder,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
-                    Text(if (canAddToFolder) "Add to folder" else "Personal folders only")
-                }
-                TextButton(
-                    onClick = onOpenAppInfo,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("App info")
-                }
-                TextButton(
-                    onClick = onRequestUninstall,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        "Uninstall",
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                    TextButton(
+                        onClick = onOpenAppInfo,
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    ) { Text("App info") }
+                    TextButton(
+                        onClick = onRequestUninstall,
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    ) {
+                        Text("Uninstall", color = MaterialTheme.colorScheme.error)
+                    }
                 }
                 FilledTonalButton(
                     onClick = onMoreOptions,
