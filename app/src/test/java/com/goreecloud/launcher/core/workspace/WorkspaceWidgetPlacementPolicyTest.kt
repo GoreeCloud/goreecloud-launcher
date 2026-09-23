@@ -65,6 +65,25 @@ class WorkspaceWidgetPlacementPolicyTest {
     }
 
     @Test
+    fun builtInCatalogExposesNamedPlaceableWidgets() {
+        val expected = setOf(
+            WorkspaceWidgetCatalog.CLOCK,
+            WorkspaceWidgetCatalog.COMPACT_CLOCK,
+            WorkspaceWidgetCatalog.ANALOG_CLOCK,
+            WorkspaceWidgetCatalog.DATE,
+            WorkspaceWidgetCatalog.LAUNCHER_STATUS,
+        )
+
+        assertEquals(expected, WorkspaceWidgetCatalog.builtInTypeIds)
+        expected.forEach { typeId ->
+            assertTrue(WorkspaceWidgetCatalog.displayName(typeId).isNotBlank())
+            assertTrue(WorkspaceWidgetCatalog.description(typeId).isNotBlank())
+            val span = WorkspaceWidgetCatalog.defaultSpan(typeId)
+            assertTrue(span != null && span.first > 0 && span.second > 0)
+        }
+    }
+
+    @Test
     fun resizeRejectsCollisionAndAcceptsFreeExpansion() {
         val grid = WorkspaceGridPlacement.Grid(columns = 4, rows = 4)
         val existing = listOf(
