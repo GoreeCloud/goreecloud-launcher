@@ -1,6 +1,7 @@
 package com.goreecloud.launcher.ui
 
 import android.content.ClipData
+import android.appwidget.AppWidgetHostView
 import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherActivityInfo
 import android.os.Process
@@ -71,6 +72,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
@@ -103,7 +105,10 @@ import com.goreecloud.launcher.core.launcher.launcherDrawerProfilePages
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceState
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetCatalog
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetDescriptor
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
+import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomeWidget
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeAtmosphere
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
@@ -179,6 +184,11 @@ fun LauncherBetaRoot(
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onOpenAppInfo: (LauncherActivityInfo) -> Unit,
+    onAddBuiltInWidget: (String) -> Unit,
+    onPickAndroidWidget: () -> Unit,
+    onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
+    onRemoveWidget: (WorkspaceRenderedHomeWidget) -> Unit,
+    onResizeWidget: (WorkspaceRenderedHomeWidget, Int, Int) -> Unit,
     onToggleFavorite: (LauncherActivityInfo) -> Unit,
     onToggleDock: (LauncherActivityInfo) -> Unit,
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
@@ -224,6 +234,7 @@ fun LauncherBetaRoot(
     val surfaceMode = runCatching { LauncherSurfaceMode.valueOf(surfaceModeName) }
         .getOrDefault(LauncherSurfaceMode.HOME)
     var selectedApp by remember { mutableStateOf<LauncherActivityInfo?>(null) }
+    var selectedWidget by remember { mutableStateOf<WorkspaceRenderedHomeWidget?>(null) }
     var drawerSearchRequested by rememberSaveable { mutableStateOf(false) }
     var homeEditorRequestSequence by remember { mutableStateOf(0L) }
     val homeCellBounds = remember { mutableStateMapOf<Pair<Int, Int>, Rect>() }
@@ -340,6 +351,7 @@ fun LauncherBetaRoot(
     LaunchedEffect(homeResetSequence) {
         drawerSearchRequested = false
         selectedApp = null
+        selectedWidget = null
         homeEditMode = false
         activeDrag = null
         dragPoint = null
@@ -442,6 +454,13 @@ fun LauncherBetaRoot(
                 onManageHomePages = onManageHomePages,
                 onMoveFavoriteToCell = onMoveFavoriteToCell,
                 onLaunchApp = onLaunchApp,
+                onAddBuiltInWidget = onAddBuiltInWidget,
+                onPickAndroidWidget = onPickAndroidWidget,
+                onCreateAndroidWidgetView = onCreateAndroidWidgetView,
+                onManageWidget = {
+                    homeEditMode = true
+                    selectedWidget = it
+                },
                 onOpenLauncherSearch = {
                     drawerSearchRequested = false
                     surfaceModeName = LauncherSurfaceMode.SEARCH.name
@@ -600,6 +619,10 @@ private fun HomeSurface(
     onManageHomePages: () -> Unit,
     onMoveFavoriteToCell: (LauncherActivityInfo, Int, Int) -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onAddBuiltInWidget: (String) -> Unit,
+    onPickAndroidWidget: () -> Unit,
+    onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
+    onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
     onOpenLauncherSearch: () -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     onOpenDrawer: () -> Unit,
@@ -633,6 +656,7 @@ private fun HomeSurface(
     val swipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     var showHomeEditor by rememberSaveable { mutableStateOf(false) }
+    var showWidgetPicker by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(homeEditorRequestSequence) {
         if (homeEditorRequestSequence > 0L) {
@@ -868,12 +892,21 @@ private fun HomeSurface(
 
             Spacer(Modifier.weight(1f))
 
-            if (favoriteApps.isEmpty() && dockApps.isEmpty() && activeDrag == null) {
+            if (
+                favoriteApps.isEmpty() &&
+                dockApps.isEmpty() &&
+                primaryHomePage?.widgetPlacements.isNullOrEmpty() &&
+                activeDrag == null
+            ) {
                 EmptyWorkspaceCard(
                     onOpenApps = onOpenDrawer,
                 )
             }
-            if (favoriteApps.isNotEmpty() || activeDrag != null) {
+            if (
+                favoriteApps.isNotEmpty() ||
+                !primaryHomePage?.widgetPlacements.isNullOrEmpty() ||
+                activeDrag != null
+            ) {
                 HomeFavoritesGrid(
                     apps = favoriteApps,
                     columns = preferences.homeColumns,
@@ -962,6 +995,10 @@ private fun HomeSurface(
                         showHomeEditor = false
                         onManageHomePages()
                     },
+                    onWidgets = {
+                        showHomeEditor = false
+                        showWidgetPicker = true
+                    },
                     onApps = {
                         showHomeEditor = false
                         onOpenDrawer()
@@ -986,6 +1023,7 @@ private fun HomeEditorSheet(
     homePageCount: Int,
     onWallpaper: () -> Unit,
     onPages: () -> Unit,
+    onWidgets: () -> Unit,
     onApps: () -> Unit,
     onSettings: () -> Unit,
 ) {
@@ -1033,9 +1071,16 @@ private fun HomeEditorSheet(
             horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
         ) {
             HomeEditorAction("Wallpaper", "◫", onWallpaper, Modifier.weight(1f))
+            HomeEditorAction("Widgets", "▤", onWidgets, Modifier.weight(1f))
             HomeEditorAction("Pages", "▣", onPages, Modifier.weight(1f))
             HomeEditorAction("Apps", "▦", onApps, Modifier.weight(1f))
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        ) {
             HomeEditorAction("Settings", "⚙", onSettings, Modifier.weight(1f))
+            Spacer(Modifier.weight(3f))
         }
         Spacer(Modifier.height(GlazeMetrics.space1))
     }
