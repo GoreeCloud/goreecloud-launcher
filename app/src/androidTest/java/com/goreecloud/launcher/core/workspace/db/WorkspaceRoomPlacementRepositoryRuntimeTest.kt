@@ -140,6 +140,17 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             spanX = 2,
             spanY = 2,
         )
+        val folder = WorkspaceItemEntity(
+            itemId = "folder:home:runtime",
+            pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+            itemType = WorkspaceItemType.FOLDER,
+            appKey = "folder-id-runtime",
+            rank = migratedPrimary.size + 1,
+            cellX = 0,
+            cellY = 1,
+            spanX = 1,
+            spanY = 1,
+        )
         val primaryPage = database.workspaceDao()
             .readPages(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
             .single()
@@ -147,7 +158,7 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             database.workspaceDao().replacePrimaryHomeItemsIncludingIdentityChangesIfSnapshotMatches(
                 expectedPage = primaryPage,
                 expectedItems = migratedPrimary,
-                updatedItems = migratedPrimary + widget,
+                updatedItems = migratedPrimary + widget + folder,
             ),
         )
         assertEquals(
@@ -190,6 +201,15 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
         assertEquals(widget.cellY, retainedWidget.cellY)
         assertEquals(widget.spanX, retainedWidget.spanX)
         assertEquals(widget.spanY, retainedWidget.spanY)
+        val retainedFolder = spatialReplacement.single {
+            it.itemType == WorkspaceItemType.FOLDER
+        }
+        assertEquals(folder.itemId, retainedFolder.itemId)
+        assertEquals(folder.appKey, retainedFolder.appKey)
+        assertEquals(folder.cellX, retainedFolder.cellX)
+        assertEquals(folder.cellY, retainedFolder.cellY)
+        assertEquals(folder.spanX, retainedFolder.spanX)
+        assertEquals(folder.spanY, retainedFolder.spanY)
         assertTrue(
             spatialReplacement.all {
                 it.cellX != null &&
