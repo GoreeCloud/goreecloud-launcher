@@ -4795,6 +4795,14 @@ private fun LauncherSettingsRootSurface(
             }
 
             SettingsSection("Notification badges", "Local unread indicators and privacy") {
+                Text(
+                    "Android notification-listener access can expose notification details " +
+                        "from other apps and permitted profiles. GoreeCloud Launcher uses " +
+                        "it only for temporary per-app/profile counts; it does not store " +
+                        "notification content. Access is optional and can be revoked in Android Settings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 SettingSwitch(
                     "Show badges",
                     badgesEnabled,
