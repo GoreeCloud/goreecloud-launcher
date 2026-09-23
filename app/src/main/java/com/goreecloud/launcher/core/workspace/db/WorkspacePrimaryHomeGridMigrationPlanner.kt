@@ -1,6 +1,7 @@
 package com.goreecloud.launcher.core.workspace.db
 
 import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetKeyCodec
 
 data class WorkspacePrimaryHomeGridMigrationPlan(
     val grid: WorkspaceGridPlacement.Grid,
@@ -66,24 +67,45 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
         val itemIds = mutableSetOf<String>()
         val appKeys = mutableSetOf<String>()
         for (item in orderedItems) {
-            val appKey = item.appKey
             if (
                 item.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
-                item.itemType != WorkspaceItemType.APP ||
-                appKey == null ||
-                appKey.isBlank() ||
-                item.itemId != "legacy:home:$appKey" ||
-                item.spanX != 1 ||
-                item.spanY != 1 ||
-                !itemIds.add(item.itemId) ||
-                !appKeys.add(appKey)
+                item.itemId.isBlank() ||
+                item.spanX <= 0 ||
+                item.spanY <= 0 ||
+                !itemIds.add(item.itemId)
             ) {
                 return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
+            }
+
+            when (item.itemType) {
+                WorkspaceItemType.APP -> {
+                    val appKey = item.appKey
+                    if (
+                        appKey == null ||
+                        appKey.isBlank() ||
+                        item.itemId != "legacy:home:$appKey" ||
+                        item.spanX != 1 ||
+                        item.spanY != 1 ||
+                        !appKeys.add(appKey)
+                    ) {
+                        return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
+                    }
+                }
+                WorkspaceItemType.WIDGET -> {
+                    if (
+                        WorkspaceWidgetKeyCodec.decode(item.appKey) == null ||
+                        item.cellX == null ||
+                        item.cellY == null
+                    ) {
+                        return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
+                    }
+                }
+                else -> return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
             }
         }
 
         val allCompatibilityCoordinates = orderedItems.all {
-            it.cellX == null && it.cellY == null
+            it.itemType == WorkspaceItemType.APP && it.cellX == null && it.cellY == null
         }
         val allSpatialCoordinates = orderedItems.all {
             it.cellX != null && it.cellY != null
@@ -92,7 +114,11 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
             return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
         }
 
-        val minimumRows = maxOf(1, (orderedItems.size + columns - 1) / columns)
+        val minimumRows = if (allSpatialCoordinates) {
+            orderedItems.maxOf { item -> checkNotNull(item.cellY) + item.spanY }
+        } else {
+            maxOf(1, (orderedItems.size + columns - 1) / columns)
+        }
         if (minimumRows > MAX_PRIMARY_HOME_ROWS) {
             return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
         }
@@ -104,24 +130,6 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
             columns = columns,
             rows = gridRows,
         )
-        val migratedItems = orderedItems.map { item ->
-            item.copy(
-                cellX = item.rank % columns,
-                cellY = item.rank / columns,
-            )
-        }
-        val placements = migratedItems.map { item ->
-            WorkspaceGridPlacement.Placement(
-                itemId = item.itemId,
-                cellX = checkNotNull(item.cellX),
-                cellY = checkNotNull(item.cellY),
-                spanX = item.spanX,
-                spanY = item.spanY,
-            )
-        }
-        if (WorkspaceGridPlacement.validate(grid, placements) != WorkspaceGridPlacement.Validation.Valid) {
-            return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
-        }
 
         if (allSpatialCoordinates) {
             val currentPlacements = orderedItems.map { item ->
@@ -141,6 +149,25 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
             } else {
                 WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
             }
+        }
+
+        val migratedItems = orderedItems.map { item ->
+            item.copy(
+                cellX = item.rank % columns,
+                cellY = item.rank / columns,
+            )
+        }
+        val placements = migratedItems.map { item ->
+            WorkspaceGridPlacement.Placement(
+                itemId = item.itemId,
+                cellX = checkNotNull(item.cellX),
+                cellY = checkNotNull(item.cellY),
+                spanX = item.spanX,
+                spanY = item.spanY,
+            )
+        }
+        if (WorkspaceGridPlacement.validate(grid, placements) != WorkspaceGridPlacement.Validation.Valid) {
+            return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
         }
 
         return WorkspacePrimaryHomeGridMigrationPlanningResult.Planned(
