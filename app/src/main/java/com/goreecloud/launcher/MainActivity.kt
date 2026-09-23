@@ -1155,7 +1155,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun createFolder(name: String, addToHome: Boolean) {
+    private fun createFolder(
+        name: String,
+        addToHome: Boolean,
+        initialApp: LauncherActivityInfo?,
+    ) {
         lifecycleScope.launch {
             val folder = folderRepository.create(name)
             if (folder == null) {
@@ -1165,6 +1169,15 @@ class MainActivity : ComponentActivity() {
                     Toast.LENGTH_SHORT,
                 ).show()
                 return@launch
+            }
+            if (initialApp != null && initialApp.user == Process.myUserHandle()) {
+                if (!folderRepository.addApp(folder.id, initialApp.workspaceKey())) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Folder created, but the app could not be added.",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
             }
             if (addToHome) addFolderToHomeInternal(folder)
         }
