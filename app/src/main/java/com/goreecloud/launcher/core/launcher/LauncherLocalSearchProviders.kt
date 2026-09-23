@@ -88,8 +88,11 @@ private suspend fun guardedLocalSearch(
 /** Match formatted phone numbers even when call-log and contact providers store punctuation. */
 object LauncherLocalPhoneSearchPolicy {
     fun score(name: String, number: String, rawQuery: String): Int? {
-        LauncherSearchTextRanking.score(name, number, rawQuery)?.let { return it }
         val digits = rawQuery.filter(Char::isDigit)
+        if (rawQuery.isNotBlank() && rawQuery.none(Char::isLetter) && digits.length < 2) {
+            return null // Avoid broad one-digit scans of sensitive phone/call data.
+        }
+        LauncherSearchTextRanking.score(name, number, rawQuery)?.let { return it }
         if (digits.length < 2 || rawQuery.any(Char::isLetter)) return null
         return if (number.filter(Char::isDigit).contains(digits)) 160 else null
     }
