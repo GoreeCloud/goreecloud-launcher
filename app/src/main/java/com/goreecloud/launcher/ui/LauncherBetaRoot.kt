@@ -209,6 +209,8 @@ fun LauncherBetaRoot(
     homeLabelOverrides: Map<String, String>,
     folders: List<LauncherFolder>,
     primaryHomePage: WorkspaceRenderedHomePage?,
+    homePages: List<WorkspaceRenderedHomePage>,
+    onMoveFolderToPage: (LauncherFolder, String) -> Unit,
     onCreateFolder: (String, Boolean, LauncherActivityInfo?) -> Unit,
     onRenameFolder: (String, String) -> Unit,
     onDeleteFolder: (LauncherFolder) -> Unit,
@@ -821,6 +823,14 @@ fun LauncherBetaRoot(
                 onRename = { name -> onRenameFolder(folder.id, name) },
                 onAddToHome = { onAddFolderToHome(folder) },
                 onRemoveFromHome = { onRemoveFolderFromHome(folder) },
+                moveTargets = homePages.filter { page ->
+                    page.pageId != com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
+                        page.folderPlacements.none { placement -> placement.folderId == folder.id }
+                },
+                onMoveToPage = { target ->
+                    onMoveFolderToPage(folder, target)
+                    selectedFolderId = null
+                },
                 onDelete = {
                     selectedFolderId = null
                     onDeleteFolder(folder)
@@ -6004,6 +6014,8 @@ private fun LauncherFolderContentsSheet(
     onRename: (String) -> Unit,
     onAddToHome: () -> Unit,
     onRemoveFromHome: () -> Unit,
+    moveTargets: List<WorkspaceRenderedHomePage> = emptyList(),
+    onMoveToPage: (String) -> Unit = {},
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -6015,6 +6027,7 @@ private fun LauncherFolderContentsSheet(
     var showActions by remember(folder.id) { mutableStateOf(false) }
     var confirmRemove by remember(folder.id) { mutableStateOf(false) }
     var showDeleteConfirmation by remember(folder.id) { mutableStateOf(false) }
+    var showMoveTargets by remember(folder.id) { mutableStateOf(false) }
     val members = remember(folder, appsByKey, alphabetical) {
         folder.appKeys.mapNotNull(appsByKey::get).let { apps ->
             if (alphabetical) apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) {
@@ -6081,6 +6094,15 @@ private fun LauncherFolderContentsSheet(
                                     if (isOnHome) onRemoveFromHome() else onAddToHome()
                                 },
                             )
+                            if (isOnHome && moveTargets.isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("Move to another Home page") },
+                                    onClick = {
+                                        showActions = false
+                                        showMoveTargets = true
+                                    },
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("Add apps") },
                                 onClick = { showActions = false; onAddApps() },
@@ -6254,6 +6276,28 @@ private fun LauncherFolderContentsSheet(
             },
             dismissButton = {
                 TextButton(onClick = { confirmRemove = false }) { Text("Cancel") }
+            },
+        )
+    }
+    if (showMoveTargets) {
+        AlertDialog(
+            onDismissRequest = { showMoveTargets = false },
+            title = { Text("Move ${folder.name} to a page") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1)) {
+                    moveTargets.forEach { page ->
+                        TextButton(
+                            onClick = {
+                                showMoveTargets = false
+                                onMoveToPage(page.pageId)
+                            },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) { Text("Home page ${page.rank + 1}") }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showMoveTargets = false }) { Text("Cancel") }
             },
         )
     }
