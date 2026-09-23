@@ -17,6 +17,22 @@ enum class LauncherBadgeCorner { TOP_START, TOP_END, BOTTOM_START, BOTTOM_END }
 /** Only non-sensitive package/profile counts are kept in process memory; no notification content. */
 data class LauncherBadgeAppKey(val packageName: String, val profile: android.os.UserHandle)
 
+/** A content-free counting input: keep package/profile key and notification state only. */
+internal data class LauncherBadgeObservation<Key>(
+    val key: Key,
+    val clearable: Boolean,
+    val groupSummary: Boolean,
+)
+
+/** Shared, testable counting rule; Android notification content never enters this policy. */
+internal object LauncherBadgeCountingPolicy {
+    fun <Key> aggregate(observations: Iterable<LauncherBadgeObservation<Key>>): Map<Key, Int> =
+        observations.filter { it.clearable && !it.groupSummary }
+            .groupingBy { it.key }
+            .eachCount()
+}
+
+
 /**
  * Android's notification-access grant remains an explicit system decision. Preference is opt-in
  * and disabled by default; declining permission or turning badges off clears every in-memory count.
@@ -65,8 +81,8 @@ object LauncherNotificationBadges {
             .edit().putBoolean(KEY_ENABLED, newEnabled).apply()
         enabledState.value = newEnabled
         if (!newEnabled) countState.value = emptyMap()
+        // refreshAccess already triggers one refresh when both gates are satisfied.
         refreshAccess(context)
-        if (newEnabled) refreshFromListener?.invoke()
     }
 
     fun setStyle(context: Context, newStyle: LauncherBadgeStyle) {
@@ -93,8 +109,8 @@ object LauncherNotificationBadges {
         } catch (_: SecurityException) {
             false
         }
-        if (!accessState.value) countState.value = emptyMap()
-        else if (enabledState.value) refreshFromListener?.invoke()
+        if (!accessState.value || !enabledState.value) countState.value = emptyMap()
+        else refreshFromListener?.invoke()
     }
 
     internal fun setActiveListener(refresh: (() -> Unit)?) {
@@ -109,12 +125,15 @@ object LauncherNotificationBadges {
             countState.value = emptyMap()
             return
         }
-        countState.value = notifications.orEmpty()
-            .filter { sbn ->
-                sbn.isClearable && (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY) == 0
-            }
-            .groupingBy { sbn -> LauncherBadgeAppKey(sbn.packageName, sbn.user) }
-            .eachCount()
+        countState.value = LauncherBadgeCountingPolicy.aggregate(
+            notifications.orEmpty().map { sbn ->
+                LauncherBadgeObservation(
+                    key = LauncherBadgeAppKey(sbn.packageName, sbn.user),
+                    clearable = sbn.isClearable,
+                    groupSummary = (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0,
+                )
+            },
+        )
     }
 
     internal fun clear() { countState.value = emptyMap() }
