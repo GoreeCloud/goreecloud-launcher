@@ -308,6 +308,14 @@ class LauncherAppsRepository(context: Context) {
         launcherApps.startMainActivity(app.componentName, app.user, Rect(), Bundle.EMPTY)
     }
 
+    fun launchShortcut(
+        packageName: String,
+        shortcutId: String,
+        user: android.os.UserHandle,
+    ) {
+        launcherApps.startShortcut(packageName, shortcutId, Rect(), Bundle.EMPTY, user)
+    }
+
     private fun loadApps(): List<LauncherActivityInfo> =
         normalizeSnapshot(
             launcherApps.profiles.flatMap { profile ->
