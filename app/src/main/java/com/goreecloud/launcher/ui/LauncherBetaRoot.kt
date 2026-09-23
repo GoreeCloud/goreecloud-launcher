@@ -5633,6 +5633,7 @@ private fun LauncherFolderContentsSheet(
     onDismiss: () -> Unit,
 ) {
     var nameDraft by remember(folder.id, folder.name) { mutableStateOf(folder.name) }
+    var showDeleteConfirmation by rememberSaveable(folder.id) { mutableStateOf(false) }
     val memberApps = remember(folder, appsByKey) {
         folder.appKeys.mapNotNull(appsByKey::get)
     }
@@ -5762,7 +5763,7 @@ private fun LauncherFolderContentsSheet(
 
             HorizontalDivider()
             TextButton(
-                onClick = onDelete,
+                onClick = { showDeleteConfirmation = true },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
@@ -5777,6 +5778,32 @@ private fun LauncherFolderContentsSheet(
             )
             Spacer(Modifier.height(GlazeMetrics.space2))
         }
+    }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete ${folder.name}?") },
+            text = {
+                Text(
+                    "The folder and its app membership will be removed from Home and the app drawer. " +
+                        "No installed apps will be uninstalled, but the folder cannot be restored automatically.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirmation = false
+                    onDelete()
+                }) {
+                    Text("Delete folder", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 }
 
@@ -5894,6 +5921,7 @@ private fun AppContextPopup(
     val isFavorite = key in workspace.favoriteKeys
     val isDocked = key in workspace.dockKeys
     val dockFull = !isDocked && workspace.dockKeys.size >= MAX_DOCK_ITEMS
+    val canAddToFolder = app.user == Process.myUserHandle()
     val icon = rememberLauncherAppIcon(app)
     val gapPx = with(LocalDensity.current) { 10.dp.roundToPx() }
 
@@ -5968,9 +5996,10 @@ private fun AppContextPopup(
                 }
                 TextButton(
                     onClick = onAddToFolder,
+                    enabled = canAddToFolder,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Add to folder")
+                    Text(if (canAddToFolder) "Add to folder" else "Personal folders only")
                 }
                 TextButton(
                     onClick = onOpenAppInfo,
