@@ -51,6 +51,20 @@ for intent in queries.findall("intent"):
     if "com.goreecloud.index.action.SEARCH" in action_names:
         has_index_search_query = True
 
+allowed_visible_packages = {
+    "com.google.android.apps.docs",
+    "com.dropbox.android",
+    "com.brave.browser",
+}
+visible_packages = {
+    package.attrib.get(ns + "name")
+    for package in queries.findall("package")
+}
+unexpected_visible_packages = visible_packages - allowed_visible_packages
+if unexpected_visible_packages:
+    print("Unexpected package visibility:", sorted(unexpected_visible_packages))
+    sys.exit(1)
+
 if not has_launcher_query:
     print("Missing MAIN/LAUNCHER visibility query required for complete app discovery.")
     sys.exit(1)
