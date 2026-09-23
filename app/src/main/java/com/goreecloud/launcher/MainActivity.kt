@@ -632,6 +632,7 @@ class MainActivity : ComponentActivity() {
                             onCreateAndroidWidgetView = appWidgetHostController::createHostView,
                             onRemoveWidget = ::removeWidget,
                             onResizeWidget = ::resizeWidget,
+                            onMoveWidget = ::moveWidget,
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
@@ -1330,6 +1331,35 @@ class MainActivity : ComponentActivity() {
                 Toast.makeText(
                     this@MainActivity,
                     "That widget could not be removed.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun moveWidget(
+        widget: WorkspaceRenderedHomeWidget,
+        cellX: Int,
+        cellY: Int,
+    ) {
+        lifecycleScope.launch {
+            val preferences = launcherPreferencesRepository.preferences.first()
+            if (preferences.layoutLocked) return@launch
+            val result = workspaceRuntimeCoordinator.moveWidget(
+                itemId = widget.itemId,
+                columns = preferences.homeColumns,
+                rows = preferences.homeRows,
+                cellX = cellX,
+                cellY = cellY,
+            )
+            if (result !is WorkspaceWidgetMutationResult.Moved) {
+                Toast.makeText(
+                    this@MainActivity,
+                    if (result == WorkspaceWidgetMutationResult.NoSpace) {
+                        "That widget cannot fit there. Choose an unoccupied area."
+                    } else {
+                        "That widget could not be moved."
+                    },
                     Toast.LENGTH_SHORT,
                 ).show()
             }
