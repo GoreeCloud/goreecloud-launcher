@@ -19,7 +19,7 @@ The primary Home experience is a launcher-style surface. Android renders the dev
 - Tap an app icon to launch it.
 - Long-press and drag a primary Home icon to any visible configured Home grid cell. Dropping onto an empty cell places it there; dropping onto an occupied cell swaps the two primary Home positions. Long-press without moving opens placement management.
 - Open **Apps** from the Home affordance to browse installed launchable applications.
-- Open **Launcher settings** to change supported Home, Apps, icon, label, appearance, layout-lock, and Launcher Universal Search entry preferences.
+- Long-press empty Home space to enter **Edit Home**, then use its **Settings** action to change supported Home, Apps, icon, label, appearance, layout-lock, and Launcher Universal Search preferences.
 - Swipe one finger downward through the unobstructed Home gesture zone to open Launcher Universal Search by default. This assignment can be changed under **Launcher settings → Gestures**.
 - Favorites and Dock are seeded from installed launchable apps on first run when needed.
 - The Dock is currently bounded to five items.
@@ -177,7 +177,7 @@ Naming a platform system does not mean every integration is currently implemente
 
 ## Current limitations
 
-Still incomplete or separately gated include mature cross-page drag/drop editing; primary↔secondary spatial movement; folders; shortcuts; widgets/AppWidgetHost; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
+Still incomplete or separately gated include mature cross-page drag/drop editing; primary↔secondary spatial movement; folders and smart folders; pinned/dynamic shortcut placement beyond current Search support; advanced widget resizing/stacking and portable widget rebinding/recovery; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
 
 # Approved future product direction — not currently available
 
