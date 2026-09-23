@@ -39,11 +39,15 @@ import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpaperId
 import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpapers
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
+import com.goreecloud.launcher.core.launcher.LauncherConnectedSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
+import com.goreecloud.launcher.core.launcher.LauncherFileSearchPreferencesRepository
+import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
 import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
+import com.goreecloud.launcher.core.launcher.LauncherOpenDocumentSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
@@ -96,6 +100,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
     private lateinit var searchProviderPreferencesRepository: LauncherSearchProviderPreferencesRepository
+    private lateinit var fileSearchPreferencesRepository: LauncherFileSearchPreferencesRepository
     private lateinit var installedAppBaselineRepository: LauncherInstalledAppBaselineRepository
     private lateinit var localUsageRepository: LauncherLocalUsageRepository
     private lateinit var appWidgetHostController: LauncherAppWidgetHostController
@@ -110,6 +115,36 @@ class MainActivity : ComponentActivity() {
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
     private var pendingAppWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
     private var pendingSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
+    private var pendingFileSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
+
+    private val fileSearchRootRequest =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            val pending = pendingFileSearchProviderSnapshot
+            pendingFileSearchProviderSnapshot = null
+            if (uri == null) return@registerForActivityResult
+
+            val persisted = runCatching {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }.isSuccess
+            if (!persisted) {
+                Toast.makeText(
+                    this,
+                    "Android did not grant persistent access to that folder.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                return@registerForActivityResult
+            }
+
+            lifecycleScope.launch {
+                fileSearchPreferencesRepository.addRoot(uri)
+                if (pending != null) {
+                    searchProviderPreferencesRepository.set(pending)
+                }
+            }
+        }
 
     private val searchSourcePermissionRequest =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -193,6 +228,7 @@ class MainActivity : ComponentActivity() {
         appsRepository = LauncherAppsRepository(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
         searchProviderPreferencesRepository = LauncherSearchProviderPreferencesRepository(this)
+        fileSearchPreferencesRepository = LauncherFileSearchPreferencesRepository(this)
         installedAppBaselineRepository = LauncherInstalledAppBaselineRepository(this)
         localUsageRepository = LauncherLocalUsageRepository(this)
         appWidgetHostController = LauncherAppWidgetHostController(this)
@@ -255,6 +291,9 @@ class MainActivity : ComponentActivity() {
                 initialValue = emptyMap(),
             )
             val searchProviderPreferences by searchProviderPreferencesState.collectAsStateWithLifecycle()
+            val fileSearchRoots by fileSearchPreferencesRepository.roots.collectAsStateWithLifecycle(
+                initialValue = emptyList(),
+            )
             val homeLabelOverrides by launcherPreferencesRepository.homeLabelOverrides.collectAsStateWithLifecycle(
                 initialValue = emptyMap(),
             )
