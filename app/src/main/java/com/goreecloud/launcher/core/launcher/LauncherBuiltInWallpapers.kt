@@ -76,7 +76,7 @@ object LauncherBuiltInWallpapers {
             name = "Glaze Solstice",
             description = "Dawn blue, sea-glass and lilac with a calm, luminous finish.",
             startColor = 0xFF24445E.toInt(),
-            middleColor = 0xFF598B9F.toInt(),
+            middleColor = 0xFF3C6F82.toInt(),
             endColor = 0xFF5F5685.toInt(),
             accentColor = 0xFF8FCFCA.toInt(),
             secondaryAccentColor = 0xFFD1B5EA.toInt(),
