@@ -216,9 +216,7 @@ private fun WallpaperChoiceCard(
 
 @Composable
 private fun WallpaperHomePreview(wallpaper: LauncherBuiltInWallpaper) {
-    val previewForeground = if (wallpaper.id == LauncherBuiltInWallpaperId.SOLSTICE) {
-        Color(0xFF143C4A)
-    } else Color.White
+    val previewForeground = Color.White
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
