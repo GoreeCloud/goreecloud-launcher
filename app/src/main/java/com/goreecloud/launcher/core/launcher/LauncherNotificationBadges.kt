@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /** Only non-sensitive package/profile counts are kept in process memory; no notification content. */
-data class LauncherBadgeAppKey(val packageName: String, val profileId: Int)
+data class LauncherBadgeAppKey(val packageName: String, val profile: android.os.UserHandle)
 
 /**
  * Android's notification-access grant remains an explicit system decision. Preference is opt-in
@@ -53,7 +53,7 @@ object LauncherNotificationBadges {
     }
 
     fun countFor(app: LauncherActivityInfo, visibleCounts: Map<LauncherBadgeAppKey, Int>): Int =
-        visibleCounts[LauncherBadgeAppKey(app.componentName.packageName, app.user.identifier)] ?: 0
+        visibleCounts[LauncherBadgeAppKey(app.componentName.packageName, app.user)] ?: 0
 
     internal fun acceptActiveNotifications(notifications: Array<StatusBarNotification>?) {
         if (!enabledState.value || !accessState.value) {
@@ -64,7 +64,7 @@ object LauncherNotificationBadges {
             .filter { sbn ->
                 sbn.isClearable && (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY) == 0
             }
-            .groupingBy { sbn -> LauncherBadgeAppKey(sbn.packageName, sbn.user.identifier) }
+            .groupingBy { sbn -> LauncherBadgeAppKey(sbn.packageName, sbn.user) }
             .eachCount()
     }
 
