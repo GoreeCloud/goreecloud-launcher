@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record.**  
-**Repository authority baseline:** `main` at `b68d1e56443a6e8365cf1d440e4ac5c53c868a02` (PR #235 merged September 23, 2026).  
+**Repository authority baseline:** `main` at `426e466f62d8347de720258be8492e518e84c4d5` (PR #238 merged September 23, 2026).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation
@@ -15,7 +15,7 @@ Partially implemented capabilities remain open obligations in `PLANNED-FEATURES.
 
 ## Current verified source baseline
 
-The current repository `main` head and latest source-bearing Launcher runtime are `b68d1e56443a6e8365cf1d440e4ac5c53c868a02`, the guarded squash merge of PR #235, **Keep Launcher Settings in the Home editor**. PR #235 exact head `75581e01cdfb584b5f4af59377002ca835d0b064` passed Android CI run #723 / `35820108208` across repository/privacy/identity/GLAZE/Room-cutover guards, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. The current runtime reserves empty-space Home long-press for Edit Home, keeps Launcher Settings behind the Edit Home Settings tile, and redirects historical direct-Settings gesture/Search destinations back through Edit Home. This baseline also includes PR #229's opt-in local Contacts/Call history/Messages and local application-shortcut Search sources, PR #228's rendered persisted Search-source controls, PR #226's four built-in Glaze wallpapers, PR #223's gesture-only app-drawer dismissal, PR #221's 5 × 6 starter Home/five-app Dock defaults, PR #219's AppWidgetHost-based Home widgets, PR #215's unified Home/Dock/App Drawer drag-and-edit interactions, and PR #212's source-manifest reconciliation.
+The current repository `main` head and latest source-bearing Launcher runtime are `426e466f62d8347de720258be8492e518e84c4d5`, the guarded squash merge of PR #238, **Add file and connected Universal Search sources**. PR #238 exact head `71be92123352e5d179f48e5e1a892680aadd8987` passed Android CI run #729 / `35821960552` across repository/privacy/identity/GLAZE/Room-cutover guards, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. The runtime now includes user-selected local file Search plus explicit Google Drive, Dropbox, and Brave Search handoffs while preserving the local-first/no-automatic-third-party-fan-out boundary and PR #235's Home-editor-only Launcher Settings route. This baseline also includes PR #229's opt-in local Contacts/Call history/Messages and local application-shortcut Search sources, PR #228's rendered persisted Search-source controls, PR #226's four built-in Glaze wallpapers, PR #223's gesture-only app-drawer dismissal, PR #221's 5 × 6 starter Home/five-app Dock defaults, PR #219's AppWidgetHost-based Home widgets, PR #215's unified Home/Dock/App Drawer drag-and-edit interactions, and PR #212's source-manifest reconciliation.
 
 This is Development evidence. It does not establish physical-device performance, complete accessibility, personal/work/Shelter/private-space acceptance, Quickstep/Recents compatibility, complete Integral Platform System acceptance, protected production signing/distribution, Release Candidate, production, or Stable qualification.
 
@@ -111,15 +111,18 @@ GoreeCloud Launcher owns the user-facing Universal Search experience. Current im
 - Local Android application-shortcut Search via `LauncherApps.startShortcut` without a new runtime permission (PR #229).
 - Explicit opt-in local Contacts, Call history, and Messages Search sources, each disabled by default and enabled only after the corresponding Android permission is granted; typed queries stay local and no INTERNET permission, telemetry, query-history persistence, or third-party automatic fan-out is added (PR #229).
 - Launcher-owned Search no longer exposes a direct **Launcher settings** result; any historical/internal Settings destination resolves to Edit Home, preserving the long-press Home editor as the Settings entry path (PRs #229 and #235).
+- Explicit opt-in local file Search over user-selected Android Storage Access Framework roots. Launcher stores only the selected tree URIs/read grants, indexes filename and MIME metadata within bounded depth/index/result limits, does not index file contents, and requests no broad storage permission (PR #238).
+- Explicit **Search with…** handoffs for Google Drive, Dropbox, and Brave Search. Google Drive and Dropbox are exposed only when Android resolves the reviewed package-scoped search handoff; Brave Search uses its HTTPS query URL. Connected providers receive the query only after the user taps that provider, and Launcher still has no `INTERNET` permission or automatic third-party query fan-out (PR #238).
+- Third-party provider query-retention state can be represented as provider-policy-controlled/unknown rather than inventing a retention guarantee (PR #238).
 
-The PR #199 provider-control store and PR #207 reconciliation/mutation policy remain deliberately separate from the strict portable-preference v1 backup/recovery contract. Portable adoption/migration remains planned work. Rendered provider management and the first opt-in sensitive local sources are implemented; file-root Search and explicit Google Drive/Dropbox/Brave Search handoff remain separate Development work until independently integrated and validated.
+The PR #199 provider-control store and PR #207 reconciliation/mutation policy remain deliberately separate from the strict portable-preference v1 backup/recovery contract. Portable adoption/migration remains planned work. Rendered provider management, opt-in sensitive local sources, user-selected file-root Search, and the reviewed Google Drive/Dropbox/Brave explicit handoffs are implemented in Development; broader external provider discovery/registration and optional GoreeCloud Search/Index providers remain open.
 
 ### Privacy and local-first boundaries
 
 - Core Launcher operation remains offline-capable and does not require a GoreeCloud server or cloud account.
 - Current source has no Android `INTERNET` permission for core Launcher behavior.
 - No advertising, sponsorship, promoted placement, affiliate ranking, mandatory analytics, attribution, or behavioral-tracking dependency is part of the documented Launcher product model.
-- Search provider controls through PRs #188, #198, #199, #207, #228, and #229 do not persist typed queries, results, history, credentials, provider payloads, or usage/frequency signals. Contacts, Call history, and Messages are opt-in local sources whose Android permissions are requested only when the user enables the corresponding source; Launcher still has no INTERNET permission.
+- Search provider controls through PRs #188, #198, #199, #207, #228, #229, and #238 do not persist typed queries, results, history, credentials, provider payloads, or usage/frequency signals. Contacts, Call history, and Messages are opt-in local sources whose Android permissions are requested only when the user enables the corresponding source. File Search is limited to user-selected Storage Access Framework roots and indexes metadata rather than file contents. Connected Google Drive/Dropbox/Brave providers receive a query only after an explicit **Search with…** action; Launcher still has no INTERNET or broad-storage permission.
 
 ### Branding and asset provenance
 
@@ -135,6 +138,7 @@ The PR #199 provider-control store and PR #207 reconciliation/mutation policy re
 
 | Change | Evidence | Implemented result |
 | --- | --- | --- |
+| PR #238 | Exact head `71be92123352e5d179f48e5e1a892680aadd8987`; Android CI #729 / `35821960552`; merge `426e466f62d8347de720258be8492e518e84c4d5` | User-selected local file Search plus explicit Google Drive/Dropbox/Brave Search handoffs; no automatic third-party fan-out or Launcher INTERNET permission |
 | PR #235 | Exact head `75581e01cdfb584b5f4af59377002ca835d0b064`; Android CI #723 / `35820108208`; merge `b68d1e56443a6e8365cf1d440e4ac5c53c868a02` | Settings-only-via-Edit-Home routing, reserved empty-space long-press, legacy direct-Settings gesture/Search compatibility routing |
 | PR #229 | Exact head `740f967339de2adf0a4d70c26c9aeef2c2ecff7e`; Android CI #714 / `35818607895`; merge `0d6ccf955ae0884d4b06d9ed1839b377ab2a1af2` | Local app shortcuts plus opt-in Contacts, Call history, and Messages Search; no INTERNET permission |
 | PR #228 | Exact head `851bf9007ea57209981b61c1ec11bc746ad0a009`; Android CI #703 / `35816326844`; merge `1e1f72c6a994e8381c0eecf3bd9fc3db17a44dde` | Persisted Search-source controls connected to rendered Sources management |
