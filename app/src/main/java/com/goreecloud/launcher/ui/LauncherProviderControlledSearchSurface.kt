@@ -291,6 +291,16 @@ private fun LauncherSearchSourceManager(
                             Text(
                                 buildString {
                                     append(option.privacySummary)
+                                    if (option.providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
+                                        append(" · ")
+                                        append(
+                                            when (fileSearchRootCount) {
+                                                0 -> "No folders selected"
+                                                1 -> "1 folder selected"
+                                                else -> fileSearchRootCount.toString() + " folders selected"
+                                            },
+                                        )
+                                    }
                                     if (
                                         !LauncherLocalSearchPermissions.isGranted(
                                             context,
