@@ -662,17 +662,18 @@ class ActivatedHomeLifecycleRuntimeTest {
     }
 
     @Test
-    fun configuredSwipeUpCanOpenLauncherSettings() = runBlocking {
+    fun legacySettingsGestureOpensHomeEditorInsteadOfSettings() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         val roleManager = context.getSystemService(RoleManager::class.java)
         val alreadyDefaultHome =
-            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) &&
+                roleManager.isRoleHeld(RoleManager.ROLE_HOME)
         val preferencesRepository = LauncherPreferencesRepository(context)
         val previousSwipeUp = preferencesRepository.experiencePreferences.first().swipeUpAction
-        val configuredAction =
+        val legacySettingsAction =
             LauncherGestureAction.builtIn(LauncherGestureActionType.LAUNCHER_SETTINGS)
-        val renderedGestureTag = "launcher-home-swipe-up-launcher_settings"
+        val renderedGestureTag = "launcher-home-swipe-up-home_editor"
 
         if (!alreadyDefaultHome) {
             runShellCommand(
@@ -688,7 +689,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         try {
             preferencesRepository.setGestureAction(
                 LauncherHomeGesture.SWIPE_UP,
-                configuredAction,
+                legacySettingsAction,
             ).join()
 
             val scenario = ActivityScenario.launch(MainActivity::class.java)
@@ -718,19 +719,25 @@ class ActivatedHomeLifecycleRuntimeTest {
 
                 composeRule.waitUntil(timeoutMillis = 15_000) {
                     composeRule
+                        .onAllNodesWithText("Edit Home", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText("Edit Home", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                composeRule
+                    .onNodeWithText("Settings", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                check(
+                    composeRule
                         .onAllNodesWithText(
                             "Home, apps, dock, search and Glaze",
                             useUnmergedTree = true,
                         )
                         .fetchSemanticsNodes()
-                        .isNotEmpty()
-                }
-                composeRule
-                    .onNodeWithText(
-                        "Home, apps, dock, search and Glaze",
-                        useUnmergedTree = true,
-                    )
-                    .assertIsDisplayed()
+                        .isEmpty(),
+                )
                 Unit
             } finally {
                 scenario.close()
