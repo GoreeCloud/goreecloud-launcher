@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record.**  
-**Repository authority baseline:** `main` at `426e466f62d8347de720258be8492e518e84c4d5` (PR #238 merged September 23, 2026).  
+**Repository authority baseline:** `main` at `03d4c3d2d7e355916412565b531e411d1bba71de` (PR #240 merged September 23, 2026).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation
@@ -15,9 +15,41 @@ Partially implemented capabilities remain open obligations in `PLANNED-FEATURES.
 
 ## Current verified source baseline
 
-The current repository `main` head and latest source-bearing Launcher runtime are `426e466f62d8347de720258be8492e518e84c4d5`, the guarded squash merge of PR #238, **Add file and connected Universal Search sources**. PR #238 exact head `71be92123352e5d179f48e5e1a892680aadd8987` passed Android CI run #729 / `35821960552` across repository/privacy/identity/GLAZE/Room-cutover guards, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. The runtime now includes user-selected local file Search plus explicit Google Drive, Dropbox, and Brave Search handoffs while preserving the local-first/no-automatic-third-party-fan-out boundary and PR #235's Home-editor-only Launcher Settings route. This baseline also includes PR #229's opt-in local Contacts/Call history/Messages and local application-shortcut Search sources, PR #228's rendered persisted Search-source controls, PR #226's four built-in Glaze wallpapers, PR #223's gesture-only app-drawer dismissal, PR #221's 5 × 6 starter Home/five-app Dock defaults, PR #219's AppWidgetHost-based Home widgets, PR #215's unified Home/Dock/App Drawer drag-and-edit interactions, and PR #212's source-manifest reconciliation.
+The current repository `main` head and latest source-bearing Launcher runtime are `03d4c3d2d7e355916412565b531e411d1bba71de`, the guarded squash merge of PR #240, **Stabilize selected file Search roots**. PR #240 exact head `32c2972d53786d3171ec7f4586bb121fe192a991` passed Android CI run #734 / `35827675978` across repository/privacy/identity/GLAZE/Room-cutover guards, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. Artifact `10735388852`, `goreecloud-launcher-android-dev-sidecar`, is bound to that exact head with archive digest `sha256:1eb903e3f91596065b8d9e1231244dcf3750006d956f1b88d3f352343a70798b`; independent archive inspection matched that digest, its internal `SHA256SUMS` validated `GoreeCloud-Launcher-Dev.apk`, and the APK SHA-256 is `cdd6f5ee01cb32be7f3872a0b44bab7a1b52525fddab89f081430f410d39137d`. The runtime retains PR #238's user-selected local file Search plus explicit Google Drive, Dropbox, and Brave Search handoffs and now adds selected-root visibility/removal, confirmed persisted-read-grant release, and per-root failure isolation while preserving the local-first/no-automatic-third-party-fan-out boundary and PR #235's Home-editor-only Launcher Settings route. This baseline also includes PR #229's opt-in local Contacts/Call history/Messages and local application-shortcut Search sources, PR #228's rendered persisted Search-source controls, PR #226's four built-in Glaze wallpapers, PR #223's gesture-only app-drawer dismissal, PR #221's 5 × 6 starter Home/five-app Dock defaults, PR #219's AppWidgetHost-based Home widgets, PR #215's unified Home/Dock/App Drawer drag-and-edit interactions, and PR #212's source-manifest reconciliation.
 
 This is Development evidence. It does not establish physical-device performance, complete accessibility, personal/work/Shelter/private-space acceptance, Quickstep/Recents compatibility, complete Integral Platform System acceptance, protected production signing/distribution, Release Candidate, production, or Stable qualification.
+
+## September 23, 2026 — PR #240 stabilized selected file Search roots
+
+**Change type:** Universal Search; Storage Access Framework lifecycle; failure isolation; Development stabilization.
+
+PR #240, **Stabilize selected file Search roots**, was guarded-squash merged to `main` as `03d4c3d2d7e355916412565b531e411d1bba71de`.
+
+Implemented:
+
+- shows every currently selected Storage Access Framework Search root in the **Universal Search → Sources** Files control;
+- adds per-folder **Remove** with an explicit confirmation explaining that Launcher will stop searching the folder and release its saved read access;
+- removes the root from Launcher-local file-search persistence before attempting Android persisted-read-grant release, while keeping the operation reversible by choosing the folder again;
+- rebuilds the active file provider when the selected-root list changes so removed roots stop contributing without retaining a stale provider index;
+- isolates index construction by selected root so one revoked, malformed, or broken document-provider tree contributes no entries instead of suppressing healthy roots;
+- preserves the existing 1,500-file aggregate index bound, depth bound, result bound, filename/MIME-only indexing, and no-file-content boundary;
+- adds focused JVM regression coverage for failed-root isolation, global aggregate limits, and zero-limit behavior; and
+- reconciles the user manual with current File Search, Home-editor Settings routing, and implemented AppWidgetHost behavior.
+
+Privacy/security boundary:
+
+- no `INTERNET`, broad-storage, `QUERY_ALL_PACKAGES`, telemetry, query-history persistence, file-content indexing, or automatic third-party query fan-out was added;
+- file Search remains limited to user-selected SAF roots; and
+- removing a root reduces retained Android access rather than broadening it.
+
+Validation:
+
+- exact PR head `32c2972d53786d3171ec7f4586bb121fe192a991` passed Android CI run #734 / `35827675978` across validate/build/unit/schema/APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes;
+- Development artifact `10735388852` has GitHub archive digest `sha256:1eb903e3f91596065b8d9e1231244dcf3750006d956f1b88d3f352343a70798b`;
+- independent archive verification matched that digest, internal `SHA256SUMS` validated the APK, APK SHA-256 is `cdd6f5ee01cb32be7f3872a0b44bab7a1b52525fddab89f081430f410d39137d`, and the APK ZIP structure validated successfully; and
+- guarded squash merge commit: `03d4c3d2d7e355916412565b531e411d1bba71de`.
+
+**Lifecycle boundary:** Development only. Representative-device folder-picker/removal UX, document-provider behavior, large-tree latency/memory/power, accessibility, profile isolation, provider compatibility, portable file-root recovery, Release Candidate, production, and Stable acceptance remain open under issue #80.
 
 ## Implemented capabilities
 
