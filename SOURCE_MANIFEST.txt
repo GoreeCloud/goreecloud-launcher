@@ -38,6 +38,7 @@ app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/LauncherHomeIntentPolicy.kt
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppIconCache.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppWidgetHostController.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeDragPolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeLabelOverrides.kt
@@ -64,6 +65,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceGridPlacement.
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspacePagedPlacement.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspacePortableSnapshot.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceWidgetPlacement.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/LauncherDatabase.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementObserver.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementRepository.kt
@@ -87,6 +89,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalR
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRelationalVerifier.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceRoomPlacementRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceStartupReconciler.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceWidgetRepository.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherAppIcon.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherBetaRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherLocalAppSearch.kt
@@ -146,6 +149,7 @@ app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceDragPlacementP
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceGridPlacementTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspacePagedPlacementTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspacePortableSnapshotTest.kt
+app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceWidgetPlacementPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessGuardTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceHomePageContextTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapperTest.kt
