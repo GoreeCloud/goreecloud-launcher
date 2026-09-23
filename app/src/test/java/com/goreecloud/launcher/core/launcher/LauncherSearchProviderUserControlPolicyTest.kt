@@ -267,6 +267,50 @@ class LauncherSearchProviderUserControlPolicyTest {
     }
 
     @Test
+    fun filesAndConnectedProviderNamesAreUserReadableAndUnknownRetentionIsExplicit() {
+        assertEquals(
+            "Files",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherFilesSearchProvider.PROVIDER_ID,
+            ),
+        )
+        assertEquals(
+            "Google Drive",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.GOOGLE_DRIVE_PROVIDER_ID,
+            ),
+        )
+        assertEquals(
+            "Dropbox",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.DROPBOX_PROVIDER_ID,
+            ),
+        )
+        assertEquals(
+            "Brave Search",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.BRAVE_SEARCH_PROVIDER_ID,
+            ),
+        )
+
+        val metadata = metadata(
+            providerId = LauncherConnectedSearchProviderRegistry.BRAVE_SEARCH_PROVIDER_ID,
+            provenance = LauncherSearchProviderProvenance.THIRD_PARTY,
+            offlineBehavior = LauncherSearchOfflineBehavior.NETWORK_REQUIRED,
+            remoteProcessing = LauncherSearchRemoteProcessing.REQUIRED,
+            queryRetention = LauncherSearchQueryRetention.UNKNOWN,
+        )
+        assertEquals(
+            LauncherSearchProviderInvocationMode.EXPLICIT_USER_HANDOFF,
+            LauncherSearchProviderUserControlPolicy.invocationModeFor(metadata),
+        )
+        assertEquals(
+            "Network required · Remote processing · Provider retention policy applies",
+            LauncherSearchProviderUserControlPolicy.privacySummaryFor(metadata),
+        )
+    }
+
+    @Test
     fun privacySummarySurfacesNetworkConsentAndRetention() {
         val providerMetadata = metadata(
             providerId = "remote",
