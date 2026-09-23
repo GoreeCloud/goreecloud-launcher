@@ -35,7 +35,10 @@ class LauncherIconPackRepository(context: Context) {
                 )
             }
             .distinctBy { it.packageName }
-            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label }.thenBy { it.packageName })
+            .sortedWith(
+                compareBy<LauncherIconPackDescriptor> { it.label.lowercase(java.util.Locale.ROOT) }
+                    .thenBy { it.packageName },
+            )
 
     fun loadIcon(
         iconPackPackage: String,
