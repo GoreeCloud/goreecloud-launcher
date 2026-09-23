@@ -216,6 +216,7 @@ fun LauncherBetaRoot(
     onRemoveAppFromFolder: (String, LauncherActivityInfo) -> Unit,
     onAddFolderToHome: (LauncherFolder) -> Unit,
     onRemoveFolderFromHome: (LauncherFolder) -> Unit,
+    onMoveHomeFolderToCell: (LauncherFolder, Int, Int) -> Unit,
     onManageHomePages: () -> Unit,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
@@ -552,6 +553,7 @@ fun LauncherBetaRoot(
                 onOpenFolder = { folder -> selectedFolderId = folder.id },
                 onMoveFavoriteToCell = onMoveFavoriteToCell,
                 onMoveWidget = onMoveWidget,
+                onMoveHomeFolderToCell = onMoveHomeFolderToCell,
                 onLaunchApp = onLaunchApp,
                 onAddBuiltInWidget = onAddBuiltInWidget,
                 availableAndroidWidgets = availableAndroidWidgets,
@@ -908,6 +910,7 @@ private fun HomeSurface(
     onOpenFolder: (LauncherFolder) -> Unit,
     onMoveFavoriteToCell: (LauncherActivityInfo, Int, Int) -> Unit,
     onMoveWidget: (WorkspaceRenderedHomeWidget, Int, Int) -> Unit,
+    onMoveHomeFolderToCell: (LauncherFolder, Int, Int) -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onAddBuiltInWidget: (String) -> Unit,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
@@ -1228,6 +1231,7 @@ private fun HomeSurface(
                     onCreateAndroidWidgetView = onCreateAndroidWidgetView,
                     onManageWidget = onManageWidget,
                     onMoveWidget = onMoveWidget,
+                    onMoveHomeFolderToCell = onMoveHomeFolderToCell,
                     onOpenFolder = onOpenFolder,
                     onSwipeUp = {
                         executeGestureAction(experiencePreferences.swipeUpAction)
@@ -2090,6 +2094,7 @@ private fun HomeFavoritesGrid(
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
     onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
     onMoveWidget: (WorkspaceRenderedHomeWidget, Int, Int) -> Unit,
+    onMoveHomeFolderToCell: (LauncherFolder, Int, Int) -> Unit,
     onOpenFolder: (LauncherFolder) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
@@ -2268,7 +2273,15 @@ private fun HomeFavoritesGrid(
                     allApps = allApps,
                     showLabel = showLabels,
                     editMode = editMode,
+                    layoutLocked = layoutLocked,
                     onOpen = { onOpenFolder(folder) },
+                    onDrop = { selected, point ->
+                        widgetTargetBounds.entries.firstOrNull { (_, bounds) ->
+                            bounds.contains(point)
+                        }?.key?.let { (cellX, cellY) ->
+                            onMoveHomeFolderToCell(selected, cellX, cellY)
+                        }
+                    },
                     modifier = Modifier
                         .offset(
                             x = stepX * placement.cellX,
@@ -2316,16 +2329,61 @@ private fun HomeFolderTile(
     showLabel: Boolean,
     editMode: Boolean,
     onOpen: () -> Unit,
+    layoutLocked: Boolean = true,
+    onDrop: ((LauncherFolder, Offset) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val appsByKey = remember(allApps) { allApps.associateBy { it.workspaceKey() } }
     val previewApps = remember(folder, appsByKey) {
         folder.appKeys.mapNotNull(appsByKey::get).take(4)
     }
+    val dragThreshold = with(LocalDensity.current) { 12.dp.toPx() }
+    var tileBounds by remember(folder.id) { mutableStateOf<Rect?>(null) }
+    var dragStart by remember(folder.id) { mutableStateOf<Offset?>(null) }
+    var dragOffset by remember(folder.id) { mutableStateOf(Offset.Zero) }
+    var dragging by remember(folder.id) { mutableStateOf(false) }
+    val moveGesture = if (layoutLocked || onDrop == null) Modifier else Modifier
+        .pointerInput(folder.id, dragThreshold) {
+            detectDragGesturesAfterLongPress(
+                onDragStart = {
+                    dragStart = tileBounds?.center
+                    dragOffset = Offset.Zero
+                    dragging = true
+                },
+                onDrag = { event, amount ->
+                    event.consume()
+                    dragOffset += amount
+                },
+                onDragEnd = {
+                    val origin = dragStart
+                    if (origin != null && (
+                            kotlin.math.abs(dragOffset.x) >= dragThreshold ||
+                                kotlin.math.abs(dragOffset.y) >= dragThreshold
+                        )
+                    ) onDrop(folder, origin + dragOffset)
+                    dragging = false
+                    dragOffset = Offset.Zero
+                    dragStart = null
+                },
+                onDragCancel = {
+                    dragging = false
+                    dragOffset = Offset.Zero
+                    dragStart = null
+                },
+            )
+        }
     Column(
         modifier = modifier
             .padding(horizontal = 2.dp, vertical = 2.dp)
-            .clickable(onClick = onOpen),
+            .onGloballyPositioned { tileBounds = it.boundsInRoot() }
+            .then(moveGesture)
+            .graphicsLayer {
+                translationX = if (dragging) dragOffset.x else 0f
+                translationY = if (dragging) dragOffset.y else 0f
+                alpha = if (dragging) 0.76f else 1f
+            }
+            .clickable(onClick = onOpen)
+            .testTag("launcher-home-folder-" + folder.id),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
