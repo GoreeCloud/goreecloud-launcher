@@ -29,11 +29,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
+import com.goreecloud.launcher.core.launcher.LauncherConnectedSearchProviderRegistry
+import com.goreecloud.launcher.core.launcher.LauncherFileSearchPreferencesRepository
+import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
+import com.goreecloud.launcher.core.launcher.LauncherOpenDocumentSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
@@ -71,6 +75,7 @@ import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
 import com.goreecloud.launcher.ui.theme.rememberAndroidGlazeV16PresentationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -78,6 +83,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
     private lateinit var searchProviderPreferencesRepository: LauncherSearchProviderPreferencesRepository
+    private lateinit var fileSearchPreferencesRepository: LauncherFileSearchPreferencesRepository
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
     private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
@@ -86,6 +92,36 @@ class MainActivity : ComponentActivity() {
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
     private var pendingSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
+    private var pendingFileSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
+
+    private val fileSearchRootRequest =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            val pending = pendingFileSearchProviderSnapshot
+            pendingFileSearchProviderSnapshot = null
+            if (uri == null) return@registerForActivityResult
+
+            val persisted = runCatching {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }.isSuccess
+            if (!persisted) {
+                Toast.makeText(
+                    this,
+                    "Android did not grant persistent access to that folder.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                return@registerForActivityResult
+            }
+
+            lifecycleScope.launch {
+                fileSearchPreferencesRepository.addRoot(uri)
+                if (pending != null) {
+                    searchProviderPreferencesRepository.set(pending)
+                }
+            }
+        }
 
     private val searchSourcePermissionRequest =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -124,6 +160,7 @@ class MainActivity : ComponentActivity() {
         appsRepository = LauncherAppsRepository(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
         searchProviderPreferencesRepository = LauncherSearchProviderPreferencesRepository(this)
+        fileSearchPreferencesRepository = LauncherFileSearchPreferencesRepository(this)
         themeRepository = GlazeThemeRepository(this)
         workspaceRepository = WorkspaceRepository(this)
         workspaceRuntimeCoordinator = WorkspaceProductionRuntimeCoordinator(
@@ -179,6 +216,9 @@ class MainActivity : ComponentActivity() {
             )
             val searchProviderPreferences by searchProviderPreferencesRepository.preferences.collectAsStateWithLifecycle(
                 initialValue = LauncherSearchProviderPreferenceDecodeResult.Absent,
+            )
+            val fileSearchRoots by fileSearchPreferencesRepository.roots.collectAsStateWithLifecycle(
+                initialValue = emptyList(),
             )
             val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
                 initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
@@ -389,7 +429,9 @@ class MainActivity : ComponentActivity() {
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
                             searchProviderPreferences = searchProviderPreferences,
+                            fileSearchRoots = fileSearchRoots,
                             onSetSearchProviderEnabled = ::setSearchProviderEnabled,
+                            onChooseFileSearchRoot = ::chooseFileSearchRoot,
                             onLaunchShortcut = { action ->
                                 runCatching {
                                     appsRepository.launchShortcut(
@@ -406,6 +448,8 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onOpenSearchUri = ::openSearchUri,
+                            onOpenDocument = ::openDocument,
+                            onSearchWithConnectedProvider = ::searchWithConnectedProvider,
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
@@ -637,6 +681,20 @@ class MainActivity : ComponentActivity() {
             providerId = providerId,
             enabled = enabled,
         )
+
+        if (enabled && providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
+            lifecycleScope.launch {
+                val roots = fileSearchPreferencesRepository.roots.first()
+                if (roots.isEmpty()) {
+                    pendingFileSearchProviderSnapshot = snapshot
+                    fileSearchRootRequest.launch(null)
+                } else {
+                    searchProviderPreferencesRepository.set(snapshot)
+                }
+            }
+            return
+        }
+
         val permission = LauncherLocalSearchPermissions.permissionFor(providerId)
         if (
             enabled &&
@@ -654,12 +712,56 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun chooseFileSearchRoot() {
+        fileSearchRootRequest.launch(null)
+    }
+
     private fun openSearchUri(action: LauncherOpenUriSearchAction) {
         val intent = Intent(action.intentAction, Uri.parse(action.uri))
         runCatching { startActivity(intent) }.onFailure {
             Toast.makeText(
                 this,
                 "No compatible app is available for this result.",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+
+    private fun openDocument(action: LauncherOpenDocumentSearchAction) {
+        val uri = Uri.parse(action.uri)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, action.mimeType ?: "*/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(
+                this,
+                "No compatible app is available for this file.",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    private fun searchWithConnectedProvider(providerId: String, rawQuery: String) {
+        val intent = LauncherConnectedSearchProviderRegistry.buildExplicitHandoffIntent(
+            context = this,
+            providerId = providerId,
+            rawQuery = rawQuery,
+        )
+        if (intent == null) {
+            Toast.makeText(
+                this,
+                "That connected search provider is unavailable.",
+                Toast.LENGTH_SHORT,
+            ).show()
+            return
+        }
+
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(
+                this,
+                "That connected search provider could not be opened.",
                 Toast.LENGTH_SHORT,
             ).show()
         }
