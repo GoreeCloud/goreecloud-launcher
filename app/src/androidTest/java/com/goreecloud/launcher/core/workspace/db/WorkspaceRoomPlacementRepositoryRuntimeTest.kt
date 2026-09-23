@@ -278,6 +278,86 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             }
         )
 
+        // Real Room cross-page folder roundtrip must keep app membership, identity and the
+        // collision-safe placement of unrelated items. Never clone a folder or overwrite apps.
+        val extraFolder = folderRepository.addFolderToHome(
+            itemId = "folder:home:cross-page-roundtrip",
+            folderId = "folder-id-cross-page",
+            columns = 4,
+            rows = 5,
+        )
+        assertTrue(extraFolder is WorkspaceFolderMutationResult.Added)
+        val secondaryPageId = "home:secondary:folder-test"
+        database.workspaceDao().upsertPages(
+            listOf(WorkspacePageEntity(
+                pageId = secondaryPageId,
+                containerType = WorkspaceContainerType.HOME,
+                rank = 1,
+            )),
+        )
+        database.workspaceDao().upsertItems(
+            listOf(WorkspaceItemEntity(
+                itemId = "app:secondary:keep",
+                pageId = secondaryPageId,
+                itemType = WorkspaceItemType.APP,
+                appKey = "10:com.example.secondary/.MainActivity",
+                rank = 0,
+                cellX = 0,
+                cellY = 0,
+                spanX = 1,
+                spanY = 1,
+            )),
+        )
+        assertEquals(
+            WorkspaceFolderMutationResult.InvalidWorkspace,
+            folderRepository.moveFolderToPage(
+                "folder-id-cross-page", "home:unknown", 4, 5,
+            ),
+        )
+        val movedOut = folderRepository.moveFolderToPage(
+            "folder-id-cross-page", secondaryPageId, 4, 5,
+        )
+        assertEquals(
+            WorkspaceFolderMutationResult.MovedToPage(
+                "folder:home:cross-page-roundtrip",
+                "folder-id-cross-page",
+                WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                secondaryPageId,
+                1,
+                0,
+            ),
+            movedOut,
+        )
+        val secondary = database.workspaceDao().readItems(listOf(secondaryPageId))
+        assertEquals(2, secondary.size)
+        assertTrue(secondary.any { it.itemId == "app:secondary:keep" && it.cellX == 0 })
+        assertTrue(secondary.any {
+            it.itemId == "folder:home:cross-page-roundtrip" &&
+                it.appKey == "folder-id-cross-page" && it.cellX == 1 && it.cellY == 0
+        })
+        assertEquals(
+            WorkspaceFolderMutationResult.MovedToPage(
+                "folder:home:cross-page-roundtrip",
+                "folder-id-cross-page",
+                secondaryPageId,
+                WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                0,
+                1,
+            ),
+            folderRepository.moveFolderToPage(
+                "folder-id-cross-page", WorkspaceLegacyImportMapper.HOME_PAGE_ID, 4, 5,
+            ),
+        )
+        assertTrue(
+            database.workspaceDao().readItems(
+                listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID, secondaryPageId),
+            ).count { it.itemId == "folder:home:cross-page-roundtrip" } == 1,
+        )
+        assertTrue(
+            database.workspaceDao().readItems(listOf(secondaryPageId)).single().itemId ==
+                "app:secondary:keep",
+        )
+
         val legacyStateAfterRoomWrite = authorityRepository.state.first()
         assertEquals(WorkspaceAuthority.ROOM, legacyStateAfterRoomWrite.authority)
         assertEquals(INITIAL_FAVORITES, legacyStateAfterRoomWrite.favoriteKeys)
