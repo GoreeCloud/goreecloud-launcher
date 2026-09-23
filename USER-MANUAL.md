@@ -42,9 +42,13 @@ Home keeps the **Search GoreeCloud** affordance visible. Swipe down opens Launch
 
 The persistent Search GoreeCloud affordance is hidden. Swipe down still opens Launcher Universal Search by default, but any supported Home gesture can be assigned to search under **Launcher settings → Gestures**.
 
-The current Development search foundation provides installed-application results through a native Launcher provider backed by Android `LauncherApps`. It performs local deterministic matching/ranking and does not require GoreeCloud Index, GoreeCloud Search, Internet access, or telemetry.
+The current Development search foundation provides installed applications, Android application shortcuts, and user-enabled local Contacts, Call history, Messages, and file-name results. Local file Search is limited to Android Storage Access Framework folders that you explicitly choose; Launcher indexes bounded file-name and MIME metadata only and does not read file contents or request broad storage access.
 
-The broader approved Universal Search scope—files/documents, people, settings, commands, shortcuts, cloud/connected resources, richer direct actions, contextual workspace resources, and AI-assisted capabilities—remains separately implementation- and acceptance-gated. GoreeCloud Search and GoreeCloud Index may later participate as optional providers/backends once stable.
+Open **Sources** from Universal Search to review enabled sources and their privacy behavior. For **Files**, choose one or more folders to make them searchable. Selected folders are shown in the Sources view. Removing a folder requires confirmation, removes it from Launcher Search, and releases the saved Android read grant when possible. You can choose the folder again later. If one selected document-provider root becomes revoked, malformed, or unavailable, Launcher fails that root softly so other selected roots can continue contributing results.
+
+Google Drive, Dropbox, and Brave Search are exposed only as explicit **Search with…** handoffs. Launcher does not automatically send typed queries to those providers. Core Search remains Launcher-owned, local-first, and does not require GoreeCloud Index, GoreeCloud Search, Launcher Internet permission, or telemetry.
+
+Broader provider discovery/registration, portable recovery of provider controls and file-root grants, recents/history/context, optional GoreeCloud Search/Index backends, and complete representative-device/accessibility/profile/performance acceptance remain separately gated.
 
 ## Home layout lock
 
