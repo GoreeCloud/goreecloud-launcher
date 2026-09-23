@@ -662,6 +662,93 @@ class ActivatedHomeLifecycleRuntimeTest {
     }
 
     @Test
+    fun emptyHomeLongPressAlwaysOpensHomeEditor() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val roleManager = context.getSystemService(RoleManager::class.java)
+        val alreadyDefaultHome =
+            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) &&
+                roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+        val preferencesRepository = LauncherPreferencesRepository(context)
+        val previousTapAndHold =
+            preferencesRepository.experiencePreferences.first().tapAndHoldAction
+
+        if (!alreadyDefaultHome) {
+            runShellCommand(
+                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+            )
+            withTimeout(10_000) {
+                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    delay(100)
+                }
+            }
+        }
+
+        try {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.TAP_AND_HOLD,
+                LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
+            ).join()
+
+            val scenario = ActivityScenario.launch(MainActivity::class.java)
+            try {
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-home-empty-space-actions",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-home-empty-space-actions",
+                        useUnmergedTree = true,
+                    )
+                    .performTouchInput {
+                        down(center)
+                        advanceEventTime(700)
+                        up()
+                    }
+
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithText("Edit Home", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText("Edit Home", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                composeRule
+                    .onNodeWithText("Settings", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                check(
+                    composeRule
+                        .onAllNodesWithText("User Apps", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isEmpty(),
+                )
+                Unit
+            } finally {
+                scenario.close()
+            }
+        } finally {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.TAP_AND_HOLD,
+                previousTapAndHold,
+            ).join()
+            if (!alreadyDefaultHome) {
+                runShellCommand(
+                    "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+                )
+            }
+        }
+    }
+
+    @Test
     fun legacyLauncherSettingsGestureOpensHomeEditorInstead() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
