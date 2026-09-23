@@ -514,7 +514,8 @@ fun LauncherBetaRoot(
                             surfaceModeName = LauncherSurfaceMode.DRAWER.name
                         }
                         LauncherSearchDestination.SETTINGS -> {
-                            surfaceModeName = LauncherSurfaceMode.SETTINGS.name
+                            homeEditorRequestSequence += 1L
+                            surfaceModeName = LauncherSurfaceMode.HOME.name
                         }
                         LauncherSearchDestination.HOME_EDITOR -> {
                             homeEditorRequestSequence += 1L
@@ -711,7 +712,7 @@ private fun HomeSurface(
             LauncherGestureActionType.NONE -> Unit
             LauncherGestureActionType.APPS -> onOpenDrawer()
             LauncherGestureActionType.UNIVERSAL_SEARCH -> onOpenLauncherSearch()
-            LauncherGestureActionType.LAUNCHER_SETTINGS -> onOpenSettings()
+            LauncherGestureActionType.LAUNCHER_SETTINGS -> showHomeEditor = true
             LauncherGestureActionType.HOME_EDITOR -> showHomeEditor = true
             LauncherGestureActionType.WALLPAPER -> onOpenWallpaperPicker()
             LauncherGestureActionType.THEME_MANAGER -> onOpenThemeManager()
@@ -928,7 +929,6 @@ private fun HomeSurface(
                 HomeQuickActions(
                     onOpenApps = onOpenDrawer,
                     onOpenSearch = openSearch,
-                    onOpenSettings = onOpenSettings,
                 )
             }
 
@@ -2081,7 +2081,6 @@ private fun HomeFavoriteTile(
 private fun HomeQuickActions(
     onOpenApps: () -> Unit,
     onOpenSearch: () -> Unit,
-    onOpenSettings: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -2089,7 +2088,6 @@ private fun HomeQuickActions(
     ) {
         GlazeActionChip("Apps", onOpenApps, Modifier.weight(1f))
         GlazeActionChip("Search", onOpenSearch, Modifier.weight(1f))
-        GlazeActionChip("Customize", onOpenSettings, Modifier.weight(1f))
     }
 }
 
@@ -3563,6 +3561,7 @@ private fun gestureActionLabel(
     action: LauncherGestureAction,
     appsByKey: Map<String, LauncherActivityInfo>,
 ): String = when (action.type) {
+    LauncherGestureActionType.LAUNCHER_SETTINGS -> "Home editor"
     LauncherGestureActionType.OPEN_APP ->
         action.appKey
             ?.let(appsByKey::get)
@@ -3620,7 +3619,6 @@ private fun GestureActionPickerDialog(
             LauncherGestureActionType.NONE,
             LauncherGestureActionType.APPS,
             LauncherGestureActionType.UNIVERSAL_SEARCH,
-            LauncherGestureActionType.LAUNCHER_SETTINGS,
             LauncherGestureActionType.HOME_EDITOR,
             LauncherGestureActionType.WALLPAPER,
             LauncherGestureActionType.THEME_MANAGER,
