@@ -4206,6 +4206,17 @@ private fun LauncherSettingsRootSurface(
         .collectAsState()
     val badgeCorner by com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.corner
         .collectAsState()
+    val folderPreviewLayout by com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.layout
+        .collectAsState()
+    val folderPreviewShape by com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.shape
+        .collectAsState()
+    val folderPreviewSize by com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.size
+        .collectAsState()
+    val folderPreviewSurface by com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.surface
+        .collectAsState()
+    val folderPreviewOutline by com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.outline
+        .collectAsState()
+
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
 
     Box(
@@ -4565,6 +4576,104 @@ private fun LauncherSettingsRootSurface(
                     summary = "Create, rename or add folders without leaving Settings.",
                     value = "Open",
                     onClick = onManageFolders,
+                )
+                Text(
+                    "Folder icon layout",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                ChoiceRow(
+                    choices = listOf("Grid", "Radial", "Stack", "Fan", "Line"),
+                    selected = folderPreviewLayout.name.lowercase().replaceFirstChar { it.uppercase() },
+                    onChoice = { selection ->
+                        com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.setLayout(
+                            badgeContext,
+                            com.goreecloud.launcher.core.launcher.LauncherFolderPreviewLayout.entries
+                                .first { it.name.equals(selection, ignoreCase = true) },
+                        )
+                    },
+                )
+                Text(
+                    "Folder background shape",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                ChoiceRow(
+                    choices = listOf("Follow icons", "Round", "Squircle", "Rounded square"),
+                    selected = when (folderPreviewShape) {
+                        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.FOLLOW_ICONS ->
+                            "Follow icons"
+                        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.ROUND ->
+                            "Round"
+                        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.SQUIRCLE ->
+                            "Squircle"
+                        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.ROUNDED_SQUARE ->
+                            "Rounded square"
+                    },
+                    onChoice = { selection ->
+                        val next = when (selection) {
+                            "Round" ->
+                                com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.ROUND
+                            "Squircle" ->
+                                com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.SQUIRCLE
+                            "Rounded square" ->
+                                com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.ROUNDED_SQUARE
+                            else ->
+                                com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.FOLLOW_ICONS
+                        }
+                        com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.setShape(
+                            badgeContext, next,
+                        )
+                    },
+                )
+                Text(
+                    "Folder icon size",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                ChoiceRow(
+                    choices = listOf("Small", "Medium", "Large"),
+                    selected = folderPreviewSize.name.lowercase().replaceFirstChar { it.uppercase() },
+                    onChoice = { selection ->
+                        com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.setSize(
+                            badgeContext,
+                            com.goreecloud.launcher.core.launcher.LauncherFolderPreviewSize.entries
+                                .first { it.name.equals(selection, ignoreCase = true) },
+                        )
+                    },
+                )
+                Text(
+                    "Folder background",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                ChoiceRow(
+                    choices = listOf("Glass", "Solid", "Accent"),
+                    selected = folderPreviewSurface.name.lowercase().replaceFirstChar {
+                        it.uppercase()
+                    },
+                    onChoice = { selection ->
+                        com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.setSurface(
+                            badgeContext,
+                            com.goreecloud.launcher.core.launcher.LauncherFolderPreviewSurface.entries
+                                .first { it.name.equals(selection, ignoreCase = true) },
+                        )
+                    },
+                )
+                SettingSwitch(
+                    "Folder icon outline",
+                    folderPreviewOutline,
+                    { enabled ->
+                        com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.setOutline(
+                            badgeContext, enabled,
+                        )
+                    },
+                )
+                Text(
+                    "Folder icon appearance is stored on this device. Preview choices change " +
+                        "only the visual presentation, never folder membership or placement.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     "Folders appear alphabetically with your personal apps. " +
