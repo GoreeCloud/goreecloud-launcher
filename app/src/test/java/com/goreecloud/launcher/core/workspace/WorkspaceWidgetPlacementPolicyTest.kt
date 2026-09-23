@@ -84,6 +84,23 @@ class WorkspaceWidgetPlacementPolicyTest {
     }
 
     @Test
+    fun movePreservesWidgetSpanAndRejectsOccupiedOrOutOfBoundsCells() {
+        val grid = WorkspaceGridPlacement.Grid(columns = 5, rows = 6)
+        val items = listOf(
+            WorkspaceGridPlacement.Placement("widget", 0, 0, spanX = 2, spanY = 2),
+            WorkspaceGridPlacement.Placement("app", 3, 2),
+        )
+        assertEquals(
+            WorkspaceGridPlacement.Placement("widget", 1, 3, spanX = 2, spanY = 2),
+            WorkspaceWidgetPlacementPolicy.move(grid, items, "widget", 1, 3),
+        )
+        assertNull(WorkspaceWidgetPlacementPolicy.move(grid, items, "widget", 2, 1))
+        assertNull(WorkspaceWidgetPlacementPolicy.move(grid, items, "widget", 4, 5))
+        assertNull(WorkspaceWidgetPlacementPolicy.move(grid, items, "unknown", 1, 3))
+        assertEquals(items[0], WorkspaceWidgetPlacementPolicy.move(grid, items, "widget", 0, 0))
+    }
+
+    @Test
     fun resizeRejectsCollisionAndAcceptsFreeExpansion() {
         val grid = WorkspaceGridPlacement.Grid(columns = 4, rows = 4)
         val existing = listOf(
