@@ -1,5 +1,8 @@
 package com.goreecloud.launcher.core.workspace.db
 
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetCatalog
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetDescriptor
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetKeyCodec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -16,7 +19,19 @@ class WorkspacePagedHomeMapperTest {
             WorkspaceItemEntity("item:b", "home:1", WorkspaceItemType.APP, APP_TWO, 1, 1, 0),
             WorkspaceItemEntity("dock:item", WorkspaceLegacyImportMapper.DOCK_PAGE_ID, WorkspaceItemType.APP, DOCK_APP, 0, null, null),
             WorkspaceItemEntity("item:a", "home:1", WorkspaceItemType.APP, APP_ONE, 0, 0, 0),
-            WorkspaceItemEntity("item:widget", "home:1", WorkspaceItemType.WIDGET, null, 2, 2, 0),
+            WorkspaceItemEntity(
+                "item:widget",
+                "home:1",
+                WorkspaceItemType.WIDGET,
+                WorkspaceWidgetKeyCodec.encode(
+                    WorkspaceWidgetDescriptor.BuiltIn(WorkspaceWidgetCatalog.CLOCK),
+                ),
+                2,
+                2,
+                0,
+                spanX = 2,
+                spanY = 2,
+            ),
         )
 
         val result = WorkspacePagedHomeMapper.map(pages, items)
@@ -36,7 +51,49 @@ class WorkspacePagedHomeMapperTest {
             ),
             ready.pages[1].appPlacements,
         )
-        assertEquals(1, ready.pages[1].unsupportedItemCount)
+        assertEquals(
+            listOf(
+                WorkspaceRenderedHomeWidget(
+                    itemId = "item:widget",
+                    descriptor = WorkspaceWidgetDescriptor.BuiltIn(WorkspaceWidgetCatalog.CLOCK),
+                    cellX = 2,
+                    cellY = 0,
+                    spanX = 2,
+                    spanY = 2,
+                ),
+            ),
+            ready.pages[1].widgetPlacements,
+        )
+        assertEquals(0, ready.pages[1].unsupportedItemCount)
+    }
+
+    @Test
+    fun malformedHomeWidgetFailsClosed() {
+        val result = WorkspacePagedHomeMapper.map(
+            pages = listOf(
+                WorkspacePageEntity(
+                    WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                    WorkspaceContainerType.HOME,
+                    0,
+                ),
+            ),
+            items = listOf(
+                WorkspaceItemEntity(
+                    "widget:bad",
+                    WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                    WorkspaceItemType.WIDGET,
+                    "bad-widget-key",
+                    0,
+                    0,
+                    0,
+                ),
+            ),
+        )
+
+        assertEquals(
+            WorkspacePagedHomeState.RecoveryRequired("MalformedHomeWidgetItem"),
+            result,
+        )
     }
 
     @Test
