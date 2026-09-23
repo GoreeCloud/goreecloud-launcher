@@ -57,17 +57,23 @@ class WorkspaceFolderRepository(
         }
         val dao = workspaceDaoOrNull() ?: return WorkspaceFolderMutationResult.Unavailable
         return try {
-            val page = primaryPage(dao) ?: return WorkspaceFolderMutationResult.InvalidWorkspace
-            val items = primaryItems(dao)
+            val pages = dao.readPagesByContainer(WorkspaceContainerType.HOME)
+            if (pages.isEmpty() ||
+                pages.first().pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
+                pages.map { it.rank } != pages.indices.toList()
+            ) return WorkspaceFolderMutationResult.InvalidWorkspace
+            val allItems = dao.readItems(pages.map { it.pageId })
+            // Reject duplication on every HOME page, not only the primary page. A folder
+            // moved to a secondary page must not be silently cloned by "Add to Home".
             if (
-                items.any { it.itemId == itemId } ||
-                items.any {
-                    it.itemType == WorkspaceItemType.FOLDER &&
-                        it.appKey == folderId
+                allItems.any { it.itemId == itemId } ||
+                allItems.any {
+                    it.itemType == WorkspaceItemType.FOLDER && it.appKey == folderId
                 }
-            ) {
-                return WorkspaceFolderMutationResult.InvalidWorkspace
-            }
+            ) return WorkspaceFolderMutationResult.InvalidWorkspace
+            val items = allItems.filter {
+                it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+            }.sortedBy { it.rank }
             val placements = items.mapNotNull(WorkspaceItemEntity::toFolderSpatialPlacement)
             if (placements.size != items.size) {
                 return WorkspaceFolderMutationResult.InvalidWorkspace
@@ -79,7 +85,6 @@ class WorkspaceFolderRepository(
                 spanX = 1,
                 spanY = 1,
             ) ?: return WorkspaceFolderMutationResult.NoSpace
-
             val folder = WorkspaceItemEntity(
                 itemId = itemId,
                 pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
@@ -91,15 +96,12 @@ class WorkspaceFolderRepository(
                 spanX = 1,
                 spanY = 1,
             )
-            val updated = items + folder
-            if (!dao.replacePrimaryHomeItemsIncludingIdentityChangesIfSnapshotMatches(
-                    expectedPage = page,
-                    expectedItems = items,
-                    updatedItems = updated,
+            if (!dao.replaceHomeItemsIfSnapshotMatches(
+                    expectedPages = pages,
+                    expectedItems = allItems,
+                    updatedItems = allItems + folder,
                 )
-            ) {
-                return WorkspaceFolderMutationResult.StoredWorkspaceChanged
-            }
+            ) return WorkspaceFolderMutationResult.StoredWorkspaceChanged
             WorkspaceFolderMutationResult.Added(
                 itemId = itemId,
                 folderId = folderId,
@@ -282,22 +284,37 @@ class WorkspaceFolderRepository(
         if (folderId.isBlank()) return WorkspaceFolderMutationResult.InvalidWorkspace
         val dao = workspaceDaoOrNull() ?: return WorkspaceFolderMutationResult.Unavailable
         return try {
-            val page = primaryPage(dao) ?: return WorkspaceFolderMutationResult.InvalidWorkspace
-            val items = primaryItems(dao)
-            val folder = items.singleOrNull {
+            val pages = dao.readPagesByContainer(WorkspaceContainerType.HOME)
+            if (
+                pages.isEmpty() ||
+                pages.first().pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
+                pages.map { it.rank } != pages.indices.toList()
+            ) return WorkspaceFolderMutationResult.InvalidWorkspace
+            val items = dao.readItems(pages.map { it.pageId })
+            val matches = items.filter {
                 it.itemType == WorkspaceItemType.FOLDER && it.appKey == folderId
-            } ?: return WorkspaceFolderMutationResult.NotFound
-            val updated = items
-                .filterNot { it.itemId == folder.itemId }
+            }
+            if (matches.isEmpty()) return WorkspaceFolderMutationResult.NotFound
+            if (matches.size != 1) return WorkspaceFolderMutationResult.InvalidWorkspace
+            val folder = matches.single()
+            val remainingSource = items
+                .filter { it.pageId == folder.pageId && it.itemId != folder.itemId }
+                .sortedBy { it.rank }
                 .mapIndexed { rank, item -> item.copy(rank = rank) }
-            if (!dao.replacePrimaryHomeItemsIncludingIdentityChangesIfSnapshotMatches(
-                    expectedPage = page,
+                .associateBy { it.itemId }
+            val updated = items.mapNotNull { item ->
+                when {
+                    item.itemId == folder.itemId -> null
+                    item.itemId in remainingSource -> remainingSource[item.itemId]
+                    else -> item
+                }
+            }
+            if (!dao.replaceHomeItemsIfSnapshotMatches(
+                    expectedPages = pages,
                     expectedItems = items,
                     updatedItems = updated,
                 )
-            ) {
-                return WorkspaceFolderMutationResult.StoredWorkspaceChanged
-            }
+            ) return WorkspaceFolderMutationResult.StoredWorkspaceChanged
             WorkspaceFolderMutationResult.Removed(folder.itemId, folderId)
         } catch (exception: CancellationException) {
             throw exception
