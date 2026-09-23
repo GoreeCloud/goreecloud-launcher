@@ -24,6 +24,7 @@ app/src/main/AndroidManifest.xml
 app/src/main/java/com/goreecloud/launcher/MainActivity.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppIconCache.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherBuiltInWallpapers.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPreferencesRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeDragPolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeLabelOverrides.kt
@@ -75,6 +76,7 @@ app/src/main/res/xml/backup_rules.xml
 app/src/main/res/xml/data_extraction_rules.xml
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherIconSingleFlightLoaderTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPreferencesTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherBuiltInWallpapersTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearchTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/GlazeMotionExperimentalConsumerTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthorityTest.kt
