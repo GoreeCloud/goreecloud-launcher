@@ -39,7 +39,6 @@ import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherRuntimeSearchProviderRegistry
-import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
 import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
@@ -205,6 +204,7 @@ private fun LauncherSearchSourceManager(
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val ready = persisted != null
     LazyColumn(
         modifier = modifier.fillMaxWidth().testTag("launcher-search-source-manager"),
@@ -247,7 +247,7 @@ private fun LauncherSearchSourceManager(
                                     append(option.privacySummary)
                                     if (
                                         !LauncherLocalSearchPermissions.isGranted(
-                                            LocalContext.current,
+                                            context,
                                             option.providerId,
                                         )
                                     ) {
