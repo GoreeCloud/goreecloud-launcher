@@ -15,6 +15,7 @@ class StarterWorkspacePolicyTest {
                 candidate("launcher", "GoreeCloud Launcher", "com.goreecloud.launcher.dev"),
                 candidate("phone", "Phone"),
                 candidate("messages", "GoreeCloud Messenger"),
+                candidate("mail", "GoreeCloud Mail"),
                 candidate("browser", "GoreeCloud Browser"),
                 candidate("camera", "Camera"),
                 candidate("calendar", "Calendar"),
@@ -28,13 +29,54 @@ class StarterWorkspacePolicyTest {
             ),
         )
 
-        assertEquals(listOf("phone", "messages", "browser", "camera"), selection.dockKeys)
+        assertEquals(
+            listOf("phone", "messages", "mail", "browser", "camera"),
+            selection.dockKeys,
+        )
         assertEquals(
             listOf("calendar", "clock", "contacts", "gallery", "memos", "files", "drive", "music"),
             selection.favoriteKeys,
         )
         assertFalse(selection.dockKeys.contains("launcher"))
         assertFalse(selection.favoriteKeys.contains("launcher"))
+    }
+
+    @Test
+    fun localLaunchCountsRankFavoritesWithoutDisplacingPreferredDockRoles() {
+        val selection = StarterWorkspacePolicy.select(
+            listOf(
+                candidate("phone", "Phone"),
+                candidate("messages", "Messages"),
+                candidate("mail", "Mail"),
+                candidate("browser", "Browser"),
+                candidate("camera", "Camera"),
+                candidate("alpha", "Alpha").copy(localLaunchCount = 4),
+                candidate("beta", "Beta").copy(localLaunchCount = 20),
+                candidate("gamma", "Gamma").copy(localLaunchCount = 9),
+                candidate("calendar", "Calendar"),
+            ),
+            maxFavorites = 4,
+        )
+
+        assertEquals(
+            listOf("phone", "messages", "mail", "browser", "camera"),
+            selection.dockKeys,
+        )
+        assertEquals(
+            listOf("beta", "gamma", "alpha", "calendar"),
+            selection.favoriteKeys,
+        )
+    }
+
+    @Test
+    fun tenStarterAppsOccupyBottomTwoRowsOfFiveBySixHome() {
+        assertEquals(
+            listOf(
+                0 to 4, 1 to 4, 2 to 4, 3 to 4, 4 to 4,
+                0 to 5, 1 to 5, 2 to 5, 3 to 5, 4 to 5,
+            ),
+            StarterWorkspacePolicy.homeCells(itemCount = 10, columns = 5, rows = 6),
+        )
     }
 
     @Test
