@@ -2,10 +2,16 @@ package com.goreecloud.launcher.ui
 
 import android.content.pm.LauncherActivityInfo
 import android.net.Uri
+import android.content.Intent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -134,79 +141,47 @@ internal fun LauncherProviderControlledSearchSurface(
         complete = true
     }
 
+    // Search remains a light floating overlay above the Launcher wallpaper. It never
+    // automatically forwards typed input to connected providers.
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
-            .padding(horizontal = GlazeMetrics.space3, vertical = GlazeMetrics.space2),
-        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+            .padding(horizontal = GlazeMetrics.space3, vertical = GlazeMetrics.space3),
+        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(
-                    start = GlazeMetrics.space3,
-                    top = GlazeMetrics.space2,
-                    bottom = GlazeMetrics.space2,
-                    end = GlazeMetrics.space2,
-                ),
-                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        if (showSources) "Search sources" else "Universal Search",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        if (showSources) "Choose where Launcher can search"
-                        else "Search privately across enabled sources",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                TextButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text("Done")
-                }
-            }
-        }
-        Surface(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            onClick = { showSources = !showSources },
-            shape = RoundedCornerShape(18.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(
-                    horizontal = GlazeMetrics.space3,
-                    vertical = GlazeMetrics.space2,
-                ),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    if (showSources) "Back to Search" else "Manage search sources",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    if (showSources) "←" else "Manage ›",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-
         if (showSources) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space3),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Search sources",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            "Local consent and explicit provider handoffs",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    TextButton(
+                        onClick = { showSources = false },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Back") }
+                }
+            }
             LauncherSearchSourceManager(
                 persisted = searchProviderPreferences,
                 controls = controls,
@@ -220,172 +195,366 @@ internal fun LauncherProviderControlledSearchSurface(
             )
         } else {
             Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                    .testTag("launcher-glaze-search-panel"),
+                shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                shadowElevation = 12.dp,
             ) {
-                GlazeAppSearchField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth().padding(4.dp),
-                    requestFocus = true,
-                    placeholder = "Search this device",
-                    inputTestTag = "launcher-universal-search-field",
-                )
-            }
-            if (explicitHandoffs.isNotEmpty()) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space2),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
-                    Column(
-                        modifier = Modifier.padding(GlazeMetrics.space3),
-                        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                     ) {
-                        Text(
-                            "Search with",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.SemiBold,
+                        GlazeAppSearchField(
+                            value = query,
+                            onValueChange = { query = it },
+                            modifier = Modifier.weight(1f),
+                            requestFocus = true,
+                            placeholder = "Search apps, people and files",
+                            inputTestTag = "launcher-universal-search-field",
                         )
-                        Text(
-                            "Your query is sent only to a provider you tap.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                        TextButton(
+                            onClick = {
+                                if (query.isNotBlank()) query = "" else onBack()
+                            },
+                            modifier = Modifier.heightIn(min = 48.dp),
                         ) {
-                            explicitHandoffs.forEach { provider ->
-                                androidx.compose.material3.OutlinedButton(
-                                    onClick = { onSearchWithConnectedProvider(provider.providerId, query) },
-                                ) { Text(provider.displayName) }
-                            }
+                            Text(if (query.isNotBlank()) "Clear" else "Close")
                         }
                     }
-                }
-            }
+                    val providerIssues by LauncherLocalSearchDiagnostics.issues.collectAsState()
+                    val enabledIssues = providerIssues.filterKeys { controls.isEnabled(it) }
+                    if (query.isNotBlank() && enabledIssues.isNotEmpty()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+                            color = MaterialTheme.colorScheme.errorContainer,
+                        ) {
+                            Text(
+                                "Some sources are unavailable. Review their permissions or status.",
+                                modifier = Modifier.padding(GlazeMetrics.space2),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                            )
+                        }
+                    }
 
-            val providerIssues by LauncherLocalSearchDiagnostics.issues.collectAsState()
-            val enabledIssues = providerIssues.filterKeys { controls.isEnabled(it) }
-            if (query.isNotBlank() && enabledIssues.isNotEmpty()) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.errorContainer,
-                ) {
-                    Text(
-                        "Some sources could not be searched. Open Manage search sources for details.",
-                        modifier = Modifier.padding(GlazeMetrics.space3),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-
-            if (results.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    contentAlignment = Alignment.TopCenter,
-                ) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                    ) {
+                    if (results.isEmpty()) {
                         Column(
-                            modifier = Modifier.padding(GlazeMetrics.space4),
-                            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                            modifier = Modifier.fillMaxWidth().padding(
+                                horizontal = GlazeMetrics.space3,
+                                vertical = GlazeMetrics.space2,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                         ) {
                             Text(
                                 when {
-                                    searchProviderPreferences == null -> "Loading sources"
-                                    providers.isEmpty() -> "Enable local search sources"
+                                    searchProviderPreferences == null -> "Loading search sources"
+                                    providers.isEmpty() -> "Turn on sources to search this device"
+                                    query.isBlank() -> "Start typing to search this device"
                                     !complete -> "Searching…"
-                                    query.isBlank() -> "Find anything on your device"
-                                    else -> "No matching results"
-                                },
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                when {
-                                    query.isBlank() -> "Enter a name, number, app, setting or filename. " +
-                                        "Contacts, calls and messages are included only when enabled and permitted."
-                                    enabledIssues.isNotEmpty() -> "Review the source status before trying again."
-                                    else -> "Try another term or review your enabled sources."
+                                    else -> "No results found"
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                if (query.isBlank()) "Apps, contacts, calls and files stay local. " +
+                                    "Only enabled and permitted sources are searched."
+                                else if (enabledIssues.isNotEmpty()) "Check source status for missing results."
+                                else "Try a different name, number, app or filename.",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                    }
-                }
-            } else {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                ) {
-                    Text(
-                        "${results.size} matching results",
-                        modifier = Modifier.padding(horizontal = GlazeMetrics.space3, vertical = 10.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                // Group the ranked stream without rescoring entries within any category.
-                // Only categories with actual matches are shown; blank queries no longer
-                // flood the surface with every installed app and every Launcher action.
-                val sections = listOf(
-                    LauncherSearchCategory.APPLICATION to "Apps",
-                    LauncherSearchCategory.CONTACT to "Contacts",
-                    LauncherSearchCategory.CALL_HISTORY to "Calls",
-                    LauncherSearchCategory.MESSAGE to "Messages",
-                    LauncherSearchCategory.FILE to "Files",
-                    LauncherSearchCategory.SHORTCUT to "App shortcuts",
-                    LauncherSearchCategory.ACTION to "Actions",
-                    LauncherSearchCategory.SETTING to "Settings",
-                    LauncherSearchCategory.CONNECTED_SOURCE to "Connected",
-                )
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                ) {
-                    sections.forEach { (category, title) ->
-                        val matches = results.filter { it.category == category }
-                        if (matches.isNotEmpty()) {
-                            item(key = "section:" + category.name) {
-                                Text(
-                                    title,
-                                    modifier = Modifier.padding(
-                                        top = GlazeMetrics.space2,
-                                        start = GlazeMetrics.space2,
-                                        bottom = 2.dp,
-                                    ),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
-                            items(matches, key = { it.providerId + ":" + it.resultId }) { result ->
-                                LauncherProviderSearchRow(result) {
-                                    when (val action = result.action) {
-                                        is LaunchApplicationSearchAction -> onLaunchApp(action.app)
-                                        is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
-                                        is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
-                                        is LauncherOpenDocumentSearchAction -> onOpenDocument(action)
-                                        is LauncherNavigateSearchAction -> onNavigate(action.destination)
-                                        else -> Unit
+                    } else {
+                        val grouped = LauncherGlazeSearchGroups.group(results)
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                                .testTag("launcher-glaze-search-results"),
+                            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                        ) {
+                            grouped.forEach { section ->
+                                item(key = "header:" + section.category.name) {
+                                    Text(
+                                        section.title,
+                                        modifier = Modifier.fillMaxWidth().padding(
+                                            start = GlazeMetrics.space2,
+                                            top = GlazeMetrics.space2,
+                                            bottom = GlazeMetrics.space1,
+                                        ),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                                if (section.category == LauncherSearchCategory.APPLICATION) {
+                                    val topApps = section.items.take(8)
+                                    topApps.chunked(4).forEachIndexed { index, chunk ->
+                                        item(key = "app-grid:" + index) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                                            ) {
+                                                chunk.forEach { result ->
+                                                    val action = result.action as? LaunchApplicationSearchAction
+                                                    if (action != null) {
+                                                        LauncherGlazeSearchAppTile(
+                                                            result = result,
+                                                            action = action,
+                                                            onLaunch = { onLaunchApp(action.app) },
+                                                            modifier = Modifier.weight(1f),
+                                                        )
+                                                    }
+                                                }
+                                                repeat(4 - chunk.size) { Spacer(Modifier.weight(1f)) }
+                                            }
+                                        }
+                                    }
+                                    items(
+                                        section.items.drop(8),
+                                        key = { "app:" + it.providerId + ":" + it.resultId },
+                                    ) { result ->
+                                        LauncherProviderSearchRow(result) {
+                                            (result.action as? LaunchApplicationSearchAction)
+                                                ?.let { onLaunchApp(it.app) }
+                                        }
+                                    }
+                                } else {
+                                    items(
+                                        section.items,
+                                        key = { it.category.name + ":" + it.providerId + ":" + it.resultId },
+                                    ) { result ->
+                                        LauncherGlazeSearchResult(
+                                            result = result,
+                                            onActivate = {
+                                                when (val action = result.action) {
+                                                    is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
+                                                    is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
+                                                    is LauncherOpenDocumentSearchAction -> onOpenDocument(action)
+                                                    is LauncherNavigateSearchAction -> onNavigate(action.destination)
+                                                    else -> Unit
+                                                }
+                                            },
+                                            onOpenSearchUri = onOpenSearchUri,
+                                        )
                                     }
                                 }
                             }
                         }
                     }
+                    if (explicitHandoffs.isNotEmpty()) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                        ) {
+                            Text(
+                                "Search with",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Row(
+                                modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                            ) {
+                                explicitHandoffs.forEach { provider ->
+                                    androidx.compose.material3.OutlinedButton(
+                                        onClick = { onSearchWithConnectedProvider(provider.providerId, query) },
+                                        modifier = Modifier.heightIn(min = 48.dp),
+                                    ) {
+                                        Text(provider.displayName, maxLines = 1)
+                                    }
+                                }
+                            }
+                        }
+                        Text(
+                            "Your query is sent only to the provider you tap.",
+                            modifier = Modifier.padding(start = GlazeMetrics.space2),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        TextButton(
+                            onClick = { showSources = true },
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Manage sources") }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class LauncherGlazeSearchSection(
+    val category: LauncherSearchCategory,
+    val title: String,
+    val items: List<LauncherSearchResult>,
+)
+
+/** Presentation-only grouping; never changes provider execution, opt-in, or result contents. */
+internal object LauncherGlazeSearchGroups {
+    private val order = listOf(
+        LauncherSearchCategory.APPLICATION to "Apps",
+        LauncherSearchCategory.SHORTCUT to "App shortcuts",
+        LauncherSearchCategory.CONTACT to "People",
+        LauncherSearchCategory.CALL_HISTORY to "Recent calls",
+        LauncherSearchCategory.MESSAGE to "Messages",
+        LauncherSearchCategory.FILE to "Files",
+        LauncherSearchCategory.ACTION to "Actions",
+        LauncherSearchCategory.SETTING to "Settings",
+        LauncherSearchCategory.CONNECTED_SOURCE to "Connected sources",
+    )
+
+    fun group(results: List<LauncherSearchResult>): List<LauncherGlazeSearchSection> =
+        order.mapNotNull { (category, title) ->
+            results.filter { it.category == category }
+                .takeIf { it.isNotEmpty() }
+                ?.let { LauncherGlazeSearchSection(category, title, it) }
+        }
+}
+
+@Composable
+private fun LauncherGlazeSearchAppTile(
+    result: LauncherSearchResult,
+    action: LaunchApplicationSearchAction,
+    onLaunch: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val icon = rememberLauncherAppIcon(action.app)
+    Surface(
+        modifier = modifier.heightIn(min = 96.dp),
+        onClick = onLaunch,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
+        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 3.dp, vertical = GlazeMetrics.space2),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+        ) {
+            if (icon != null) {
+                Image(
+                    bitmap = icon,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(42.dp).launcherIconMask(),
+                )
+            } else {
+                Box(
+                    modifier = Modifier.size(42.dp).background(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        RoundedCornerShape(14.dp),
+                    ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        result.title.take(1),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+            Text(
+                result.title,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+/** Local result actions are explicit user taps; Message opens the system's default SMS handler. */
+@Composable
+private fun LauncherGlazeSearchResult(
+    result: LauncherSearchResult,
+    onActivate: () -> Unit,
+    onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
+) {
+    val isContact = result.category == LauncherSearchCategory.CONTACT
+    val number = result.subtitle?.takeIf { it.any(Char::isDigit) }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(
+                horizontal = GlazeMetrics.space3,
+                vertical = GlazeMetrics.space1,
+            ),
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                onClick = onActivate,
+                shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+                color = Color.Transparent,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            result.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        result.subtitle?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    Text(
+                        if (isContact) "View ›" else "Open ›",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+            if (isContact && number != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = {
+                            onOpenSearchUri(LauncherOpenUriSearchAction(
+                                Intent.ACTION_DIAL,
+                                Uri.fromParts("tel", number, null).toString(),
+                            ))
+                        },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Call") }
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = {
+                            onOpenSearchUri(LauncherOpenUriSearchAction(
+                                Intent.ACTION_SENDTO,
+                                Uri.fromParts("smsto", number, null).toString(),
+                            ))
+                        },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text("Message") }
                 }
             }
         }
