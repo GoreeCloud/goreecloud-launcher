@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. PR #203 reconciled the post-migration authority records, and legacy Launcher Drive roadmap/changelog retirement was subsequently verified.**  
-**Repository authority baseline:** `main` at `29badaae9e4b1ce0c6a697501ed5cc969cc79eaa` (PR #226). Latest source-bearing Launcher runtime is the same commit.  
+**Repository authority baseline:** `main` at `b68d1e56443a6e8365cf1d440e4ac5c53c868a02` (PR #235). Latest source-bearing Launcher runtime is the same commit.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
@@ -30,6 +30,82 @@ The migrated historical record is stored in these repository-local segments:
 7. [September 16–22, 2026 — Glaze/Platform stabilization through Universal Search presentation structure](docs/changelog-history/2026-09-16-to-2026-09-22.md)
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
+
+## September 23, 2026 — PR #235 reserved Launcher Settings for Edit Home
+
+**Change type:** Settings navigation; Home gesture authority; compatibility routing; Development implementation.
+
+PR #235, **Keep Launcher Settings in the Home editor**, was guarded-squash merged to `main` as `b68d1e56443a6e8365cf1d440e4ac5c53c868a02`.
+
+Implemented:
+
+- removed the Home quick-action **Customize** shortcut that directly opened Launcher Settings while retaining Apps and Search quick actions;
+- reserved empty-space Home long-press for **Edit Home** so the Settings entry path cannot be remapped away;
+- removed Tap and hold from the configurable gesture list and presents it as the read-only **Edit Home** action;
+- removed direct **Launcher settings** from the configurable gesture picker;
+- retained historical stored `LAUNCHER_SETTINGS` and `TAP_AND_HOLD` values for compatibility while routing legacy direct-Settings gestures to Edit Home and ignoring stored tap-and-hold remaps for the reserved long-press behavior;
+- routes stale/internal Universal Search Settings destinations to Edit Home rather than directly entering Settings; and
+- leaves the Launcher-owned Settings surface reachable through **long-press empty Home → Edit Home → Settings**.
+
+Validation:
+
+- candidate head `6447ee1ddfbfa3c5983512bfb8a958badb1e13a0` passed source/build validation but its Android 16 runtime lane exposed an overly strict test assertion that expected one Settings semantics node where the Home editor rendered two matches; the same run also contained a separate Compose-hierarchy emulator flake;
+- no runtime implementation change was required for that assertion issue; final exact head `75581e01cdfb584b5f4af59377002ca835d0b064` relaxed only the test assertion;
+- final Android CI run #723 / `35820108208` passed validate/build/unit/schema/APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes; and
+- guarded squash merge commit: `b68d1e56443a6e8365cf1d440e4ac5c53c868a02`.
+
+**Lifecycle boundary:** Development only. Representative physical-device long-press discoverability, gesture ergonomics, accessibility, one-handed behavior, sustained performance, release qualification, production, and Stable acceptance remain open under issue #80.
+
+## September 22, 2026 — PR #229 added opt-in local Universal Search sources
+
+**Change type:** Universal Search; local sensitive sources; application shortcuts; permission gating; Development implementation.
+
+PR #229, **Add opt-in local Universal Search sources on current main**, was guarded-squash merged to `main` as `0d6ccf955ae0884d4b06d9ed1839b377ab2a1af2`.
+
+Implemented:
+
+- added Android application shortcuts as a local/default Launcher Search source and launches them through `LauncherApps.startShortcut`;
+- added Contacts, Call history, and Messages as explicit opt-in local Search sources;
+- keeps those sensitive sources disabled by default and requests the matching Android permission only when the user enables the source;
+- persists source enablement only after permission grant;
+- separates automatic-local, opt-in-local, and explicit-handoff provider modes;
+- opens contact/dialer/messaging results through Android intent actions;
+- removed the direct **Launcher settings** Universal Search result so Settings remains behind the Home editor policy; and
+- preserves local query processing with no INTERNET permission, telemetry, query-history persistence, or automatic third-party query fan-out.
+
+Permissions/trust boundary:
+
+- added only `READ_CONTACTS`, `READ_CALL_LOG`, and `READ_SMS` for their explicitly enabled local sources;
+- telephony hardware is declared optional; and
+- Android/Play distribution-policy eligibility for sensitive permissions remains a separate release obligation.
+
+Validation:
+
+- exact PR head `740f967339de2adf0a4d70c26c9aeef2c2ecff7e` passed Android CI run #714 / `35818607895`;
+- guarded squash merge commit: `0d6ccf955ae0884d4b06d9ed1839b377ab2a1af2`.
+
+**Lifecycle boundary:** Development only. Representative-device permission behavior, profile isolation, accessibility, latency, distribution-policy review, release qualification, production, and Stable acceptance remain open under issue #80.
+
+## September 22, 2026 — PR #228 connected persisted Universal Search source controls
+
+**Change type:** Universal Search provider controls; rendered Sources management; Development implementation.
+
+PR #228, **Connect persisted Universal Search source controls on current main**, was guarded-squash merged to `main` as `1e1f72c6a994e8381c0eecf3bd9fc3db17a44dde`.
+
+Implemented:
+
+- loads the existing versioned Search-provider preference store into activity-owned runtime state;
+- keeps automatic Search providers disabled until persisted control state has loaded;
+- adds an isolated Glaze Search surface with a **Sources** view for provider identity, enable/disable state, privacy summary, deterministic Earlier/Later ordering, and safe-default reset;
+- limits automatic execution to providers classified by the existing privacy policy as automatic-local; and
+- continues to exclude typed queries, results, history, credentials, usage signals, and provider payloads from the persisted provider-control store.
+
+Validation:
+
+- exact PR head `851bf9007ea57209981b61c1ec11bc746ad0a009` passed Android CI run #703 / `35816326844`;
+- guarded squash merge commit: `1e1f72c6a994e8381c0eecf3bd9fc3db17a44dde`.
+
+**Lifecycle boundary:** Development only. Portable provider-control recovery, file/connected-source Search, provider-specific external consent/handoff, representative-device Search latency/accessibility/profile behavior, release qualification, production, and Stable acceptance remain open under issue #80.
 
 ## September 22, 2026 — PR #226 added four Launcher-owned Glaze wallpapers
 
