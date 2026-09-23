@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. PR #203 reconciled the post-migration authority records, and legacy Launcher Drive roadmap/changelog retirement was subsequently verified.**  
-**Repository authority baseline:** `main` at `426e466f62d8347de720258be8492e518e84c4d5` (PR #238). Latest source-bearing Launcher runtime is the same commit.  
+**Repository authority baseline:** `main` at `03d4c3d2d7e355916412565b531e411d1bba71de` (PR #240). Latest source-bearing Launcher runtime is the same commit.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
@@ -30,6 +30,38 @@ The migrated historical record is stored in these repository-local segments:
 7. [September 16–22, 2026 — Glaze/Platform stabilization through Universal Search presentation structure](docs/changelog-history/2026-09-16-to-2026-09-22.md)
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
+
+## September 23, 2026 — PR #240 stabilized selected file Search roots
+
+**Change type:** Universal Search; Storage Access Framework lifecycle; failure isolation; Development stabilization.
+
+PR #240, **Stabilize selected file Search roots**, was guarded-squash merged to `main` as `03d4c3d2d7e355916412565b531e411d1bba71de`.
+
+Implemented:
+
+- exposed selected local File Search folders in the rendered **Sources** manager;
+- added explicit per-folder removal with a confirmation that explains Search removal and persisted Android read-access release;
+- removes the Launcher-local root record and then attempts to release the matching persisted read grant, while allowing the user to select the folder again later;
+- isolated file-index construction per selected root so a revoked, malformed, or broken document-provider tree fails soft without suppressing results from healthy selected roots;
+- preserved the global 1,500-file index bound and existing depth/result limits;
+- added JVM regression coverage for failed-root isolation and aggregate-bound enforcement;
+- updated `SOURCE_MANIFEST.txt`; and
+- corrected `USER-MANUAL.md` for the implemented File Search source controls, Home-editor-only Settings route, and existing AppWidgetHost behavior.
+
+Privacy/trust boundary:
+
+- no Launcher `INTERNET`, broad-storage, `QUERY_ALL_PACKAGES`, telemetry, query-history persistence, file-content indexing, or automatic third-party typed-query fan-out was added;
+- File Search remains restricted to user-selected Storage Access Framework roots; and
+- root removal reduces retained access instead of creating new authority.
+
+Validation:
+
+- exact PR head `32c2972d53786d3171ec7f4586bb121fe192a991` passed Android CI run #734 / `35827675978` across validate/build/unit/schema/APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes;
+- artifact `10735388852`, `goreecloud-launcher-android-dev-sidecar`, was produced for that exact head with GitHub digest `sha256:1eb903e3f91596065b8d9e1231244dcf3750006d956f1b88d3f352343a70798b`;
+- independent archive verification matched the GitHub digest; internal `SHA256SUMS` validated `GoreeCloud-Launcher-Dev.apk`; APK SHA-256 is `cdd6f5ee01cb32be7f3872a0b44bab7a1b52525fddab89f081430f410d39137d`; APK ZIP validation reported no errors; and
+- guarded squash merge commit: `03d4c3d2d7e355916412565b531e411d1bba71de`.
+
+**Lifecycle boundary:** Development only. Representative-device folder-picker/removal behavior, document-provider compatibility, large-tree latency/memory/power, accessibility, profile isolation, portable file-root recovery, release qualification, production, and Stable acceptance remain open under issue #80.
 
 ## September 23, 2026 — PR #238 added local file Search and explicit connected Search handoffs
 
