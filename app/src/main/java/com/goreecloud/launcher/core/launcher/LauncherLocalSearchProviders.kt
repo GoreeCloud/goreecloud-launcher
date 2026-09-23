@@ -265,3 +265,14 @@ class LauncherMessagesSearchProvider(context: Context) : LauncherSearchProvider,
 
 internal fun escapeLike(value: String): String =
     value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+object LauncherRuntimeSearchProviderRegistry {
+    fun catalog(
+        context: Context,
+        apps: List<android.content.pm.LauncherActivityInfo>,
+    ): LauncherSearchProviderCatalog = LauncherSearchProviderContract.evaluate(
+        LauncherBuiltInSearchProviderRegistry.registrations(apps) +
+            LauncherLocalSearchProviderRegistry.registrations(context),
+    )
+}
