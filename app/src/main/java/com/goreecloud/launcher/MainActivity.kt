@@ -614,6 +614,8 @@ class MainActivity : ComponentActivity() {
                             primaryHomePage = renderedPages.firstOrNull {
                                 it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
                             },
+                            homePages = renderedPages,
+                            onMoveFolderToPage = ::moveFolderToPage,
                             onCreateFolder = ::createFolder,
                             onRenameFolder = ::renameFolder,
                             onDeleteFolder = ::deleteFolder,
@@ -1306,6 +1308,31 @@ class MainActivity : ComponentActivity() {
                 else -> Toast.makeText(
                     this@MainActivity,
                     "Folder could not be moved; its original placement is preserved.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun moveFolderToPage(folder: LauncherFolder, targetPageId: String) {
+        lifecycleScope.launch {
+            val prefs = launcherPreferencesRepository.preferences.first()
+            if (prefs.layoutLocked) return@launch
+            when (val result = workspaceRuntimeCoordinator.moveHomeFolderToPage(
+                folderId = folder.id,
+                targetPageId = targetPageId,
+                columns = prefs.homeColumns,
+                rows = prefs.homeRows,
+            )) {
+                is WorkspaceFolderMutationResult.MovedToPage -> selectedHomePageId = result.targetPageId
+                WorkspaceFolderMutationResult.NoSpace -> Toast.makeText(
+                    this@MainActivity,
+                    "There is not enough room on that Home page.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                else -> Toast.makeText(
+                    this@MainActivity,
+                    "Folder could not be moved. Its existing placement was preserved.",
                     Toast.LENGTH_SHORT,
                 ).show()
             }
