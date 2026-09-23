@@ -47,14 +47,44 @@ object WorkspaceWidgetKeyCodec {
 
 object WorkspaceWidgetCatalog {
     const val CLOCK = "goreecloud.clock"
+    const val COMPACT_CLOCK = "goreecloud.clock-compact"
+    const val ANALOG_CLOCK = "goreecloud.clock-analog"
+    const val DATE = "goreecloud.date"
     const val LAUNCHER_STATUS = "goreecloud.launcher-status"
 
-    val builtInTypeIds: Set<String> = setOf(CLOCK, LAUNCHER_STATUS)
+    val builtInTypeIds: Set<String> = linkedSetOf(
+        CLOCK,
+        COMPACT_CLOCK,
+        ANALOG_CLOCK,
+        DATE,
+        LAUNCHER_STATUS,
+    )
 
     fun defaultSpan(typeId: String): Pair<Int, Int>? = when (typeId) {
         CLOCK -> 2 to 2
+        COMPACT_CLOCK -> 2 to 1
+        ANALOG_CLOCK -> 2 to 2
+        DATE -> 2 to 1
         LAUNCHER_STATUS -> 2 to 1
         else -> null
+    }
+
+    fun displayName(typeId: String): String = when (typeId) {
+        CLOCK -> "Digital clock"
+        COMPACT_CLOCK -> "Compact clock"
+        ANALOG_CLOCK -> "Analog clock"
+        DATE -> "Date"
+        LAUNCHER_STATUS -> "Launcher Status"
+        else -> "GoreeCloud widget"
+    }
+
+    fun description(typeId: String): String = when (typeId) {
+        CLOCK -> "Time and date with a roomy glance layout."
+        COMPACT_CLOCK -> "A compact time-first widget for tighter Home layouts."
+        ANALOG_CLOCK -> "A quiet analog clock with Glaze styling."
+        DATE -> "Day, date, and month at a glance."
+        LAUNCHER_STATUS -> "Local Launcher readiness and operating state."
+        else -> "GoreeCloud widget"
     }
 }
 
