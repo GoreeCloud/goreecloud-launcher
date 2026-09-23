@@ -241,6 +241,9 @@ fun LauncherBetaRoot(
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
     onSetShowHomePageIndicator: (Boolean) -> Unit,
+    onSetShowHomeLabels: (Boolean) -> Unit,
+    onSetShowDrawerLabels: (Boolean) -> Unit,
+    onSetShowDrawerPageIndicator: (Boolean) -> Unit,
     onSetUseLocalUsageForSuggestions: (Boolean) -> Unit,
     onSetAddNewAppsToHome: (Boolean) -> Unit,
     onClearLocalUsage: () -> Unit,
@@ -597,6 +600,9 @@ fun LauncherBetaRoot(
                         onSetHomeCardStyle = onSetHomeCardStyle,
                         onSetShowHomeQuickActions = onSetShowHomeQuickActions,
                         onSetShowHomePageIndicator = onSetShowHomePageIndicator,
+                        onSetShowHomeLabels = onSetShowHomeLabels,
+                        onSetShowDrawerLabels = onSetShowDrawerLabels,
+                        onSetShowDrawerPageIndicator = onSetShowDrawerPageIndicator,
                         onSetUseLocalUsageForSuggestions = onSetUseLocalUsageForSuggestions,
                         onSetAddNewAppsToHome = onSetAddNewAppsToHome,
                         onClearLocalUsage = onClearLocalUsage,
@@ -984,7 +990,7 @@ private fun HomeSurface(
                     rows = preferences.homeRows,
                     primaryHomePage = primaryHomePage,
                     iconScale = preferences.iconScale,
-                    showLabels = preferences.showLabels,
+                    showLabels = experiencePreferences.showHomeLabels,
                     spacing = experiencePreferences.homeSpacing,
                     layoutLocked = preferences.layoutLocked,
                     homeLabelOverrides = homeLabelOverrides,
@@ -3046,7 +3052,7 @@ private fun DrawerAppsContent(
                         LauncherAppTile(
                             app = app,
                             iconScale = preferences.iconScale,
-                            showLabel = preferences.showLabels,
+                            showLabel = experiencePreferences.showDrawerLabels,
                             compact = drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT,
                             onClick = { onLaunchApp(app) },
                             onLongClick = { onManageApp(app) },
@@ -3065,7 +3071,7 @@ private fun DrawerAppsContent(
                 }
             }
 
-            if (pageCount > 1) {
+            if (pageCount > 1 && experiencePreferences.showDrawerPageIndicator) {
                 DrawerPageDots(
                     pageCount = pageCount,
                     currentPage = pagerState.currentPage,
@@ -3104,7 +3110,7 @@ private fun DrawerAppsContent(
                     LauncherAppTile(
                         app = app,
                         iconScale = preferences.iconScale,
-                        showLabel = preferences.showLabels,
+                        showLabel = experiencePreferences.showDrawerLabels,
                         compact = false,
                         onClick = { onLaunchApp(app) },
                         onLongClick = { onManageApp(app) },
@@ -3139,7 +3145,7 @@ private fun DrawerAppsContent(
                     LauncherAppTile(
                         app = app,
                         iconScale = preferences.iconScale,
-                        showLabel = preferences.showLabels,
+                        showLabel = experiencePreferences.showDrawerLabels,
                         compact = true,
                         onClick = { onLaunchApp(app) },
                         onLongClick = { onManageApp(app) },
@@ -3231,7 +3237,7 @@ private fun DrawerAppsContent(
                                 LauncherAppTile(
                                     app = app,
                                     iconScale = preferences.iconScale,
-                                    showLabel = preferences.showLabels,
+                                    showLabel = experiencePreferences.showDrawerLabels,
                                     compact = false,
                                     onClick = { onLaunchApp(app) },
                                     onLongClick = { onManageApp(app) },
@@ -3414,6 +3420,9 @@ private fun LauncherSettingsRootSurface(
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
     onSetShowHomePageIndicator: (Boolean) -> Unit,
+    onSetShowHomeLabels: (Boolean) -> Unit,
+    onSetShowDrawerLabels: (Boolean) -> Unit,
+    onSetShowDrawerPageIndicator: (Boolean) -> Unit,
     onSetUseLocalUsageForSuggestions: (Boolean) -> Unit,
     onSetAddNewAppsToHome: (Boolean) -> Unit,
     onClearLocalUsage: () -> Unit,
@@ -3561,7 +3570,12 @@ private fun LauncherSettingsRootSurface(
                     onSetShowHomeQuickActions,
                 )
                 SettingSwitch(
-                    "Page indicator",
+                    "Show Home app labels",
+                    experiencePreferences.showHomeLabels,
+                    onSetShowHomeLabels,
+                )
+                SettingSwitch(
+                    "Home page indicator",
                     experiencePreferences.showHomePageIndicator,
                     onSetShowHomePageIndicator,
                 )
@@ -3767,7 +3781,16 @@ private fun LauncherSettingsRootSurface(
                         onChoice = { onSetDrawerPageRows(it.toInt()) },
                     )
                 }
-                SettingSwitch("Show app labels", preferences.showLabels, onSetShowLabels)
+                SettingSwitch(
+                    "Show app labels",
+                    experiencePreferences.showDrawerLabels,
+                    onSetShowDrawerLabels,
+                )
+                SettingSwitch(
+                    "Page indicator",
+                    experiencePreferences.showDrawerPageIndicator,
+                    onSetShowDrawerPageIndicator,
+                )
                 SettingSwitch(
                     "Show app count",
                     experiencePreferences.showDrawerAppCount,
