@@ -95,6 +95,8 @@ import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
+import com.goreecloud.launcher.core.launcher.LauncherIconPackDescriptor
+import com.goreecloud.launcher.core.launcher.LauncherIconShape
 import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
@@ -193,6 +195,7 @@ fun LauncherBetaRoot(
     onOpenAppInfo: (LauncherActivityInfo) -> Unit,
     onAddBuiltInWidget: (String) -> Unit,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
+    availableIconPacks: List<LauncherIconPackDescriptor>,
     onPickInstalledAndroidWidget: (LauncherWidgetProviderDescriptor) -> Unit,
     onPickAndroidWidget: () -> Unit,
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
@@ -217,6 +220,8 @@ fun LauncherBetaRoot(
     onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
+    onSetIconShape: (LauncherIconShape) -> Unit,
+    onSetIconPackPackage: (String?) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
     onSetUniversalSearchHomeMode: (LauncherUniversalSearchHomeMode) -> Unit,
     onSetSearchProviderPreferences:
@@ -576,6 +581,7 @@ fun LauncherBetaRoot(
                         preferences = preferences,
                         drawerLayoutMode = drawerLayoutMode,
                         experiencePreferences = experiencePreferences,
+                        availableIconPacks = availableIconPacks,
                         themeMode = themeMode,
                         isDefaultHome = isDefaultHome,
                         onRequestHomeRole = onRequestHomeRole,
@@ -584,6 +590,8 @@ fun LauncherBetaRoot(
                         onSetDrawerLayoutMode = onSetDrawerLayoutMode,
                         onSetShowLabels = onSetShowLabels,
                         onSetIconScale = onSetIconScale,
+                        onSetIconShape = onSetIconShape,
+                        onSetIconPackPackage = onSetIconPackPackage,
                         onSetLayoutLocked = onSetLayoutLocked,
                         onSetUniversalSearchHomeMode = onSetUniversalSearchHomeMode,
                         onSetHomeCardStyle = onSetHomeCardStyle,
@@ -3390,6 +3398,7 @@ private fun LauncherSettingsRootSurface(
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
+    availableIconPacks: List<LauncherIconPackDescriptor>,
     themeMode: GlazeThemeMode,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
@@ -3398,6 +3407,8 @@ private fun LauncherSettingsRootSurface(
     onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
+    onSetIconShape: (LauncherIconShape) -> Unit,
+    onSetIconPackPackage: (String?) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
     onSetUniversalSearchHomeMode: (LauncherUniversalSearchHomeMode) -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
@@ -3424,6 +3435,7 @@ private fun LauncherSettingsRootSurface(
     onBack: () -> Unit,
 ) {
     var gestureToConfigure by remember { mutableStateOf<LauncherHomeGesture?>(null) }
+    var showIconPackPicker by rememberSaveable { mutableStateOf(false) }
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
 
     Box(
@@ -3763,7 +3775,21 @@ private fun LauncherSettingsRootSurface(
                 )
             }
 
-            SettingsSection("Icons", "Size across Home and Apps") {
+            SettingsSection("Icons", "Shape, size and icon packs") {
+                Text(
+                    "Icon shape",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                IconShapeChoiceGrid(
+                    selected = experiencePreferences.iconShape,
+                    onSelect = onSetIconShape,
+                )
+                Text(
+                    "Icon size",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 ChoiceRow(
                     choices = listOf("Small", "Medium", "Large"),
                     selected = when {
@@ -3780,6 +3806,27 @@ private fun LauncherSettingsRootSurface(
                             },
                         )
                     },
+                )
+                val selectedPackLabel = experiencePreferences.iconPackPackage
+                    ?.let { selectedPackage ->
+                        availableIconPacks.firstOrNull { it.packageName == selectedPackage }?.label
+                            ?: selectedPackage.substringAfterLast('.')
+                    }
+                    ?: "Original icons"
+                GlazeSettingsAction(
+                    title = "Icon pack",
+                    summary = if (availableIconPacks.isEmpty()) {
+                        "Install a compatible icon pack or keep original app artwork."
+                    } else {
+                        "Use original artwork or an installed compatible icon pack."
+                    },
+                    value = selectedPackLabel,
+                    onClick = { showIconPackPicker = true },
+                )
+                Text(
+                    "Rounded square is the default. Original leaves Android-provided icon artwork unmasked.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -3840,6 +3887,18 @@ private fun LauncherSettingsRootSurface(
                     "Tap and hold on empty Home space is reserved for Edit Home so Wallpaper, Widgets, Pages, Apps, and Settings remain consistently reachable. Swipe left/right and Double-tap remain configurable empty-space gestures.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (showIconPackPicker) {
+                LauncherIconPackPickerSheet(
+                    packs = availableIconPacks,
+                    selectedPackage = experiencePreferences.iconPackPackage,
+                    onSelect = { packageName ->
+                        onSetIconPackPackage(packageName)
+                        showIconPackPicker = false
+                    },
+                    onDismiss = { showIconPackPicker = false },
                 )
             }
 
