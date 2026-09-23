@@ -25,6 +25,7 @@ object LauncherNotificationBadges {
     val enabled = enabledState.asStateFlow()
     private val accessState = MutableStateFlow(false)
     val accessGranted = accessState.asStateFlow()
+    private var refreshFromListener: (() -> Unit)? = null
     private val countState = MutableStateFlow<Map<LauncherBadgeAppKey, Int>>(emptyMap())
     val counts = countState.asStateFlow()
 
@@ -41,6 +42,7 @@ object LauncherNotificationBadges {
         enabledState.value = newEnabled
         if (!newEnabled) countState.value = emptyMap()
         refreshAccess(context)
+        if (newEnabled) refreshFromListener?.invoke()
     }
 
     fun refreshAccess(context: Context) {
@@ -50,6 +52,11 @@ object LauncherNotificationBadges {
             false
         }
         if (!accessState.value) countState.value = emptyMap()
+        else if (enabledState.value) refreshFromListener?.invoke()
+    }
+
+    internal fun setActiveListener(refresh: (() -> Unit)?) {
+        refreshFromListener = refresh
     }
 
     fun countFor(app: LauncherActivityInfo, visibleCounts: Map<LauncherBadgeAppKey, Int>): Int =
@@ -75,14 +82,16 @@ object LauncherNotificationBadges {
 class LauncherNotificationBadgeListener : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
+        LauncherNotificationBadges.initialize(this)
+        LauncherNotificationBadges.setActiveListener(::refresh)
         LauncherNotificationBadges.refreshAccess(this)
-        refresh()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) { refresh() }
     override fun onNotificationRemoved(sbn: StatusBarNotification?) { refresh() }
 
     override fun onListenerDisconnected() {
+        LauncherNotificationBadges.setActiveListener(null)
         LauncherNotificationBadges.clear()
         super.onListenerDisconnected()
     }
