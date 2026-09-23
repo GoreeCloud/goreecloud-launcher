@@ -168,9 +168,27 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
                 rows = 5,
             ),
         )
+        // Folder placement is a snapshot-conditional Room mutation: occupied app and widget
+        // cells must reject moves without dropping membership, identity, or the original cell.
+        assertEquals(
+            WorkspaceFolderMutationResult.NoSpace,
+            folderRepository.moveFolderToCell("folder-id-runtime", 4, 5, 0, 0),
+        )
+        assertEquals(
+            WorkspaceFolderMutationResult.NoSpace,
+            folderRepository.moveFolderToCell("folder-id-runtime", 4, 5, 2, 0),
+        )
+        assertEquals(
+            WorkspaceFolderMutationResult.Moved(
+                "folder:home:runtime", "folder-id-runtime", 1, 1,
+            ),
+            folderRepository.moveFolderToCell("folder-id-runtime", 4, 5, 1, 1),
+        )
         val folder = database.workspaceDao()
             .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
             .single { it.itemType == WorkspaceItemType.FOLDER }
+        assertEquals(1, folder.cellX)
+        assertEquals(1, folder.cellY)
         assertEquals(
             WorkspaceRoomReadResult.Loaded(
                 WorkspaceRelationalSnapshot(INITIAL_FAVORITES, INITIAL_DOCK)
