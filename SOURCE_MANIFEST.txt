@@ -7,6 +7,7 @@ CHANGELOGS.md
 COMPETITIVE-OBJECTIVES.md
 FEATURES.md
 IMPLEMENTED-FEATURES.md
+ICON-PACK-AUTHORING.md
 LICENSE
 NOTES.md
 PLANNED-FEATURES.md
@@ -47,6 +48,7 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFilesSearchProvi
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeDragPolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeLabelOverrides.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherInstalledAppBaselineRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherIconPacks.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherLocalSearchProviders.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherLocalUsageRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferenceImport.kt
