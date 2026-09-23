@@ -11,6 +11,9 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetCatalog
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetDescriptor
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetKeyCodec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -124,6 +127,36 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             spatialRepository.ensureGrid(columns = 4, rows = 8),
         )
 
+        val widget = WorkspaceItemEntity(
+            itemId = "widget:builtin:runtime",
+            pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+            itemType = WorkspaceItemType.WIDGET,
+            appKey = WorkspaceWidgetKeyCodec.encode(
+                WorkspaceWidgetDescriptor.BuiltIn(WorkspaceWidgetCatalog.CLOCK),
+            ),
+            rank = migratedPrimary.size,
+            cellX = 2,
+            cellY = 0,
+            spanX = 2,
+            spanY = 2,
+        )
+        val primaryPage = database.workspaceDao()
+            .readPages(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .single()
+        assertTrue(
+            database.workspaceDao().replacePrimaryHomeItemsIncludingIdentityChangesIfSnapshotMatches(
+                expectedPage = primaryPage,
+                expectedItems = migratedPrimary,
+                updatedItems = migratedPrimary + widget,
+            ),
+        )
+        assertEquals(
+            WorkspaceRoomReadResult.Loaded(
+                WorkspaceRelationalSnapshot(INITIAL_FAVORITES, INITIAL_DOCK)
+            ),
+            placementRepository.read(),
+        )
+
         val expectedReplacement = WorkspaceRelationalSnapshot(
             favoriteKeys = REPLACEMENT_FAVORITES,
             dockKeys = listOf(DOCK_ONE, DOCK_TWO, DOCK_THREE, DOCK_FOUR, DOCK_FIVE),
@@ -143,7 +176,20 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
         val spatialReplacement = database.workspaceDao()
             .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
             .sortedBy { it.rank }
-        assertEquals(REPLACEMENT_FAVORITES, spatialReplacement.mapNotNull { it.appKey })
+        assertEquals(
+            REPLACEMENT_FAVORITES,
+            spatialReplacement
+                .filter { it.itemType == WorkspaceItemType.APP }
+                .mapNotNull { it.appKey },
+        )
+        val retainedWidget = spatialReplacement.single {
+            it.itemType == WorkspaceItemType.WIDGET
+        }
+        assertEquals(widget.appKey, retainedWidget.appKey)
+        assertEquals(widget.cellX, retainedWidget.cellX)
+        assertEquals(widget.cellY, retainedWidget.cellY)
+        assertEquals(widget.spanX, retainedWidget.spanX)
+        assertEquals(widget.spanY, retainedWidget.spanY)
         assertTrue(
             spatialReplacement.all {
                 it.cellX != null &&
