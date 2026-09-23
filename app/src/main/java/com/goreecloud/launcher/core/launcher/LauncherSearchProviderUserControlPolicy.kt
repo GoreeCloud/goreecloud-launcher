@@ -194,7 +194,7 @@ object LauncherSearchProviderUserControlPolicy {
         return state.orderedOptions.mapNotNull { option ->
             if (
                 !state.isEnabled(option.providerId) ||
-                option.invocationMode != LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL
+                option.invocationMode == LauncherSearchProviderInvocationMode.EXPLICIT_USER_HANDOFF
             ) {
                 return@mapNotNull null
             }
