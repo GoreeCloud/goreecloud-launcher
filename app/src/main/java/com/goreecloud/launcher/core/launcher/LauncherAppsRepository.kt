@@ -308,6 +308,14 @@ class LauncherAppsRepository(context: Context) {
         launcherApps.startMainActivity(app.componentName, app.user, Rect(), Bundle.EMPTY)
     }
 
+    fun launchShortcut(
+        packageName: String,
+        shortcutId: String,
+        user: UserHandle,
+    ) {
+        launcherApps.startShortcut(packageName, shortcutId, Rect(), Bundle.EMPTY, user)
+    }
+
     fun openDetails(app: LauncherActivityInfo) {
         launcherApps.startAppDetailsActivity(app.componentName, app.user, Rect(), Bundle.EMPTY)
     }
