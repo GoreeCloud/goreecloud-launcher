@@ -243,8 +243,10 @@ internal fun LauncherProviderControlledSearchSurface(
 private fun LauncherSearchSourceManager(
     persisted: LauncherSearchProviderPreferenceDecodeResult?,
     controls: LauncherSearchProviderControlState,
+    fileSearchRootCount: Int,
     onSet: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
     onSetEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onChooseFileSearchRoot: () -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -263,7 +265,7 @@ private fun LauncherSearchSourceManager(
                 Column(Modifier.padding(GlazeMetrics.space3)) {
                     Text("Privacy-first provider controls", fontWeight = FontWeight.SemiBold)
                     Text(
-                        if (ready) "Only enabled automatic-local sources receive typed queries."
+                        if (ready) "Only enabled local sources receive typed queries; network and third-party sources require an explicit Search with action."
                         else "Loading saved controls; automatic Search stays off.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
