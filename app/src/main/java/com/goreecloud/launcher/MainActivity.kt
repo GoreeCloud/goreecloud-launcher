@@ -46,6 +46,8 @@ import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherFileSearchPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
+import com.goreecloud.launcher.core.launcher.LauncherFolder
+import com.goreecloud.launcher.core.launcher.LauncherFolderRepository
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherIconPackDescriptor
@@ -77,6 +79,7 @@ import com.goreecloud.launcher.core.workspace.WorkspaceWidgetDescriptor
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativeWriteResult
+import com.goreecloud.launcher.core.workspace.db.WorkspaceFolderMutationResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResult
@@ -114,6 +117,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var fileSearchPreferencesRepository: LauncherFileSearchPreferencesRepository
     private lateinit var installedAppBaselineRepository: LauncherInstalledAppBaselineRepository
     private lateinit var localUsageRepository: LauncherLocalUsageRepository
+    private lateinit var folderRepository: LauncherFolderRepository
     private lateinit var appWidgetHostController: LauncherAppWidgetHostController
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
@@ -218,6 +222,7 @@ class MainActivity : ComponentActivity() {
         fileSearchPreferencesRepository = LauncherFileSearchPreferencesRepository(this)
         installedAppBaselineRepository = LauncherInstalledAppBaselineRepository(this)
         localUsageRepository = LauncherLocalUsageRepository(this)
+        folderRepository = LauncherFolderRepository(this)
         appWidgetHostController = LauncherAppWidgetHostController(this)
         themeRepository = GlazeThemeRepository(this)
         workspaceRepository = WorkspaceRepository(this)
@@ -289,6 +294,9 @@ class MainActivity : ComponentActivity() {
             )
             val homeLabelOverrides by launcherPreferencesRepository.homeLabelOverrides.collectAsStateWithLifecycle(
                 initialValue = emptyMap(),
+            )
+            val folders by folderRepository.folders.collectAsStateWithLifecycle(
+                initialValue = emptyList(),
             )
             val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
                 initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
@@ -583,9 +591,17 @@ class MainActivity : ComponentActivity() {
                             homePageCount = renderedPages.size.coerceAtLeast(1),
                             homeResetSequence = homeResetSequenceValue,
                             homeLabelOverrides = homeLabelOverrides,
+                            folders = folders,
                             primaryHomePage = renderedPages.firstOrNull {
                                 it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
                             },
+                            onCreateFolder = ::createFolder,
+                            onRenameFolder = ::renameFolder,
+                            onDeleteFolder = ::deleteFolder,
+                            onAddAppToFolder = ::addAppToFolder,
+                            onRemoveAppFromFolder = ::removeAppFromFolder,
+                            onAddFolderToHome = ::addFolderToHome,
+                            onRemoveFolderFromHome = ::removeFolderFromHome,
                             onManageHomePages = {
                                 val secondaryPage = renderedPages.firstOrNull {
                                     it.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID
@@ -1133,6 +1149,125 @@ class MainActivity : ComponentActivity() {
                     } else {
                         "That widget could not be added."
                     },
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun createFolder(name: String, addToHome: Boolean) {
+        lifecycleScope.launch {
+            val folder = folderRepository.create(name)
+            if (folder == null) {
+                Toast.makeText(
+                    this@MainActivity,
+                    "Folder could not be created.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                return@launch
+            }
+            if (addToHome) addFolderToHomeInternal(folder)
+        }
+    }
+
+    private fun renameFolder(folderId: String, name: String) {
+        lifecycleScope.launch {
+            if (!folderRepository.rename(folderId, name)) {
+                Toast.makeText(
+                    this@MainActivity,
+                    "Folder could not be renamed.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun addAppToFolder(folderId: String, app: LauncherActivityInfo) {
+        lifecycleScope.launch {
+            if (!folderRepository.addApp(folderId, app.workspaceKey())) {
+                Toast.makeText(
+                    this@MainActivity,
+                    "App could not be added to that folder.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun removeAppFromFolder(folderId: String, app: LauncherActivityInfo) {
+        lifecycleScope.launch {
+            if (!folderRepository.removeApp(folderId, app.workspaceKey())) {
+                Toast.makeText(
+                    this@MainActivity,
+                    "App could not be removed from that folder.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun addFolderToHome(folder: LauncherFolder) {
+        lifecycleScope.launch {
+            addFolderToHomeInternal(folder)
+        }
+    }
+
+    private suspend fun addFolderToHomeInternal(folder: LauncherFolder) {
+        val preferences = launcherPreferencesRepository.preferences.first()
+        when (
+            workspaceRuntimeCoordinator.addFolderToHome(
+                itemId = "folder:home:${UUID.randomUUID()}",
+                folderId = folder.id,
+                columns = preferences.homeColumns,
+                rows = preferences.homeRows,
+            )
+        ) {
+            is WorkspaceFolderMutationResult.Added -> Unit
+            WorkspaceFolderMutationResult.NoSpace -> Toast.makeText(
+                this@MainActivity,
+                "There is not enough room on Home for that folder.",
+                Toast.LENGTH_SHORT,
+            ).show()
+            else -> Toast.makeText(
+                this@MainActivity,
+                "Folder could not be added to Home.",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    private fun removeFolderFromHome(folder: LauncherFolder) {
+        lifecycleScope.launch {
+            when (workspaceRuntimeCoordinator.removeFolderFromHome(folder.id)) {
+                is WorkspaceFolderMutationResult.Removed,
+                WorkspaceFolderMutationResult.NotFound,
+                -> Unit
+                else -> Toast.makeText(
+                    this@MainActivity,
+                    "Folder could not be removed from Home.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun deleteFolder(folder: LauncherFolder) {
+        lifecycleScope.launch {
+            when (workspaceRuntimeCoordinator.removeFolderFromHome(folder.id)) {
+                is WorkspaceFolderMutationResult.Removed,
+                WorkspaceFolderMutationResult.NotFound,
+                -> {
+                    if (!folderRepository.delete(folder.id)) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Folder could not be deleted.",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                }
+                else -> Toast.makeText(
+                    this@MainActivity,
+                    "Folder remains available because Home cleanup could not be verified.",
                     Toast.LENGTH_SHORT,
                 ).show()
             }
