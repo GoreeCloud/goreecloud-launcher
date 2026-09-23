@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record.**  
-**Repository authority baseline:** `main` at `0af5d6753d1dca98de432f24f8703fe5bae85e2c` (PR #207 merged September 22, 2026).  
+**Repository authority baseline:** `main` at `384568dda7abcf0a7e2c0942773efa540b70af2c` (PR #221 merged September 22, 2026).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation
@@ -15,7 +15,7 @@ Partially implemented capabilities remain open obligations in `PLANNED-FEATURES.
 
 ## Current verified source baseline
 
-The current repository `main` head and latest source-bearing Launcher runtime are `0af5d6753d1dca98de432f24f8703fe5bae85e2c`, the guarded squash merge of PR #207, **Stabilize persisted Search provider controls**. PR #207 exact head `f823ab9c1cb406116b68fe1f7c20cefef1ad6575` passed Android CI run #647 / `35794625569` across validation, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. This source baseline builds on PR #205's bounded latest-snapshot icon-preload cancellation and PR #199's dedicated provider-preference DataStore without changing the Launcher lifecycle boundary.
+The current repository `main` head and latest source-bearing Launcher runtime are `384568dda7abcf0a7e2c0942773efa540b70af2c`, the guarded squash merge of PR #221, **Restack 5x6 starter Home and five-app Dock defaults**. PR #221 exact head `d464224bbd8d975dcad8e6320a0adf117bafa318` passed Android CI run #688 / `35811191027` across repository/privacy/identity/GLAZE/Room-cutover guards, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. This baseline also includes PR #219's AppWidgetHost-based Home widgets at merge commit `42513fb80ec2caea8431437664a96abb1a605f1f`, PR #215's unified Home/Dock/App Drawer drag-and-edit interactions at `12634e7388f6c997debb255874136f80cc720830`, and PR #212's source-manifest reconciliation at `53e79befaf7f76b1abf27acecf8a3c838515f34b`.
 
 This is Development evidence. It does not establish physical-device performance, complete accessibility, personal/work/Shelter/private-space acceptance, Quickstep/Recents compatibility, complete Integral Platform System acceptance, protected production signing/distribution, Release Candidate, production, or Stable qualification.
 
@@ -33,8 +33,16 @@ This is Development evidence. It does not establish physical-device performance,
 
 - Wallpaper-backed primary Home surface using Android system wallpaper presentation without wallpaper or storage privileges.
 - Persisted Favorites and a bounded five-item Dock.
+- Default 5 × 6 Home grid for a new Launcher preference store, while the existing supported grid presets remain configurable.
+- One-time starter layout that prefers Phone, Messages, Email/Mail, Browser, and Camera for the five Dock positions when matching apps are available.
+- One-time starter Home placement of up to 10 apps in the bottom two rows directly above the Dock; existing Launcher-local aggregate launch counts are used for ranking when available, otherwise deterministic common/GoreeCloud app-role fallback is used.
+- Starter placement never fabricates usage history or requests Android Usage Access; after the starter is applied, user edits remain authoritative and the Home is not silently reshuffled.
+- Long-press Home edit mode with visible grid/edit affordances and icon management actions.
+- Unified drag/drop between Home and Dock, Dock reordering, Home reordering by cell, and App Drawer copy-to-Home/copy-to-Dock placement while preserving Drawer inventory.
+- Home icon rename, Android App info, uninstall request, and placement controls; context actions disappear during active drag.
+- Optional **Add new apps to Home** behavior in Settings, disabled by default, using a persisted local primary-profile launchable-app baseline so installs missed while Launcher is not running can be detected on the next inventory refresh without a manifest receiver or new Android permission.
+- Minimal local app-activity ranking data stores only application workspace key plus aggregate Launcher launch count; users can disable its suggestion use and clear the counts.
 - Persisted Home-grid presets and application presentation settings.
-- Long-press placement management with accessible earlier/later controls.
 - Direct primary-Home drag placement into configured grid cells, including guarded occupied-cell swaps and empty-cell placement.
 - Persisted Home layout lock that gates implemented workspace mutation paths while ordinary launching and page selection remain usable.
 - Five-second intentional Home hold path for unlocking with progressive feedback, with Settings retained as the deterministic non-gesture path.
@@ -44,6 +52,17 @@ This is Development evidence. It does not establish physical-device performance,
 - Secondary-page app launch and guarded secondary-page movement/cell operations.
 - Guarded primary-Home compatibility-to-spatial migration with persistent configured-grid placement.
 - Development presentation of unsupported workspace-item counts instead of silently hiding their existence.
+
+### Widgets
+
+- Launcher-owned GoreeCloud Clock and Launcher Status built-in Home widgets.
+- Android third-party widget selection through the platform AppWidget picker with provider configuration before persistence when required.
+- AppWidgetHost/AppWidgetHostView lifecycle integration without requesting privileged `BIND_APPWIDGET` authority.
+- Host widget-ID cleanup for canceled/failed selection and successful widget removal.
+- Room-backed widget type/provider binding, Home cell position, and horizontal/vertical spans.
+- Span-aware primary-Home rendering, widget resize/remove controls, and exclusion of widget-covered cells from application drop targets.
+- Ordinary Home/Dock application placement writes preserve validated widget rows while the legacy favorites compatibility projection remains application-only.
+- Portable widget backup/restore is not claimed because Android `appWidgetId` bindings are not portable identifiers across restore targets.
 
 ### Apps surface and profile-aware presentation
 
@@ -63,7 +82,7 @@ This is Development evidence. It does not establish physical-device performance,
 ### Launcher settings and appearance
 
 - Separate scrollable Launcher Settings surface.
-- Persisted Home-grid, Apps-grid, icon-size, label-visibility, appearance, layout-lock, and Launcher Universal Search entry-mode preferences where currently implemented.
+- Persisted Home-grid, Apps-grid, icon-size, label-visibility, appearance, layout-lock, Launcher Universal Search entry-mode, local-usage-suggestion control, and off-by-default new-app-to-Home preferences where currently implemented.
 - System / Light / Dark appearance selection and a reachable native Theme Manager path.
 - Repository-level GLAZE UI V1.6 source mapping, material/accessibility policy, and validation guard, subject to the still-open downstream acceptance boundaries recorded in `PLANNED-FEATURES.md`.
 

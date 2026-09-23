@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. PR #203 reconciled the post-migration authority records, and legacy Launcher Drive roadmap/changelog retirement was subsequently verified.**  
-**Repository authority baseline:** `main` at `0af5d6753d1dca98de432f24f8703fe5bae85e2c` (PR #207). Latest source-bearing Launcher runtime is the same commit.  
+**Repository authority baseline:** `main` at `384568dda7abcf0a7e2c0942773efa540b70af2c` (PR #221). Latest source-bearing Launcher runtime is the same commit.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
@@ -30,6 +30,108 @@ The migrated historical record is stored in these repository-local segments:
 7. [September 16–22, 2026 — Glaze/Platform stabilization through Universal Search presentation structure](docs/changelog-history/2026-09-16-to-2026-09-22.md)
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
+
+## September 22, 2026 — PR #221 established the 5×6 starter Home and five-app Dock defaults
+
+**Change type:** Home defaults; Dock defaults; local-only usage ranking; install-to-Home behavior; Development implementation.
+
+PR #221, **Restack 5x6 starter Home and five-app Dock defaults**, was guarded-squash merged to `main` as `384568dda7abcf0a7e2c0942773efa540b70af2c`.
+
+Implemented:
+
+- changed a new Launcher preference store's default Home grid to 5 × 6 while retaining supported configurable grid presets;
+- expanded the one-time starter Dock policy to prefer Phone, Messages, Email/Mail, Browser, and Camera when matching launchable applications are available;
+- expanded the starter Home policy to up to 10 applications and places them in the bottom two Home rows directly above the Dock after Room spatial activation;
+- added minimal Launcher-local aggregate launch-count ranking for starter suggestions when such local history already exists, with deterministic common/GoreeCloud role fallback when it does not;
+- added Settings controls to disable local usage-based suggestions, clear the local aggregate counts, and enable **Add new apps to Home**;
+- kept automatic new-app Home placement disabled by default;
+- added a persisted local primary-profile launchable-app inventory baseline so installs that occur while the Launcher process is not running can be detected on the next inventory refresh;
+- made the first inventory observation initialization-only so enabling the feature never treats the whole existing application inventory as newly installed; and
+- preserved user layout authority after the one-time starter rather than continuously re-ranking or reshuffling Home.
+
+Privacy/trust boundary:
+
+- no Android Usage Access, manifest package receiver, new Android permission, INTERNET authority, analytics SDK, or remote ranking service was added;
+- the local usage store keeps only an application workspace key and aggregate Launcher launch count, with no timestamps, dwell time, search queries, destinations, or network data; and
+- the install baseline stores only currently visible primary-profile launchable-application workspace keys needed for local new-install detection.
+
+Validation:
+
+- exact PR head `d464224bbd8d975dcad8e6320a0adf117bafa318` passed Android CI run #688 / `35811191027`, including repository/privacy/identity/GLAZE/Room-cutover guards, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes;
+- guarded squash merge commit: `384568dda7abcf0a7e2c0942773efa540b70af2c`.
+
+**Lifecycle boundary:** Development only. Representative-device first-install behavior, package-inventory timing, accessibility, performance, work/private-profile automatic-placement policy, release qualification, production, and Stable acceptance remain open under issue #80.
+
+## September 22, 2026 — PR #219 added GoreeCloud and Android Home widgets
+
+**Change type:** Home widgets; AppWidgetHost; Room workspace; Development implementation.
+
+PR #219, **Restack GoreeCloud and Android Home widgets**, was guarded-squash merged to `main` as `42513fb80ec2caea8431437664a96abb1a605f1f`.
+
+Implemented:
+
+- added Launcher-owned GoreeCloud Clock and Launcher Status Home widgets;
+- added Android third-party widget selection through the platform AppWidget picker and provider configuration activities;
+- added AppWidgetHost/AppWidgetHostView lifecycle handling, including host-ID cleanup after canceled/failed selection and successful removal;
+- persisted widget identity/provider binding, Home cells, and spans in the Room workspace;
+- added span-aware primary-Home rendering, resize/remove controls, and widget-covered-cell exclusion from application drop targets;
+- preserved widget rows across ordinary Home/Dock application placement writes while keeping the legacy favorites compatibility projection application-only; and
+- added focused JVM and Android runtime regression coverage for widget key/spatial validation, paged rendering, authoritative compatibility reads, and widget preservation across application placement writes.
+
+Privacy/trust boundary:
+
+- no privileged `BIND_APPWIDGET` authority, network permission, advertising, analytics, or remote widget service was added by Launcher;
+- Android widget provider behavior remains governed by the selected provider; and
+- portable widget backup/restore is not claimed because Android `appWidgetId` bindings are not portable across restore targets.
+
+Validation:
+
+- exact PR head `c188884d22a5a90bed9074a4695ecfb2a30c99a8` passed Android CI run #679 / `35809355554`;
+- guarded squash merge commit: `42513fb80ec2caea8431437664a96abb1a605f1f`.
+
+**Lifecycle boundary:** Development only. Representative-device widget picker/configuration/provider behavior, accessibility, rotation/form-factor behavior, performance, portable widget recovery, release qualification, production, and Stable acceptance remain open under issue #80.
+
+## September 22, 2026 — PR #215 unified Home, Dock, and App Drawer drag/edit interactions
+
+**Change type:** Workspace interaction; drag/drop; edit mode; Development implementation.
+
+PR #215, **Restack unified Launcher drag and edit interactions**, was guarded-squash merged to `main` as `12634e7388f6c997debb255874136f80cc720830`.
+
+Implemented:
+
+- added long-press edit mode with visible Home grid/edit affordances;
+- added Home-to-Dock and Dock-to-Home drag movement;
+- added Dock reordering and primary-Home cell reordering by drag;
+- added App Drawer copy-to-Home and copy-to-Dock placement without removing the application from Drawer inventory;
+- hid icon context actions during active drag;
+- added Home rename and Android App info alongside existing uninstall and placement controls;
+- preserved layout lock, Home capacity, and five-item Dock limits; and
+- retained accessible non-drag placement/order controls.
+
+Validation:
+
+- exact PR head `c5ec82a5850b75d3442b5a457a8eac9d0ec44d7d` passed Android CI run #671 / `35803617800`;
+- guarded squash merge commit: `12634e7388f6c997debb255874136f80cc720830`.
+
+**Lifecycle boundary:** Development only. Representative-device drag ergonomics, accessibility, sustained performance, release qualification, production, and Stable acceptance remain open under issue #80.
+
+## September 22, 2026 — PR #212 reconciled the Launcher source manifest
+
+**Change type:** Repository integrity; source tracking; Development governance.
+
+PR #212, **Reconcile Launcher source manifest**, was guarded-squash merged to `main` as `53e79befaf7f76b1abf27acecf8a3c838515f34b`.
+
+Implemented:
+
+- reconciled `SOURCE_MANIFEST.txt` with the authoritative tracked repository blobs after earlier source growth; and
+- restored exact source-manifest parity required by Launcher validation before subsequent interaction/widget/default-layout tranches were integrated.
+
+Validation:
+
+- exact PR head `d333cfb69a3064bad2cded99b29af28a2576f496` passed Android CI run #660 / `35802293870`;
+- post-merge readback verified 213 manifest entries matched the 213 intended tracked blobs at that checkpoint.
+
+**Lifecycle boundary:** This was repository-integrity work only and did not change the Launcher Development lifecycle or release-acceptance state.
 
 ## September 22, 2026 — PR #207 stabilized persisted Universal Search provider controls
 
