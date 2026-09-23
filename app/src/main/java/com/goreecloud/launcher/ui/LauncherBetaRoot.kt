@@ -346,6 +346,8 @@ fun LauncherBetaRoot(
                 val drag = event.launcherAppDragData() ?: return
                 if (drag.origin != LauncherAppDragOrigin.DRAWER) return
                 selectedApp = null
+                selectedAppAnchor = null
+                showDetailedAppOptions = false
                 homeEditMode = true
                 activeDrag = drag
                 dragPoint = null
@@ -378,6 +380,8 @@ fun LauncherBetaRoot(
 
     val beginLocalDrag: (LauncherAppDragData, Offset) -> Unit = { drag, point ->
         selectedApp = null
+        selectedAppAnchor = null
+        showDetailedAppOptions = false
         homeEditMode = true
         activeDrag = drag
         dragPoint = point
@@ -498,6 +502,8 @@ fun LauncherBetaRoot(
                 onExitEditMode = {
                     homeEditMode = false
                     selectedApp = null
+                    selectedAppAnchor = null
+                    showDetailedAppOptions = false
                     selectedWidget = null
                     activeDrag = null
                     dragPoint = null
@@ -513,6 +519,8 @@ fun LauncherBetaRoot(
                 onManageWidget = {
                     homeEditMode = true
                     selectedApp = null
+                    selectedAppAnchor = null
+                    showDetailedAppOptions = false
                     selectedWidget = it
                 },
                 onOpenLauncherSearch = {
