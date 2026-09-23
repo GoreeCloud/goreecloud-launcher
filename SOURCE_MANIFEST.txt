@@ -45,6 +45,7 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherBuiltInWallpaper
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherConnectedSearchProviders.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFileSearchPreferencesRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFilesSearchProvider.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFolders.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeDragPolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeLabelOverrides.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherInstalledAppBaselineRepository.kt
@@ -81,6 +82,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritati
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessCoordinator.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceEntities.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceFolderRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceHomeItemPageMover.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceHomePageContext.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapper.kt
@@ -135,6 +137,7 @@ app/src/main/res/xml/data_extraction_rules.xml
 app/src/test/java/com/goreecloud/launcher/LauncherHomeIntentPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherBuiltInWallpapersTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFileSearchRootIsolationTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFolderCodecTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherIconSingleFlightLoaderTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherInstalledAppBaselinePolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherInventoryRefreshScopeTest.kt
