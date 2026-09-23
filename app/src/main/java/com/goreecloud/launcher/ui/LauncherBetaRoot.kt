@@ -2336,7 +2336,7 @@ private fun HomeFavoritesGrid(
 }
 
 @Composable
-private fun HomeFolderTile(
+internal fun HomeFolderTile(
     folder: LauncherFolder,
     allApps: List<LauncherActivityInfo>,
     showLabel: Boolean,
@@ -6003,7 +6003,7 @@ private fun LauncherFolderManagerSheet(
 
 /** Glaze floating folder: a compact three-column icon panel, not a full-screen management sheet. */
 @Composable
-private fun LauncherFolderContentsSheet(
+internal fun LauncherFolderContentsSheet(
     folder: LauncherFolder,
     appsByKey: Map<String, LauncherActivityInfo>,
     isOnHome: Boolean,
@@ -6322,7 +6322,7 @@ private fun LauncherFolderContentsSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LauncherFolderAppPickerSheet(
+internal fun LauncherFolderAppPickerSheet(
     folder: LauncherFolder,
     availableApps: List<LauncherActivityInfo>,
     onAddApp: (LauncherActivityInfo) -> Unit,
