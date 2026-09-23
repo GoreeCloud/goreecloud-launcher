@@ -3450,23 +3450,8 @@ private fun LauncherDrawerFolderStrip(
                 Text(if (folders.isEmpty()) "Create" else "Manage")
             }
         }
-        if (folders.isEmpty()) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onManageFolders),
-                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-                color = Color.White.copy(alpha = 0.05f),
-                border = BorderStroke(1.dp, secondaryColor.copy(alpha = 0.16f)),
-            ) {
-                Text(
-                    "Create a folder to group apps without changing the app list.",
-                    modifier = Modifier.padding(GlazeMetrics.space3),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = secondaryColor,
-                )
-            }
-        } else {
+        // Empty folders remain discoverable through Create without pushing the app grid off screen.
+        if (folders.isNotEmpty()) {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 contentPadding = PaddingValues(end = GlazeMetrics.space2),
@@ -3640,16 +3625,18 @@ private fun DrawerAppsContent(
         LauncherDrawerSpacing.STANDARD -> GlazeMetrics.space1
         LauncherDrawerSpacing.RELAXED -> GlazeMetrics.space2
     }
+    // Reserve room for two-line labels and scaled icons; never clip a row at large icon sizes.
+    val iconGrowth = if (preferences.iconScale > 1.0f) 8.dp else 0.dp
     val gridTileHeight = when (experiencePreferences.drawerSpacing) {
-        LauncherDrawerSpacing.TIGHT -> 80.dp
-        LauncherDrawerSpacing.STANDARD -> 88.dp
-        LauncherDrawerSpacing.RELAXED -> 96.dp
-    }
+        LauncherDrawerSpacing.TIGHT -> 88.dp
+        LauncherDrawerSpacing.STANDARD -> 98.dp
+        LauncherDrawerSpacing.RELAXED -> 108.dp
+    } + iconGrowth
     val compactTileHeight = when (experiencePreferences.drawerSpacing) {
-        LauncherDrawerSpacing.TIGHT -> 66.dp
-        LauncherDrawerSpacing.STANDARD -> 72.dp
-        LauncherDrawerSpacing.RELAXED -> 80.dp
-    }
+        LauncherDrawerSpacing.TIGHT -> 72.dp
+        LauncherDrawerSpacing.STANDARD -> 80.dp
+        LauncherDrawerSpacing.RELAXED -> 88.dp
+    } + iconGrowth
 
     if (pagedGrid) {
         val pageSize = (
@@ -3693,7 +3680,9 @@ private fun DrawerAppsContent(
                             standardSpacing
                         },
                     ),
-                    userScrollEnabled = false,
+                    // Fallback vertical scrolling keeps all rows reachable on short screens,
+                    // in landscape, and when accessibility display scaling is enabled.
+                    userScrollEnabled = true,
                 ) {
                     items(pageApps, key = { it.workspaceKey() }) { app ->
                         LauncherAppTile(
@@ -4121,7 +4110,7 @@ private fun LauncherSettingsRootSurface(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(
                         "Launcher settings",
                         style = MaterialTheme.typography.headlineMedium,
@@ -4804,8 +4793,8 @@ private fun SettingsSection(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.58f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space4),
@@ -4830,36 +4819,44 @@ private fun ChoiceRow(
     selected: String,
     onChoice: (String) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-    ) {
-        choices.forEach { label ->
-            val isSelected = label == selected
-            Surface(
-                onClick = { onChoice(label) },
-                shape = RoundedCornerShape(GlazeMetrics.radiusPill),
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f)
-                },
-                border = BorderStroke(
-                    1.dp,
-                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.52f)
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
-                ),
+    // Fixed equal-width rows wrap long settings choices instead of overflowing compact displays.
+    Column(verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
+        choices.chunked(2).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
             ) {
-                Text(
-                    label,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    style = MaterialTheme.typography.labelLarge,
-                )
+                row.forEach { label ->
+                    val isSelected = label == selected
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        onClick = { onChoice(label) },
+                        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f),
+                        border = BorderStroke(
+                            if (isSelected) 2.dp else 1.dp,
+                            if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant,
+                        ),
+                    ) {
+                        Box(
+                            modifier = Modifier.heightIn(min = 44.dp).padding(horizontal = 10.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                label,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.labelLarge,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }
@@ -5193,11 +5190,24 @@ private fun GlazeSearchCapsule(
                 },
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        "⌕",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = foreground.copy(alpha = 0.94f),
-                    )
+                    Canvas(Modifier.size(20.dp)) {
+                        val centerPoint = Offset(size.width * 0.42f, size.height * 0.42f)
+                        drawCircle(
+                            color = foreground.copy(alpha = 0.95f),
+                            radius = size.minDimension * 0.25f,
+                            center = centerPoint,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = size.minDimension * 0.095f,
+                            ),
+                        )
+                        drawLine(
+                            color = foreground.copy(alpha = 0.95f),
+                            start = Offset(size.width * 0.60f, size.height * 0.60f),
+                            end = Offset(size.width * 0.88f, size.height * 0.88f),
+                            strokeWidth = size.minDimension * 0.095f,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        )
+                    }
                 }
             }
             Text(
@@ -5210,10 +5220,10 @@ private fun GlazeSearchCapsule(
             )
             if (style != LauncherHomeSearchStyle.CLEAR) {
                 Text(
-                    "Search",
-                    modifier = Modifier.padding(end = 8.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = foreground.copy(alpha = 0.56f),
+                    "›",
+                    modifier = Modifier.padding(end = 10.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = foreground.copy(alpha = 0.72f),
                     maxLines = 1,
                 )
             }
