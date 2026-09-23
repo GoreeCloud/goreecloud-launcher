@@ -118,6 +118,21 @@ object WorkspaceWidgetPlacementPolicy {
         return null
     }
 
+    fun move(
+        grid: WorkspaceGridPlacement.Grid,
+        existing: List<WorkspaceGridPlacement.Placement>,
+        itemId: String,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspaceGridPlacement.Placement? {
+        val current = existing.singleOrNull { it.itemId == itemId } ?: return null
+        val updated = current.copy(cellX = cellX, cellY = cellY)
+        val next = existing.map { if (it.itemId == itemId) updated else it }
+        return if (
+            WorkspaceGridPlacement.validate(grid, next) == WorkspaceGridPlacement.Validation.Valid
+        ) updated else null
+    }
+
     fun resize(
         grid: WorkspaceGridPlacement.Grid,
         existing: List<WorkspaceGridPlacement.Placement>,
