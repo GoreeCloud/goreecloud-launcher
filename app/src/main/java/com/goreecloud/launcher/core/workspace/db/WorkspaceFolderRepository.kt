@@ -20,6 +20,12 @@ sealed interface WorkspaceFolderMutationResult {
         val cellX: Int,
         val cellY: Int,
     ) : WorkspaceFolderMutationResult
+    data class Moved(
+        val itemId: String,
+        val folderId: String,
+        val cellX: Int,
+        val cellY: Int,
+    ) : WorkspaceFolderMutationResult
     data class Removed(
         val itemId: String,
         val folderId: String,
@@ -91,6 +97,68 @@ class WorkspaceFolderRepository(
                 folderId = folderId,
                 cellX = placement.cellX,
                 cellY = placement.cellY,
+            )
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            WorkspaceFolderMutationResult.Failed(exception::class.java.simpleName)
+        }
+    }
+
+    /**
+     * Move an existing HOME folder within the current primary grid without recreating its
+     * identity, contents, or user-specified name. Every target is checked against all saved
+     * widgets, apps, and folders; Room performs a snapshot-conditional atomic write.
+     */
+    suspend fun moveFolderToCell(
+        folderId: String,
+        columns: Int,
+        rows: Int,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspaceFolderMutationResult {
+        if (!isRoomAuthoritative()) return WorkspaceFolderMutationResult.Reserved
+        if (
+            folderId.isBlank() || columns <= 0 || rows <= 0 ||
+            cellX !in 0 until columns || cellY !in 0 until rows
+        ) return WorkspaceFolderMutationResult.InvalidWorkspace
+        val dao = workspaceDaoOrNull() ?: return WorkspaceFolderMutationResult.Unavailable
+        return try {
+            val page = primaryPage(dao) ?: return WorkspaceFolderMutationResult.InvalidWorkspace
+            val items = primaryItems(dao)
+            val folder = items.singleOrNull {
+                it.itemType == WorkspaceItemType.FOLDER && it.appKey == folderId
+            } ?: return WorkspaceFolderMutationResult.NotFound
+            val placements = items.mapNotNull(WorkspaceItemEntity::toFolderSpatialPlacement)
+            if (placements.size != items.size) {
+                return WorkspaceFolderMutationResult.InvalidWorkspace
+            }
+            val target = WorkspaceWidgetPlacementPolicy.move(
+                grid = WorkspaceGridPlacement.Grid(columns, rows),
+                existing = placements,
+                itemId = folder.itemId,
+                cellX = cellX,
+                cellY = cellY,
+            ) ?: return WorkspaceFolderMutationResult.NoSpace
+            if (folder.cellX == target.cellX && folder.cellY == target.cellY) {
+                return WorkspaceFolderMutationResult.Moved(
+                    folder.itemId, folderId, target.cellX, target.cellY,
+                )
+            }
+            val updated = items.map { item ->
+                if (item.itemId == folder.itemId) item.copy(
+                    cellX = target.cellX,
+                    cellY = target.cellY,
+                ) else item
+            }
+            if (!dao.replacePrimaryHomeItemsIfSnapshotMatches(
+                    expectedPage = page,
+                    expectedItems = items,
+                    updatedItems = updated,
+                )
+            ) return WorkspaceFolderMutationResult.StoredWorkspaceChanged
+            WorkspaceFolderMutationResult.Moved(
+                folder.itemId, folderId, target.cellX, target.cellY,
             )
         } catch (exception: CancellationException) {
             throw exception
