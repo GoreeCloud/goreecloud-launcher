@@ -204,7 +204,7 @@ fun LauncherBetaRoot(
     homeLabelOverrides: Map<String, String>,
     folders: List<LauncherFolder>,
     primaryHomePage: WorkspaceRenderedHomePage?,
-    onCreateFolder: (String, Boolean) -> Unit,
+    onCreateFolder: (String, Boolean, LauncherActivityInfo?) -> Unit,
     onRenameFolder: (String, String) -> Unit,
     onDeleteFolder: (LauncherFolder) -> Unit,
     onAddAppToFolder: (String, LauncherActivityInfo) -> Unit,
@@ -753,11 +753,10 @@ fun LauncherBetaRoot(
                 onAddToFolder = {
                     selectedApp = null
                     selectedAppAnchor = null
+                    folderAssignmentAppKey = app.workspaceKey()
                     if (folders.isEmpty()) {
                         folderManagerAddToHome = false
                         showFolderManager = true
-                    } else {
-                        folderAssignmentAppKey = app.workspaceKey()
                     }
                 },
                 onMoreOptions = { showDetailedAppOptions = true },
@@ -813,18 +812,25 @@ fun LauncherBetaRoot(
             appsByKey = rootAppsByKey,
             homeFolderIds = homeFolderIds,
             defaultAddToHome = folderManagerAddToHome,
-            onCreate = onCreateFolder,
+            onCreate = { name, addToHome ->
+                val initialApp = folderAssignmentAppKey?.let(rootAppsByKey::get)
+                onCreateFolder(name, addToHome, initialApp)
+                folderAssignmentAppKey = null
+            },
             onOpen = { folder ->
                 showFolderManager = false
                 selectedFolderId = folder.id
             },
             onAddToHome = onAddFolderToHome,
             onRemoveFromHome = onRemoveFolderFromHome,
-            onDismiss = { showFolderManager = false },
+            onDismiss = {
+                showFolderManager = false
+                folderAssignmentAppKey = null
+            },
         )
     }
 
-    folderAssignmentAppKey
+    if (!showFolderManager) folderAssignmentAppKey
         ?.let(rootAppsByKey::get)
         ?.let { app ->
             LauncherFolderAssignmentSheet(
@@ -835,7 +841,6 @@ fun LauncherBetaRoot(
                     folderAssignmentAppKey = null
                 },
                 onCreateFolder = {
-                    folderAssignmentAppKey = null
                     folderManagerAddToHome = false
                     showFolderManager = true
                 },
