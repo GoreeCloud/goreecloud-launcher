@@ -2,6 +2,7 @@ package com.goreecloud.launcher.ui
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherActivityInfo
+import android.net.Uri
 import android.os.Process
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -31,6 +32,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,7 +70,9 @@ import androidx.compose.ui.zIndex
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
+import com.goreecloud.launcher.core.launcher.LauncherOpenDocumentSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
@@ -92,6 +96,7 @@ import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegist
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherRuntimeSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
+import com.goreecloud.launcher.core.launcher.LauncherSearchPresentationPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderInvocationMode
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult
@@ -140,9 +145,13 @@ fun LauncherBetaRoot(
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     searchProviderPreferences: LauncherSearchProviderPreferenceDecodeResult,
+    fileSearchRoots: List<Uri>,
     onSetSearchProviderEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onChooseFileSearchRoot: () -> Unit,
     onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
     onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
+    onOpenDocument: (LauncherOpenDocumentSearchAction) -> Unit,
+    onSearchWithConnectedProvider: (String, String) -> Unit,
     onToggleFavorite: (LauncherActivityInfo) -> Unit,
     onToggleDock: (LauncherActivityInfo) -> Unit,
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
@@ -279,10 +288,14 @@ fun LauncherBetaRoot(
             LauncherSurfaceMode.SEARCH -> LauncherUniversalSearchSurface(
                 apps = apps,
                 providerPreferences = searchProviderPreferences,
+                fileSearchRoots = fileSearchRoots,
                 onSetProviderEnabled = onSetSearchProviderEnabled,
+                onChooseFileSearchRoot = onChooseFileSearchRoot,
                 onLaunchApp = onLaunchApp,
                 onLaunchShortcut = onLaunchShortcut,
                 onOpenSearchUri = onOpenSearchUri,
+                onOpenDocument = onOpenDocument,
+                onSearchWithConnectedProvider = onSearchWithConnectedProvider,
                 onNavigate = { destination ->
                     when (destination) {
                         LauncherSearchDestination.HOME -> {
@@ -1409,18 +1422,26 @@ private fun EmptyWorkspaceCard(
 private fun LauncherUniversalSearchSurface(
     apps: List<LauncherActivityInfo>,
     providerPreferences: LauncherSearchProviderPreferenceDecodeResult,
+    fileSearchRoots: List<Uri>,
     onSetProviderEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onChooseFileSearchRoot: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
     onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
+    onOpenDocument: (LauncherOpenDocumentSearchAction) -> Unit,
+    onSearchWithConnectedProvider: (String, String) -> Unit,
     onNavigate: (LauncherSearchDestination) -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
     var showSources by rememberSaveable { mutableStateOf(false) }
-    val catalog = remember(apps, context) {
-        LauncherRuntimeSearchProviderRegistry.catalog(context, apps)
+    val catalog = remember(apps, context, fileSearchRoots) {
+        LauncherRuntimeSearchProviderRegistry.catalog(
+            context = context,
+            apps = apps,
+            fileRoots = fileSearchRoots,
+        )
     }
     val providerControls = remember(catalog, providerPreferences) {
         LauncherSearchProviderUserControlPolicy.normalize(
@@ -1430,6 +1451,12 @@ private fun LauncherUniversalSearchSurface(
     }
     val providers = remember(catalog, providerControls) {
         LauncherSearchProviderUserControlPolicy.automaticProviders(catalog, providerControls)
+    }
+    val explicitHandoffs = remember(query, providerControls) {
+        LauncherSearchPresentationPolicy.explicitHandoffProviders(
+            rawQuery = query,
+            providerControls = providerControls,
+        )
     }
     val executionPolicy = remember {
         com.goreecloud.launcher.core.launcher.LauncherSearchExecutionPolicy.cancellationOnly()
@@ -1481,7 +1508,7 @@ private fun LauncherUniversalSearchSurface(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        "Apps, shortcuts and user-enabled local sources",
+                        "Apps, shortcuts, files and user-enabled sources",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1497,9 +1524,38 @@ private fun LauncherUniversalSearchSurface(
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 requestFocus = true,
-                placeholder = "Search apps, shortcuts, people, calls and messages",
+                placeholder = "Search apps, files, people, calls, messages and shortcuts",
                 inputTestTag = "launcher-universal-search-field",
             )
+
+            if (explicitHandoffs.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "Search with",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        explicitHandoffs.forEach { provider ->
+                            OutlinedButton(
+                                onClick = {
+                                    onSearchWithConnectedProvider(
+                                        provider.providerId,
+                                        query,
+                                    )
+                                },
+                            ) {
+                                Text(provider.displayName)
+                            }
+                        }
+                    }
+                }
+            }
 
             if (results.isEmpty()) {
                 Box(
@@ -1538,6 +1594,7 @@ private fun LauncherUniversalSearchSurface(
                                     is LaunchApplicationSearchAction -> onLaunchApp(action.app)
                                     is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
                                     is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
+                                    is LauncherOpenDocumentSearchAction -> onOpenDocument(action)
                                     is LauncherNavigateSearchAction -> onNavigate(action.destination)
                                     null -> Unit
                                     else -> Unit
@@ -1552,7 +1609,9 @@ private fun LauncherUniversalSearchSurface(
         if (showSources) {
             LauncherSearchSourcesDialog(
                 state = providerControls,
+                fileRootCount = fileSearchRoots.size,
                 onSetEnabled = onSetProviderEnabled,
+                onChooseFileSearchRoot = onChooseFileSearchRoot,
                 onDismiss = { showSources = false },
             )
         }
@@ -1562,7 +1621,9 @@ private fun LauncherUniversalSearchSurface(
 @Composable
 private fun LauncherSearchSourcesDialog(
     state: LauncherSearchProviderControlState,
+    fileRootCount: Int,
     onSetEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onChooseFileSearchRoot: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -1588,48 +1649,70 @@ private fun LauncherSearchSourcesDialog(
                         shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Text(
-                                    option.displayName,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Text(
-                                    buildString {
-                                        append(
-                                            when (option.invocationMode) {
-                                                LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL ->
-                                                    "Local · enabled by default"
-                                                LauncherSearchProviderInvocationMode.OPT_IN_LOCAL ->
-                                                    "Local · opt in"
-                                                LauncherSearchProviderInvocationMode.EXPLICIT_USER_HANDOFF ->
-                                                    "Explicit Search with…"
-                                            },
-                                        )
-                                        append(" · ")
-                                        append(option.privacySummary)
-                                        if (!permissionGranted) append(" · Android permission required")
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        option.displayName,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        buildString {
+                                            append(
+                                                when (option.invocationMode) {
+                                                    LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL ->
+                                                        "Local · enabled by default"
+                                                    LauncherSearchProviderInvocationMode.OPT_IN_LOCAL ->
+                                                        "Local · opt in"
+                                                    LauncherSearchProviderInvocationMode.EXPLICIT_USER_HANDOFF ->
+                                                        "Explicit Search with…"
+                                                },
+                                            )
+                                            append(" · ")
+                                            append(option.privacySummary)
+                                            if (!permissionGranted) append(" · Android permission required")
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                Switch(
+                                    checked = state.isEnabled(option.providerId),
+                                    onCheckedChange = { enabled ->
+                                        onSetEnabled(state, option.providerId, enabled)
                                     },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Switch(
-                                checked = state.isEnabled(option.providerId),
-                                onCheckedChange = { enabled ->
-                                    onSetEnabled(state, option.providerId, enabled)
-                                },
-                            )
+                            if (option.providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        if (fileRootCount == 1) "1 selected folder"
+                                        else "$fileRootCount selected folders",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    TextButton(onClick = onChooseFileSearchRoot) {
+                                        Text("Add folder")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
