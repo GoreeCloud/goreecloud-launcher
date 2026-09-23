@@ -314,16 +314,29 @@ private fun LauncherSearchSourceManager(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Switch(
-                            checked = controls.isEnabled(option.providerId),
-                            onCheckedChange = { enabled ->
-                                onSetEnabled(controls, option.providerId, enabled)
-                            },
-                            enabled = ready,
-                            modifier = Modifier.testTag(
-                                "launcher-search-source-" + option.providerId,
-                            ),
-                        )
+                        Column(horizontalAlignment = Alignment.End) {
+                            Switch(
+                                checked = controls.isEnabled(option.providerId),
+                                onCheckedChange = { enabled ->
+                                    onSetEnabled(controls, option.providerId, enabled)
+                                },
+                                enabled = ready,
+                                modifier = Modifier.testTag(
+                                    "launcher-search-source-" + option.providerId,
+                                ),
+                            )
+                            if (option.providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
+                                TextButton(
+                                    onClick = onChooseFileSearchRoot,
+                                    enabled = ready,
+                                ) {
+                                    Text(
+                                        if (fileSearchRootCount == 0) "Choose folder"
+                                        else "Add folder",
+                                    )
+                                }
+                            }
+                        }
                     }
                     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                         TextButton(
