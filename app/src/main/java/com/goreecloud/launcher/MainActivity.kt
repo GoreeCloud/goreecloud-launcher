@@ -1,8 +1,11 @@
 package com.goreecloud.launcher
 
+import android.app.Activity
+import android.appwidget.AppWidgetManager
 import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.LauncherActivityInfo
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Process
@@ -27,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.goreecloud.launcher.core.launcher.LauncherAppWidgetHostController
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
@@ -42,6 +46,7 @@ import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetDescriptor
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativeWriteResult
@@ -51,6 +56,8 @@ import com.goreecloud.launcher.core.workspace.db.WorkspacePagedRoomMutationResul
 import com.goreecloud.launcher.core.workspace.db.WorkspacePlacementSource
 import com.goreecloud.launcher.core.workspace.db.WorkspacePrimaryHomeSpatialResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
+import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomeWidget
+import com.goreecloud.launcher.core.workspace.db.WorkspaceWidgetMutationResult
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.HomePageDots
 import com.goreecloud.launcher.ui.HomePageSwitcher
@@ -63,12 +70,14 @@ import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
 import com.goreecloud.launcher.ui.theme.rememberAndroidGlazeV16PresentationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
+    private lateinit var appWidgetHostController: LauncherAppWidgetHostController
     private lateinit var themeRepository: GlazeThemeRepository
     private lateinit var workspaceRepository: WorkspaceRepository
     private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
@@ -76,6 +85,52 @@ class MainActivity : ComponentActivity() {
     private val homeResetSequence = MutableStateFlow(0L)
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
+    private var pendingAppWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
+
+    private val widgetConfigureRequest =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val appWidgetId = widgetResultId(result.data)
+            if (result.resultCode == Activity.RESULT_OK && appWidgetId > 0) {
+                persistAndroidWidget(appWidgetId)
+            } else {
+                discardPendingAppWidget(appWidgetId)
+            }
+        }
+
+    private val widgetPickerRequest =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val appWidgetId = widgetResultId(result.data)
+            if (result.resultCode != Activity.RESULT_OK || appWidgetId <= 0) {
+                discardPendingAppWidget(appWidgetId)
+                return@registerForActivityResult
+            }
+
+            val info = appWidgetHostController.providerInfo(appWidgetId)
+            if (info == null) {
+                discardPendingAppWidget(appWidgetId)
+                Toast.makeText(this, "That widget is no longer available.", Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+
+            val configure = info.configure
+            if (configure != null) {
+                pendingAppWidgetId = appWidgetId
+                val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
+                    component = configure
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                }
+                runCatching { widgetConfigureRequest.launch(intent) }.onFailure {
+                    discardPendingAppWidget(appWidgetId)
+                    Toast.makeText(
+                        this,
+                        "That widget could not be configured.",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            } else {
+                persistAndroidWidget(appWidgetId)
+            }
+        }
 
     private val homeRoleRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -96,6 +151,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         appsRepository = LauncherAppsRepository(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
+        appWidgetHostController = LauncherAppWidgetHostController(this)
         themeRepository = GlazeThemeRepository(this)
         workspaceRepository = WorkspaceRepository(this)
         workspaceRuntimeCoordinator = WorkspaceProductionRuntimeCoordinator(
@@ -358,6 +414,11 @@ class MainActivity : ComponentActivity() {
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
                             onOpenAppInfo = appsRepository::openDetails,
+                            onAddBuiltInWidget = ::addBuiltInWidget,
+                            onPickAndroidWidget = ::beginAndroidWidgetPick,
+                            onCreateAndroidWidgetView = appWidgetHostController::createHostView,
+                            onRemoveWidget = ::removeWidget,
+                            onResizeWidget = ::resizeWidget,
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
@@ -657,6 +718,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        if (::appWidgetHostController.isInitialized) {
+            runCatching { appWidgetHostController.startListening() }
+        }
+    }
+
+    override fun onStop() {
+        if (::appWidgetHostController.isInitialized) {
+            runCatching { appWidgetHostController.stopListening() }
+        }
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         refreshHomeRoleState()
@@ -680,6 +755,144 @@ class MainActivity : ComponentActivity() {
         val manager = getSystemService(RoleManager::class.java)
         if (manager.isRoleAvailable(RoleManager.ROLE_HOME) && !manager.isRoleHeld(RoleManager.ROLE_HOME)) {
             homeRoleRequest.launch(manager.createRequestRoleIntent(RoleManager.ROLE_HOME))
+        }
+    }
+
+    private fun beginAndroidWidgetPick() {
+        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_APP_WIDGETS)) {
+            Toast.makeText(this, "Android widgets are not supported on this device.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val appWidgetId = runCatching { appWidgetHostController.allocateAppWidgetId() }
+            .getOrElse {
+                Toast.makeText(this, "A widget ID could not be allocated.", Toast.LENGTH_SHORT).show()
+                return
+            }
+        pendingAppWidgetId = appWidgetId
+        val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+        }
+        runCatching { widgetPickerRequest.launch(intent) }.onFailure {
+            discardPendingAppWidget(appWidgetId)
+            Toast.makeText(this, "No Android widget picker is available.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun widgetResultId(data: Intent?): Int {
+        val returned = data?.getIntExtra(
+            AppWidgetManager.EXTRA_APPWIDGET_ID,
+            AppWidgetManager.INVALID_APPWIDGET_ID,
+        ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+        return if (returned > 0) returned else pendingAppWidgetId
+    }
+
+    private fun discardPendingAppWidget(appWidgetId: Int) {
+        val id = if (appWidgetId > 0) appWidgetId else pendingAppWidgetId
+        pendingAppWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+        if (::appWidgetHostController.isInitialized) {
+            appWidgetHostController.deleteAppWidgetId(id)
+        }
+    }
+
+    private fun persistAndroidWidget(appWidgetId: Int) {
+        pendingAppWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+        val info = appWidgetHostController.providerInfo(appWidgetId)
+        if (info == null) {
+            appWidgetHostController.deleteAppWidgetId(appWidgetId)
+            return
+        }
+
+        lifecycleScope.launch {
+            val preferences = launcherPreferencesRepository.preferences.first()
+            val result = workspaceRuntimeCoordinator.addAndroidWidget(
+                itemId = "widget:android:${UUID.randomUUID()}",
+                appWidgetId = appWidgetId,
+                providerComponent = info.provider.flattenToString(),
+                columns = preferences.homeColumns,
+                rows = preferences.homeRows,
+            )
+            if (result !is WorkspaceWidgetMutationResult.Added) {
+                appWidgetHostController.deleteAppWidgetId(appWidgetId)
+                Toast.makeText(
+                    this@MainActivity,
+                    if (result == WorkspaceWidgetMutationResult.NoSpace) {
+                        "There is not enough room on Home for that widget."
+                    } else {
+                        "That widget could not be added."
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun addBuiltInWidget(typeId: String) {
+        lifecycleScope.launch {
+            val preferences = launcherPreferencesRepository.preferences.first()
+            val result = workspaceRuntimeCoordinator.addBuiltInWidget(
+                itemId = "widget:builtin:${UUID.randomUUID()}",
+                typeId = typeId,
+                columns = preferences.homeColumns,
+                rows = preferences.homeRows,
+            )
+            if (result !is WorkspaceWidgetMutationResult.Added) {
+                Toast.makeText(
+                    this@MainActivity,
+                    if (result == WorkspaceWidgetMutationResult.NoSpace) {
+                        "There is not enough room on Home for that widget."
+                    } else {
+                        "That widget could not be added."
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun removeWidget(widget: WorkspaceRenderedHomeWidget) {
+        lifecycleScope.launch {
+            val result = workspaceRuntimeCoordinator.removeWidget(widget.itemId)
+            if (result is WorkspaceWidgetMutationResult.Removed) {
+                val descriptor = widget.descriptor
+                if (descriptor is WorkspaceWidgetDescriptor.Android) {
+                    appWidgetHostController.deleteAppWidgetId(descriptor.appWidgetId)
+                }
+            } else {
+                Toast.makeText(
+                    this@MainActivity,
+                    "That widget could not be removed.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
+
+    private fun resizeWidget(
+        widget: WorkspaceRenderedHomeWidget,
+        spanX: Int,
+        spanY: Int,
+    ) {
+        lifecycleScope.launch {
+            val preferences = launcherPreferencesRepository.preferences.first()
+            val result = workspaceRuntimeCoordinator.resizeWidget(
+                itemId = widget.itemId,
+                columns = preferences.homeColumns,
+                rows = preferences.homeRows,
+                spanX = spanX,
+                spanY = spanY,
+            )
+            if (result !is WorkspaceWidgetMutationResult.Resized) {
+                Toast.makeText(
+                    this@MainActivity,
+                    if (result == WorkspaceWidgetMutationResult.NoSpace) {
+                        "That widget size does not fit the current Home layout."
+                    } else {
+                        "That widget could not be resized."
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
         }
     }
 
