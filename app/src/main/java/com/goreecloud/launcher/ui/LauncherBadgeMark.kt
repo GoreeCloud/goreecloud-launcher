@@ -44,7 +44,7 @@ internal fun LauncherFolderBadgeMark(
     val counts by LauncherNotificationBadges.counts.collectAsState()
     val number = if (enabled && granted) {
         apps.sumOf { app ->
-            counts[LauncherBadgeAppKey(app.componentName.packageName, app.user.identifier)] ?: 0
+            counts[LauncherBadgeAppKey(app.componentName.packageName, app.user)] ?: 0
         }
     } else 0
     LauncherBadgeMark(number, modifier)
