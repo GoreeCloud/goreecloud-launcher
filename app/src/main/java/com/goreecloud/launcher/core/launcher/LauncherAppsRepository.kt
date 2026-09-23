@@ -19,13 +19,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 internal fun launcherLabelSortKey(label: CharSequence): String =
     Normalizer.normalize(label.toString(), Normalizer.Form.NFC).lowercase(Locale.ROOT)
@@ -108,11 +104,6 @@ internal fun <T, U> launcherDrawerProfilePages(
     }
 }
 
-data class LauncherInstalledPackageEvent(
-    val packageName: String,
-    val user: UserHandle,
-)
-
 private data class LauncherPackageScope(
     val packageName: String,
     val user: UserHandle,
@@ -130,11 +121,6 @@ class LauncherAppsRepository(context: Context) {
     private val appContext = context.applicationContext
     private val launcherApps = appContext.getSystemService(LauncherApps::class.java)
     private val callbackHandler = Handler(Looper.getMainLooper())
-    private val mutableInstalledPackageEvents =
-        MutableSharedFlow<LauncherInstalledPackageEvent>(extraBufferCapacity = 16)
-
-    val installedPackageEvents: SharedFlow<LauncherInstalledPackageEvent> =
-        mutableInstalledPackageEvents.asSharedFlow()
 
     val apps: Flow<List<LauncherActivityInfo>> = callbackFlow {
         val refreshRequests = Channel<LauncherInventoryRefreshRequest>(Channel.UNLIMITED)
@@ -215,12 +201,8 @@ class LauncherAppsRepository(context: Context) {
             override fun onPackageRemoved(packageName: String, user: UserHandle) =
                 requestPackageRefresh(packageName, user, LauncherInventoryChange.PACKAGE_REMOVED)
 
-            override fun onPackageAdded(packageName: String, user: UserHandle) {
+            override fun onPackageAdded(packageName: String, user: UserHandle) =
                 requestPackageRefresh(packageName, user, LauncherInventoryChange.PACKAGE_ADDED)
-                mutableInstalledPackageEvents.tryEmit(
-                    LauncherInstalledPackageEvent(packageName = packageName, user = user),
-                )
-            }
 
             override fun onPackageChanged(packageName: String, user: UserHandle) =
                 requestPackageRefresh(packageName, user, LauncherInventoryChange.PACKAGE_CHANGED)
@@ -324,20 +306,6 @@ class LauncherAppsRepository(context: Context) {
 
     fun launch(app: LauncherActivityInfo) {
         launcherApps.startMainActivity(app.componentName, app.user, Rect(), Bundle.EMPTY)
-    }
-
-    suspend fun firstLaunchableActivity(
-        packageName: String,
-        user: UserHandle,
-    ): LauncherActivityInfo? = withContext(Dispatchers.IO) {
-        normalizeSnapshot(
-            loadPackageApps(
-                LauncherPackageScope(
-                    packageName = packageName,
-                    user = user,
-                ),
-            ),
-        ).firstOrNull()
     }
 
     fun openDetails(app: LauncherActivityInfo) {
