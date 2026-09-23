@@ -357,6 +357,7 @@ class MainActivity : ComponentActivity() {
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
+                            onOpenAppInfo = appsRepository::openDetails,
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
