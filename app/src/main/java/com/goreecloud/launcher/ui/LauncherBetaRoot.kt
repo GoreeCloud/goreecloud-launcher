@@ -2471,7 +2471,7 @@ internal fun HomeFolderTile(
         }
             LauncherFolderBadgeMark(
                 folderApps,
-                modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-5).dp),
+                modifier = launcherBadgePositionModifier(),
             )
         }
         if (showLabel) {
@@ -3009,7 +3009,7 @@ private fun HomeFavoriteTile(
             }
             LauncherAppBadgeMark(
                 app,
-                modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-5).dp),
+                modifier = launcherBadgePositionModifier(),
             )
         }
 
@@ -5709,7 +5709,7 @@ private fun LauncherAppTile(
             }
             LauncherAppBadgeMark(
                 app,
-                modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-5).dp),
+                modifier = launcherBadgePositionModifier(),
             )
         }
 
