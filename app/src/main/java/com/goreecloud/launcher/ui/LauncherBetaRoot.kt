@@ -34,6 +34,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -3091,12 +3092,15 @@ private fun LauncherUniversalSearchResultRow(
 @Suppress("UNUSED_PARAMETER")
 private fun AppDrawerSurface(
     apps: List<LauncherActivityInfo>,
+    folders: List<LauncherFolder>,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
     focusSearch: Boolean,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
+    onOpenFolder: (LauncherFolder) -> Unit,
+    onManageFolders: () -> Unit,
     onHome: () -> Unit,
 ) {
     val primaryUser = remember { Process.myUserHandle() }
@@ -3240,6 +3244,17 @@ private fun AppDrawerSurface(
                     )
                 }
 
+                if (selectedPage.kind == LauncherDrawerProfileKind.USER) {
+                    Spacer(Modifier.height(GlazeMetrics.space2))
+                    LauncherDrawerFolderStrip(
+                        folders = folders,
+                        allApps = apps,
+                        onOpenFolder = onOpenFolder,
+                        onManageFolders = onManageFolders,
+                        secondaryColor = drawerSecondaryColor,
+                    )
+                }
+
                 Spacer(Modifier.height(GlazeMetrics.space2))
                 if (selectedPage.items.isEmpty()) {
                     Box(
@@ -3268,6 +3283,117 @@ private fun AppDrawerSurface(
                         secondaryColor = drawerSecondaryColor,
                         modifier = Modifier.weight(1f),
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherDrawerFolderStrip(
+    folders: List<LauncherFolder>,
+    allApps: List<LauncherActivityInfo>,
+    onOpenFolder: (LauncherFolder) -> Unit,
+    onManageFolders: () -> Unit,
+    secondaryColor: Color,
+) {
+    val appsByKey = remember(allApps) { allApps.associateBy { it.workspaceKey() } }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Folders",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            TextButton(onClick = onManageFolders) {
+                Text(if (folders.isEmpty()) "Create" else "Manage")
+            }
+        }
+        if (folders.isEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onManageFolders),
+                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                color = Color.White.copy(alpha = 0.05f),
+                border = BorderStroke(1.dp, secondaryColor.copy(alpha = 0.16f)),
+            ) {
+                Text(
+                    "Create a folder to group apps without changing the app list.",
+                    modifier = Modifier.padding(GlazeMetrics.space3),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = secondaryColor,
+                )
+            }
+        } else {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                contentPadding = PaddingValues(end = GlazeMetrics.space2),
+            ) {
+                lazyItems(
+                    items = folders,
+                    key = { it.id },
+                ) { folder ->
+                    val previewApps = folder.appKeys.mapNotNull(appsByKey::get).take(4)
+                    Surface(
+                        modifier = Modifier
+                            .width(112.dp)
+                            .height(92.dp),
+                        onClick = { onOpenFolder(folder) },
+                        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                        color = Color.White.copy(alpha = 0.06f),
+                        border = BorderStroke(1.dp, secondaryColor.copy(alpha = 0.16f)),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(7.dp),
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                previewApps.take(3).forEach { app ->
+                                    val icon = rememberLauncherAppIcon(app)
+                                    if (icon != null) {
+                                        Image(
+                                            bitmap = icon,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Fit,
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .launcherIconMask(),
+                                        )
+                                    }
+                                }
+                                if (previewApps.isEmpty()) {
+                                    Text(
+                                        "▦",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = secondaryColor,
+                                    )
+                                }
+                            }
+                            Text(
+                                folder.name,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                "${folder.appKeys.size} apps",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = secondaryColor,
+                            )
+                        }
+                    }
                 }
             }
         }
