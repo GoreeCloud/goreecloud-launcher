@@ -668,6 +668,10 @@ fun LauncherBetaRoot(
                         themeMode = themeMode,
                         isDefaultHome = isDefaultHome,
                         onRequestHomeRole = onRequestHomeRole,
+                        onManageFolders = {
+                            folderManagerAddToHome = false
+                            showFolderManager = true
+                        },
                         onSetHomeGrid = onSetHomeGrid,
                         onSetDrawerColumns = onSetDrawerColumns,
                         onSetDrawerLayoutMode = onSetDrawerLayoutMode,
@@ -4133,6 +4137,7 @@ private fun LauncherSettingsRootSurface(
     themeMode: GlazeThemeMode,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
+    onManageFolders: () -> Unit,
     onSetHomeGrid: (Int, Int) -> Unit,
     onSetDrawerColumns: (Int) -> Unit,
     onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
@@ -4525,6 +4530,21 @@ private fun LauncherSettingsRootSurface(
                     "Show app count",
                     experiencePreferences.showDrawerAppCount,
                     onSetShowDrawerAppCount,
+                )
+            }
+
+            SettingsSection("Folders", "Create, organize and customize") {
+                GlazeSettingsAction(
+                    title = "Manage folders",
+                    summary = "Create, rename or add folders without leaving Settings.",
+                    value = "Open",
+                    onClick = onManageFolders,
+                )
+                Text(
+                    "Folders appear alphabetically with your personal apps. " +
+                        "Long-press a Home folder to drag it to another free cell.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
