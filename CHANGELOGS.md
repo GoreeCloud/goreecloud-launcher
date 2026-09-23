@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. PR #203 reconciled the post-migration authority records, and legacy Launcher Drive roadmap/changelog retirement was subsequently verified.**  
-**Repository authority baseline:** `main` at `c09e2d581f300271f762422eef206631769f73b1` (PR #223). Latest source-bearing Launcher runtime is the same commit.  
+**Repository authority baseline:** `main` at `29badaae9e4b1ce0c6a697501ed5cc969cc79eaa` (PR #226). Latest source-bearing Launcher runtime is the same commit.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
@@ -30,6 +30,33 @@ The migrated historical record is stored in these repository-local segments:
 7. [September 16–22, 2026 — Glaze/Platform stabilization through Universal Search presentation structure](docs/changelog-history/2026-09-16-to-2026-09-22.md)
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
+
+## September 22, 2026 — PR #226 added four Launcher-owned Glaze wallpapers
+
+**Change type:** Wallpaper personalization; local rendering; Android system integration; Development implementation.
+
+PR #226, **Restack four built-in GoreeCloud wallpapers on current main**, was guarded-squash merged to `main` as `29badaae9e4b1ce0c6a697501ed5cc969cc79eaa`.
+
+Implemented:
+
+- added four Launcher-owned Glaze wallpaper designs: Glaze Aurora, Glaze Horizon, Glaze Nocturne, and Glaze Cascade;
+- renders the wallpaper images locally from inspectable GoreeCloud source instead of downloading artwork;
+- reuses the existing Home long-press **Wallpaper** action and Universal Search Wallpaper action;
+- presents the four built-ins with names/descriptions and retains an explicit Android system-wallpaper-picker fallback;
+- applies selected built-ins through Android `WallpaperManager`; and
+- added focused catalog coverage and source-manifest tracking.
+
+Privacy/security boundary:
+
+- added only `android.permission.SET_WALLPAPER`, guarded by the repository manifest allowlist;
+- no INTERNET, storage, advertising, analytics, remote asset, or executable remote-code dependency was added.
+
+Validation:
+
+- exact PR head `3d535cfee09a6995790cbc46371f7a55f8d4cdd8` passed Android CI run #698 / `35815073478` across validate, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes;
+- guarded squash merge commit: `29badaae9e4b1ce0c6a697501ed5cc969cc79eaa`.
+
+**Lifecycle boundary:** Development only. Representative-device visual quality, resolution/orientation rendering, picker accessibility, sustained performance/power, Human Visual Excellence, release qualification, production, and Stable acceptance remain open under issue #80.
 
 ## September 22, 2026 — PR #223 removed persistent app-drawer header actions
 
