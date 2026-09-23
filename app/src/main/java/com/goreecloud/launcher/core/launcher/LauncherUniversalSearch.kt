@@ -64,6 +64,12 @@ data class LauncherSearchExecutionPolicy(
 
 enum class LauncherSearchCategory {
     APPLICATION,
+    SHORTCUT,
+    CONTACT,
+    CALL_HISTORY,
+    MESSAGE,
+    FILE,
+    CONNECTED_SOURCE,
     SETTING,
     ACTION,
 }
