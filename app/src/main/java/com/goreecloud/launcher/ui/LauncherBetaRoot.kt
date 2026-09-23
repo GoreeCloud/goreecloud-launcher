@@ -2412,15 +2412,20 @@ private fun HomeFavoriteTile(
                     onDragStart = {
                         dragging = true
                         dragOffset = Offset.Zero
-                        val start = tileBounds?.center
-                        dragStartCenter = start
-                        if (start != null) onBeginLocalDrag(dragData, start)
+                        dragStartCenter = tileBounds?.center
+                        onManageApp(app, tileBounds)
                     },
                     onDrag = { change, amount ->
                         change.consume()
-                        dragOffset += amount
                         val start = dragStartCenter
-                        if (start != null) onUpdateLocalDrag(start + dragOffset)
+                        val wasStationary = dragOffset == Offset.Zero
+                        dragOffset += amount
+                        if (start != null) {
+                            if (wasStationary) {
+                                onBeginLocalDrag(dragData, start)
+                            }
+                            onUpdateLocalDrag(start + dragOffset)
+                        }
                     },
                     onDragEnd = {
                         val moved =
@@ -2431,7 +2436,6 @@ private fun HomeFavoriteTile(
                             onEndLocalDrag(dragData, start + dragOffset)
                         } else {
                             onCancelLocalDrag()
-                            onManageApp(app, tileBounds)
                         }
                         dragging = false
                         dragOffset = Offset.Zero
@@ -4954,9 +4958,6 @@ private fun LauncherAppTile(
 
     Column(
         modifier = modifier
-            .onGloballyPositioned { coordinates ->
-                onBoundsChanged?.invoke(coordinates.boundsInRoot())
-            }
             .then(dragModifier)
             .then(gestureModifier)
             .onGloballyPositioned {
