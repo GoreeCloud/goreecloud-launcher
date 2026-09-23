@@ -244,7 +244,14 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(
                 apps,
                 workspace.initialized,
+                workspace.authority,
+                workspace.favoriteKeys,
+                workspace.dockKeys,
+                launcherPreferences.homeColumns,
+                launcherPreferences.homeRows,
                 experiencePreferences.starterLayoutApplied,
+                experiencePreferences.useLocalUsageForSuggestions,
+                localLaunchCounts,
             ) {
                 if (apps.isEmpty() || experiencePreferences.starterLayoutApplied) {
                     return@LaunchedEffect
@@ -258,6 +265,13 @@ class MainActivity : ComponentActivity() {
                                 key = app.workspaceKey(),
                                 label = app.label.toString(),
                                 packageName = app.componentName.packageName,
+                                localLaunchCount = if (
+                                    experiencePreferences.useLocalUsageForSuggestions
+                                ) {
+                                    localLaunchCounts[app.workspaceKey()] ?: 0L
+                                } else {
+                                    0L
+                                },
                             )
                         },
                 )
@@ -267,12 +281,15 @@ class MainActivity : ComponentActivity() {
                         favoriteKeys = starterSelection.favoriteKeys,
                         dockKeys = starterSelection.dockKeys,
                     )
-                    launcherPreferencesRepository.markStarterLayoutApplied()
                 } else if (workspace.favoriteKeys.isEmpty() && workspace.dockKeys.isEmpty()) {
                     var seeded = true
                     for (key in starterSelection.favoriteKeys) {
-                        if (workspaceRuntimeCoordinator.toggleFavorite(key) !is
-                            WorkspaceAuthoritativeWriteResult.Written
+                        if (
+                            workspaceRuntimeCoordinator.toggleFavorite(
+                                key = key,
+                                homeColumns = launcherPreferences.homeColumns,
+                                homeRows = launcherPreferences.homeRows,
+                            ) !is WorkspaceAuthoritativeWriteResult.Written
                         ) {
                             seeded = false
                             break
@@ -280,19 +297,55 @@ class MainActivity : ComponentActivity() {
                     }
                     if (seeded) {
                         for (key in starterSelection.dockKeys) {
-                            if (workspaceRuntimeCoordinator.toggleDock(key) !is
-                                WorkspaceAuthoritativeWriteResult.Written
+                            if (
+                                workspaceRuntimeCoordinator.toggleDock(key) !is
+                                    WorkspaceAuthoritativeWriteResult.Written
                             ) {
                                 seeded = false
                                 break
                             }
                         }
                     }
-                    if (seeded) {
-                        launcherPreferencesRepository.markStarterLayoutApplied()
+                    if (!seeded) return@LaunchedEffect
+                } else if (
+                    workspace.favoriteKeys != starterSelection.favoriteKeys ||
+                    workspace.dockKeys != starterSelection.dockKeys
+                ) {
+                    // Existing user placement always wins over the one-time starter.
+                    launcherPreferencesRepository.markStarterLayoutApplied()
+                    return@LaunchedEffect
+                }
+
+                workspaceRuntimeCoordinator.reconcileAndActivate()
+                val ready = workspaceRuntimeCoordinator.ensurePrimaryHomeSpatialGrid(
+                    columns = launcherPreferences.homeColumns,
+                    rows = launcherPreferences.homeRows,
+                )
+                if (ready !is WorkspacePrimaryHomeSpatialResult.Ready) {
+                    return@LaunchedEffect
+                }
+
+                val cells = StarterWorkspacePolicy.homeCells(
+                    itemCount = starterSelection.favoriteKeys.size,
+                    columns = launcherPreferences.homeColumns,
+                    rows = launcherPreferences.homeRows,
+                )
+                var positioned = true
+                for ((key, cell) in starterSelection.favoriteKeys.zip(cells)) {
+                    if (
+                        workspaceRuntimeCoordinator.movePrimaryHomeAppToCell(
+                            appKey = key,
+                            columns = launcherPreferences.homeColumns,
+                            rows = launcherPreferences.homeRows,
+                            cellX = cell.first,
+                            cellY = cell.second,
+                        ) !is WorkspacePrimaryHomeSpatialResult.Moved
+                    ) {
+                        positioned = false
+                        break
                     }
-                } else {
-                    // Existing user placement always wins over the one-time Development starter.
+                }
+                if (positioned) {
                     launcherPreferencesRepository.markStarterLayoutApplied()
                 }
             }
