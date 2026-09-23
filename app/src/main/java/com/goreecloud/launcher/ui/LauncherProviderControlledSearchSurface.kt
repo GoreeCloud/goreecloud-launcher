@@ -328,6 +328,40 @@ internal fun LauncherProviderControlledSearchSurface(
                                                 ?.let { onLaunchApp(it.app) }
                                         }
                                     }
+                                } else if (section.category == LauncherSearchCategory.SHORTCUT) {
+                                    val shortcutResults = section.items.mapNotNull { result ->
+                                        (result.action as? LauncherLaunchShortcutSearchAction)?.let { it to result }
+                                    }
+                                    val byApplication = shortcutResults.groupBy {
+                                        it.first.packageName to it.first.user
+                                    }
+                                    val groupedShortcuts = byApplication.entries.toList()
+                                    items(
+                                        groupedShortcuts,
+                                        key = {
+                                            "shortcuts:" + it.key.first + ":" + it.key.second.hashCode()
+                                        },
+                                    ) { entry ->
+                                        val matchingApp = apps.firstOrNull { app ->
+                                            app.componentName.packageName == entry.key.first &&
+                                                app.user == entry.key.second
+                                        }
+                                        LauncherGlazeShortcutPanel(
+                                            app = matchingApp,
+                                            packageName = entry.key.first,
+                                            shortcuts = entry.value.map { it.second },
+                                            onLaunchShortcut = onLaunchShortcut,
+                                        )
+                                    }
+                                    items(
+                                        section.items.filterNot { it.action is LauncherLaunchShortcutSearchAction },
+                                        key = { "other-shortcut:" + it.providerId + ":" + it.resultId },
+                                    ) { result ->
+                                        LauncherProviderSearchRow(result) {
+                                            (result.action as? LauncherLaunchShortcutSearchAction)
+                                                ?.let(onLaunchShortcut)
+                                        }
+                                    }
                                 } else {
                                     items(
                                         section.items,
@@ -479,6 +513,77 @@ private fun LauncherGlazeSearchAppTile(
     }
 }
 
+/**
+ * Shortcut results are grouped by Android package AND profile. A Work-profile shortcut
+ * must never be displayed or launched as a Personal-profile shortcut with the same label.
+ */
+@Composable
+private fun LauncherGlazeShortcutPanel(
+    app: LauncherActivityInfo?,
+    packageName: String,
+    shortcuts: List<LauncherSearchResult>,
+    onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
+) {
+    val icon = if (app != null) rememberLauncherAppIcon(app) else null
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("launcher-glaze-shortcut-panel"),
+        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+    ) {
+        Column(
+            modifier = Modifier.padding(GlazeMetrics.space2),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            ) {
+                if (icon != null) {
+                    Image(
+                        bitmap = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp).launcherIconMask(),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+                Text(
+                    app?.label?.toString() ?: packageName.substringAfterLast('.'),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            shortcuts.chunked(3).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                ) {
+                    row.forEach { shortcut ->
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = {
+                                (shortcut.action as? LauncherLaunchShortcutSearchAction)
+                                    ?.let(onLaunchShortcut)
+                            },
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                        ) {
+                            Text(
+                                shortcut.title,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                    }
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+        }
+    }
+}
+
 /** Local result actions are explicit user taps; Message opens the system's default SMS handler. */
 @Composable
 private fun LauncherGlazeSearchResult(
@@ -510,6 +615,21 @@ private fun LauncherGlazeSearchResult(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
+                    if (isContact) {
+                        Surface(
+                            modifier = Modifier.size(38.dp),
+                            shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    result.title.trim().take(1).uppercase(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                            }
+                        }
+                    }
                     Column(Modifier.weight(1f)) {
                         Text(
                             result.title,
