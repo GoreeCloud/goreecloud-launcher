@@ -78,6 +78,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -135,6 +136,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -5063,6 +5065,144 @@ private fun LauncherAppListRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+    }
+}
+
+private class AboveAppIconPopupPositionProvider(
+    private val anchor: Rect,
+    private val gapPx: Int,
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val margin = gapPx.coerceAtLeast(1)
+        val centerX = ((anchor.left + anchor.right) / 2f).roundToInt()
+        val maxX = (windowSize.width - popupContentSize.width - margin).coerceAtLeast(margin)
+        val x = (centerX - popupContentSize.width / 2).coerceIn(margin, maxX)
+
+        val above = anchor.top.roundToInt() - popupContentSize.height - gapPx
+        val below = anchor.bottom.roundToInt() + gapPx
+        val maxY = (windowSize.height - popupContentSize.height - margin).coerceAtLeast(margin)
+        val y = if (above >= margin) above else below.coerceIn(margin, maxY)
+        return IntOffset(x, y.coerceIn(margin, maxY))
+    }
+}
+
+@Composable
+private fun AppContextPopup(
+    app: LauncherActivityInfo,
+    anchor: Rect,
+    workspace: WorkspaceState,
+    layoutLocked: Boolean,
+    onToggleFavorite: () -> Unit,
+    onToggleDock: () -> Unit,
+    onOpenAppInfo: () -> Unit,
+    onRequestUninstall: () -> Unit,
+    onMoreOptions: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val key = app.workspaceKey()
+    val isFavorite = key in workspace.favoriteKeys
+    val isDocked = key in workspace.dockKeys
+    val dockFull = !isDocked && workspace.dockKeys.size >= MAX_DOCK_ITEMS
+    val icon = rememberLauncherAppIcon(app)
+    val gapPx = with(LocalDensity.current) { 10.dp.roundToPx() }
+
+    Popup(
+        popupPositionProvider = remember(anchor, gapPx) {
+            AboveAppIconPopupPositionProvider(anchor, gapPx)
+        },
+        onDismissRequest = onClose,
+        properties = PopupProperties(
+            focusable = true,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+        ),
+    ) {
+        Surface(
+            modifier = Modifier.widthIn(min = 230.dp, max = 310.dp),
+            shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+            ),
+            shadowElevation = 12.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(GlazeMetrics.space3),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    if (icon != null) {
+                        Image(
+                            bitmap = icon,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(38.dp)
+                                .launcherIconMask(),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            app.label.toString(),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            if (layoutLocked) "Home layout locked" else "App actions",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                TextButton(
+                    onClick = onToggleFavorite,
+                    enabled = !layoutLocked,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (isFavorite) "Remove from Home" else "Add to Home")
+                }
+                TextButton(
+                    onClick = onToggleDock,
+                    enabled = !layoutLocked && !dockFull,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (isDocked) "Remove from Dock" else "Add to Dock")
+                }
+                TextButton(
+                    onClick = onOpenAppInfo,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("App info")
+                }
+                TextButton(
+                    onClick = onRequestUninstall,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        "Uninstall",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                FilledTonalButton(
+                    onClick = onMoreOptions,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("More options")
+                }
+            }
         }
     }
 }
