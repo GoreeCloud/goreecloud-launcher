@@ -213,6 +213,12 @@ fun LauncherBetaRoot(
     onSetUniversalSearchHomeMode: (LauncherUniversalSearchHomeMode) -> Unit,
     onSetSearchProviderPreferences:
         (com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot) -> Unit,
+    onSetSearchProviderEnabled:
+        (com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onLaunchSearchShortcut:
+        (com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction) -> Unit,
+    onOpenSearchUri:
+        (com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction) -> Unit,
     onResetSearchProviderPreferences: () -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
@@ -492,8 +498,11 @@ fun LauncherBetaRoot(
                 apps = apps,
                 searchProviderPreferences = searchProviderPreferences,
                 onSetSearchProviderPreferences = onSetSearchProviderPreferences,
+                onSetSearchProviderEnabled = onSetSearchProviderEnabled,
                 onResetSearchProviderPreferences = onResetSearchProviderPreferences,
                 onLaunchApp = onLaunchApp,
+                onLaunchShortcut = onLaunchSearchShortcut,
+                onOpenSearchUri = onOpenSearchUri,
                 onNavigate = { destination ->
                     when (destination) {
                         LauncherSearchDestination.HOME -> {
