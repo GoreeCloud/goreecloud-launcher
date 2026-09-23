@@ -191,6 +191,42 @@ class MainActivity : ComponentActivity() {
                 LauncherSurfaceMode.valueOf(primarySurfaceModeName)
             }.getOrDefault(LauncherSurfaceMode.HOME)
 
+            val launchApp: (LauncherActivityInfo) -> Unit = { app ->
+                appsRepository.launch(app)
+                if (experiencePreferences.useLocalUsageForSuggestions) {
+                    localUsageRepository.recordLaunch(app.workspaceKey())
+                }
+            }
+
+            LaunchedEffect(
+                experiencePreferences.addNewAppsToHome,
+                launcherPreferences.layoutLocked,
+                launcherPreferences.homeColumns,
+                launcherPreferences.homeRows,
+                workspace.authority,
+            ) {
+                if (
+                    !experiencePreferences.addNewAppsToHome ||
+                    launcherPreferences.layoutLocked ||
+                    workspace.authority != WorkspaceAuthority.ROOM
+                ) {
+                    return@LaunchedEffect
+                }
+
+                appsRepository.installedPackageEvents.collect { event ->
+                    if (event.user != Process.myUserHandle()) return@collect
+                    val app = appsRepository.firstLaunchableActivity(
+                        packageName = event.packageName,
+                        user = event.user,
+                    ) ?: return@collect
+                    workspaceRuntimeCoordinator.toggleFavorite(
+                        key = app.workspaceKey(),
+                        homeColumns = launcherPreferences.homeColumns,
+                        homeRows = launcherPreferences.homeRows,
+                    )
+                }
+            }
+
             LaunchedEffect(homeResetSequenceValue) {
                 selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
                 primarySurfaceModeName = LauncherSurfaceMode.HOME.name
