@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.LauncherAppWidgetHostController
@@ -40,12 +41,18 @@ import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
+import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
 import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
+import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderUserControlPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
@@ -102,6 +109,24 @@ class MainActivity : ComponentActivity() {
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
     private var pendingAppWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
+    private var pendingSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
+
+    private val searchSourcePermissionRequest =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val pending = pendingSearchProviderSnapshot
+            pendingSearchProviderSnapshot = null
+            if (granted && pending != null) {
+                lifecycleScope.launch {
+                    searchProviderPreferencesRepository.set(pending)
+                }
+            } else if (!granted) {
+                Toast.makeText(
+                    this,
+                    "That Search source remains disabled until Android permission is granted.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
 
     private val widgetConfigureRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -739,6 +764,23 @@ class MainActivity : ComponentActivity() {
                                     searchProviderPreferencesRepository.set(snapshot)
                                 }
                             },
+                            onSetSearchProviderEnabled = ::setSearchProviderEnabled,
+                            onLaunchSearchShortcut = { action ->
+                                runCatching {
+                                    appsRepository.launchShortcut(
+                                        packageName = action.packageName,
+                                        shortcutId = action.shortcutId,
+                                        user = action.user,
+                                    )
+                                }.onFailure {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "That shortcut is no longer available.",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            },
+                            onOpenSearchUri = ::openSearchUri,
                             onResetSearchProviderPreferences = {
                                 lifecycleScope.launch {
                                     searchProviderPreferencesRepository.clear()
@@ -1039,6 +1081,44 @@ class MainActivity : ComponentActivity() {
                     Toast.LENGTH_SHORT,
                 ).show()
             }
+        }
+    }
+
+    private fun setSearchProviderEnabled(
+        state: LauncherSearchProviderControlState,
+        providerId: String,
+        enabled: Boolean,
+    ) {
+        val snapshot = LauncherSearchProviderUserControlPolicy.withProviderEnabled(
+            state = state,
+            providerId = providerId,
+            enabled = enabled,
+        )
+        val permission = LauncherLocalSearchPermissions.permissionFor(providerId)
+        if (
+            enabled &&
+            permission != null &&
+            ContextCompat.checkSelfPermission(this, permission) !=
+                PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingSearchProviderSnapshot = snapshot
+            searchSourcePermissionRequest.launch(permission)
+            return
+        }
+
+        lifecycleScope.launch {
+            searchProviderPreferencesRepository.set(snapshot)
+        }
+    }
+
+    private fun openSearchUri(action: LauncherOpenUriSearchAction) {
+        val intent = Intent(action.intentAction, Uri.parse(action.uri))
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(
+                this,
+                "No compatible app is available for this result.",
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
