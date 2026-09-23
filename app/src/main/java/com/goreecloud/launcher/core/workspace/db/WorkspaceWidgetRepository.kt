@@ -37,11 +37,6 @@ class WorkspaceWidgetRepository(
     private val authorityRepository: WorkspaceRepository,
     private val workspaceDaoProvider: () -> WorkspaceDao?,
 ) {
-    private val spatialRepository = WorkspacePrimaryHomeSpatialRepository(
-        authorityRepository = authorityRepository,
-        workspaceDaoProvider = workspaceDaoProvider,
-    )
-
     suspend fun addBuiltInWidget(
         itemId: String,
         typeId: String,
@@ -120,8 +115,6 @@ class WorkspaceWidgetRepository(
     ): WorkspaceWidgetMutationResult {
         if (!isRoomAuthoritative()) return WorkspaceWidgetMutationResult.Reserved
         if (columns <= 0 || rows <= 0) return WorkspaceWidgetMutationResult.InvalidWorkspace
-        val ready = spatialRepository.ensureGrid(columns, rows)
-        if (ready !is WorkspacePrimaryHomeSpatialResult.Ready) return ready.toWidgetResult()
         val dao = workspaceDaoOrNull() ?: return WorkspaceWidgetMutationResult.Unavailable
         return try {
             val page = primaryPage(dao) ?: return WorkspaceWidgetMutationResult.InvalidWorkspace
@@ -179,8 +172,6 @@ class WorkspaceWidgetRepository(
             spanY <= 0
         ) return WorkspaceWidgetMutationResult.InvalidWorkspace
 
-        val ready = spatialRepository.ensureGrid(columns, rows)
-        if (ready !is WorkspacePrimaryHomeSpatialResult.Ready) return ready.toWidgetResult()
 
         val dao = workspaceDaoOrNull() ?: return WorkspaceWidgetMutationResult.Unavailable
         return try {
@@ -268,14 +259,3 @@ private fun WorkspaceItemEntity.toSpatialPlacement(): WorkspaceGridPlacement.Pla
     )
 }
 
-private fun WorkspacePrimaryHomeSpatialResult.toWidgetResult(): WorkspaceWidgetMutationResult = when (this) {
-    WorkspacePrimaryHomeSpatialResult.Reserved -> WorkspaceWidgetMutationResult.Reserved
-    WorkspacePrimaryHomeSpatialResult.Unavailable -> WorkspaceWidgetMutationResult.Unavailable
-    WorkspacePrimaryHomeSpatialResult.InvalidWorkspace -> WorkspaceWidgetMutationResult.InvalidWorkspace
-    WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged ->
-        WorkspaceWidgetMutationResult.StoredWorkspaceChanged
-    is WorkspacePrimaryHomeSpatialResult.Failed -> WorkspaceWidgetMutationResult.Failed(failureType)
-    is WorkspacePrimaryHomeSpatialResult.Ready,
-    is WorkspacePrimaryHomeSpatialResult.Moved,
-    -> WorkspaceWidgetMutationResult.InvalidWorkspace
-}
