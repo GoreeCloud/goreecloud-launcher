@@ -1625,7 +1625,7 @@ private fun HomeFavoritesGrid(
     }
 
     LaunchedEffect(widgetOccupiedCells) {
-        widgetOccupiedCells.forEach(cellBounds::remove)
+        widgetOccupiedCells.forEach { coordinate -> cellBounds.remove(coordinate) }
     }
 
     BoxWithConstraints(
