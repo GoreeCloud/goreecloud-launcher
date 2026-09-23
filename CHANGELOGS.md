@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. PR #203 reconciled the post-migration authority records, and legacy Launcher Drive roadmap/changelog retirement was subsequently verified.**  
-**Repository authority baseline:** `main` at `b68d1e56443a6e8365cf1d440e4ac5c53c868a02` (PR #235). Latest source-bearing Launcher runtime is the same commit.  
+**Repository authority baseline:** `main` at `426e466f62d8347de720258be8492e518e84c4d5` (PR #238). Latest source-bearing Launcher runtime is the same commit.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
@@ -30,6 +30,42 @@ The migrated historical record is stored in these repository-local segments:
 7. [September 16–22, 2026 — Glaze/Platform stabilization through Universal Search presentation structure](docs/changelog-history/2026-09-16-to-2026-09-22.md)
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
+
+## September 23, 2026 — PR #238 added local file Search and explicit connected Search handoffs
+
+**Change type:** Universal Search; Storage Access Framework; explicit third-party handoff; privacy boundary; Development implementation.
+
+PR #238, **Add file and connected Universal Search sources**, was guarded-squash merged to `main` as `426e466f62d8347de720258be8492e518e84c4d5`.
+
+Implemented:
+
+- added opt-in local file Search over user-selected Android Storage Access Framework tree roots;
+- persists only the selected tree URIs/read grants in a dedicated local DataStore;
+- indexes filename and MIME metadata only, with bounded depth/index/result limits and no file-content indexing;
+- opens file results through Android document intents;
+- added explicit **Search with…** handoffs for Google Drive, Dropbox, and Brave Search;
+- exposes Google Drive/Dropbox only when Android resolves the reviewed package-scoped search handoff and opens Brave Search through its HTTPS query URL;
+- connected third-party providers receive the query only after the user explicitly taps the named provider;
+- added provider-policy-controlled/unknown query-retention representation instead of inventing third-party retention guarantees;
+- restricted new package visibility to Google Drive and Dropbox and enforced the allowlist in `scripts/check_manifest.py`;
+- preserved PR #235's Home-editor-only Settings route; and
+- updated the Android runtime regression to expect the file-aware Universal Search placeholder.
+
+Privacy/trust boundary:
+
+- no Launcher `INTERNET`, broad-storage, or `QUERY_ALL_PACKAGES` permission was added;
+- file Search is limited to explicitly selected SAF roots and does not persist query/result history;
+- Google Drive/Dropbox/Brave queries are not automatically fanned out while the user types; and
+- provider-side account, network processing, and retention behavior remains governed by the selected provider.
+
+Validation:
+
+- initial exact-head source/build and transition-performance evidence was green, but Android runtime exposed a stale UI assertion after the file-search placeholder changed;
+- the runtime assertion was corrected without changing the provider architecture;
+- final exact PR head `71be92123352e5d179f48e5e1a892680aadd8987` passed Android CI run #729 / `35821960552` across validate/build/unit/schema/APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes; and
+- guarded squash merge commit: `426e466f62d8347de720258be8492e518e84c4d5`.
+
+**Lifecycle boundary:** Development only. Representative-device large-tree performance, connected-provider compatibility, accessibility, profile isolation, sensitive-permission distribution-policy review, broader external provider discovery/registration, release qualification, production, and Stable acceptance remain open under issue #80.
 
 ## September 23, 2026 — PR #235 reserved Launcher Settings for Edit Home
 
