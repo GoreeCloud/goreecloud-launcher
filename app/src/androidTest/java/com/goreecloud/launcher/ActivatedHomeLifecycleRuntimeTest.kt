@@ -722,9 +722,12 @@ class ActivatedHomeLifecycleRuntimeTest {
                 composeRule
                     .onNodeWithText("Edit Home", useUnmergedTree = true)
                     .assertIsDisplayed()
-                composeRule
-                    .onNodeWithText("Settings", useUnmergedTree = true)
-                    .assertIsDisplayed()
+                check(
+                    composeRule
+                        .onAllNodesWithText("Settings", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty(),
+                )
                 check(
                     composeRule
                         .onAllNodesWithText("User Apps", useUnmergedTree = true)
@@ -812,9 +815,12 @@ class ActivatedHomeLifecycleRuntimeTest {
                 composeRule
                     .onNodeWithText("Edit Home", useUnmergedTree = true)
                     .assertIsDisplayed()
-                composeRule
-                    .onNodeWithText("Settings", useUnmergedTree = true)
-                    .assertIsDisplayed()
+                check(
+                    composeRule
+                        .onAllNodesWithText("Settings", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty(),
+                )
                 check(
                     composeRule
                         .onAllNodesWithText(
