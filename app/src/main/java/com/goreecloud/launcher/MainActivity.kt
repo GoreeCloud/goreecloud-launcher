@@ -35,6 +35,7 @@ import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
+import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
 import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
@@ -78,6 +79,7 @@ import java.util.UUID
 class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
+    private lateinit var installedAppBaselineRepository: LauncherInstalledAppBaselineRepository
     private lateinit var localUsageRepository: LauncherLocalUsageRepository
     private lateinit var appWidgetHostController: LauncherAppWidgetHostController
     private lateinit var themeRepository: GlazeThemeRepository
@@ -153,6 +155,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         appsRepository = LauncherAppsRepository(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
+        installedAppBaselineRepository = LauncherInstalledAppBaselineRepository(this)
         localUsageRepository = LauncherLocalUsageRepository(this)
         appWidgetHostController = LauncherAppWidgetHostController(this)
         themeRepository = GlazeThemeRepository(this)
@@ -255,6 +258,7 @@ class MainActivity : ComponentActivity() {
             }
 
             LaunchedEffect(
+                apps,
                 experiencePreferences.addNewAppsToHome,
                 launcherPreferences.layoutLocked,
                 launcherPreferences.homeColumns,
@@ -262,7 +266,19 @@ class MainActivity : ComponentActivity() {
                 workspace.authority,
                 workspace.favoriteKeys,
             ) {
+                val primaryAppsByKey = apps
+                    .asSequence()
+                    .filter {
+                        it.user == Process.myUserHandle() &&
+                            it.componentName.packageName != packageName
+                    }
+                    .associateBy { it.workspaceKey() }
+                val baseline = installedAppBaselineRepository.reconcile(
+                    primaryAppsByKey.keys,
+                )
+
                 if (
+                    !baseline.initializedBefore ||
                     !experiencePreferences.addNewAppsToHome ||
                     launcherPreferences.layoutLocked ||
                     workspace.authority != WorkspaceAuthority.ROOM
@@ -270,14 +286,9 @@ class MainActivity : ComponentActivity() {
                     return@LaunchedEffect
                 }
 
-                appsRepository.installedPackageEvents.collect { event ->
-                    if (event.user != Process.myUserHandle()) return@collect
-                    val app = appsRepository.firstLaunchableActivity(
-                        packageName = event.packageName,
-                        user = event.user,
-                    ) ?: return@collect
-                    val appKey = app.workspaceKey()
-                    if (appKey in workspace.favoriteKeys) return@collect
+                for (appKey in baseline.newAppKeys) {
+                    if (appKey in workspace.favoriteKeys) continue
+                    if (primaryAppsByKey[appKey] == null) continue
                     workspaceRuntimeCoordinator.toggleFavorite(
                         key = appKey,
                         homeColumns = launcherPreferences.homeColumns,
