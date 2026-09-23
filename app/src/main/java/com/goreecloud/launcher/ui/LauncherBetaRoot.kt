@@ -54,6 +54,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -66,6 +67,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
+import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerEntryMode
@@ -86,7 +90,12 @@ import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
 import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherRuntimeSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderInvocationMode
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderUserControlPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
 import com.goreecloud.launcher.core.launcher.LauncherSearchResult
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
@@ -130,6 +139,10 @@ fun LauncherBetaRoot(
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    searchProviderPreferences: LauncherSearchProviderPreferenceDecodeResult,
+    onSetSearchProviderEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
+    onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
     onToggleFavorite: (LauncherActivityInfo) -> Unit,
     onToggleDock: (LauncherActivityInfo) -> Unit,
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
@@ -265,7 +278,11 @@ fun LauncherBetaRoot(
             )
             LauncherSurfaceMode.SEARCH -> LauncherUniversalSearchSurface(
                 apps = apps,
+                providerPreferences = searchProviderPreferences,
+                onSetProviderEnabled = onSetSearchProviderEnabled,
                 onLaunchApp = onLaunchApp,
+                onLaunchShortcut = onLaunchShortcut,
+                onOpenSearchUri = onOpenSearchUri,
                 onNavigate = { destination ->
                     when (destination) {
                         LauncherSearchDestination.HOME -> {
@@ -1391,13 +1408,28 @@ private fun EmptyWorkspaceCard(
 @Composable
 private fun LauncherUniversalSearchSurface(
     apps: List<LauncherActivityInfo>,
+    providerPreferences: LauncherSearchProviderPreferenceDecodeResult,
+    onSetProviderEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
+    onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
     onNavigate: (LauncherSearchDestination) -> Unit,
     onBack: () -> Unit,
 ) {
+    val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
-    val providers = remember(apps) {
-        LauncherBuiltInSearchProviderRegistry.providers(apps)
+    var showSources by rememberSaveable { mutableStateOf(false) }
+    val catalog = remember(apps, context) {
+        LauncherRuntimeSearchProviderRegistry.catalog(context, apps)
+    }
+    val providerControls = remember(catalog, providerPreferences) {
+        LauncherSearchProviderUserControlPolicy.normalize(
+            catalog = catalog,
+            persistedPreferences = providerPreferences,
+        )
+    }
+    val providers = remember(catalog, providerControls) {
+        LauncherSearchProviderUserControlPolicy.automaticProviders(catalog, providerControls)
     }
     val executionPolicy = remember {
         com.goreecloud.launcher.core.launcher.LauncherSearchExecutionPolicy.cancellationOnly()
@@ -1449,12 +1481,15 @@ private fun LauncherUniversalSearchSurface(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        "Launcher-owned local search and actions",
+                        "Apps, shortcuts and user-enabled local sources",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                GlazeTextAction("Done", onBack)
+                Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
+                    GlazeTextAction("Sources", { showSources = true })
+                    GlazeTextAction("Done", onBack)
+                }
             }
 
             GlazeAppSearchField(
@@ -1462,7 +1497,7 @@ private fun LauncherUniversalSearchSurface(
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 requestFocus = true,
-                placeholder = "Search apps, settings and actions",
+                placeholder = "Search apps, shortcuts, people, calls and messages",
                 inputTestTag = "launcher-universal-search-field",
             )
 
@@ -1501,6 +1536,8 @@ private fun LauncherUniversalSearchSurface(
                             onClick = {
                                 when (val action = result.action) {
                                     is LaunchApplicationSearchAction -> onLaunchApp(action.app)
+                                    is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
+                                    is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
                                     is LauncherNavigateSearchAction -> onNavigate(action.destination)
                                     null -> Unit
                                     else -> Unit
@@ -1511,7 +1548,97 @@ private fun LauncherUniversalSearchSurface(
                 }
             }
         }
+
+        if (showSources) {
+            LauncherSearchSourcesDialog(
+                state = providerControls,
+                onSetEnabled = onSetProviderEnabled,
+                onDismiss = { showSources = false },
+            )
+        }
     }
+}
+
+@Composable
+private fun LauncherSearchSourcesDialog(
+    state: LauncherSearchProviderControlState,
+    onSetEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Universal Search sources") },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            ) {
+                Text(
+                    "Sensitive local sources stay off until you enable them. Network and third-party sources remain explicit handoffs.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                state.orderedOptions.forEach { option ->
+                    val permissionGranted = LauncherLocalSearchPermissions.isGranted(
+                        context,
+                        option.providerId,
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Text(
+                                    option.displayName,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    buildString {
+                                        append(
+                                            when (option.invocationMode) {
+                                                LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL ->
+                                                    "Local · enabled by default"
+                                                LauncherSearchProviderInvocationMode.OPT_IN_LOCAL ->
+                                                    "Local · opt in"
+                                                LauncherSearchProviderInvocationMode.EXPLICIT_USER_HANDOFF ->
+                                                    "Explicit Search with…"
+                                            },
+                                        )
+                                        append(" · ")
+                                        append(option.privacySummary)
+                                        if (!permissionGranted) append(" · Android permission required")
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(
+                                checked = state.isEnabled(option.providerId),
+                                onCheckedChange = { enabled ->
+                                    onSetEnabled(state, option.providerId, enabled)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Done") }
+        },
+    )
 }
 
 @Composable
@@ -1521,6 +1648,12 @@ private fun LauncherUniversalSearchResultRow(
 ) {
     val categoryLabel = when (result.category) {
         LauncherSearchCategory.APPLICATION -> "App"
+        LauncherSearchCategory.SHORTCUT -> "Shortcut"
+        LauncherSearchCategory.CONTACT -> "Contact"
+        LauncherSearchCategory.CALL_HISTORY -> "Call"
+        LauncherSearchCategory.MESSAGE -> "Message"
+        LauncherSearchCategory.FILE -> "File"
+        LauncherSearchCategory.CONNECTED_SOURCE -> "Connected"
         LauncherSearchCategory.SETTING -> "Setting"
         LauncherSearchCategory.ACTION -> "Action"
     }
@@ -1551,6 +1684,12 @@ private fun LauncherUniversalSearchResultRow(
                     Text(
                         when (result.category) {
                             LauncherSearchCategory.APPLICATION -> "◫"
+                            LauncherSearchCategory.SHORTCUT -> "↗"
+                            LauncherSearchCategory.CONTACT -> "●"
+                            LauncherSearchCategory.CALL_HISTORY -> "☎"
+                            LauncherSearchCategory.MESSAGE -> "✉"
+                            LauncherSearchCategory.FILE -> "▤"
+                            LauncherSearchCategory.CONNECTED_SOURCE -> "⌕"
                             LauncherSearchCategory.SETTING -> "⚙"
                             LauncherSearchCategory.ACTION -> "→"
                         },
