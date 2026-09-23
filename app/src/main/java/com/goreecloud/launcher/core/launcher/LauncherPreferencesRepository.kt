@@ -229,7 +229,13 @@ data class LauncherGestureAction(
             val type = LauncherGestureActionType.entries
                 .firstOrNull { it != LauncherGestureActionType.OPEN_APP && it.storageValue == value }
                 ?: return fallback
-            return builtIn(type)
+            return builtIn(
+                if (type == LauncherGestureActionType.LAUNCHER_SETTINGS) {
+                    LauncherGestureActionType.HOME_EDITOR
+                } else {
+                    type
+                },
+            )
         }
     }
 }
