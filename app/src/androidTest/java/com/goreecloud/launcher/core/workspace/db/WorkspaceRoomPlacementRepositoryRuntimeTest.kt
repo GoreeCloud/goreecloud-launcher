@@ -229,6 +229,28 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
                 .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
                 .none { it.itemType == WorkspaceItemType.FOLDER }
         )
+        // Real Room writes must reject collisions and preserve the widget's identity and size.
+        val widgetRepository = WorkspaceWidgetRepository(
+            authorityRepository = authorityRepository,
+            workspaceDaoProvider = { database.workspaceDao() },
+        )
+        assertEquals(
+            WorkspaceWidgetMutationResult.NoSpace,
+            widgetRepository.moveWidget(retainedWidget.itemId, 4, 5, 0, 0),
+        )
+        assertEquals(
+            WorkspaceWidgetMutationResult.Moved(retainedWidget.itemId, 1, 2),
+            widgetRepository.moveWidget(retainedWidget.itemId, 4, 5, 1, 2),
+        )
+        val movedWidget = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .single { it.itemId == retainedWidget.itemId }
+        assertEquals(retainedWidget.appKey, movedWidget.appKey)
+        assertEquals(retainedWidget.spanX, movedWidget.spanX)
+        assertEquals(retainedWidget.spanY, movedWidget.spanY)
+        assertEquals(1, movedWidget.cellX)
+        assertEquals(2, movedWidget.cellY)
+
         assertTrue(
             spatialReplacement.all {
                 it.cellX != null &&
