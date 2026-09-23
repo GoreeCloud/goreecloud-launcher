@@ -1,5 +1,8 @@
 package com.goreecloud.launcher.core.workspace.db
 
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetCatalog
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetDescriptor
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetKeyCodec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -134,6 +137,36 @@ class WorkspacePrimaryHomeGridMigrationPlannerTest {
                 WorkspacePrimaryHomeGridMigrationPlanner.plan(primaryPage(), items),
             )
         }
+    }
+
+    @Test
+    fun acceptsAlreadySpatialAppsAndWidgetsWhenSpansDoNotCollide() {
+        val items = listOf(
+            primaryItem(rank = 0, appKey = "app-a").copy(cellX = 0, cellY = 0),
+            WorkspaceItemEntity(
+                itemId = "widget:builtin:test",
+                pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                itemType = WorkspaceItemType.WIDGET,
+                appKey = WorkspaceWidgetKeyCodec.encode(
+                    WorkspaceWidgetDescriptor.BuiltIn(WorkspaceWidgetCatalog.CLOCK),
+                ),
+                rank = 1,
+                cellX = 1,
+                cellY = 0,
+                spanX = 2,
+                spanY = 2,
+            ),
+        )
+
+        assertEquals(
+            WorkspacePrimaryHomeGridMigrationPlanningResult.AlreadySpatial,
+            WorkspacePrimaryHomeGridMigrationPlanner.plan(
+                page = primaryPage(),
+                items = items,
+                columns = 4,
+                rows = 4,
+            ),
+        )
     }
 
     @Test
