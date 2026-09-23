@@ -14,6 +14,8 @@ enum class LauncherBuiltInWallpaperId {
     HORIZON,
     NOCTURNE,
     CASCADE,
+    SOLSTICE,
+    TIDAL,
 }
 
 data class LauncherBuiltInWallpaper(
@@ -68,6 +70,26 @@ object LauncherBuiltInWallpapers {
             endColor = 0xFF0F243A.toInt(),
             accentColor = 0xFF44DCAC.toInt(),
             secondaryAccentColor = 0xFF59A7FF.toInt(),
+        ),
+        LauncherBuiltInWallpaper(
+            id = LauncherBuiltInWallpaperId.SOLSTICE,
+            name = "Glaze Solstice",
+            description = "Soft daylight, sea-glass blue and pale lilac with a calm luminous finish.",
+            startColor = 0xFFB7DBEC.toInt(),
+            middleColor = 0xFF87BFCB.toInt(),
+            endColor = 0xFFB9A7D9.toInt(),
+            accentColor = 0xFF4DB8BF.toInt(),
+            secondaryAccentColor = 0xFFB69CDB.toInt(),
+        ),
+        LauncherBuiltInWallpaper(
+            id = LauncherBuiltInWallpaperId.TIDAL,
+            name = "Glaze Tidal",
+            description = "Deep ocean teal with jade and restrained turquoise highlights.",
+            startColor = 0xFF092A33.toInt(),
+            middleColor = 0xFF13505A.toInt(),
+            endColor = 0xFF102C46.toInt(),
+            accentColor = 0xFF5CE2C3.toInt(),
+            secondaryAccentColor = 0xFF4DBAC8.toInt(),
         ),
     )
 
