@@ -6,10 +6,12 @@ import org.junit.Test
 
 class LauncherBuiltInWallpapersTest {
     @Test
-    fun catalogContainsFourDistinctGoreeCloudWallpapers() {
+    fun catalogContainsSixDistinctGoreeCloudWallpapers() {
         val wallpapers = LauncherBuiltInWallpapers.all
 
-        assertTrue(wallpapers.size >= 4)
+        assertEquals(6, wallpapers.size)
+        assertTrue(LauncherBuiltInWallpaperId.SOLSTICE in wallpapers.map { it.id })
+        assertTrue(LauncherBuiltInWallpaperId.TIDAL in wallpapers.map { it.id })
         assertEquals(wallpapers.size, wallpapers.map { it.id }.distinct().size)
         assertEquals(wallpapers.size, wallpapers.map { it.name }.distinct().size)
         assertTrue(wallpapers.all { it.name.startsWith("Glaze ") })
