@@ -28,13 +28,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
-import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegistry
+import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherRuntimeSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
 import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
@@ -54,12 +57,17 @@ internal fun LauncherProviderControlledSearchSurface(
     onSetSearchProviderPreferences: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
     onResetSearchProviderPreferences: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
+    onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
     onNavigate: (LauncherSearchDestination) -> Unit,
     onBack: () -> Unit,
 ) {
+    val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
     var showSources by rememberSaveable { mutableStateOf(false) }
-    val catalog = remember(apps) { LauncherBuiltInSearchProviderRegistry.catalog(apps) }
+    val catalog = remember(apps, context) {
+        LauncherRuntimeSearchProviderRegistry.catalog(context, apps)
+    }
     val controls = remember(catalog, searchProviderPreferences) {
         searchProviderPreferences?.let {
             LauncherSearchProviderUserControlPolicy.normalize(catalog, it)
@@ -115,8 +123,8 @@ internal fun LauncherProviderControlledSearchSurface(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    if (showSources) "Local source controls and privacy boundaries"
-                    else "Launcher-owned local search and actions",
+                    if (showSources) "Local source controls, consent and privacy boundaries"
+                    else "Apps, shortcuts and user-enabled local sources",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -143,7 +151,7 @@ internal fun LauncherProviderControlledSearchSurface(
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 requestFocus = true,
-                placeholder = "Search apps, settings and actions",
+                placeholder = "Search apps, shortcuts, people, calls and messages",
                 inputTestTag = "launcher-universal-search-field",
             )
             if (results.isEmpty()) {
@@ -171,6 +179,8 @@ internal fun LauncherProviderControlledSearchSurface(
                         LauncherProviderSearchRow(result) {
                             when (val action = result.action) {
                                 is LaunchApplicationSearchAction -> onLaunchApp(action.app)
+                                is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
+                                is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
                                 is LauncherNavigateSearchAction -> onNavigate(action.destination)
                                 else -> Unit
                             }
@@ -308,6 +318,10 @@ private fun LauncherProviderSearchRow(
             Text(
                 when (result.category) {
                     LauncherSearchCategory.APPLICATION -> "App"
+                    LauncherSearchCategory.SHORTCUT -> "Shortcut"
+                    LauncherSearchCategory.CONTACT -> "Contact"
+                    LauncherSearchCategory.CALL_HISTORY -> "Call"
+                    LauncherSearchCategory.MESSAGE -> "Message"
                     LauncherSearchCategory.SETTING -> "Setting"
                     LauncherSearchCategory.ACTION -> "Action"
                 },
