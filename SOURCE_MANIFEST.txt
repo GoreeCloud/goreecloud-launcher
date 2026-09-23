@@ -96,6 +96,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceWidgetRepos
 app/src/main/java/com/goreecloud/launcher/ui/LauncherAppIcon.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherBetaRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherLocalAppSearch.kt
+app/src/main/java/com/goreecloud/launcher/ui/LauncherProviderControlledSearchSurface.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherSettingsDestinationHost.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherSettingsNavigation.kt
