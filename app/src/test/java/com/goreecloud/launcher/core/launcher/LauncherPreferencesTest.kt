@@ -44,6 +44,9 @@ class LauncherPreferencesTest {
 
         assertFalse(defaults.showHomeQuickActions)
         assertEquals(true, defaults.showHomePageIndicator)
+        assertEquals(true, defaults.showHomeLabels)
+        assertEquals(true, defaults.showDrawerLabels)
+        assertEquals(true, defaults.showDrawerPageIndicator)
         assertFalse(defaults.starterLayoutApplied)
         assertEquals(true, defaults.useLocalUsageForSuggestions)
         assertFalse(defaults.addNewAppsToHome)
