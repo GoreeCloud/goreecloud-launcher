@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Process
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -40,12 +41,16 @@ import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
+import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
 import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
+import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
@@ -102,6 +107,7 @@ class MainActivity : ComponentActivity() {
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
     private var pendingAppWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
+    private var pendingSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
 
     private val widgetConfigureRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -145,6 +151,21 @@ class MainActivity : ComponentActivity() {
                 }
             } else {
                 persistAndroidWidget(appWidgetId)
+            }
+        }
+
+    private val searchSourcePermissionRequest =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val pending = pendingSearchProviderSnapshot
+            pendingSearchProviderSnapshot = null
+            if (granted && pending != null) {
+                setSearchProviderPreferences(pending)
+            } else if (!granted) {
+                Toast.makeText(
+                    this,
+                    "That Search source remains disabled until Android permission is granted.",
+                    Toast.LENGTH_SHORT,
+                ).show()
             }
         }
 
@@ -541,6 +562,22 @@ class MainActivity : ComponentActivity() {
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = launchApp,
+                            onLaunchShortcut = { action ->
+                                runCatching {
+                                    appsRepository.launchShortcut(
+                                        packageName = action.packageName,
+                                        shortcutId = action.shortcutId,
+                                        user = action.user,
+                                    )
+                                }.onFailure {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "That shortcut is no longer available.",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            },
+                            onOpenSearchUri = ::openSearchUri,
                             onOpenAppInfo = appsRepository::openDetails,
                             onAddBuiltInWidget = ::addBuiltInWidget,
                             onPickAndroidWidget = ::beginAndroidWidgetPick,
@@ -734,11 +771,7 @@ class MainActivity : ComponentActivity() {
                             onSetIconScale = launcherPreferencesRepository::setIconScale,
                             onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,
                             onSetUniversalSearchHomeMode = launcherPreferencesRepository::setUniversalSearchHomeMode,
-                            onSetSearchProviderPreferences = { snapshot ->
-                                lifecycleScope.launch {
-                                    searchProviderPreferencesRepository.set(snapshot)
-                                }
-                            },
+                            onSetSearchProviderPreferences = ::setSearchProviderPreferences,
                             onResetSearchProviderPreferences = {
                                 lifecycleScope.launch {
                                     searchProviderPreferencesRepository.clear()
@@ -1039,6 +1072,43 @@ class MainActivity : ComponentActivity() {
                     Toast.LENGTH_SHORT,
                 ).show()
             }
+        }
+    }
+
+    private fun setSearchProviderPreferences(
+        snapshot: LauncherSearchProviderPreferenceSnapshot,
+    ) {
+        val missingPermission = snapshot.enabledProviderIds
+            .asSequence()
+            .mapNotNull { providerId ->
+                LauncherLocalSearchPermissions.permissionFor(providerId)?.let { permission ->
+                    providerId to permission
+                }
+            }
+            .firstOrNull { (_, permission) ->
+                ContextCompat.checkSelfPermission(this, permission) !=
+                    PackageManager.PERMISSION_GRANTED
+            }
+
+        if (missingPermission != null) {
+            pendingSearchProviderSnapshot = snapshot
+            searchSourcePermissionRequest.launch(missingPermission.second)
+            return
+        }
+
+        lifecycleScope.launch {
+            searchProviderPreferencesRepository.set(snapshot)
+        }
+    }
+
+    private fun openSearchUri(action: LauncherOpenUriSearchAction) {
+        val intent = Intent(action.intentAction, Uri.parse(action.uri))
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(
+                this,
+                "No compatible app is available for this Search result.",
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
