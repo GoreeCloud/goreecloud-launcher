@@ -848,6 +848,7 @@ private fun HomeSurface(
     homePageCount: Int,
     homeEditorRequestSequence: Long,
     homeLabelOverrides: Map<String, String>,
+    folders: List<LauncherFolder>,
     primaryHomePage: WorkspaceRenderedHomePage?,
     editMode: Boolean,
     activeDrag: LauncherAppDragData?,
@@ -861,6 +862,8 @@ private fun HomeSurface(
     onCancelLocalDrag: () -> Unit,
     onExitEditMode: () -> Unit,
     onManageHomePages: () -> Unit,
+    onManageFolders: () -> Unit,
+    onOpenFolder: (LauncherFolder) -> Unit,
     onMoveFavoriteToCell: (LauncherActivityInfo, Int, Int) -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onAddBuiltInWidget: (String) -> Unit,
@@ -1140,6 +1143,7 @@ private fun HomeSurface(
                 favoriteApps.isEmpty() &&
                 dockApps.isEmpty() &&
                 primaryHomePage?.widgetPlacements.isNullOrEmpty() &&
+                primaryHomePage?.folderPlacements.isNullOrEmpty() &&
                 activeDrag == null
             ) {
                 EmptyWorkspaceCard(
@@ -1149,10 +1153,12 @@ private fun HomeSurface(
             if (
                 favoriteApps.isNotEmpty() ||
                 !primaryHomePage?.widgetPlacements.isNullOrEmpty() ||
+                !primaryHomePage?.folderPlacements.isNullOrEmpty() ||
                 activeDrag != null
             ) {
                 HomeFavoritesGrid(
                     apps = favoriteApps,
+                    folders = folders,
                     columns = preferences.homeColumns,
                     rows = preferences.homeRows,
                     primaryHomePage = primaryHomePage,
@@ -1173,6 +1179,7 @@ private fun HomeSurface(
                     onManageApp = onManageApp,
                     onCreateAndroidWidgetView = onCreateAndroidWidgetView,
                     onManageWidget = onManageWidget,
+                    onOpenFolder = onOpenFolder,
                     onSwipeUp = {
                         executeGestureAction(experiencePreferences.swipeUpAction)
                     },
@@ -1244,6 +1251,10 @@ private fun HomeSurface(
                     onWidgets = {
                         showHomeEditor = false
                         showWidgetPicker = true
+                    },
+                    onFolders = {
+                        showHomeEditor = false
+                        onManageFolders()
                     },
                     onApps = {
                         showHomeEditor = false
@@ -1627,6 +1638,7 @@ private fun HomeEditorSheet(
     onWallpaper: () -> Unit,
     onPages: () -> Unit,
     onWidgets: () -> Unit,
+    onFolders: () -> Unit,
     onApps: () -> Unit,
     onSettings: () -> Unit,
 ) {
@@ -1682,8 +1694,9 @@ private fun HomeEditorSheet(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
         ) {
+            HomeEditorAction("Folders", "▦", onFolders, Modifier.weight(1f))
             HomeEditorAction("Settings", "⚙", onSettings, Modifier.weight(1f))
-            Spacer(Modifier.weight(3f))
+            Spacer(Modifier.weight(2f))
         }
         Spacer(Modifier.height(GlazeMetrics.space1))
     }
