@@ -39,6 +39,20 @@ class LauncherDrawerSortingPolicyTest {
     }
 
     @Test
+    fun canonicallyEquivalentUnicodeLabelsShareStableAppFolderTieBreaks() {
+        val entries = listOf(
+            Entry("Caf\u00e9", "folder:cafe"),
+            Entry("Camera", "app:camera"),
+            Entry("Cafe\u0301", "app:cafe"),
+        )
+        val expected = listOf("app:cafe", "folder:cafe", "app:camera")
+        val labelsFirst = LauncherDrawerSortingPolicy.order(entries, { it.label }, { it.stableKey })
+        val keysFirst = LauncherDrawerSortingPolicy.order(entries.reversed(), { it.label }, { it.stableKey })
+        assertEquals(expected, labelsFirst.map { it.stableKey })
+        assertEquals(expected, keysFirst.map { it.stableKey })
+    }
+
+    @Test
     fun emptyAndSingleEntryListsDoNotRequireScaffolding() {
         assertEquals(
             emptyList<Entry>(),
