@@ -4301,7 +4301,7 @@ private fun LauncherIconPackPickerSheet(
                         onClick = { onSelect(null) },
                     )
                 }
-                items(
+                lazyItems(
                     items = packs,
                     key = { it.packageName },
                 ) { pack ->
