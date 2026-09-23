@@ -1183,6 +1183,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun addAppToFolder(folderId: String, app: LauncherActivityInfo) {
+        if (app.user != Process.myUserHandle()) {
+            Toast.makeText(
+                this@MainActivity,
+                "Personal folders cannot contain apps from another profile.",
+                Toast.LENGTH_SHORT,
+            ).show()
+            return
+        }
         lifecycleScope.launch {
             if (!folderRepository.addApp(folderId, app.workspaceKey())) {
                 Toast.makeText(
