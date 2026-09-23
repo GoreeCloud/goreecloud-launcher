@@ -580,6 +580,7 @@ class MainActivity : ComponentActivity() {
                             drawerLayoutMode = drawerLayoutMode,
                             experiencePreferences = experiencePreferences,
                             searchProviderPreferences = searchProviderPreferences,
+                            fileSearchRoots = fileSearchRoots,
                             homePageCount = renderedPages.size.coerceAtLeast(1),
                             homeResetSequence = homeResetSequenceValue,
                             homeLabelOverrides = homeLabelOverrides,
@@ -804,6 +805,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onSetSearchProviderEnabled = ::setSearchProviderEnabled,
+                            onChooseFileSearchRoot = ::chooseFileSearchRoot,
                             onLaunchSearchShortcut = { action ->
                                 runCatching {
                                     appsRepository.launchShortcut(
@@ -820,6 +822,8 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onOpenSearchUri = ::openSearchUri,
+                            onOpenDocument = ::openDocument,
+                            onSearchWithConnectedProvider = ::searchWithConnectedProvider,
                             onResetSearchProviderPreferences = {
                                 lifecycleScope.launch {
                                     searchProviderPreferencesRepository.clear()
