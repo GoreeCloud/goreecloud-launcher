@@ -1,6 +1,7 @@
 package com.goreecloud.launcher.ui
 
 import android.content.pm.LauncherActivityInfo
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,7 +36,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherOpenDocumentSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherRuntimeSearchProviderRegistry
@@ -46,6 +49,7 @@ import com.goreecloud.launcher.core.launcher.LauncherSearchExecutionPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot
+import com.goreecloud.launcher.core.launcher.LauncherSearchPresentationPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderUserControlPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchResult
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
@@ -55,20 +59,24 @@ import com.goreecloud.launcher.ui.theme.GlazeMetrics
 internal fun LauncherProviderControlledSearchSurface(
     apps: List<LauncherActivityInfo>,
     searchProviderPreferences: LauncherSearchProviderPreferenceDecodeResult?,
+    fileSearchRoots: List<Uri>,
     onSetSearchProviderPreferences: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
     onSetSearchProviderEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onChooseFileSearchRoot: () -> Unit,
     onResetSearchProviderPreferences: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
     onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
+    onOpenDocument: (LauncherOpenDocumentSearchAction) -> Unit,
+    onSearchWithConnectedProvider: (String, String) -> Unit,
     onNavigate: (LauncherSearchDestination) -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
     var showSources by rememberSaveable { mutableStateOf(false) }
-    val catalog = remember(apps, context) {
-        LauncherRuntimeSearchProviderRegistry.catalog(context, apps)
+    val catalog = remember(apps, context, fileSearchRoots) {
+        LauncherRuntimeSearchProviderRegistry.catalog(context, apps, fileSearchRoots)
     }
     val controls = remember(catalog, searchProviderPreferences) {
         searchProviderPreferences?.let {
