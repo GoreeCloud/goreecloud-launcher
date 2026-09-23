@@ -9,6 +9,11 @@ import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/** Badge presentation is independent of notification access or reading notification content. */
+enum class LauncherBadgeStyle { COUNT, DOT }
+enum class LauncherBadgeSize { SMALL, MEDIUM, LARGE }
+enum class LauncherBadgeCorner { TOP_START, TOP_END, BOTTOM_START, BOTTOM_END }
+
 /** Only non-sensitive package/profile counts are kept in process memory; no notification content. */
 data class LauncherBadgeAppKey(val packageName: String, val profile: android.os.UserHandle)
 
@@ -20,9 +25,18 @@ data class LauncherBadgeAppKey(val packageName: String, val profile: android.os.
 object LauncherNotificationBadges {
     private const val STORE = "goreecloud_launcher_badges"
     private const val KEY_ENABLED = "enabled"
+    private const val KEY_STYLE = "style"
+    private const val KEY_SIZE = "size"
+    private const val KEY_CORNER = "corner"
 
     private val enabledState = MutableStateFlow(false)
     val enabled = enabledState.asStateFlow()
+    private val styleState = MutableStateFlow(LauncherBadgeStyle.COUNT)
+    val style = styleState.asStateFlow()
+    private val sizeState = MutableStateFlow(LauncherBadgeSize.MEDIUM)
+    val size = sizeState.asStateFlow()
+    private val cornerState = MutableStateFlow(LauncherBadgeCorner.TOP_END)
+    val corner = cornerState.asStateFlow()
     private val accessState = MutableStateFlow(false)
     val accessGranted = accessState.asStateFlow()
     private var refreshFromListener: (() -> Unit)? = null
@@ -30,9 +44,19 @@ object LauncherNotificationBadges {
     val counts = countState.asStateFlow()
 
     fun initialize(context: Context) {
-        enabledState.value = context.applicationContext.getSharedPreferences(
+        val preferences = context.applicationContext.getSharedPreferences(
             STORE, Context.MODE_PRIVATE,
-        ).getBoolean(KEY_ENABLED, false)
+        )
+        enabledState.value = preferences.getBoolean(KEY_ENABLED, false)
+        styleState.value = LauncherBadgeStyle.entries.firstOrNull {
+            it.name == preferences.getString(KEY_STYLE, LauncherBadgeStyle.COUNT.name)
+        } ?: LauncherBadgeStyle.COUNT
+        sizeState.value = LauncherBadgeSize.entries.firstOrNull {
+            it.name == preferences.getString(KEY_SIZE, LauncherBadgeSize.MEDIUM.name)
+        } ?: LauncherBadgeSize.MEDIUM
+        cornerState.value = LauncherBadgeCorner.entries.firstOrNull {
+            it.name == preferences.getString(KEY_CORNER, LauncherBadgeCorner.TOP_END.name)
+        } ?: LauncherBadgeCorner.TOP_END
         refreshAccess(context)
     }
 
@@ -43,6 +67,24 @@ object LauncherNotificationBadges {
         if (!newEnabled) countState.value = emptyMap()
         refreshAccess(context)
         if (newEnabled) refreshFromListener?.invoke()
+    }
+
+    fun setStyle(context: Context, newStyle: LauncherBadgeStyle) {
+        context.applicationContext.getSharedPreferences(STORE, Context.MODE_PRIVATE)
+            .edit().putString(KEY_STYLE, newStyle.name).apply()
+        styleState.value = newStyle
+    }
+
+    fun setSize(context: Context, newSize: LauncherBadgeSize) {
+        context.applicationContext.getSharedPreferences(STORE, Context.MODE_PRIVATE)
+            .edit().putString(KEY_SIZE, newSize.name).apply()
+        sizeState.value = newSize
+    }
+
+    fun setCorner(context: Context, newCorner: LauncherBadgeCorner) {
+        context.applicationContext.getSharedPreferences(STORE, Context.MODE_PRIVATE)
+            .edit().putString(KEY_CORNER, newCorner.name).apply()
+        cornerState.value = newCorner
     }
 
     fun refreshAccess(context: Context) {
