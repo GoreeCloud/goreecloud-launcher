@@ -5774,80 +5774,115 @@ private fun LauncherFolderManagerSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
         tonalElevation = 0.dp,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space2),
             verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    "Folders",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    "Create folders once, then use them from Home and the app drawer.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            OutlinedTextField(
-                value = nameDraft,
-                onValueChange = { nameDraft = it.take(40) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text("Folder name") },
-                placeholder = { Text("e.g. Work, Media, Utilities") },
-            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
             ) {
+                Surface(
+                    modifier = Modifier.size(53.dp),
+                    shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            "▦",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
+                }
                 Column(Modifier.weight(1f)) {
-                    Text("Add new folder to Home")
                     Text(
-                        "The folder always remains available in the app drawer.",
+                        "New folder",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "Choose a name; then add your apps.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Switch(
-                    checked = addToHome,
-                    onCheckedChange = { addToHome = it },
-                )
+                TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Close")
+                }
             }
-            Button(
-                onClick = {
-                    val name = nameDraft.trim()
-                    if (name.isNotBlank()) {
-                        onCreate(name, addToHome)
-                        nameDraft = ""
-                    }
-                },
-                enabled = nameDraft.isNotBlank(),
+
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             ) {
-                Text("Create folder")
+                Column(
+                    modifier = Modifier.padding(GlazeMetrics.space3),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    OutlinedTextField(
+                        value = nameDraft,
+                        onValueChange = { nameDraft = it.take(40) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text("Folder name") },
+                        placeholder = { Text("e.g. Banking, Work or Media") },
+                        leadingIcon = { Text("▦") },
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                "Place on Home",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                "You can drag it later; it always remains in the app drawer.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(checked = addToHome, onCheckedChange = { addToHome = it })
+                    }
+                    Button(
+                        onClick = {
+                            nameDraft.trim().takeIf(String::isNotBlank)?.let { name ->
+                                onCreate(name, addToHome)
+                                nameDraft = ""
+                            }
+                        },
+                        enabled = nameDraft.trim().isNotBlank(),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                    ) { Text("Create folder") }
+                }
             }
 
             if (folders.isNotEmpty()) {
                 HorizontalDivider()
                 Text(
-                    "Existing folders",
+                    "Your folders",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 320.dp),
+                        .heightIn(max = 230.dp),
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
                     lazyItems(
