@@ -224,6 +224,7 @@ fun LauncherBetaRoot(
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
     onRemoveWidget: (WorkspaceRenderedHomeWidget) -> Unit,
     onResizeWidget: (WorkspaceRenderedHomeWidget, Int, Int) -> Unit,
+    onMoveWidget: (WorkspaceRenderedHomeWidget, Int, Int) -> Unit,
     onToggleFavorite: (LauncherActivityInfo) -> Unit,
     onToggleDock: (LauncherActivityInfo) -> Unit,
     onMoveFavorite: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
@@ -545,6 +546,7 @@ fun LauncherBetaRoot(
                 },
                 onOpenFolder = { folder -> selectedFolderId = folder.id },
                 onMoveFavoriteToCell = onMoveFavoriteToCell,
+                onMoveWidget = onMoveWidget,
                 onLaunchApp = onLaunchApp,
                 onAddBuiltInWidget = onAddBuiltInWidget,
                 availableAndroidWidgets = availableAndroidWidgets,
@@ -784,6 +786,10 @@ fun LauncherBetaRoot(
                 onRemoveWidget(widget)
                 selectedWidget = null
             },
+            onMove = { cellX, cellY ->
+                onMoveWidget(widget, cellX, cellY)
+                selectedWidget = null
+            },
             onClose = { selectedWidget = null },
         )
     }
@@ -896,6 +902,7 @@ private fun HomeSurface(
     onManageFolders: () -> Unit,
     onOpenFolder: (LauncherFolder) -> Unit,
     onMoveFavoriteToCell: (LauncherActivityInfo, Int, Int) -> Unit,
+    onMoveWidget: (WorkspaceRenderedHomeWidget, Int, Int) -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onAddBuiltInWidget: (String) -> Unit,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
@@ -1215,6 +1222,7 @@ private fun HomeSurface(
                     onManageApp = onManageApp,
                     onCreateAndroidWidgetView = onCreateAndroidWidgetView,
                     onManageWidget = onManageWidget,
+                    onMoveWidget = onMoveWidget,
                     onOpenFolder = onOpenFolder,
                     onSwipeUp = {
                         executeGestureAction(experiencePreferences.swipeUpAction)
@@ -1587,8 +1595,10 @@ private fun LauncherWidgetManagementDialog(
     layoutLocked: Boolean,
     onResize: (Int, Int) -> Unit,
     onRemove: () -> Unit,
+    onMove: (Int, Int) -> Unit,
     onClose: () -> Unit,
 ) {
+    var choosingCell by remember(widget.itemId) { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text("Widget options") },
@@ -1608,13 +1618,42 @@ private fun LauncherWidgetManagementDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (layoutLocked) {
+                if (choosingCell && !layoutLocked) {
                     Text(
-                        "Unlock the Home layout to resize or remove widgets.",
+                        "Choose the top-left cell for this widget. Occupied destinations are rejected without changing the layout.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    repeat(rows) { cellY ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            repeat(columns) { cellX ->
+                                Surface(
+                                    onClick = { onMove(cellX, cellY) },
+                                    modifier = Modifier.weight(1f).height(40.dp),
+                                    shape = RoundedCornerShape(GlazeMetrics.radiusSmall),
+                                    color = if (cellX == widget.cellX && cellY == widget.cellY) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else MaterialTheme.colorScheme.surfaceVariant,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("${cellX + 1},${cellY + 1}", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    TextButton(onClick = { choosingCell = false }) { Text("Back to options") }
+                } else if (layoutLocked) {
+                    Text(
+                        "Unlock the Home layout to move, resize or remove widgets.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
+                    OutlinedButton(
+                        onClick = { choosingCell = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Move to another cell") }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
@@ -2041,6 +2080,7 @@ private fun HomeFavoritesGrid(
     onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
     onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
+    onMoveWidget: (WorkspaceRenderedHomeWidget, Int, Int) -> Unit,
     onOpenFolder: (LauncherFolder) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
@@ -2078,6 +2118,12 @@ private fun HomeFavoritesGrid(
             ) return@mapNotNull null
             placement to folder
         }
+    }
+    // Every cell is measured for widget drops, including occupied cells. Room rejects collisions.
+    val widgetTargetBounds = remember { mutableStateMapOf<Pair<Int, Int>, Rect>() }
+    LaunchedEffect(columns, rows) {
+        widgetTargetBounds.keys.filter { (x, y) -> x !in 0 until columns || y !in 0 until rows }
+            .forEach(widgetTargetBounds::remove)
     }
     val blockedCells = remember(widgets, homeFolders) {
         buildSet {
@@ -2145,10 +2191,12 @@ private fun HomeFavoritesGrid(
                         .size(width = cellWidth, height = tileHeight)
                         .testTag("launcher-home-cell-$cellX-$cellY")
                         .onGloballyPositioned {
+                            val bounds = it.boundsInRoot()
+                            widgetTargetBounds[coordinate] = bounds
                             if (blockedByPlacedItem) {
                                 cellBounds.remove(coordinate)
                             } else {
-                                cellBounds[coordinate] = it.boundsInRoot()
+                                cellBounds[coordinate] = bounds
                             }
                         }
                         .background(
@@ -2229,6 +2277,14 @@ private fun HomeFavoritesGrid(
                     editMode = editMode,
                     onCreateAndroidWidgetView = onCreateAndroidWidgetView,
                     onManageWidget = onManageWidget,
+                    layoutLocked = layoutLocked,
+                    onDropWidget = { candidate, point ->
+                        widgetTargetBounds.entries.firstOrNull { (_, bounds) ->
+                            bounds.contains(point)
+                        }?.key?.let { (cellX, cellY) ->
+                            onMoveWidget(candidate, cellX, cellY)
+                        }
+                    },
                     modifier = Modifier
                         .offset(
                             x = stepX * widget.cellX,
@@ -2376,14 +2432,28 @@ private fun Modifier.observeLongPressWithoutConsuming(
 private fun HomeWidgetTile(
     widget: WorkspaceRenderedHomeWidget,
     editMode: Boolean,
+    layoutLocked: Boolean,
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
     onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
+    onDropWidget: (WorkspaceRenderedHomeWidget, Offset) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var tileBounds by remember(widget.itemId) { mutableStateOf<Rect?>(null) }
+    var startRoot by remember(widget.itemId) { mutableStateOf<Offset?>(null) }
+    var dragDelta by remember(widget.itemId) { mutableStateOf(Offset.Zero) }
     Box(
         modifier = modifier
+            .graphicsLayer {
+                translationX = dragDelta.x
+                translationY = dragDelta.y
+                alpha = if (startRoot != null) 0.80f else 1f
+            }
+            .onGloballyPositioned { tileBounds = it.boundsInRoot() }
             .padding(2.dp)
-            .observeLongPressWithoutConsuming { onManageWidget(widget) }
+            .then(
+                if (!editMode) Modifier.observeLongPressWithoutConsuming { onManageWidget(widget) }
+                else Modifier
+            )
             .then(
                 if (editMode) {
                     Modifier.border(
@@ -2433,6 +2503,36 @@ private fun HomeWidgetTile(
             }
         }
 
+        if (editMode && !layoutLocked) {
+            // An edit-only touch layer owns widget movement; live Android widget taps are untouched
+            // outside edit mode and platform widget binding/authorization is unchanged.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .pointerInput(widget.itemId) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { pointer ->
+                                startRoot = tileBounds?.topLeft?.plus(pointer)
+                                dragDelta = Offset.Zero
+                            },
+                            onDrag = { change, amount ->
+                                change.consume()
+                                dragDelta += amount
+                            },
+                            onDragEnd = {
+                                startRoot?.let { origin -> onDropWidget(widget, origin + dragDelta) }
+                                startRoot = null
+                                dragDelta = Offset.Zero
+                            },
+                            onDragCancel = {
+                                startRoot = null
+                                dragDelta = Offset.Zero
+                            },
+                        )
+                    }
+                    .clickable { onManageWidget(widget) },
+            )
+        }
         if (editMode) {
             FilledTonalButton(
                 onClick = { onManageWidget(widget) },
