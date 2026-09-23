@@ -42,6 +42,7 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppWidgetHostCon
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeDragPolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeLabelOverrides.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherLocalUsageRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferenceImport.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferences.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreImport.kt
@@ -125,6 +126,7 @@ app/src/test/java/com/goreecloud/launcher/LauncherHomeIntentPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherIconSingleFlightLoaderTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherInventoryRefreshScopeTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherLabelSortKeyTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherLocalUsageCodecTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferenceImportTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferencesTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreFailureCompensationTest.kt
