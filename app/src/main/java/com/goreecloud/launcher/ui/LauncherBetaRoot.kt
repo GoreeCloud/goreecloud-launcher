@@ -314,8 +314,8 @@ fun LauncherBetaRoot(
             .filter { it.user == personalUser }
             .associateBy { it.workspaceKey() }
     }
-    val homeFolderIds = remember(primaryHomePage) {
-        primaryHomePage?.folderPlacements?.map { it.folderId }?.toSet().orEmpty()
+    val homeFolderIds = remember(homePages) {
+        homePages.flatMap { page -> page.folderPlacements.map { it.folderId } }.toSet()
     }
     var drawerSearchRequested by rememberSaveable { mutableStateOf(false) }
     var homeEditorRequestSequence by remember { mutableStateOf(0L) }
@@ -824,8 +824,7 @@ fun LauncherBetaRoot(
                 onAddToHome = { onAddFolderToHome(folder) },
                 onRemoveFromHome = { onRemoveFolderFromHome(folder) },
                 moveTargets = homePages.filter { page ->
-                    page.pageId != com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
-                        page.folderPlacements.none { placement -> placement.folderId == folder.id }
+                    page.folderPlacements.none { placement -> placement.folderId == folder.id }
                 },
                 onMoveToPage = { target ->
                     onMoveFolderToPage(folder, target)
