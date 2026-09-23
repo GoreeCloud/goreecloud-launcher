@@ -761,7 +761,7 @@ private fun HomeSurface(
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
     onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
     onOpenLauncherSearch: () -> Unit,
-    onManageApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenThemeManager: () -> Unit,
@@ -1878,7 +1878,7 @@ private fun HomeFavoritesGrid(
     onEndLocalDrag: (LauncherAppDragData, Offset) -> Unit,
     onCancelLocalDrag: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
-    onManageApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
     onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
     onSwipeUp: () -> Unit,
@@ -2376,7 +2376,7 @@ private fun HomeFavoriteTile(
     onEndLocalDrag: (LauncherAppDragData, Offset) -> Unit,
     onCancelLocalDrag: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
-    onManageApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
     modifier: Modifier = Modifier,
@@ -2393,7 +2393,7 @@ private fun HomeFavoriteTile(
     val gestureModifier = if (layoutLocked || dragData == null) {
         Modifier.combinedClickable(
             onClick = { onLaunchApp(app) },
-            onLongClick = { onManageApp(app) },
+            onLongClick = { onManageApp(app, tileBounds) },
         )
     } else {
         Modifier
@@ -2421,7 +2421,7 @@ private fun HomeFavoriteTile(
                             onEndLocalDrag(dragData, start + dragOffset)
                         } else {
                             onCancelLocalDrag()
-                            onManageApp(app)
+                            onManageApp(app, tileBounds)
                         }
                         dragging = false
                         dragOffset = Offset.Zero
@@ -2831,7 +2831,7 @@ private fun AppDrawerSurface(
     experiencePreferences: LauncherExperiencePreferences,
     focusSearch: Boolean,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
-    onManageApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onHome: () -> Unit,
 ) {
     val primaryUser = remember { Process.myUserHandle() }
@@ -3082,7 +3082,7 @@ private fun DrawerAppsContent(
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
-    onManageApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onDismiss: () -> Unit,
     secondaryColor: Color,
     modifier: Modifier = Modifier,
@@ -3177,7 +3177,7 @@ private fun DrawerAppsContent(
                             showLabel = experiencePreferences.showDrawerLabels,
                             compact = drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT,
                             onClick = { onLaunchApp(app) },
-                            onLongClick = { onManageApp(app) },
+                            onLongClick = { anchor -> onManageApp(app, anchor) },
                             dragData = if (preferences.layoutLocked) null else {
                                 LauncherAppDragData(
                                     appKey = app.workspaceKey(),
@@ -3235,7 +3235,7 @@ private fun DrawerAppsContent(
                         showLabel = experiencePreferences.showDrawerLabels,
                         compact = false,
                         onClick = { onLaunchApp(app) },
-                        onLongClick = { onManageApp(app) },
+                        onLongClick = { anchor -> onManageApp(app, anchor) },
                         dragData = if (preferences.layoutLocked) null else {
                             LauncherAppDragData(
                                 appKey = app.workspaceKey(),
@@ -3270,7 +3270,7 @@ private fun DrawerAppsContent(
                         showLabel = experiencePreferences.showDrawerLabels,
                         compact = true,
                         onClick = { onLaunchApp(app) },
-                        onLongClick = { onManageApp(app) },
+                        onLongClick = { anchor -> onManageApp(app, anchor) },
                         dragData = if (preferences.layoutLocked) null else {
                             LauncherAppDragData(
                                 appKey = app.workspaceKey(),
@@ -3301,7 +3301,7 @@ private fun DrawerAppsContent(
                         app = app,
                         iconScale = preferences.iconScale,
                         onClick = { onLaunchApp(app) },
-                        onLongClick = { onManageApp(app) },
+                        onLongClick = { anchor -> onManageApp(app, anchor) },
                         dragData = if (preferences.layoutLocked) null else {
                             LauncherAppDragData(
                                 appKey = app.workspaceKey(),
@@ -3362,7 +3362,7 @@ private fun DrawerAppsContent(
                                     showLabel = experiencePreferences.showDrawerLabels,
                                     compact = false,
                                     onClick = { onLaunchApp(app) },
-                                    onLongClick = { onManageApp(app) },
+                                    onLongClick = { anchor -> onManageApp(app, anchor) },
                                     dragData = if (preferences.layoutLocked) null else {
                                         LauncherAppDragData(
                                             appKey = app.workspaceKey(),
@@ -4782,7 +4782,7 @@ private fun GlazeDock(
     onEndLocalDrag: (LauncherAppDragData, Offset) -> Unit,
     onCancelLocalDrag: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
-    onManageApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ) {
@@ -4885,7 +4885,7 @@ private fun LauncherAppTile(
     showLabel: Boolean,
     compact: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
+    onLongClick: (Rect?) -> Unit,
     modifier: Modifier,
     dragData: LauncherAppDragData? = null,
     onBoundsChanged: ((Rect) -> Unit)? = null,
@@ -4897,6 +4897,7 @@ private fun LauncherAppTile(
     val base = if (compact) 50f else 52f
     val iconSize = (base * iconScale.coerceIn(0.85f, 1.15f)).dp
     val swipeThreshold = with(LocalDensity.current) { 42.dp.toPx() }
+    var tileBounds by remember(app.componentName, app.user) { mutableStateOf<Rect?>(null) }
     val dragModifier = if (dragData != null) {
         Modifier.dragAndDropSource(transferData = { _ -> dragData.toTransferData() })
     } else {
@@ -4948,7 +4949,11 @@ private fun LauncherAppTile(
             }
             .then(dragModifier)
             .then(gestureModifier)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .onGloballyPositioned {
+                tileBounds = it.boundsInRoot()
+                onBoundsChanged?.invoke(tileBounds!!)
+            }
+            .combinedClickable(onClick = onClick, onLongClick = { onLongClick(tileBounds) })
             .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -5003,11 +5008,12 @@ private fun LauncherAppListRow(
     app: LauncherActivityInfo,
     iconScale: Float,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
+    onLongClick: (Rect?) -> Unit,
     dragData: LauncherAppDragData? = null,
 ) {
     val icon = rememberLauncherAppIcon(app)
     val iconSize = (44f * iconScale.coerceIn(0.85f, 1.15f)).dp
+    var rowBounds by remember(app.componentName, app.user) { mutableStateOf<Rect?>(null) }
     val dragModifier = if (dragData != null) {
         Modifier.dragAndDropSource(transferData = { _ -> dragData.toTransferData() })
     } else {
@@ -5019,7 +5025,8 @@ private fun LauncherAppListRow(
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .then(dragModifier)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .onGloballyPositioned { rowBounds = it.boundsInRoot() }
+            .combinedClickable(onClick = onClick, onLongClick = { onLongClick(rowBounds) })
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
