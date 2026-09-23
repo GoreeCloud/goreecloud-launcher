@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record. Legacy Drive roadmap retirement was subsequently verified after PR #203.**  
-**Repository authority baseline:** `main` at `03d4c3d2d7e355916412565b531e411d1bba71de` (PR #240 merged September 23, 2026).  
+**Runtime source baseline:** `03d4c3d2d7e355916412565b531e411d1bba71de` (PR #240 merged September 23, 2026). Repository-native feature records were reconciled after that runtime merge through PR #241.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose
