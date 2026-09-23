@@ -1603,7 +1603,11 @@ private fun LauncherWidgetManagementDialog(
         onDismissRequest = onClose,
         title = { Text("Widget options") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
+            Column(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            ) {
                 Text(
                     when (val descriptor = widget.descriptor) {
                         is WorkspaceWidgetDescriptor.BuiltIn ->
@@ -1628,7 +1632,7 @@ private fun LauncherWidgetManagementDialog(
                             repeat(columns) { cellX ->
                                 Surface(
                                     onClick = { onMove(cellX, cellY) },
-                                    modifier = Modifier.weight(1f).height(40.dp),
+                                    modifier = Modifier.weight(1f).height(48.dp),
                                     shape = RoundedCornerShape(GlazeMetrics.radiusSmall),
                                     color = if (cellX == widget.cellX && cellY == widget.cellY) {
                                         MaterialTheme.colorScheme.primaryContainer
@@ -4821,7 +4825,8 @@ private fun ChoiceRow(
 ) {
     // Fixed equal-width rows wrap long settings choices instead of overflowing compact displays.
     Column(verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
-        choices.chunked(2).forEach { row ->
+        val choicesPerRow = if (choices.size == 3) 3 else 2
+        choices.chunked(choicesPerRow).forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
@@ -4841,7 +4846,7 @@ private fun ChoiceRow(
                         ),
                     ) {
                         Box(
-                            modifier = Modifier.heightIn(min = 44.dp).padding(horizontal = 10.dp, vertical = 10.dp),
+                            modifier = Modifier.heightIn(min = 48.dp).padding(horizontal = 10.dp, vertical = 10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -5139,6 +5144,28 @@ private fun GlazeRoundAction(
 }
 
 @Composable
+private fun LauncherSearchMagnifier(color: Color) {
+    Canvas(Modifier.size(20.dp)) {
+        val centerPoint = Offset(size.width * 0.42f, size.height * 0.42f)
+        drawCircle(
+            color = color.copy(alpha = 0.95f),
+            radius = size.minDimension * 0.25f,
+            center = centerPoint,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = size.minDimension * 0.095f,
+            ),
+        )
+        drawLine(
+            color = color.copy(alpha = 0.95f),
+            start = Offset(size.width * 0.60f, size.height * 0.60f),
+            end = Offset(size.width * 0.88f, size.height * 0.88f),
+            strokeWidth = size.minDimension * 0.095f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
 private fun GlazeSearchCapsule(
     value: String,
     style: LauncherHomeSearchStyle,
@@ -5190,24 +5217,7 @@ private fun GlazeSearchCapsule(
                 },
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Canvas(Modifier.size(20.dp)) {
-                        val centerPoint = Offset(size.width * 0.42f, size.height * 0.42f)
-                        drawCircle(
-                            color = foreground.copy(alpha = 0.95f),
-                            radius = size.minDimension * 0.25f,
-                            center = centerPoint,
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(
-                                width = size.minDimension * 0.095f,
-                            ),
-                        )
-                        drawLine(
-                            color = foreground.copy(alpha = 0.95f),
-                            start = Offset(size.width * 0.60f, size.height * 0.60f),
-                            end = Offset(size.width * 0.88f, size.height * 0.88f),
-                            strokeWidth = size.minDimension * 0.095f,
-                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                        )
-                    }
+                    LauncherSearchMagnifier(foreground)
                 }
             }
             Text(
@@ -5283,7 +5293,9 @@ internal fun GlazeAppSearchField(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
-                    Text("⌕", style = MaterialTheme.typography.titleMedium)
+                    LauncherSearchMagnifier(
+                        if (darkSurface) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Box(Modifier.weight(1f)) {
                         if (value.isBlank()) {
                             Text(
