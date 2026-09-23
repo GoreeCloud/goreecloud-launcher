@@ -2961,23 +2961,29 @@ private fun HomeFavoriteTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        if (icon != null) {
-            Image(
-                bitmap = icon,
-                contentDescription = displayLabel,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(iconSize).launcherIconMask(),
-            )
-        } else {
-            Surface(
-                modifier = Modifier.size(iconSize).launcherIconMask(),
-                shape = RoundedCornerShape(15.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(displayLabel.take(1).uppercase(), fontWeight = FontWeight.Bold)
+        Box(modifier = Modifier.size(iconSize)) {
+            if (icon != null) {
+                Image(
+                    bitmap = icon,
+                    contentDescription = displayLabel,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize().launcherIconMask(),
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxSize().launcherIconMask(),
+                    shape = RoundedCornerShape(15.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(displayLabel.take(1).uppercase(), fontWeight = FontWeight.Bold)
+                    }
                 }
             }
+            LauncherAppBadgeMark(
+                app,
+                modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-5).dp),
+            )
         }
 
         if (showLabel) {
@@ -4157,6 +4163,11 @@ private fun LauncherSettingsRootSurface(
 ) {
     var gestureToConfigure by remember { mutableStateOf<LauncherHomeGesture?>(null) }
     var showIconPackPicker by rememberSaveable { mutableStateOf(false) }
+    val badgeContext = androidx.compose.ui.platform.LocalContext.current
+    val badgesEnabled by com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.enabled
+        .collectAsState()
+    val badgeAccess by com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.accessGranted
+        .collectAsState()
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
 
     Box(
@@ -4560,6 +4571,56 @@ private fun LauncherSettingsRootSurface(
                 )
                 Text(
                     "Rounded square is the default. Original leaves Android-provided icon artwork unmasked.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            SettingsSection("Notification badges", "Local unread indicators and privacy") {
+                SettingSwitch(
+                    "Show badges",
+                    badgesEnabled,
+                    { enabled ->
+                        com.goreecloud.launcher.core.launcher.LauncherNotificationBadges.setEnabled(
+                            badgeContext, enabled,
+                        )
+                        if (enabled && !badgeAccess) {
+                            runCatching {
+                                badgeContext.startActivity(
+                                    android.content.Intent(
+                                        android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS,
+                                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                                )
+                            }
+                        }
+                    },
+                )
+                if (badgesEnabled) {
+                    Text(
+                        if (badgeAccess) "Android notification access is enabled."
+                        else "Tap Grant access to activate badges. Android must approve it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (!badgeAccess) GlazeSettingsAction(
+                        title = "Grant access",
+                        summary = "Opens Android's notification access controls.",
+                        value = "Android settings",
+                        onClick = {
+                            runCatching {
+                                badgeContext.startActivity(
+                                    android.content.Intent(
+                                        android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS,
+                                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                                )
+                            }
+                        },
+                    )
+                }
+                Text(
+                    "Notification access is optional and off by default. Android grants broad " +
+                        "notification visibility; Launcher only retains package/profile counts " +
+                        "in memory. It does not keep or expose notification text or send data.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -5580,23 +5641,29 @@ private fun LauncherAppTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        if (icon != null) {
-            Image(
-                bitmap = icon,
-                contentDescription = app.label.toString(),
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(iconSize).launcherIconMask(),
-            )
-        } else {
-            Surface(
-                modifier = Modifier.size(iconSize).launcherIconMask(),
-                shape = RoundedCornerShape(15.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(app.label.toString().take(1).uppercase(), fontWeight = FontWeight.Bold)
+        Box(modifier = Modifier.size(iconSize)) {
+            if (icon != null) {
+                Image(
+                    bitmap = icon,
+                    contentDescription = app.label.toString(),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize().launcherIconMask(),
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxSize().launcherIconMask(),
+                    shape = RoundedCornerShape(15.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(app.label.toString().take(1).uppercase(), fontWeight = FontWeight.Bold)
+                    }
                 }
             }
+            LauncherAppBadgeMark(
+                app,
+                modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-5).dp),
+            )
         }
 
         if (showLabel) {
