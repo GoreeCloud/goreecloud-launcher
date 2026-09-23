@@ -104,6 +104,7 @@ import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
+import com.goreecloud.launcher.core.launcher.LauncherFolder
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
 import com.goreecloud.launcher.core.launcher.LauncherIconPackDescriptor
 import com.goreecloud.launcher.core.launcher.LauncherIconShape
@@ -122,6 +123,7 @@ import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.WorkspaceState
 import com.goreecloud.launcher.core.workspace.WorkspaceWidgetCatalog
 import com.goreecloud.launcher.core.workspace.WorkspaceWidgetDescriptor
+import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomeFolder
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomeWidget
 import com.goreecloud.launcher.core.workspace.workspaceKey
@@ -199,7 +201,15 @@ fun LauncherBetaRoot(
     homePageCount: Int,
     homeResetSequence: Long,
     homeLabelOverrides: Map<String, String>,
+    folders: List<LauncherFolder>,
     primaryHomePage: WorkspaceRenderedHomePage?,
+    onCreateFolder: (String, Boolean) -> Unit,
+    onRenameFolder: (String, String) -> Unit,
+    onDeleteFolder: (LauncherFolder) -> Unit,
+    onAddAppToFolder: (String, LauncherActivityInfo) -> Unit,
+    onRemoveAppFromFolder: (String, LauncherActivityInfo) -> Unit,
+    onAddFolderToHome: (LauncherFolder) -> Unit,
+    onRemoveFolderFromHome: (LauncherFolder) -> Unit,
     onManageHomePages: () -> Unit,
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
@@ -283,6 +293,14 @@ fun LauncherBetaRoot(
     var selectedAppAnchor by remember { mutableStateOf<Rect?>(null) }
     var showDetailedAppOptions by remember { mutableStateOf(false) }
     var selectedWidget by remember { mutableStateOf<WorkspaceRenderedHomeWidget?>(null) }
+    var selectedFolderId by rememberSaveable { mutableStateOf<String?>(null) }
+    var showFolderManager by rememberSaveable { mutableStateOf(false) }
+    var folderManagerAddToHome by rememberSaveable { mutableStateOf(false) }
+    var folderAssignmentAppKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val rootAppsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
+    val homeFolderIds = remember(primaryHomePage) {
+        primaryHomePage?.folderPlacements?.map { it.folderId }?.toSet().orEmpty()
+    }
     var drawerSearchRequested by rememberSaveable { mutableStateOf(false) }
     var homeEditorRequestSequence by remember { mutableStateOf(0L) }
     val homeCellBounds = remember { mutableStateMapOf<Pair<Int, Int>, Rect>() }
@@ -406,6 +424,9 @@ fun LauncherBetaRoot(
         selectedAppAnchor = null
         showDetailedAppOptions = false
         selectedWidget = null
+        selectedFolderId = null
+        showFolderManager = false
+        folderAssignmentAppKey = null
         homeEditMode = false
         activeDrag = null
         dragPoint = null
@@ -488,6 +509,7 @@ fun LauncherBetaRoot(
                 homePageCount = homePageCount,
                 homeEditorRequestSequence = homeEditorRequestSequence,
                 homeLabelOverrides = homeLabelOverrides,
+                folders = folders,
                 primaryHomePage = primaryHomePage,
                 editMode = homeEditMode,
                 activeDrag = activeDrag,
@@ -509,6 +531,11 @@ fun LauncherBetaRoot(
                     dragPoint = null
                 },
                 onManageHomePages = onManageHomePages,
+                onManageFolders = {
+                    folderManagerAddToHome = true
+                    showFolderManager = true
+                },
+                onOpenFolder = { folder -> selectedFolderId = folder.id },
                 onMoveFavoriteToCell = onMoveFavoriteToCell,
                 onLaunchApp = onLaunchApp,
                 onAddBuiltInWidget = onAddBuiltInWidget,
@@ -590,6 +617,7 @@ fun LauncherBetaRoot(
             )
             LauncherSurfaceMode.DRAWER -> AppDrawerSurface(
                 apps = apps,
+                folders = folders,
                 preferences = preferences,
                 drawerLayoutMode = drawerLayoutMode,
                 experiencePreferences = experiencePreferences,
@@ -599,6 +627,11 @@ fun LauncherBetaRoot(
                     selectedApp = app
                     selectedAppAnchor = anchor
                     showDetailedAppOptions = false
+                },
+                onOpenFolder = { folder -> selectedFolderId = folder.id },
+                onManageFolders = {
+                    folderManagerAddToHome = false
+                    showFolderManager = true
                 },
                 onHome = {
                     drawerSearchRequested = false
@@ -711,6 +744,16 @@ fun LauncherBetaRoot(
                     selectedApp = null
                     selectedAppAnchor = null
                 },
+                onAddToFolder = {
+                    selectedApp = null
+                    selectedAppAnchor = null
+                    if (folders.isEmpty()) {
+                        folderManagerAddToHome = false
+                        showFolderManager = true
+                    } else {
+                        folderAssignmentAppKey = app.workspaceKey()
+                    }
+                },
                 onMoreOptions = { showDetailedAppOptions = true },
                 onClose = {
                     selectedApp = null
@@ -737,6 +780,62 @@ fun LauncherBetaRoot(
             onClose = { selectedWidget = null },
         )
     }
+
+    selectedFolderId
+        ?.let { id -> folders.firstOrNull { it.id == id } }
+        ?.let { folder ->
+            LauncherFolderContentsSheet(
+                folder = folder,
+                appsByKey = rootAppsByKey,
+                isOnHome = folder.id in homeFolderIds,
+                onLaunchApp = onLaunchApp,
+                onRemoveApp = { app -> onRemoveAppFromFolder(folder.id, app) },
+                onRename = { name -> onRenameFolder(folder.id, name) },
+                onAddToHome = { onAddFolderToHome(folder) },
+                onRemoveFromHome = { onRemoveFolderFromHome(folder) },
+                onDelete = {
+                    selectedFolderId = null
+                    onDeleteFolder(folder)
+                },
+                onDismiss = { selectedFolderId = null },
+            )
+        }
+
+    if (showFolderManager) {
+        LauncherFolderManagerSheet(
+            folders = folders,
+            appsByKey = rootAppsByKey,
+            homeFolderIds = homeFolderIds,
+            defaultAddToHome = folderManagerAddToHome,
+            onCreate = onCreateFolder,
+            onOpen = { folder ->
+                showFolderManager = false
+                selectedFolderId = folder.id
+            },
+            onAddToHome = onAddFolderToHome,
+            onRemoveFromHome = onRemoveFolderFromHome,
+            onDismiss = { showFolderManager = false },
+        )
+    }
+
+    folderAssignmentAppKey
+        ?.let(rootAppsByKey::get)
+        ?.let { app ->
+            LauncherFolderAssignmentSheet(
+                app = app,
+                folders = folders,
+                onAssign = { folder ->
+                    onAddAppToFolder(folder.id, app)
+                    folderAssignmentAppKey = null
+                },
+                onCreateFolder = {
+                    folderAssignmentAppKey = null
+                    folderManagerAddToHome = false
+                    showFolderManager = true
+                },
+                onDismiss = { folderAssignmentAppKey = null },
+            )
+        }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
