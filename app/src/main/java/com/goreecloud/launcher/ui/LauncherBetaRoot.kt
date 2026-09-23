@@ -2287,6 +2287,12 @@ private fun LauncherUniversalSearchResultRow(
 ) {
     val categoryLabel = when (result.category) {
         LauncherSearchCategory.APPLICATION -> "App"
+        LauncherSearchCategory.SHORTCUT -> "Shortcut"
+        LauncherSearchCategory.CONTACT -> "Contact"
+        LauncherSearchCategory.CALL_HISTORY -> "Call"
+        LauncherSearchCategory.MESSAGE -> "Message"
+        LauncherSearchCategory.FILE -> "File"
+        LauncherSearchCategory.CONNECTED_SOURCE -> "Connected"
         LauncherSearchCategory.SETTING -> "Setting"
         LauncherSearchCategory.ACTION -> "Action"
     }
@@ -2317,6 +2323,12 @@ private fun LauncherUniversalSearchResultRow(
                     Text(
                         when (result.category) {
                             LauncherSearchCategory.APPLICATION -> "◫"
+                            LauncherSearchCategory.SHORTCUT -> "↗"
+                            LauncherSearchCategory.CONTACT -> "●"
+                            LauncherSearchCategory.CALL_HISTORY -> "☎"
+                            LauncherSearchCategory.MESSAGE -> "✉"
+                            LauncherSearchCategory.FILE -> "▤"
+                            LauncherSearchCategory.CONNECTED_SOURCE -> "⌕"
                             LauncherSearchCategory.SETTING -> "⚙"
                             LauncherSearchCategory.ACTION -> "→"
                         },
