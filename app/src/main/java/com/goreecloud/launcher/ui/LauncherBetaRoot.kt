@@ -3231,6 +3231,71 @@ private fun LauncherUniversalSearchResultRow(
     }
 }
 
+private sealed interface LauncherDrawerVisualEntry {
+    val label: String
+    val stableKey: String
+
+    data class Application(val app: LauncherActivityInfo) : LauncherDrawerVisualEntry {
+        override val label: String = app.label.toString()
+        override val stableKey: String = "app:" + app.workspaceKey()
+    }
+
+    data class Folder(val folder: LauncherFolder) : LauncherDrawerVisualEntry {
+        override val label: String = folder.name
+        override val stableKey: String = "folder:" + folder.id
+    }
+}
+
+/** Folder entries share app ordering and grid cells without changing persisted folder membership. */
+private fun orderedDrawerVisualEntries(
+    apps: List<LauncherActivityInfo>,
+    folders: List<LauncherFolder>,
+): List<LauncherDrawerVisualEntry> = buildList {
+    apps.forEach { add(LauncherDrawerVisualEntry.Application(it)) }
+    folders.forEach { add(LauncherDrawerVisualEntry.Folder(it)) }
+}.sortedWith(compareBy<LauncherDrawerVisualEntry>(
+    { it.label.lowercase(Locale.ROOT) },
+    { it.stableKey },
+))
+
+@Composable
+private fun LauncherDrawerVisualTile(
+    entry: LauncherDrawerVisualEntry,
+    allApps: List<LauncherActivityInfo>,
+    iconScale: Float,
+    showLabel: Boolean,
+    compact: Boolean,
+    layoutLocked: Boolean,
+    onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
+    onOpenFolder: (LauncherFolder) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (entry) {
+        is LauncherDrawerVisualEntry.Application -> LauncherAppTile(
+            app = entry.app,
+            iconScale = iconScale,
+            showLabel = showLabel,
+            compact = compact,
+            onClick = { onLaunchApp(entry.app) },
+            onLongClick = { anchor -> onManageApp(entry.app, anchor) },
+            dragData = if (layoutLocked) null else LauncherAppDragData(
+                appKey = entry.app.workspaceKey(),
+                origin = LauncherAppDragOrigin.DRAWER,
+            ),
+            modifier = modifier,
+        )
+        is LauncherDrawerVisualEntry.Folder -> HomeFolderTile(
+            folder = entry.folder,
+            allApps = allApps,
+            showLabel = showLabel,
+            editMode = false,
+            onOpen = { onOpenFolder(entry.folder) },
+            modifier = modifier.testTag("launcher-drawer-inline-folder-" + entry.folder.id),
+        )
+    }
+}
+
 @Composable
 @Suppress("UNUSED_PARAMETER")
 private fun AppDrawerSurface(
@@ -3565,7 +3630,7 @@ private fun DrawerAppsContent(
         val pageSize = (
             preferences.drawerColumns * experiencePreferences.drawerPageRows.coerceIn(4, 6)
         ).coerceAtLeast(1)
-        val pageCount = ((apps.size + pageSize - 1) / pageSize).coerceAtLeast(1)
+        val pageCount = ((entries.size + pageSize - 1) / pageSize).coerceAtLeast(1)
         val pagerState = rememberPagerState(pageCount = { pageCount })
         val pagerScope = rememberCoroutineScope()
 
@@ -3584,7 +3649,7 @@ private fun DrawerAppsContent(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 pageSpacing = GlazeMetrics.space3,
             ) { page ->
-                val pageApps = apps.drop(page * pageSize).take(pageSize)
+                val pageItems = entries.drop(page * pageSize).take(pageSize)
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(preferences.drawerColumns),
                     modifier = Modifier.fillMaxSize(),
@@ -3607,20 +3672,17 @@ private fun DrawerAppsContent(
                     // in landscape, and when accessibility display scaling is enabled.
                     userScrollEnabled = true,
                 ) {
-                    items(pageApps, key = { it.workspaceKey() }) { app ->
-                        LauncherAppTile(
-                            app = app,
+                    items(pageItems, key = { it.stableKey }) { entry ->
+                        LauncherDrawerVisualTile(
+                            entry = entry,
+                            allApps = apps,
                             iconScale = preferences.iconScale,
                             showLabel = experiencePreferences.showDrawerLabels,
                             compact = drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT,
-                            onClick = { onLaunchApp(app) },
-                            onLongClick = { anchor -> onManageApp(app, anchor) },
-                            dragData = if (preferences.layoutLocked) null else {
-                                LauncherAppDragData(
-                                    appKey = app.workspaceKey(),
-                                    origin = LauncherAppDragOrigin.DRAWER,
-                                )
-                            },
+                            layoutLocked = preferences.layoutLocked,
+                            onLaunchApp = onLaunchApp,
+                            onManageApp = onManageApp,
+                            onOpenFolder = onOpenFolder,
                             modifier = Modifier.height(
                                 if (drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT) compactTileHeight
                                 else gridTileHeight,
@@ -3665,20 +3727,17 @@ private fun DrawerAppsContent(
                 horizontalArrangement = Arrangement.spacedBy(standardSpacing),
                 verticalArrangement = Arrangement.spacedBy(standardSpacing),
             ) {
-                items(apps, key = { it.workspaceKey() }) { app ->
-                    LauncherAppTile(
-                        app = app,
+                items(entries, key = { it.stableKey }) { entry ->
+                    LauncherDrawerVisualTile(
+                        entry = entry,
+                        allApps = apps,
                         iconScale = preferences.iconScale,
                         showLabel = experiencePreferences.showDrawerLabels,
                         compact = false,
-                        onClick = { onLaunchApp(app) },
-                        onLongClick = { anchor -> onManageApp(app, anchor) },
-                        dragData = if (preferences.layoutLocked) null else {
-                            LauncherAppDragData(
-                                appKey = app.workspaceKey(),
-                                origin = LauncherAppDragOrigin.DRAWER,
-                            )
-                        },
+                        layoutLocked = preferences.layoutLocked,
+                        onLaunchApp = onLaunchApp,
+                        onManageApp = onManageApp,
+                        onOpenFolder = onOpenFolder,
                         modifier = Modifier.height(gridTileHeight),
                     )
                 }
@@ -3700,20 +3759,17 @@ private fun DrawerAppsContent(
                 horizontalArrangement = Arrangement.spacedBy(compactSpacing),
                 verticalArrangement = Arrangement.spacedBy(compactSpacing),
             ) {
-                items(apps, key = { it.workspaceKey() }) { app ->
-                    LauncherAppTile(
-                        app = app,
+                items(entries, key = { it.stableKey }) { entry ->
+                    LauncherDrawerVisualTile(
+                        entry = entry,
+                        allApps = apps,
                         iconScale = preferences.iconScale,
                         showLabel = experiencePreferences.showDrawerLabels,
                         compact = true,
-                        onClick = { onLaunchApp(app) },
-                        onLongClick = { anchor -> onManageApp(app, anchor) },
-                        dragData = if (preferences.layoutLocked) null else {
-                            LauncherAppDragData(
-                                appKey = app.workspaceKey(),
-                                origin = LauncherAppDragOrigin.DRAWER,
-                            )
-                        },
+                        layoutLocked = preferences.layoutLocked,
+                        onLaunchApp = onLaunchApp,
+                        onManageApp = onManageApp,
+                        onOpenFolder = onOpenFolder,
                         modifier = Modifier.height(compactTileHeight),
                     )
                 }
@@ -3733,90 +3789,131 @@ private fun DrawerAppsContent(
                 contentPadding = PaddingValues(vertical = standardSpacing),
                 verticalArrangement = Arrangement.spacedBy(compactSpacing),
             ) {
-                lazyItems(apps, key = { it.workspaceKey() }) { app ->
-                    LauncherAppListRow(
-                        app = app,
-                        iconScale = preferences.iconScale,
-                        onClick = { onLaunchApp(app) },
-                        onLongClick = { anchor -> onManageApp(app, anchor) },
-                        dragData = if (preferences.layoutLocked) null else {
-                            LauncherAppDragData(
-                                appKey = app.workspaceKey(),
+                lazyItems(entries, key = { it.stableKey }) { entry ->
+                    when (entry) {
+                        is LauncherDrawerVisualEntry.Application -> LauncherAppListRow(
+                            app = entry.app,
+                            iconScale = preferences.iconScale,
+                            onClick = { onLaunchApp(entry.app) },
+                            onLongClick = { anchor -> onManageApp(entry.app, anchor) },
+                            dragData = if (preferences.layoutLocked) null else LauncherAppDragData(
+                                appKey = entry.app.workspaceKey(),
                                 origin = LauncherAppDragOrigin.DRAWER,
-                            )
-                        },
-                    )
+                            ),
+                        )
+                        is LauncherDrawerVisualEntry.Folder -> LauncherDrawerVisualTile(
+                            entry = entry,
+                            allApps = apps,
+                            iconScale = preferences.iconScale,
+                            showLabel = true,
+                            compact = true,
+                            layoutLocked = preferences.layoutLocked,
+                            onLaunchApp = onLaunchApp,
+                            onManageApp = onManageApp,
+                            onOpenFolder = onOpenFolder,
+                            modifier = Modifier.fillMaxWidth().height(78.dp),
+                        )
+                    }
                 }
             }
         }
         LauncherDrawerLayoutMode.CATEGORY -> {
-            val categoryGroups = remember(apps) {
-                apps.groupBy(::drawerCategoryLabel)
-                    .toList()
-                    .sortedWith(
-                        compareBy<Pair<String, List<LauncherActivityInfo>>>(
-                            { drawerCategoryRank(it.first) },
-                            { it.first },
-                        ),
-                    )
-            }
-            val listState = rememberLazyListState()
-            val dismissConnection = rememberDrawerDismissNestedScrollConnection(
-                canScrollBackward = { listState.canScrollBackward },
-                onDismiss = onDismiss,
-            )
-            LazyColumn(
-                state = listState,
-                modifier = modifier
-                    .fillMaxWidth()
-                    .nestedScroll(dismissConnection),
-                contentPadding = PaddingValues(vertical = standardSpacing),
-                verticalArrangement = Arrangement.spacedBy(compactSpacing),
-            ) {
-                categoryGroups.forEach { (category, categoryApps) ->
-                    item(key = "category:$category") {
-                        DrawerCategoryHeader(
-                            label = category,
-                            count = categoryApps.size,
-                            secondaryColor = secondaryColor,
+            // Explicitly selected category view still needs a dense single grid when folders
+            // are present. Never put folders in a giant standalone heading/row above apps.
+            if (folders.isNotEmpty()) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(preferences.drawerColumns),
+                    modifier = modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(standardSpacing),
+                    verticalArrangement = Arrangement.spacedBy(standardSpacing),
+                    contentPadding = PaddingValues(vertical = standardSpacing),
+                ) {
+                    items(entries, key = { it.stableKey }) { entry ->
+                        LauncherDrawerVisualTile(
+                            entry = entry,
+                            allApps = apps,
+                            iconScale = preferences.iconScale,
+                            showLabel = experiencePreferences.showDrawerLabels,
+                            compact = false,
+                            layoutLocked = preferences.layoutLocked,
+                            onLaunchApp = onLaunchApp,
+                            onManageApp = onManageApp,
+                            onOpenFolder = onOpenFolder,
+                            modifier = Modifier.height(gridTileHeight),
                         )
                     }
-                    val rows = categoryApps.chunked(preferences.drawerColumns.coerceAtLeast(1))
-                    lazyItems(
-                        rows,
-                        key = { row ->
-                            "category:$category:" + row.first().workspaceKey()
-                        },
-                    ) { rowApps ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(standardSpacing),
-                        ) {
-                            rowApps.forEach { app ->
-                                LauncherAppTile(
-                                    app = app,
-                                    iconScale = preferences.iconScale,
-                                    showLabel = experiencePreferences.showDrawerLabels,
-                                    compact = false,
-                                    onClick = { onLaunchApp(app) },
-                                    onLongClick = { anchor -> onManageApp(app, anchor) },
-                                    dragData = if (preferences.layoutLocked) null else {
-                                        LauncherAppDragData(
-                                            appKey = app.workspaceKey(),
-                                            origin = LauncherAppDragOrigin.DRAWER,
-                                        )
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(gridTileHeight),
-                                )
-                            }
-                            repeat(preferences.drawerColumns - rowApps.size) {
-                                Spacer(Modifier.weight(1f))
+                }
+            } else {
+            val categoryGroups = remember(apps) {
+                    apps.groupBy(::drawerCategoryLabel)
+                        .toList()
+                        .sortedWith(
+                            compareBy<Pair<String, List<LauncherActivityInfo>>>(
+                                { drawerCategoryRank(it.first) },
+                                { it.first },
+                            ),
+                        )
+                }
+                val listState = rememberLazyListState()
+                val dismissConnection = rememberDrawerDismissNestedScrollConnection(
+                    canScrollBackward = { listState.canScrollBackward },
+                    onDismiss = onDismiss,
+                )
+                LazyColumn(
+                    state = listState,
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .nestedScroll(dismissConnection),
+                    contentPadding = PaddingValues(vertical = standardSpacing),
+                    verticalArrangement = Arrangement.spacedBy(compactSpacing),
+                ) {
+                    categoryGroups.forEach { (category, categoryApps) ->
+                        item(key = "category:$category") {
+                            DrawerCategoryHeader(
+                                label = category,
+                                count = categoryApps.size,
+                                secondaryColor = secondaryColor,
+                            )
+                        }
+                        val rows = categoryApps.chunked(preferences.drawerColumns.coerceAtLeast(1))
+                        lazyItems(
+                            rows,
+                            key = { row ->
+                                "category:$category:" + row.first().workspaceKey()
+                            },
+                        ) { rowApps ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(standardSpacing),
+                            ) {
+                                rowApps.forEach { app ->
+                                    LauncherAppTile(
+                                        app = app,
+                                        iconScale = preferences.iconScale,
+                                        showLabel = experiencePreferences.showDrawerLabels,
+                                        compact = false,
+                                        onClick = { onLaunchApp(app) },
+                                        onLongClick = { anchor -> onManageApp(app, anchor) },
+                                        dragData = if (preferences.layoutLocked) null else {
+                                            LauncherAppDragData(
+                                                appKey = app.workspaceKey(),
+                                                origin = LauncherAppDragOrigin.DRAWER,
+                                            )
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(gridTileHeight),
+                                    )
+                                }
+                                repeat(preferences.drawerColumns - rowApps.size) {
+                                    Spacer(Modifier.weight(1f))
+                                }
                             }
                         }
                     }
                 }
+            }
+    
             }
         }
     }
