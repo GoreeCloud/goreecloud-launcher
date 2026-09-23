@@ -231,6 +231,10 @@ object LauncherSearchProviderUserControlPolicy {
         LauncherContactsSearchProvider.PROVIDER_ID -> "Contacts"
         LauncherCallHistorySearchProvider.PROVIDER_ID -> "Call history"
         LauncherMessagesSearchProvider.PROVIDER_ID -> "Messages"
+        LauncherFilesSearchProvider.PROVIDER_ID -> "Files"
+        LauncherConnectedSearchProviderRegistry.GOOGLE_DRIVE_PROVIDER_ID -> "Google Drive"
+        LauncherConnectedSearchProviderRegistry.DROPBOX_PROVIDER_ID -> "Dropbox"
+        LauncherConnectedSearchProviderRegistry.BRAVE_SEARCH_PROVIDER_ID -> "Brave Search"
         else -> providerId
     }
 
@@ -256,6 +260,7 @@ object LauncherSearchProviderUserControlPolicy {
             LauncherSearchQueryRetention.NONE -> "No query retention"
             LauncherSearchQueryRetention.SESSION_ONLY -> "Session query retention"
             LauncherSearchQueryRetention.PERSISTENT -> "Persistent query retention"
+            LauncherSearchQueryRetention.UNKNOWN -> "Provider retention policy applies"
         }
         return parts.joinToString(separator = " · ")
     }

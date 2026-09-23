@@ -1,6 +1,7 @@
 package com.goreecloud.launcher.ui
 
 import android.content.pm.LauncherActivityInfo
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,7 +36,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherOpenDocumentSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherRuntimeSearchProviderRegistry
@@ -46,6 +49,7 @@ import com.goreecloud.launcher.core.launcher.LauncherSearchExecutionPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot
+import com.goreecloud.launcher.core.launcher.LauncherSearchPresentationPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderUserControlPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchResult
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
@@ -55,20 +59,24 @@ import com.goreecloud.launcher.ui.theme.GlazeMetrics
 internal fun LauncherProviderControlledSearchSurface(
     apps: List<LauncherActivityInfo>,
     searchProviderPreferences: LauncherSearchProviderPreferenceDecodeResult?,
+    fileSearchRoots: List<Uri>,
     onSetSearchProviderPreferences: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
     onSetSearchProviderEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onChooseFileSearchRoot: () -> Unit,
     onResetSearchProviderPreferences: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
     onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
+    onOpenDocument: (LauncherOpenDocumentSearchAction) -> Unit,
+    onSearchWithConnectedProvider: (String, String) -> Unit,
     onNavigate: (LauncherSearchDestination) -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
     var showSources by rememberSaveable { mutableStateOf(false) }
-    val catalog = remember(apps, context) {
-        LauncherRuntimeSearchProviderRegistry.catalog(context, apps)
+    val catalog = remember(apps, context, fileSearchRoots) {
+        LauncherRuntimeSearchProviderRegistry.catalog(context, apps, fileSearchRoots)
     }
     val controls = remember(catalog, searchProviderPreferences) {
         searchProviderPreferences?.let {
@@ -88,6 +96,12 @@ internal fun LauncherProviderControlledSearchSurface(
     }
     var complete by remember(providers, query, searchProviderPreferences) {
         mutableStateOf(false)
+    }
+    val explicitHandoffs = remember(query, controls) {
+        LauncherSearchPresentationPolicy.explicitHandoffProviders(
+            rawQuery = query,
+            providerControls = controls,
+        )
     }
 
     LaunchedEffect(providers, query, searchProviderPreferences) {
@@ -125,8 +139,8 @@ internal fun LauncherProviderControlledSearchSurface(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    if (showSources) "Local source controls and privacy boundaries"
-                    else "Apps, shortcuts and user-enabled local sources",
+                    if (showSources) "Local source controls, explicit handoffs and privacy boundaries"
+                    else "Apps, shortcuts, local files and user-enabled sources",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -144,7 +158,9 @@ internal fun LauncherProviderControlledSearchSurface(
                 persisted = searchProviderPreferences,
                 controls = controls,
                 onSet = onSetSearchProviderPreferences,
+                fileSearchRootCount = fileSearchRoots.size,
                 onSetEnabled = onSetSearchProviderEnabled,
+                onChooseFileSearchRoot = onChooseFileSearchRoot,
                 onReset = onResetSearchProviderPreferences,
                 modifier = Modifier.weight(1f),
             )
@@ -154,9 +170,36 @@ internal fun LauncherProviderControlledSearchSurface(
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 requestFocus = true,
-                placeholder = "Search apps, shortcuts, people, calls and messages",
+                placeholder = "Search apps, shortcuts, people, calls, messages and files",
                 inputTestTag = "launcher-universal-search-field",
             )
+            if (explicitHandoffs.isNotEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                ) {
+                    Text(
+                        "Search with",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        explicitHandoffs.forEach { provider ->
+                            TextButton(
+                                onClick = {
+                                    onSearchWithConnectedProvider(provider.providerId, query)
+                                },
+                            ) {
+                                Text(provider.displayName)
+                            }
+                        }
+                    }
+                }
+            }
+
             if (results.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxWidth().weight(1f),
@@ -184,6 +227,7 @@ internal fun LauncherProviderControlledSearchSurface(
                                 is LaunchApplicationSearchAction -> onLaunchApp(action.app)
                                 is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
                                 is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
+                                is LauncherOpenDocumentSearchAction -> onOpenDocument(action)
                                 is LauncherNavigateSearchAction -> onNavigate(action.destination)
                                 else -> Unit
                             }
@@ -199,8 +243,10 @@ internal fun LauncherProviderControlledSearchSurface(
 private fun LauncherSearchSourceManager(
     persisted: LauncherSearchProviderPreferenceDecodeResult?,
     controls: LauncherSearchProviderControlState,
+    fileSearchRootCount: Int,
     onSet: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
     onSetEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onChooseFileSearchRoot: () -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -219,7 +265,7 @@ private fun LauncherSearchSourceManager(
                 Column(Modifier.padding(GlazeMetrics.space3)) {
                     Text("Privacy-first provider controls", fontWeight = FontWeight.SemiBold)
                     Text(
-                        if (ready) "Only enabled automatic-local sources receive typed queries."
+                        if (ready) "Only enabled local sources receive typed queries; network and third-party sources require an explicit Search with action."
                         else "Loading saved controls; automatic Search stays off.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -245,6 +291,16 @@ private fun LauncherSearchSourceManager(
                             Text(
                                 buildString {
                                     append(option.privacySummary)
+                                    if (option.providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
+                                        append(" · ")
+                                        append(
+                                            when (fileSearchRootCount) {
+                                                0 -> "No folders selected"
+                                                1 -> "1 folder selected"
+                                                else -> fileSearchRootCount.toString() + " folders selected"
+                                            },
+                                        )
+                                    }
                                     if (
                                         !LauncherLocalSearchPermissions.isGranted(
                                             context,
@@ -258,16 +314,29 @@ private fun LauncherSearchSourceManager(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Switch(
-                            checked = controls.isEnabled(option.providerId),
-                            onCheckedChange = { enabled ->
-                                onSetEnabled(controls, option.providerId, enabled)
-                            },
-                            enabled = ready,
-                            modifier = Modifier.testTag(
-                                "launcher-search-source-" + option.providerId,
-                            ),
-                        )
+                        Column(horizontalAlignment = Alignment.End) {
+                            Switch(
+                                checked = controls.isEnabled(option.providerId),
+                                onCheckedChange = { enabled ->
+                                    onSetEnabled(controls, option.providerId, enabled)
+                                },
+                                enabled = ready,
+                                modifier = Modifier.testTag(
+                                    "launcher-search-source-" + option.providerId,
+                                ),
+                            )
+                            if (option.providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
+                                TextButton(
+                                    onClick = onChooseFileSearchRoot,
+                                    enabled = ready,
+                                ) {
+                                    Text(
+                                        if (fileSearchRootCount == 0) "Choose folder"
+                                        else "Add folder",
+                                    )
+                                }
+                            }
+                        }
                     }
                     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                         TextButton(

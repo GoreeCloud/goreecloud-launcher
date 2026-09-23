@@ -120,6 +120,7 @@ enum class LauncherSearchQueryRetention {
     NONE,
     SESSION_ONLY,
     PERSISTENT,
+    UNKNOWN,
 }
 
 /**
