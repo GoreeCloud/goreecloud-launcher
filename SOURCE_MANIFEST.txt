@@ -142,6 +142,7 @@ app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherIconSingleFlight
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherInstalledAppBaselinePolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherInventoryRefreshScopeTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherLabelSortKeyTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFoldersTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherLocalUsageCodecTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferenceImportTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferencesTest.kt
