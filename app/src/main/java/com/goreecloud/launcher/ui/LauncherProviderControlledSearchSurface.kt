@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +46,9 @@ import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherOpenDocumentSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
+import com.goreecloud.launcher.core.launcher.LauncherLocalSearchDiagnostics
+import com.goreecloud.launcher.core.launcher.LauncherLocalSearchIssue
+import com.goreecloud.launcher.core.launcher.LauncherMessagesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherRuntimeSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
@@ -114,6 +120,11 @@ internal fun LauncherProviderControlledSearchSurface(
             complete = false
             return@LaunchedEffect
         }
+        if (query.isBlank()) {
+            results = emptyList()
+            complete = true
+            return@LaunchedEffect
+        }
         complete = false
         results = LauncherUniversalSearch.searchAsync(
             rawQuery = query,
@@ -128,34 +139,49 @@ internal fun LauncherProviderControlledSearchSurface(
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+            .imePadding()
+            .padding(horizontal = GlazeMetrics.space3, vertical = GlazeMetrics.space2),
         verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
     ) {
-        Row(
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    if (showSources) "Search sources" else "Universal Search",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    if (showSources) "Control local sources and explicit provider handoffs"
-                    else "Private, local-first discovery",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(
+                    start = GlazeMetrics.space3,
+                    top = GlazeMetrics.space2,
+                    bottom = GlazeMetrics.space2,
+                    end = GlazeMetrics.space2,
+                ),
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (showSources) "Search sources" else "Universal Search",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        if (showSources) "Choose where Launcher can search"
+                        else "Search privately across enabled sources",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                TextButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text("Done")
+                }
             }
-            GlazeTextAction("Done", onBack)
         }
         Surface(
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             onClick = { showSources = !showSources },
-            shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f),
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Row(
@@ -167,12 +193,13 @@ internal fun LauncherProviderControlledSearchSurface(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    if (showSources) "Back to results" else "Search sources",
+                    if (showSources) "Back to Search" else "Manage search sources",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    if (showSources) "‹" else "Manage ›",
+                    if (showSources) "←" else "Manage ›",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -192,79 +219,170 @@ internal fun LauncherProviderControlledSearchSurface(
                 modifier = Modifier.weight(1f),
             )
         } else {
-            GlazeAppSearchField(
-                value = query,
-                onValueChange = { query = it },
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                requestFocus = true,
-                placeholder = "Search apps, shortcuts, people, calls, messages and files",
-                inputTestTag = "launcher-universal-search-field",
-            )
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                GlazeAppSearchField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.fillMaxWidth().padding(4.dp),
+                    requestFocus = true,
+                    placeholder = "Search this device",
+                    inputTestTag = "launcher-universal-search-field",
+                )
+            }
             if (explicitHandoffs.isNotEmpty()) {
-                Column(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
                 ) {
-                    Text(
-                        "Search with",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    Column(
+                        modifier = Modifier.padding(GlazeMetrics.space3),
+                        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                     ) {
-                        explicitHandoffs.forEach { provider ->
-                            androidx.compose.material3.OutlinedButton(
-                                onClick = {
-                                    onSearchWithConnectedProvider(provider.providerId, query)
-                                },
-                            ) {
-                                Text(provider.displayName)
+                        Text(
+                            "Search with",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            "Your query is sent only to a provider you tap.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                        ) {
+                            explicitHandoffs.forEach { provider ->
+                                androidx.compose.material3.OutlinedButton(
+                                    onClick = { onSearchWithConnectedProvider(provider.providerId, query) },
+                                ) { Text(provider.displayName) }
                             }
                         }
                     }
                 }
             }
 
+            val providerIssues by LauncherLocalSearchDiagnostics.issues.collectAsState()
+            val enabledIssues = providerIssues.filterKeys { controls.isEnabled(it) }
+            if (query.isNotBlank() && enabledIssues.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.errorContainer,
+                ) {
+                    Text(
+                        "Some sources could not be searched. Open Manage search sources for details.",
+                        modifier = Modifier.padding(GlazeMetrics.space3),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+
             if (results.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxWidth().weight(1f),
-                    contentAlignment = Alignment.Center,
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(GlazeMetrics.space4),
+                            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                        ) {
+                            Text(
+                                when {
+                                    searchProviderPreferences == null -> "Loading sources"
+                                    providers.isEmpty() -> "Enable local search sources"
+                                    !complete -> "Searching…"
+                                    query.isBlank() -> "Find anything on your device"
+                                    else -> "No matching results",
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                when {
+                                    query.isBlank() -> "Enter a name, number, app, setting or filename. " +
+                                        "Contacts, calls and messages are included only when enabled and permitted."
+                                    enabledIssues.isNotEmpty() -> "Review the source status before trying again."
+                                    else -> "Try another term or review your enabled sources.",
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
                 ) {
                     Text(
-                        when {
-                            searchProviderPreferences == null -> "Loading local Search sources…"
-                            providers.isEmpty() -> "Automatic local Search sources are disabled."
-                            !complete -> "Searching…"
-                            query.isBlank() -> "Type to search your enabled local sources."
-                            else -> "No Launcher results match “" + query.trim() + "”"
-                        },
-                        textAlign = TextAlign.Center,
+                        "${results.size} matching results",
+                        modifier = Modifier.padding(horizontal = GlazeMetrics.space3, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            } else {
-                Text(
-                    "${results.size} results",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Group the ranked stream without rescoring entries within any category.
+                // Only categories with actual matches are shown; blank queries no longer
+                // flood the surface with every installed app and every Launcher action.
+                val sections = listOf(
+                    LauncherSearchCategory.APPLICATION to "Apps",
+                    LauncherSearchCategory.CONTACT to "Contacts",
+                    LauncherSearchCategory.CALL_HISTORY to "Calls",
+                    LauncherSearchCategory.MESSAGE to "Messages",
+                    LauncherSearchCategory.FILE to "Files",
+                    LauncherSearchCategory.SHORTCUT to "App shortcuts",
+                    LauncherSearchCategory.ACTION to "Actions",
+                    LauncherSearchCategory.SETTING to "Settings",
+                    LauncherSearchCategory.CONNECTED_SOURCE to "Connected",
                 )
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
-                    items(results, key = { it.providerId + ":" + it.resultId }) { result ->
-                        LauncherProviderSearchRow(result) {
-                            when (val action = result.action) {
-                                is LaunchApplicationSearchAction -> onLaunchApp(action.app)
-                                is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
-                                is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
-                                is LauncherOpenDocumentSearchAction -> onOpenDocument(action)
-                                is LauncherNavigateSearchAction -> onNavigate(action.destination)
-                                else -> Unit
+                    sections.forEach { (category, title) ->
+                        val matches = results.filter { it.category == category }
+                        if (matches.isNotEmpty()) {
+                            item(key = "section:" + category.name) {
+                                Text(
+                                    title,
+                                    modifier = Modifier.padding(
+                                        top = GlazeMetrics.space2,
+                                        start = GlazeMetrics.space2,
+                                        bottom = 2.dp,
+                                    ),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                            items(matches, key = { it.providerId + ":" + it.resultId }) { result ->
+                                LauncherProviderSearchRow(result) {
+                                    when (val action = result.action) {
+                                        is LaunchApplicationSearchAction -> onLaunchApp(action.app)
+                                        is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
+                                        is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
+                                        is LauncherOpenDocumentSearchAction -> onOpenDocument(action)
+                                        is LauncherNavigateSearchAction -> onNavigate(action.destination)
+                                        else -> Unit
+                                    }
+                                }
                             }
                         }
                     }
