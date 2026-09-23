@@ -175,6 +175,7 @@ fun LauncherBetaRoot(
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
+    searchProviderPreferences: com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult?,
     homePageCount: Int,
     homeResetSequence: Long,
     homeLabelOverrides: Map<String, String>,
@@ -210,6 +211,9 @@ fun LauncherBetaRoot(
     onSetIconScale: (Float) -> Unit,
     onSetLayoutLocked: (Boolean) -> Unit,
     onSetUniversalSearchHomeMode: (LauncherUniversalSearchHomeMode) -> Unit,
+    onSetSearchProviderPreferences:
+        (com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot) -> Unit,
+    onResetSearchProviderPreferences: () -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
     onSetShowHomePageIndicator: (Boolean) -> Unit,
@@ -484,8 +488,11 @@ fun LauncherBetaRoot(
                 onOpenThemeManager = { surfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name },
                 onOpenWallpaperPicker = onOpenWallpaperPicker,
             )
-            LauncherSurfaceMode.SEARCH -> LauncherUniversalSearchSurface(
+            LauncherSurfaceMode.SEARCH -> LauncherProviderControlledSearchSurface(
                 apps = apps,
+                searchProviderPreferences = searchProviderPreferences,
+                onSetSearchProviderPreferences = onSetSearchProviderPreferences,
+                onResetSearchProviderPreferences = onResetSearchProviderPreferences,
                 onLaunchApp = onLaunchApp,
                 onNavigate = { destination ->
                     when (destination) {
@@ -3834,7 +3841,7 @@ private fun GlazeSettingsAction(
 }
 
 @Composable
-private fun GlazeTextAction(label: String, onClick: () -> Unit) {
+internal fun GlazeTextAction(label: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(GlazeMetrics.radiusPill),
@@ -3948,7 +3955,7 @@ private fun GlazeSearchCapsule(
 }
 
 @Composable
-private fun GlazeAppSearchField(
+internal fun GlazeAppSearchField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,

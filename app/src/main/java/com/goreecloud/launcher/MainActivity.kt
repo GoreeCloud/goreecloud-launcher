@@ -45,6 +45,8 @@ import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoor
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult
+import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
 import com.goreecloud.launcher.core.launcher.StarterWorkspacePolicy
@@ -77,6 +79,7 @@ import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
 import com.goreecloud.launcher.ui.theme.rememberAndroidGlazeV16PresentationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -85,6 +88,7 @@ import java.util.UUID
 class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
+    private lateinit var searchProviderPreferencesRepository: LauncherSearchProviderPreferencesRepository
     private lateinit var installedAppBaselineRepository: LauncherInstalledAppBaselineRepository
     private lateinit var localUsageRepository: LauncherLocalUsageRepository
     private lateinit var appWidgetHostController: LauncherAppWidgetHostController
@@ -93,6 +97,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var workspaceRuntimeCoordinator: WorkspaceProductionRuntimeCoordinator
     private val defaultHomeState = MutableStateFlow(false)
     private val homeResetSequence = MutableStateFlow(0L)
+    private val searchProviderPreferencesState =
+        MutableStateFlow<LauncherSearchProviderPreferenceDecodeResult?>(null)
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
     private var pendingAppWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
@@ -161,6 +167,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         appsRepository = LauncherAppsRepository(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
+        searchProviderPreferencesRepository = LauncherSearchProviderPreferencesRepository(this)
         installedAppBaselineRepository = LauncherInstalledAppBaselineRepository(this)
         localUsageRepository = LauncherLocalUsageRepository(this)
         appWidgetHostController = LauncherAppWidgetHostController(this)
@@ -172,6 +179,11 @@ class MainActivity : ComponentActivity() {
                 LauncherDatabaseProvider.get(this).workspaceDao()
             },
         )
+        lifecycleScope.launch {
+            searchProviderPreferencesRepository.preferences.collect { decoded ->
+                searchProviderPreferencesState.value = decoded
+            }
+        }
         lifecycleScope.launch {
             val recovery = LauncherPortableRestoreStartupSequence.reconcileBeforeMutation(
                 recoverPortableRestore = {
@@ -217,6 +229,7 @@ class MainActivity : ComponentActivity() {
             val localLaunchCounts by localUsageRepository.launchCounts.collectAsStateWithLifecycle(
                 initialValue = emptyMap(),
             )
+            val searchProviderPreferences by searchProviderPreferencesState.collectAsStateWithLifecycle()
             val homeLabelOverrides by launcherPreferencesRepository.homeLabelOverrides.collectAsStateWithLifecycle(
                 initialValue = emptyMap(),
             )
@@ -502,6 +515,7 @@ class MainActivity : ComponentActivity() {
                             preferences = launcherPreferences,
                             drawerLayoutMode = drawerLayoutMode,
                             experiencePreferences = experiencePreferences,
+                            searchProviderPreferences = searchProviderPreferences,
                             homePageCount = renderedPages.size.coerceAtLeast(1),
                             homeResetSequence = homeResetSequenceValue,
                             homeLabelOverrides = homeLabelOverrides,
@@ -720,6 +734,16 @@ class MainActivity : ComponentActivity() {
                             onSetIconScale = launcherPreferencesRepository::setIconScale,
                             onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,
                             onSetUniversalSearchHomeMode = launcherPreferencesRepository::setUniversalSearchHomeMode,
+                            onSetSearchProviderPreferences = { snapshot ->
+                                lifecycleScope.launch {
+                                    searchProviderPreferencesRepository.set(snapshot)
+                                }
+                            },
+                            onResetSearchProviderPreferences = {
+                                lifecycleScope.launch {
+                                    searchProviderPreferencesRepository.clear()
+                                }
+                            },
                             onSetHomeCardStyle = launcherPreferencesRepository::setHomeCardStyle,
                             onSetShowHomeQuickActions = launcherPreferencesRepository::setShowHomeQuickActions,
                             onSetShowHomePageIndicator = launcherPreferencesRepository::setShowHomePageIndicator,
