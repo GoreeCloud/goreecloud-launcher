@@ -272,8 +272,11 @@ object LauncherRuntimeSearchProviderRegistry {
     fun catalog(
         context: Context,
         apps: List<android.content.pm.LauncherActivityInfo>,
+        fileRoots: List<Uri> = emptyList(),
     ): LauncherSearchProviderCatalog = LauncherSearchProviderContract.evaluate(
         LauncherBuiltInSearchProviderRegistry.registrations(apps) +
-            LauncherLocalSearchProviderRegistry.registrations(context),
+            LauncherLocalSearchProviderRegistry.registrations(context) +
+            listOf(LauncherFilesSearchProviderRegistration.registration(context, fileRoots)) +
+            LauncherConnectedSearchProviderRegistry.registrations(context),
     )
 }
