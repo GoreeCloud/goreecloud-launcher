@@ -42,7 +42,7 @@ class LauncherDrawerSortingPolicyTest {
     fun emptyAndSingleEntryListsDoNotRequireScaffolding() {
         assertEquals(
             emptyList<Entry>(),
-            LauncherDrawerSortingPolicy.order(emptyList(), { it.label }, { it.stableKey }),
+            LauncherDrawerSortingPolicy.order(emptyList<Entry>(), { it.label }, { it.stableKey }),
         )
         val lone = Entry("Banking", "folder:banking")
         assertEquals(
