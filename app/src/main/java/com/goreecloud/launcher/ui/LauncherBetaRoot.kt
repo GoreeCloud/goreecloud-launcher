@@ -1056,6 +1056,138 @@ private fun HomeSurface(
 }
 
 @Composable
+private fun LauncherWidgetPickerSheet(
+    onAddBuiltInWidget: (String) -> Unit,
+    onPickAndroidWidget: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+    ) {
+        Text(
+            "Add widget",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            "Choose a GoreeCloud widget or open Android's widget picker for installed third-party widgets.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = { onAddBuiltInWidget(WorkspaceWidgetCatalog.CLOCK) },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("GoreeCloud Clock · 2 × 2")
+        }
+        OutlinedButton(
+            onClick = { onAddBuiltInWidget(WorkspaceWidgetCatalog.LAUNCHER_STATUS) },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Launcher Status · 2 × 1")
+        }
+        Button(
+            onClick = onPickAndroidWidget,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Android widgets")
+        }
+        Spacer(Modifier.height(GlazeMetrics.space2))
+    }
+}
+
+@Composable
+private fun LauncherWidgetManagementDialog(
+    widget: WorkspaceRenderedHomeWidget,
+    columns: Int,
+    rows: Int,
+    layoutLocked: Boolean,
+    onResize: (Int, Int) -> Unit,
+    onRemove: () -> Unit,
+    onClose: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Widget options") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
+                Text(
+                    when (val descriptor = widget.descriptor) {
+                        is WorkspaceWidgetDescriptor.BuiltIn ->
+                            when (descriptor.typeId) {
+                                WorkspaceWidgetCatalog.CLOCK -> "GoreeCloud Clock"
+                                WorkspaceWidgetCatalog.LAUNCHER_STATUS -> "Launcher Status"
+                                else -> "GoreeCloud widget"
+                            }
+                        is WorkspaceWidgetDescriptor.Android -> "Android widget"
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "${widget.spanX} × ${widget.spanY} Home cells",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (layoutLocked) {
+                    Text(
+                        "Unlock the Home layout to resize or remove widgets.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        OutlinedButton(
+                            onClick = { onResize(widget.spanX - 1, widget.spanY) },
+                            enabled = widget.spanX > 1,
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Narrower") }
+                        OutlinedButton(
+                            onClick = { onResize(widget.spanX + 1, widget.spanY) },
+                            enabled = widget.spanX < columns,
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Wider") }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        OutlinedButton(
+                            onClick = { onResize(widget.spanX, widget.spanY - 1) },
+                            enabled = widget.spanY > 1,
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Shorter") }
+                        OutlinedButton(
+                            onClick = { onResize(widget.spanX, widget.spanY + 1) },
+                            enabled = widget.spanY < rows,
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Taller") }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onClose) { Text("Done") }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onRemove,
+                enabled = !layoutLocked,
+            ) {
+                Text("Remove")
+            }
+        },
+    )
+}
+
+
+@Composable
 private fun HomeEditorSheet(
     now: LocalDateTime,
     favoriteApps: List<LauncherActivityInfo>,
@@ -1427,6 +1559,8 @@ private fun HomeFavoritesGrid(
     onCancelLocalDrag: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
+    onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
+    onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ) {
@@ -1443,6 +1577,27 @@ private fun HomeFavoritesGrid(
     val storedPlacements = remember(primaryHomePage) {
         primaryHomePage?.appPlacements?.associateBy { it.appKey }.orEmpty()
     }
+    val widgets = remember(primaryHomePage, columns, rows) {
+        primaryHomePage?.widgetPlacements.orEmpty().filter { widget ->
+            widget.cellX in 0 until columns &&
+                widget.cellY in 0 until rows &&
+                widget.spanX > 0 &&
+                widget.spanY > 0 &&
+                widget.cellX + widget.spanX <= columns &&
+                widget.cellY + widget.spanY <= rows
+        }
+    }
+    val widgetOccupiedCells = remember(widgets) {
+        buildSet {
+            widgets.forEach { widget ->
+                for (cellY in widget.cellY until widget.cellY + widget.spanY) {
+                    for (cellX in widget.cellX until widget.cellX + widget.spanX) {
+                        add(cellX to cellY)
+                    }
+                }
+            }
+        }
+    }
     val useSpatialPlacement = remember(apps, storedPlacements, columns, rows) {
         apps.isNotEmpty() && apps.all { app ->
             val placement = storedPlacements[app.workspaceKey()]
@@ -1452,92 +1607,277 @@ private fun HomeFavoritesGrid(
                 placement.cellY in 0 until rows
         }
     }
-    val appByCell = remember(apps, storedPlacements, useSpatialPlacement, columns, rows) {
-        buildMap<Pair<Int, Int>, LauncherActivityInfo> {
+    val appPlacements = remember(apps, storedPlacements, useSpatialPlacement, columns, rows) {
+        buildMap<String, Pair<Int, Int>> {
             if (useSpatialPlacement) {
                 apps.forEach { app ->
                     val placement = storedPlacements[app.workspaceKey()] ?: return@forEach
                     val cellX = placement.cellX ?: return@forEach
                     val cellY = placement.cellY ?: return@forEach
-                    put(cellX to cellY, app)
+                    put(app.workspaceKey(), cellX to cellY)
                 }
             } else {
                 apps.take(columns * rows).forEachIndexed { index, app ->
-                    put((index % columns) to (index / columns), app)
+                    put(app.workspaceKey(), (index % columns) to (index / columns))
                 }
             }
         }
     }
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(gridSpacing),
+
+    LaunchedEffect(widgetOccupiedCells) {
+        widgetOccupiedCells.forEach(cellBounds::remove)
+    }
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(tileHeight * rows + gridSpacing * (rows - 1)),
     ) {
+        val cellWidth = (maxWidth - gridSpacing * (columns - 1)) / columns
+        val stepX = cellWidth + gridSpacing
+        val stepY = tileHeight + gridSpacing
+
         repeat(rows) { cellY ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(gridSpacing),
-            ) {
-                repeat(columns) { cellX ->
-                    val coordinate = cellX to cellY
-                    val app = appByCell[coordinate]
-                    val cellHovered = activeDrag != null &&
-                        dragPoint?.let { point -> cellBounds[coordinate]?.contains(point) } == true
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(tileHeight)
-                            .testTag("launcher-home-cell-$cellX-$cellY")
-                            .onGloballyPositioned {
+            repeat(columns) { cellX ->
+                val coordinate = cellX to cellY
+                val blockedByWidget = coordinate in widgetOccupiedCells
+                val cellHovered = !blockedByWidget &&
+                    activeDrag != null &&
+                    dragPoint?.let { point -> cellBounds[coordinate]?.contains(point) } == true
+                Box(
+                    modifier = Modifier
+                        .offset(x = stepX * cellX, y = stepY * cellY)
+                        .size(width = cellWidth, height = tileHeight)
+                        .testTag("launcher-home-cell-$cellX-$cellY")
+                        .onGloballyPositioned {
+                            if (blockedByWidget) {
+                                cellBounds.remove(coordinate)
+                            } else {
                                 cellBounds[coordinate] = it.boundsInRoot()
                             }
-                            .background(
-                                when {
-                                    cellHovered -> Color.White.copy(alpha = 0.16f)
-                                    editMode -> Color.White.copy(alpha = 0.045f)
-                                    else -> Color.Transparent
-                                },
-                                RoundedCornerShape(GlazeMetrics.radiusLarge),
-                            )
-                            .then(
-                                if (editMode) {
-                                    Modifier.border(
-                                        1.dp,
-                                        Color.White.copy(alpha = 0.12f),
-                                        RoundedCornerShape(GlazeMetrics.radiusLarge),
-                                    )
-                                } else {
-                                    Modifier
-                                },
-                            ),
-                        contentAlignment = Alignment.Center,
+                        }
+                        .background(
+                            when {
+                                cellHovered -> Color.White.copy(alpha = 0.16f)
+                                editMode -> Color.White.copy(alpha = 0.045f)
+                                else -> Color.Transparent
+                            },
+                            RoundedCornerShape(GlazeMetrics.radiusLarge),
+                        )
+                        .then(
+                            if (editMode) {
+                                Modifier.border(
+                                    1.dp,
+                                    Color.White.copy(alpha = 0.12f),
+                                    RoundedCornerShape(GlazeMetrics.radiusLarge),
+                                )
+                            } else {
+                                Modifier
+                            },
+                        ),
+                )
+            }
+        }
+
+        apps.forEach { app ->
+            val coordinate = appPlacements[app.workspaceKey()] ?: return@forEach
+            val appKey = app.workspaceKey()
+            HomeFavoriteTile(
+                app = app,
+                displayLabel = homeLabelOverrides[appKey] ?: app.label.toString(),
+                iconScale = iconScale,
+                showLabel = showLabels,
+                layoutLocked = layoutLocked,
+                editMode = editMode,
+                dragData = if (layoutLocked) null else {
+                    LauncherAppDragData(
+                        appKey = appKey,
+                        origin = LauncherAppDragOrigin.HOME,
+                    )
+                },
+                onBeginLocalDrag = onBeginLocalDrag,
+                onUpdateLocalDrag = onUpdateLocalDrag,
+                onEndLocalDrag = onEndLocalDrag,
+                onCancelLocalDrag = onCancelLocalDrag,
+                onLaunchApp = onLaunchApp,
+                onManageApp = onManageApp,
+                onSwipeUp = onSwipeUp,
+                onSwipeDown = onSwipeDown,
+                modifier = Modifier
+                    .offset(x = stepX * coordinate.first, y = stepY * coordinate.second)
+                    .size(width = cellWidth, height = tileHeight),
+            )
+        }
+
+        widgets.forEach { widget ->
+            key(widget.itemId) {
+                HomeWidgetTile(
+                    widget = widget,
+                    editMode = editMode,
+                    onCreateAndroidWidgetView = onCreateAndroidWidgetView,
+                    onManageWidget = onManageWidget,
+                    modifier = Modifier
+                        .offset(
+                            x = stepX * widget.cellX,
+                            y = stepY * widget.cellY,
+                        )
+                        .size(
+                            width = cellWidth * widget.spanX + gridSpacing * (widget.spanX - 1),
+                            height = tileHeight * widget.spanY + gridSpacing * (widget.spanY - 1),
+                        ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeWidgetTile(
+    widget: WorkspaceRenderedHomeWidget,
+    editMode: Boolean,
+    onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
+    onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .padding(2.dp)
+            .then(
+                if (editMode) {
+                    Modifier.border(
+                        1.dp,
+                        Color.White.copy(alpha = 0.24f),
+                        RoundedCornerShape(GlazeMetrics.radiusLarge),
+                    )
+                } else {
+                    Modifier
+                },
+            ),
+    ) {
+        when (val descriptor = widget.descriptor) {
+            is WorkspaceWidgetDescriptor.BuiltIn -> {
+                LauncherBuiltInWidget(
+                    typeId = descriptor.typeId,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            is WorkspaceWidgetDescriptor.Android -> {
+                val hostView = remember(widget.itemId, descriptor.appWidgetId) {
+                    onCreateAndroidWidgetView(descriptor.appWidgetId)
+                }
+                if (hostView != null) {
+                    AndroidView(
+                        factory = { hostView },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                        color = GlazeAtmosphere.canvasBlack.copy(alpha = 0.34f),
                     ) {
-                        if (app != null) {
-                            val appKey = app.workspaceKey()
-                            HomeFavoriteTile(
-                                app = app,
-                                displayLabel = homeLabelOverrides[appKey] ?: app.label.toString(),
-                                iconScale = iconScale,
-                                showLabel = showLabels,
-                                layoutLocked = layoutLocked,
-                                editMode = editMode,
-                                dragData = if (layoutLocked) null else {
-                                    LauncherAppDragData(
-                                        appKey = appKey,
-                                        origin = LauncherAppDragOrigin.HOME,
-                                    )
-                                },
-                                onBeginLocalDrag = onBeginLocalDrag,
-                                onUpdateLocalDrag = onUpdateLocalDrag,
-                                onEndLocalDrag = onEndLocalDrag,
-                                onCancelLocalDrag = onCancelLocalDrag,
-                                onLaunchApp = onLaunchApp,
-                                onManageApp = onManageApp,
-                                onSwipeUp = onSwipeUp,
-                                onSwipeDown = onSwipeDown,
-                                modifier = Modifier.fillMaxSize(),
+                        Box(
+                            modifier = Modifier.padding(GlazeMetrics.space3),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "Widget unavailable",
+                                color = Color.White.copy(alpha = 0.78f),
+                                textAlign = TextAlign.Center,
                             )
                         }
                     }
+                }
+            }
+        }
+
+        if (editMode) {
+            FilledTonalButton(
+                onClick = { onManageWidget(widget) },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+            ) {
+                Text("Edit", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherBuiltInWidget(
+    typeId: String,
+    modifier: Modifier = Modifier,
+) {
+    var now by remember { mutableStateOf(LocalDateTime.now()) }
+    LaunchedEffect(typeId) {
+        while (true) {
+            delay(30_000)
+            now = LocalDateTime.now()
+        }
+    }
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = GlazeAtmosphere.canvasBlack.copy(alpha = 0.34f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
+    ) {
+        when (typeId) {
+            WorkspaceWidgetCatalog.CLOCK -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(GlazeMetrics.space3),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        now.format(DateTimeFormatter.ofPattern("h:mm", Locale.getDefault())),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.Light,
+                    )
+                    Text(
+                        now.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.78f),
+                    )
+                }
+            }
+            WorkspaceWidgetCatalog.LAUNCHER_STATUS -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(GlazeMetrics.space3),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        "GoreeCloud Launcher",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "Home ready · local-first",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.76f),
+                    )
+                }
+            }
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(GlazeMetrics.space3),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Unknown GoreeCloud widget",
+                        color = Color.White.copy(alpha = 0.78f),
+                        textAlign = TextAlign.Center,
+                    )
                 }
             }
         }
