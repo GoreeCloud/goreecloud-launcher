@@ -406,96 +406,134 @@ private fun LauncherSearchSourceManager(
 ) {
     val context = LocalContext.current
     val ready = persisted != null
+    val issues by LauncherLocalSearchDiagnostics.issues.collectAsState()
+    var reorderMode by rememberSaveable { mutableStateOf(false) }
+
     LazyColumn(
         modifier = modifier.fillMaxWidth().testTag("launcher-search-source-manager"),
         verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
     ) {
-        item {
+        item(key = "provider-controls") {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
             ) {
-                Column(Modifier.padding(GlazeMetrics.space3)) {
-                    Text("Privacy-first provider controls", fontWeight = FontWeight.SemiBold)
+                Column(
+                    modifier = Modifier.padding(GlazeMetrics.space3),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                ) {
                     Text(
-                        if (ready) "Only enabled local sources receive typed queries; network and third-party sources require an explicit Search with action."
-                        else "Loading saved controls; automatic Search stays off.",
+                        "Your data stays under your control",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        if (ready)
+                            "Only enabled local sources receive typed queries. Connected providers " +
+                                "receive a query only after you tap Search with."
+                        else "Loading your saved controls; Search remains off until they load.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    TextButton(onClick = onReset, enabled = ready) { Text("Use safe defaults") }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        TextButton(onClick = onReset, enabled = ready) { Text("Safe defaults") }
+                        TextButton(
+                            onClick = { reorderMode = !reorderMode },
+                            enabled = ready && controls.orderedOptions.size > 1,
+                        ) { Text(if (reorderMode) "Finish ordering" else "Reorder") }
+                    }
                 }
             }
         }
         items(controls.orderedOptions, key = { it.providerId }) { option ->
             val index = controls.orderedOptions.indexOfFirst { it.providerId == option.providerId }
+            val permissionGranted = LauncherLocalSearchPermissions.isGranted(context, option.providerId)
+            val issue = issues[option.providerId]
+            val isMessages = option.providerId == LauncherMessagesSearchProvider.PROVIDER_ID
+            val errorMessage = when {
+                issue == LauncherLocalSearchIssue.ANDROID_RESTRICTED && isMessages ->
+                    "Android denied restricted SMS access. Launcher cannot override this or " +
+                        "change your default messaging app."
+                issue == LauncherLocalSearchIssue.ANDROID_RESTRICTED ->
+                    "Android blocked this source even though it was enabled."
+                issue == LauncherLocalSearchIssue.SOURCE_UNAVAILABLE ->
+                    "This Android data source could not be queried. No result does not mean no data."
+                !permissionGranted && isMessages ->
+                    "SMS permission required. Some Android devices restrict this permission; " +
+                        "messages stay in your default app."
+                !permissionGranted -> "Android permission required before this source can be searched."
+                else -> null
+            }
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-                border = BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
-                ),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             ) {
-                Column(Modifier.padding(GlazeMetrics.space3)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(
+                        horizontal = GlazeMetrics.space3,
+                        vertical = GlazeMetrics.space2,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
                         Column(Modifier.weight(1f)) {
-                            Text(option.displayName, fontWeight = FontWeight.SemiBold)
                             Text(
-                                buildString {
-                                    append(option.privacySummary)
-                                    if (option.providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
-                                        append(" · ")
-                                        append(
-                                            when (fileSearchRoots.size) {
-                                                0 -> "No folders selected"
-                                                1 -> "1 folder selected"
-                                                else -> fileSearchRoots.size.toString() + " folders selected"
-                                            },
-                                        )
+                                option.displayName,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                            Text(
+                                option.privacySummary + if (
+                                    option.providerId == LauncherFilesSearchProvider.PROVIDER_ID
+                                ) {
+                                    " · " + when (fileSearchRoots.size) {
+                                        0 -> "No folders selected"
+                                        1 -> "1 folder selected"
+                                        else -> fileSearchRoots.size.toString() + " folders selected"
                                     }
-                                    if (
-                                        !LauncherLocalSearchPermissions.isGranted(
-                                            context,
-                                            option.providerId,
-                                        )
-                                    ) {
-                                        append(" · Android permission required")
-                                    }
-                                },
+                                } else "",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Switch(
-                                checked = controls.isEnabled(option.providerId),
-                                onCheckedChange = { enabled ->
-                                    onSetEnabled(controls, option.providerId, enabled)
-                                },
-                                enabled = ready,
-                                modifier = Modifier.testTag(
-                                    "launcher-search-source-" + option.providerId,
-                                ),
-                            )
-                            if (option.providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
-                                TextButton(
-                                    onClick = onChooseFileSearchRoot,
-                                    enabled = ready,
-                                ) {
-                                    Text(
-                                        if (fileSearchRoots.isEmpty()) "Choose folder"
-                                        else "Add folder",
-                                    )
-                                }
-                            }
-                        }
+                        Switch(
+                            checked = controls.isEnabled(option.providerId) && permissionGranted,
+                            onCheckedChange = { onSetEnabled(controls, option.providerId, it) },
+                            enabled = ready,
+                            modifier = Modifier.testTag(
+                                "launcher-search-source-" + option.providerId,
+                            ),
+                        )
                     }
-                    if (
-                        option.providerId == LauncherFilesSearchProvider.PROVIDER_ID &&
-                        fileSearchRoots.isNotEmpty()
-                    ) {
+                    if (errorMessage != null && (
+                        controls.isEnabled(option.providerId) || !permissionGranted
+                    )) {
+                        Text(
+                            errorMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    if (option.providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
+                        TextButton(
+                            onClick = onChooseFileSearchRoot,
+                            enabled = ready,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) {
+                            Text(if (fileSearchRoots.isEmpty()) "Choose folder" else "Add folder")
+                        }
                         fileSearchRoots.forEach { root ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -503,10 +541,8 @@ private fun LauncherSearchSourceManager(
                                 horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                             ) {
                                 Text(
-                                    root.lastPathSegment
-                                        ?.substringAfterLast(':')
-                                        ?.takeIf { it.isNotBlank() }
-                                        ?: "Selected folder",
+                                    root.lastPathSegment?.substringAfterLast(':')
+                                        ?.takeIf { it.isNotBlank() } ?: "Selected folder",
                                     modifier = Modifier.weight(1f),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -516,29 +552,32 @@ private fun LauncherSearchSourceManager(
                                 TextButton(
                                     onClick = { onRemoveFileSearchRoot(root) },
                                     enabled = ready,
-                                ) {
-                                    Text("Remove")
-                                }
+                                ) { Text("Remove") }
                             }
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                        TextButton(
-                            onClick = {
-                                onSet(LauncherSearchProviderUserControlPolicy.moveProviderBy(
-                                    controls, option.providerId, -1,
-                                ))
-                            },
-                            enabled = ready && index > 0,
-                        ) { Text("Earlier") }
-                        TextButton(
-                            onClick = {
-                                onSet(LauncherSearchProviderUserControlPolicy.moveProviderBy(
-                                    controls, option.providerId, 1,
-                                ))
-                            },
-                            enabled = ready && index in 0 until controls.orderedOptions.lastIndex,
-                        ) { Text("Later") }
+                    if (reorderMode) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    onSet(LauncherSearchProviderUserControlPolicy.moveProviderBy(
+                                        controls, option.providerId, -1,
+                                    ))
+                                },
+                                enabled = ready && index > 0,
+                            ) { Text("↑ Earlier") }
+                            TextButton(
+                                onClick = {
+                                    onSet(LauncherSearchProviderUserControlPolicy.moveProviderBy(
+                                        controls, option.providerId, 1,
+                                    ))
+                                },
+                                enabled = ready && index in 0 until controls.orderedOptions.lastIndex,
+                            ) { Text("↓ Later") }
+                        }
                     }
                 }
             }
