@@ -176,6 +176,7 @@ fun LauncherBetaRoot(
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
     searchProviderPreferences: com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult?,
+    fileSearchRoots: List<android.net.Uri>,
     homePageCount: Int,
     homeResetSequence: Long,
     homeLabelOverrides: Map<String, String>,
@@ -215,10 +216,14 @@ fun LauncherBetaRoot(
         (com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot) -> Unit,
     onSetSearchProviderEnabled:
         (com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onChooseFileSearchRoot: () -> Unit,
     onLaunchSearchShortcut:
         (com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction) -> Unit,
     onOpenSearchUri:
         (com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction) -> Unit,
+    onOpenSearchDocument:
+        (com.goreecloud.launcher.core.launcher.LauncherOpenDocumentSearchAction) -> Unit,
+    onSearchWithConnectedProvider: (String, String) -> Unit,
     onResetSearchProviderPreferences: () -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
@@ -497,12 +502,16 @@ fun LauncherBetaRoot(
             LauncherSurfaceMode.SEARCH -> LauncherProviderControlledSearchSurface(
                 apps = apps,
                 searchProviderPreferences = searchProviderPreferences,
+                fileSearchRoots = fileSearchRoots,
                 onSetSearchProviderPreferences = onSetSearchProviderPreferences,
                 onSetSearchProviderEnabled = onSetSearchProviderEnabled,
+                onChooseFileSearchRoot = onChooseFileSearchRoot,
                 onResetSearchProviderPreferences = onResetSearchProviderPreferences,
                 onLaunchApp = onLaunchApp,
                 onLaunchShortcut = onLaunchSearchShortcut,
                 onOpenSearchUri = onOpenSearchUri,
+                onOpenDocument = onOpenSearchDocument,
+                onSearchWithConnectedProvider = onSearchWithConnectedProvider,
                 onNavigate = { destination ->
                     when (destination) {
                         LauncherSearchDestination.HOME -> {
