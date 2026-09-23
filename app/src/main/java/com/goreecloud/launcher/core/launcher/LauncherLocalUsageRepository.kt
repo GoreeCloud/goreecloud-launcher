@@ -102,11 +102,14 @@ internal object LauncherLocalUsageCodec {
             .withoutPadding()
             .encodeToString(value.toByteArray(StandardCharsets.UTF_8))
 
-    private fun decodeKey(value: String): String? =
-        runCatching {
+    private fun decodeKey(value: String): String? {
+        val decoded = runCatching {
             String(
                 Base64.getUrlDecoder().decode(value),
                 StandardCharsets.UTF_8,
             )
-        }.getOrNull()?.takeIf { it.isNotBlank() }
+        }.getOrNull()?.takeIf { it.isNotBlank() } ?: return null
+
+        return decoded.takeIf { encodeKey(it) == value }
+    }
 }
