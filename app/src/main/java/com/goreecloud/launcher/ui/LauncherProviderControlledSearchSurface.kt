@@ -896,7 +896,8 @@ private fun LauncherProviderSearchRow(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(result.title, fontWeight = FontWeight.SemiBold)
-                result.subtitle?.let {
+                // A launcher search presents app labels, never diagnostic package names.
+                result.subtitle?.takeUnless { result.category == LauncherSearchCategory.APPLICATION }?.let {
                     Text(
                         it,
                         style = MaterialTheme.typography.bodySmall,
