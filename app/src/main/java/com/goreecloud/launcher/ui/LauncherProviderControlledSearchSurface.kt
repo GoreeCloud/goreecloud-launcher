@@ -97,6 +97,12 @@ internal fun LauncherProviderControlledSearchSurface(
     var complete by remember(providers, query, searchProviderPreferences) {
         mutableStateOf(false)
     }
+    val explicitHandoffs = remember(query, controls) {
+        LauncherSearchPresentationPolicy.explicitHandoffProviders(
+            rawQuery = query,
+            providerControls = controls,
+        )
+    }
 
     LaunchedEffect(providers, query, searchProviderPreferences) {
         if (searchProviderPreferences == null) {
@@ -133,8 +139,8 @@ internal fun LauncherProviderControlledSearchSurface(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    if (showSources) "Local source controls and privacy boundaries"
-                    else "Apps, shortcuts and user-enabled local sources",
+                    if (showSources) "Local source controls, explicit handoffs and privacy boundaries"
+                    else "Apps, shortcuts, local files and user-enabled sources",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -152,7 +158,9 @@ internal fun LauncherProviderControlledSearchSurface(
                 persisted = searchProviderPreferences,
                 controls = controls,
                 onSet = onSetSearchProviderPreferences,
+                fileSearchRootCount = fileSearchRoots.size,
                 onSetEnabled = onSetSearchProviderEnabled,
+                onChooseFileSearchRoot = onChooseFileSearchRoot,
                 onReset = onResetSearchProviderPreferences,
                 modifier = Modifier.weight(1f),
             )
@@ -162,7 +170,7 @@ internal fun LauncherProviderControlledSearchSurface(
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 requestFocus = true,
-                placeholder = "Search apps, shortcuts, people, calls and messages",
+                placeholder = "Search apps, shortcuts, people, calls, messages and files",
                 inputTestTag = "launcher-universal-search-field",
             )
             if (results.isEmpty()) {
