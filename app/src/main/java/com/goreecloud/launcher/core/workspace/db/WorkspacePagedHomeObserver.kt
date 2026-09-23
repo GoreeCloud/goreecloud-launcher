@@ -2,6 +2,8 @@ package com.goreecloud.launcher.core.workspace.db
 
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetDescriptor
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetKeyCodec
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +35,15 @@ data class WorkspaceRenderedHomeApp(
     val spanY: Int,
 )
 
+data class WorkspaceRenderedHomeWidget(
+    val itemId: String,
+    val descriptor: WorkspaceWidgetDescriptor,
+    val cellX: Int,
+    val cellY: Int,
+    val spanX: Int,
+    val spanY: Int,
+)
+
 data class WorkspaceRenderedHomePage(
     val pageId: String,
     val rank: Int,
@@ -47,6 +58,7 @@ data class WorkspaceRenderedHomePage(
             spanY = 1,
         )
     },
+    val widgetPlacements: List<WorkspaceRenderedHomeWidget> = emptyList(),
 )
 
 object WorkspacePagedHomeMapper {
@@ -80,11 +92,31 @@ object WorkspacePagedHomeMapper {
             if (appItems.any { it.appKey.isNullOrBlank() }) {
                 return WorkspacePagedHomeState.RecoveryRequired("MalformedHomeAppItem")
             }
+            val widgetItems = pageItems.filter { it.itemType == WorkspaceItemType.WIDGET }
+            val renderedWidgets = widgetItems.map { item ->
+                val descriptor = WorkspaceWidgetKeyCodec.decode(item.appKey)
+                    ?: return WorkspacePagedHomeState.RecoveryRequired("MalformedHomeWidgetItem")
+                val cellX = item.cellX
+                    ?: return WorkspacePagedHomeState.RecoveryRequired("MalformedHomeWidgetItem")
+                val cellY = item.cellY
+                    ?: return WorkspacePagedHomeState.RecoveryRequired("MalformedHomeWidgetItem")
+                WorkspaceRenderedHomeWidget(
+                    itemId = item.itemId,
+                    descriptor = descriptor,
+                    cellX = cellX,
+                    cellY = cellY,
+                    spanX = item.spanX,
+                    spanY = item.spanY,
+                )
+            }
             WorkspaceRenderedHomePage(
                 pageId = page.pageId,
                 rank = page.rank,
                 appKeys = appItems.map { checkNotNull(it.appKey) },
-                unsupportedItemCount = pageItems.count { it.itemType != WorkspaceItemType.APP },
+                unsupportedItemCount = pageItems.count {
+                    it.itemType != WorkspaceItemType.APP &&
+                        it.itemType != WorkspaceItemType.WIDGET
+                },
                 appPlacements = appItems.map { item ->
                     WorkspaceRenderedHomeApp(
                         appKey = checkNotNull(item.appKey),
@@ -94,6 +126,7 @@ object WorkspacePagedHomeMapper {
                         spanY = item.spanY,
                     )
                 },
+                widgetPlacements = renderedWidgets,
             )
         }
         return WorkspacePagedHomeState.Ready(rendered)
