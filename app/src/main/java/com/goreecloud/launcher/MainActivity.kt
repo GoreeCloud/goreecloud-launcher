@@ -38,6 +38,7 @@ import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
 import com.goreecloud.launcher.core.launcher.StarterWorkspacePolicy
+import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceState
@@ -356,6 +357,7 @@ class MainActivity : ComponentActivity() {
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
                             onLaunchApp = appsRepository::launch,
+                            onOpenAppInfo = appsRepository::openDetails,
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
@@ -390,6 +392,110 @@ class MainActivity : ComponentActivity() {
                                             rows = launcherPreferences.homeRows,
                                             cellX = cellX,
                                             cellY = cellY,
+                                        )
+                                    }
+                                }
+                            },
+                            onMoveFavoriteToDock = { app, targetDockKey ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    val key = app.workspaceKey()
+                                    if (
+                                        key !in workspace.dockKeys &&
+                                        workspace.dockKeys.size >= MAX_DOCK_ITEMS
+                                    ) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Dock is full.",
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    } else {
+                                        lifecycleScope.launch {
+                                            workspaceRuntimeCoordinator.moveHomeToDock(
+                                                key = key,
+                                                targetDockKey = targetDockKey,
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            onMoveDockToHomeCell = { app, cellX, cellY ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    val key = app.workspaceKey()
+                                    if (
+                                        key !in workspace.favoriteKeys &&
+                                        workspace.favoriteKeys.size >= launcherPreferences.homeCapacity
+                                    ) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Home screen is full.",
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    } else {
+                                        lifecycleScope.launch {
+                                            workspaceRuntimeCoordinator.moveDockToPrimaryHomeCell(
+                                                key = key,
+                                                columns = launcherPreferences.homeColumns,
+                                                rows = launcherPreferences.homeRows,
+                                                cellX = cellX,
+                                                cellY = cellY,
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            onCopyDrawerToHomeCell = { app, cellX, cellY ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    val key = app.workspaceKey()
+                                    if (
+                                        key !in workspace.favoriteKeys &&
+                                        workspace.favoriteKeys.size >= launcherPreferences.homeCapacity
+                                    ) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Home screen is full.",
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    } else {
+                                        lifecycleScope.launch {
+                                            workspaceRuntimeCoordinator.copyDrawerToPrimaryHomeCell(
+                                                key = key,
+                                                columns = launcherPreferences.homeColumns,
+                                                rows = launcherPreferences.homeRows,
+                                                cellX = cellX,
+                                                cellY = cellY,
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            onCopyDrawerToDock = { app, targetDockKey ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    val key = app.workspaceKey()
+                                    if (
+                                        key !in workspace.dockKeys &&
+                                        workspace.dockKeys.size >= MAX_DOCK_ITEMS
+                                    ) {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Dock is full.",
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    } else {
+                                        lifecycleScope.launch {
+                                            workspaceRuntimeCoordinator.copyDrawerToDock(
+                                                key = key,
+                                                targetDockKey = targetDockKey,
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            onReorderDockByDrop = { app, targetDockKey ->
+                                if (!launcherPreferences.layoutLocked) {
+                                    lifecycleScope.launch {
+                                        workspaceRuntimeCoordinator.reorderDockByDrop(
+                                            key = app.workspaceKey(),
+                                            targetDockKey = targetDockKey,
                                         )
                                     }
                                 }
