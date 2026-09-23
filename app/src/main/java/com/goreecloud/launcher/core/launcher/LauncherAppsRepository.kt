@@ -308,6 +308,10 @@ class LauncherAppsRepository(context: Context) {
         launcherApps.startMainActivity(app.componentName, app.user, Rect(), Bundle.EMPTY)
     }
 
+    fun openDetails(app: LauncherActivityInfo) {
+        launcherApps.startAppDetailsActivity(app.componentName, app.user, Rect(), Bundle.EMPTY)
+    }
+
     private fun loadApps(): List<LauncherActivityInfo> =
         normalizeSnapshot(
             launcherApps.profiles.flatMap { profile ->
