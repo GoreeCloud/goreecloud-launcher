@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,6 +47,8 @@ import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherFileSearchPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
+import com.goreecloud.launcher.core.launcher.LauncherIconPackDescriptor
+import com.goreecloud.launcher.core.launcher.LauncherIconPackRepository
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
 import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
@@ -85,6 +88,8 @@ import com.goreecloud.launcher.ui.HomePageDots
 import com.goreecloud.launcher.ui.HomePageSwitcher
 import com.goreecloud.launcher.ui.LayoutLockHoldControl
 import com.goreecloud.launcher.ui.LauncherBetaRoot
+import com.goreecloud.launcher.ui.LauncherIconAppearance
+import com.goreecloud.launcher.ui.LocalLauncherIconAppearance
 import com.goreecloud.launcher.ui.LauncherSurfaceMode
 import com.goreecloud.launcher.ui.LauncherTransitionDiagnostics
 import com.goreecloud.launcher.ui.LauncherWallpaperPickerSheet
@@ -260,6 +265,9 @@ class MainActivity : ComponentActivity() {
             val apps by appsRepository.apps.collectAsStateWithLifecycle(initialValue = emptyList())
             val availableAndroidWidgets = remember(apps) {
                 appWidgetHostController.installedProviders()
+            }
+            val availableIconPacks = remember(apps) {
+                LauncherIconPackRepository(this@MainActivity).discover()
             }
             val launcherPreferences by launcherPreferencesRepository.preferences.collectAsStateWithLifecycle(
                 initialValue = launcherPreferencesRepository.defaults,
@@ -497,6 +505,12 @@ class MainActivity : ComponentActivity() {
             }
 
             GlazeTheme(themeMode) {
+                CompositionLocalProvider(
+                    LocalLauncherIconAppearance provides LauncherIconAppearance(
+                        shape = experiencePreferences.iconShape,
+                        iconPackPackage = experiencePreferences.iconPackPackage,
+                    ),
+                ) {
                 Box {
                     val selectedPage = renderedPages.firstOrNull { it.pageId == selectedHomePageId }
                     val onPrimaryPage = selectedPage == null ||
@@ -592,6 +606,7 @@ class MainActivity : ComponentActivity() {
                             onOpenAppInfo = appsRepository::openDetails,
                             onAddBuiltInWidget = ::addBuiltInWidget,
                             availableAndroidWidgets = availableAndroidWidgets,
+                            availableIconPacks = availableIconPacks,
                             onPickInstalledAndroidWidget = { descriptor: LauncherWidgetProviderDescriptor ->
                                 beginAndroidWidgetBind(descriptor.provider)
                             },
@@ -784,6 +799,8 @@ class MainActivity : ComponentActivity() {
                             onSetDrawerLayoutMode = launcherPreferencesRepository::setDrawerLayoutMode,
                             onSetShowLabels = launcherPreferencesRepository::setShowLabels,
                             onSetIconScale = launcherPreferencesRepository::setIconScale,
+                            onSetIconShape = launcherPreferencesRepository::setIconShape,
+                            onSetIconPackPackage = launcherPreferencesRepository::setIconPackPackage,
                             onSetLayoutLocked = launcherPreferencesRepository::setLayoutLocked,
                             onSetUniversalSearchHomeMode = launcherPreferencesRepository::setUniversalSearchHomeMode,
                             onSetSearchProviderPreferences = { snapshot ->
@@ -946,6 +963,7 @@ class MainActivity : ComponentActivity() {
                             },
                         )
                     }
+                }
                 }
             }
         }
