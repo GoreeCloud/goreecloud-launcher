@@ -72,6 +72,8 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -84,6 +86,8 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
@@ -5780,7 +5784,7 @@ private fun LauncherFolderManagerSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Glaze floating folder: a compact three-column icon panel, not a full-screen management sheet. */
 @Composable
 private fun LauncherFolderContentsSheet(
     folder: LauncherFolder,
@@ -5796,180 +5800,270 @@ private fun LauncherFolderContentsSheet(
     onDismiss: () -> Unit,
 ) {
     var nameDraft by remember(folder.id, folder.name) { mutableStateOf(folder.name) }
-    var showDeleteConfirmation by rememberSaveable(folder.id) { mutableStateOf(false) }
-    val memberApps = remember(folder, appsByKey) {
-        folder.appKeys.mapNotNull(appsByKey::get)
+    var editName by remember(folder.id) { mutableStateOf(false) }
+    var alphabetical by remember(folder.id) { mutableStateOf(false) }
+    var selectMode by remember(folder.id) { mutableStateOf(false) }
+    var selectedKeys by remember(folder.id) { mutableStateOf(setOf<String>()) }
+    var showActions by remember(folder.id) { mutableStateOf(false) }
+    var confirmRemove by remember(folder.id) { mutableStateOf(false) }
+    var showDeleteConfirmation by remember(folder.id) { mutableStateOf(false) }
+    val members = remember(folder, appsByKey, alphabetical) {
+        folder.appKeys.mapNotNull(appsByKey::get).let { apps ->
+            if (alphabetical) apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) {
+                it.label.toString()
+            }) else apps
+        }
     }
 
-    ModalBottomSheet(
+    Dialog(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-        tonalElevation = 0.dp,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
-            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.90f)
+                .widthIn(max = 460.dp)
+                .testTag("launcher-glaze-folder-popup"),
+            shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shadowElevation = 20.dp,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space3),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
             ) {
-                Column {
-                    Text(
-                        folder.name,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        "${memberApps.size} apps",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                FilledTonalButton(
-                    onClick = if (isOnHome) onRemoveFromHome else onAddToHome,
-                ) {
-                    Text(if (isOnHome) "Remove from Home" else "Add to Home")
-                }
-            }
-
-            OutlinedTextField(
-                value = nameDraft,
-                onValueChange = { nameDraft = it.take(40) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text("Folder name") },
-                trailingIcon = {
-                    TextButton(
-                        onClick = {
-                            val name = nameDraft.trim()
-                            if (name.isNotBlank()) onRename(name)
-                        },
-                        enabled = nameDraft.isNotBlank() && nameDraft.trim() != folder.name,
-                    ) {
-                        Text("Save")
-                    }
-                },
-            )
-
-            FilledTonalButton(
-                onClick = onAddApps,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Add apps") }
-
-            if (memberApps.isEmpty()) {
-                Surface(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            folder.name,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            "${members.size} apps" + if (alphabetical) " · A–Z view" else "",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    TextButton(
+                        onClick = { selectMode = !selectMode; selectedKeys = emptySet() },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text(if (selectMode) "Done" else "Select") }
+                    Box {
+                        TextButton(
+                            onClick = { showActions = true },
+                            modifier = Modifier.heightIn(min = 48.dp)
+                                .semantics { contentDescription = "Folder actions" },
+                        ) { Text("⋮", style = MaterialTheme.typography.titleLarge) }
+                        DropdownMenu(
+                            expanded = showActions,
+                            onDismissRequest = { showActions = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(if (isOnHome) "Remove from Home" else "Add to Home") },
+                                onClick = {
+                                    showActions = false
+                                    if (isOnHome) onRemoveFromHome() else onAddToHome()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Add apps") },
+                                onClick = { showActions = false; onAddApps() },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (alphabetical) "Original order" else "Sort A–Z") },
+                                onClick = {
+                                    alphabetical = !alphabetical
+                                    showActions = false
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Edit folder name") },
+                                onClick = { editName = true; showActions = false },
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Delete folder", color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showActions = false
+                                    showDeleteConfirmation = true
+                                },
+                            )
+                        }
+                    }
+                }
+
+                if (editName) {
+                    OutlinedTextField(
+                        value = nameDraft,
+                        onValueChange = { nameDraft = it.take(40) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text("Folder name") },
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        TextButton(onClick = { nameDraft = folder.name; editName = false }) {
+                            Text("Cancel")
+                        }
+                        TextButton(
+                            enabled = nameDraft.trim().isNotBlank(),
+                            onClick = {
+                                onRename(nameDraft.trim())
+                                editName = false
+                            },
+                        ) { Text("Save") }
+                    }
+                }
+
+                if (members.isEmpty()) {
                     Text(
-                        "This folder is empty. Tap Add apps to choose applications.",
-                        modifier = Modifier.padding(GlazeMetrics.space3),
+                        "This folder is empty. Add apps to get started.",
+                        modifier = Modifier.fillMaxWidth().padding(vertical = GlazeMetrics.space4),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
                     )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 360.dp),
-                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                ) {
-                    lazyItems(
-                        items = memberApps,
-                        key = { it.workspaceKey() },
-                    ) { app ->
-                        val icon = rememberLauncherAppIcon(app)
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f),
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 345.dp),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                        verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        items(members, key = { it.workspaceKey() }) { app ->
+                            val appKey = app.workspaceKey()
+                            val icon = rememberLauncherAppIcon(app)
+                            val selected = appKey in selectedKeys
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 106.dp)
+                                    .testTag("launcher-folder-app-" + appKey),
+                                onClick = {
+                                    if (selectMode) {
+                                        selectedKeys = if (selected) selectedKeys - appKey
+                                        else selectedKeys + appKey
+                                    } else {
+                                        onDismiss()
+                                        onLaunchApp(app)
+                                    }
+                                },
+                                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                                color = if (selected) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (selected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outlineVariant,
+                                ),
                             ) {
-                                if (icon != null) {
-                                    Image(
-                                        bitmap = icon,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Fit,
-                                        modifier = Modifier
-                                            .size(38.dp)
-                                            .launcherIconMask(),
-                                    )
-                                }
-                                TextButton(
-                                    onClick = { onLaunchApp(app) },
-                                    modifier = Modifier.weight(1f),
+                                Column(
+                                    modifier = Modifier.padding(vertical = GlazeMetrics.space2, horizontal = 3.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        if (icon != null) {
+                                            Image(
+                                                bitmap = icon,
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Fit,
+                                                modifier = Modifier.size(47.dp).launcherIconMask(),
+                                            )
+                                        } else {
+                                            Surface(
+                                                modifier = Modifier.size(47.dp),
+                                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                                shape = RoundedCornerShape(15.dp),
+                                            ) {}
+                                        }
+                                        if (selectMode && selected) {
+                                            Text(
+                                                "✓",
+                                                modifier = Modifier.align(Alignment.TopEnd)
+                                                    .background(
+                                                        MaterialTheme.colorScheme.primary,
+                                                        CircleShape,
+                                                    ).padding(horizontal = 5.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                            )
+                                        }
+                                    }
                                     Text(
                                         app.label.toString(),
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Start,
-                                        maxLines = 1,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                     )
-                                }
-                                TextButton(onClick = { onRemoveApp(app) }) {
-                                    Text("Remove")
                                 }
                             }
                         }
                     }
                 }
+                if (selectMode) {
+                    Text(
+                        "${selectedKeys.size} selected · Removing only changes folder membership",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        onClick = { confirmRemove = true },
+                        enabled = selectedKeys.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) { Text("Remove selected") }
+                } else {
+                    TextButton(
+                        onClick = onAddApps,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) { Text("＋  Add apps") }
+                }
             }
-
-            HorizontalDivider()
-            TextButton(
-                onClick = { showDeleteConfirmation = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    "Delete folder",
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            Text(
-                "Deleting a folder does not uninstall or delete its apps.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(GlazeMetrics.space2))
         }
     }
 
+    if (confirmRemove) {
+        AlertDialog(
+            onDismissRequest = { confirmRemove = false },
+            title = { Text("Remove ${selectedKeys.size} apps from folder?") },
+            text = { Text("The selected apps will stay installed and remain available in the app drawer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    members.filter { it.workspaceKey() in selectedKeys }.forEach(onRemoveApp)
+                    selectedKeys = emptySet()
+                    selectMode = false
+                    confirmRemove = false
+                }) { Text("Remove from folder") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemove = false }) { Text("Cancel") }
+            },
+        )
+    }
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
             title = { Text("Delete ${folder.name}?") },
-            text = {
-                Text(
-                    "The folder and its app membership will be removed from Home and the app drawer. " +
-                        "No installed apps will be uninstalled, but the folder cannot be restored automatically.",
-                )
-            },
+            text = { Text(
+                "This removes the folder and its membership from Home and the app drawer. " +
+                    "Installed apps remain. The folder cannot be restored automatically.",
+            ) },
             confirmButton = {
-                TextButton(onClick = {
-                    showDeleteConfirmation = false
-                    onDelete()
-                }) {
+                TextButton(onClick = { showDeleteConfirmation = false; onDelete() }) {
                     Text("Delete folder", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showDeleteConfirmation = false }) { Text("Cancel") }
             },
         )
     }
@@ -6231,20 +6325,25 @@ private fun AppContextPopup(
         ),
     ) {
         Surface(
-            modifier = Modifier.widthIn(min = 230.dp, max = 310.dp),
+            modifier = Modifier.widthIn(min = 252.dp, max = 300.dp)
+                .testTag("launcher-glaze-app-context-menu"),
             shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
             border = BorderStroke(
                 1.dp,
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                MaterialTheme.colorScheme.outlineVariant,
             ),
-            shadowElevation = 12.dp,
+            shadowElevation = 18.dp,
         ) {
             Column(
-                modifier = Modifier.padding(GlazeMetrics.space3),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(horizontal = GlazeMetrics.space2, vertical = GlazeMetrics.space2),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Row(
+                    modifier = Modifier.fillMaxWidth().padding(
+                        horizontal = GlazeMetrics.space2,
+                        vertical = GlazeMetrics.space2,
+                    ),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
@@ -6252,72 +6351,85 @@ private fun AppContextPopup(
                         Image(
                             bitmap = icon,
                             contentDescription = null,
-                            modifier = Modifier
-                                .size(38.dp)
-                                .launcherIconMask(),
                             contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(38.dp).launcherIconMask(),
                         )
                     }
                     Column(Modifier.weight(1f)) {
                         Text(
                             app.label.toString(),
                             style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Text(
-                            if (layoutLocked) "Home layout locked" else "App actions",
+                        if (layoutLocked) Text(
+                            "Home layout locked",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                TextButton(
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                GlazeLauncherPopupAction(
+                    label = if (isFavorite) "Remove from Home" else "Add to Home",
                     onClick = onToggleFavorite,
                     enabled = !layoutLocked,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) {
-                    Text(if (isFavorite) "Remove from Home" else "Add to Home")
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                ) {
-                    TextButton(
-                        onClick = onToggleDock,
-                        enabled = !layoutLocked && !dockFull,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                    ) { Text(if (isDocked) "Remove from Dock" else "Add to Dock") }
-                    TextButton(
-                        onClick = onAddToFolder,
-                        enabled = canAddToFolder,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                    ) { Text("Add to folder") }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                ) {
-                    TextButton(
-                        onClick = onOpenAppInfo,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                    ) { Text("App info") }
-                    TextButton(
-                        onClick = onRequestUninstall,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                    ) {
-                        Text("Uninstall", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-                FilledTonalButton(
-                    onClick = onMoreOptions,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("More options")
-                }
+                )
+                GlazeLauncherPopupAction(
+                    label = if (isDocked) "Remove from Dock" else "Add to Dock",
+                    onClick = onToggleDock,
+                    enabled = !layoutLocked && !dockFull,
+                )
+                GlazeLauncherPopupAction(
+                    label = "Add to folder",
+                    onClick = onAddToFolder,
+                    enabled = canAddToFolder && !layoutLocked,
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                GlazeLauncherPopupAction(label = "App info", onClick = onOpenAppInfo)
+                GlazeLauncherPopupAction(
+                    label = "Uninstall",
+                    onClick = onRequestUninstall,
+                    destructive = true,
+                )
+                GlazeLauncherPopupAction(label = "More options", onClick = onMoreOptions)
             }
+        }
+    }
+}
+
+/** Consistent, compact Glaze action rows with full-width accessibility targets. */
+@Composable
+private fun GlazeLauncherPopupAction(
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    destructive: Boolean = false,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        onClick = onClick,
+        enabled = enabled,
+        color = Color.Transparent,
+        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = GlazeMetrics.space3),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = when {
+                    !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    destructive -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
