@@ -84,6 +84,7 @@ import com.goreecloud.launcher.ui.LayoutLockHoldControl
 import com.goreecloud.launcher.ui.LauncherBetaRoot
 import com.goreecloud.launcher.ui.LauncherSurfaceMode
 import com.goreecloud.launcher.ui.LauncherTransitionDiagnostics
+import com.goreecloud.launcher.ui.LauncherWallpaperPickerSheet
 import com.goreecloud.launcher.ui.ReadOnlyPagedHomeSurface
 import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
@@ -114,6 +115,7 @@ class MainActivity : ComponentActivity() {
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
     private var pendingAppWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
+    private var showWallpaperPicker by mutableStateOf(false)
     private var pendingSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
     private var pendingFileSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
 
@@ -945,6 +947,20 @@ class MainActivity : ComponentActivity() {
                                 .padding(top = 72.dp, end = 12.dp),
                         )
                     }
+
+                    if (showWallpaperPicker) {
+                        LauncherWallpaperPickerSheet(
+                            onDismiss = { showWallpaperPicker = false },
+                            onApply = { id ->
+                                showWallpaperPicker = false
+                                applyBuiltInWallpaper(id)
+                            },
+                            onOpenAndroidPicker = {
+                                showWallpaperPicker = false
+                                openSystemWallpaperPicker()
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -1299,23 +1315,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openWallpaperPicker() {
-        val wallpapers = LauncherBuiltInWallpapers.all
-        val labels = wallpapers
-            .map { wallpaper -> wallpaper.name + "\n" + wallpaper.description }
-            .plus("More wallpapers from Android")
-            .toTypedArray()
-
-        AlertDialog.Builder(this)
-            .setTitle("GoreeCloud Wallpapers")
-            .setItems(labels) { _, index ->
-                if (index < wallpapers.size) {
-                    applyBuiltInWallpaper(wallpapers[index].id)
-                } else {
-                    openSystemWallpaperPicker()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        showWallpaperPicker = true
     }
 
     private fun openSystemWallpaperPicker() {
