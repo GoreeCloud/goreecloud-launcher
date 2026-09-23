@@ -75,9 +75,15 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
@@ -272,6 +278,8 @@ fun LauncherBetaRoot(
     val surfaceMode = runCatching { LauncherSurfaceMode.valueOf(surfaceModeName) }
         .getOrDefault(LauncherSurfaceMode.HOME)
     var selectedApp by remember { mutableStateOf<LauncherActivityInfo?>(null) }
+    var selectedAppAnchor by remember { mutableStateOf<Rect?>(null) }
+    var showDetailedAppOptions by remember { mutableStateOf(false) }
     var selectedWidget by remember { mutableStateOf<WorkspaceRenderedHomeWidget?>(null) }
     var drawerSearchRequested by rememberSaveable { mutableStateOf(false) }
     var homeEditorRequestSequence by remember { mutableStateOf(0L) }
@@ -389,6 +397,8 @@ fun LauncherBetaRoot(
     LaunchedEffect(homeResetSequence) {
         drawerSearchRequested = false
         selectedApp = null
+        selectedAppAnchor = null
+        showDetailedAppOptions = false
         selectedWidget = null
         homeEditMode = false
         activeDrag = null
@@ -507,10 +517,12 @@ fun LauncherBetaRoot(
                     drawerSearchRequested = false
                     surfaceModeName = LauncherSurfaceMode.SEARCH.name
                 },
-                onManageApp = {
+                onManageApp = { app, anchor ->
                     homeEditMode = true
                     selectedWidget = null
-                    selectedApp = it
+                    selectedApp = app
+                    selectedAppAnchor = anchor
+                    showDetailedAppOptions = false
                 },
                 onOpenDrawer = {
                     drawerSearchRequested =
@@ -573,7 +585,11 @@ fun LauncherBetaRoot(
                 experiencePreferences = experiencePreferences,
                 focusSearch = drawerSearchRequested,
                 onLaunchApp = onLaunchApp,
-                onManageApp = { selectedApp = it },
+                onManageApp = { app, anchor ->
+                    selectedApp = app
+                    selectedAppAnchor = anchor
+                    showDetailedAppOptions = false
+                },
                 onHome = {
                     drawerSearchRequested = false
                     surfaceModeName = LauncherSurfaceMode.HOME.name
@@ -640,20 +656,58 @@ fun LauncherBetaRoot(
     }
 
     if (activeDrag == null) selectedApp?.let { app ->
-        AppPlacementDialog(
-            app = app,
-            workspace = workspace,
-            layoutLocked = preferences.layoutLocked,
-            onToggleFavorite = { onToggleFavorite(app) },
-            onToggleDock = { onToggleDock(app) },
-            onMoveFavorite = { onMoveFavorite(app, it) },
-            onMoveDock = { onMoveDock(app, it) },
-            homeLabelOverride = homeLabelOverrides[app.workspaceKey()],
-            onSetHomeLabelOverride = { onSetHomeLabelOverride(app, it) },
-            onOpenAppInfo = { onOpenAppInfo(app) },
-            onRequestUninstall = { onRequestUninstall(app) },
-            onClose = { selectedApp = null },
-        )
+        if (showDetailedAppOptions || selectedAppAnchor == null) {
+            AppPlacementDialog(
+                app = app,
+                workspace = workspace,
+                layoutLocked = preferences.layoutLocked,
+                onToggleFavorite = { onToggleFavorite(app) },
+                onToggleDock = { onToggleDock(app) },
+                onMoveFavorite = { onMoveFavorite(app, it) },
+                onMoveDock = { onMoveDock(app, it) },
+                homeLabelOverride = homeLabelOverrides[app.workspaceKey()],
+                onSetHomeLabelOverride = { onSetHomeLabelOverride(app, it) },
+                onOpenAppInfo = { onOpenAppInfo(app) },
+                onRequestUninstall = { onRequestUninstall(app) },
+                onClose = {
+                    selectedApp = null
+                    selectedAppAnchor = null
+                    showDetailedAppOptions = false
+                },
+            )
+        } else {
+            AppContextPopup(
+                app = app,
+                anchor = selectedAppAnchor!!,
+                workspace = workspace,
+                layoutLocked = preferences.layoutLocked,
+                onToggleFavorite = {
+                    onToggleFavorite(app)
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onToggleDock = {
+                    onToggleDock(app)
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onOpenAppInfo = {
+                    onOpenAppInfo(app)
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onRequestUninstall = {
+                    onRequestUninstall(app)
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onMoreOptions = { showDetailedAppOptions = true },
+                onClose = {
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+            )
+        }
     }
 
     if (activeDrag == null) selectedWidget?.let { widget ->
