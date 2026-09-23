@@ -79,11 +79,11 @@ internal fun Modifier.launcherIconMask(): Modifier {
     return if (shape == LauncherIconShape.ORIGINAL) {
         this
     } else {
-        clip(shape.toComposeShape())
+        clip(shape.toLauncherComposeShape())
     }
 }
 
-private fun LauncherIconShape.toComposeShape(): Shape = when (this) {
+internal fun LauncherIconShape.toLauncherComposeShape(): Shape = when (this) {
     LauncherIconShape.ROUNDED_SQUARE -> RoundedCornerShape(24)
     LauncherIconShape.ORIGINAL -> RoundedCornerShape(0)
     LauncherIconShape.SQUIRCLE -> RoundedCornerShape(38)
