@@ -448,6 +448,7 @@ fun LauncherBetaRoot(
                 onExitEditMode = {
                     homeEditMode = false
                     selectedApp = null
+                    selectedWidget = null
                     activeDrag = null
                     dragPoint = null
                 },
@@ -459,6 +460,7 @@ fun LauncherBetaRoot(
                 onCreateAndroidWidgetView = onCreateAndroidWidgetView,
                 onManageWidget = {
                     homeEditMode = true
+                    selectedApp = null
                     selectedWidget = it
                 },
                 onOpenLauncherSearch = {
@@ -467,6 +469,7 @@ fun LauncherBetaRoot(
                 },
                 onManageApp = {
                     homeEditMode = true
+                    selectedWidget = null
                     selectedApp = it
                 },
                 onOpenDrawer = {
@@ -590,6 +593,24 @@ fun LauncherBetaRoot(
             onOpenAppInfo = { onOpenAppInfo(app) },
             onRequestUninstall = { onRequestUninstall(app) },
             onClose = { selectedApp = null },
+        )
+    }
+
+    if (activeDrag == null) selectedWidget?.let { widget ->
+        LauncherWidgetManagementDialog(
+            widget = widget,
+            columns = preferences.homeColumns,
+            rows = preferences.homeRows,
+            layoutLocked = preferences.layoutLocked,
+            onResize = { spanX, spanY ->
+                onResizeWidget(widget, spanX, spanY)
+                selectedWidget = null
+            },
+            onRemove = {
+                onRemoveWidget(widget)
+                selectedWidget = null
+            },
+            onClose = { selectedWidget = null },
         )
     }
 }
@@ -927,6 +948,8 @@ private fun HomeSurface(
                     onCancelLocalDrag = onCancelLocalDrag,
                     onLaunchApp = onLaunchApp,
                     onManageApp = onManageApp,
+                    onCreateAndroidWidgetView = onCreateAndroidWidgetView,
+                    onManageWidget = onManageWidget,
                     onSwipeUp = {
                         executeGestureAction(experiencePreferences.swipeUpAction)
                     },
@@ -1006,6 +1029,25 @@ private fun HomeSurface(
                     onSettings = {
                         showHomeEditor = false
                         onOpenSettings()
+                    },
+                )
+            }
+        }
+
+        if (showWidgetPicker) {
+            ModalBottomSheet(
+                onDismissRequest = { showWidgetPicker = false },
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                tonalElevation = 0.dp,
+            ) {
+                LauncherWidgetPickerSheet(
+                    onAddBuiltInWidget = { typeId ->
+                        showWidgetPicker = false
+                        onAddBuiltInWidget(typeId)
+                    },
+                    onPickAndroidWidget = {
+                        showWidgetPicker = false
+                        onPickAndroidWidget()
                     },
                 )
             }
