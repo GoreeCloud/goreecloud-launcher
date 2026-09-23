@@ -32,6 +32,8 @@ class LauncherPreferencesTest {
     fun defaultsKeepHomeVisuallyQuietAndLayoutUnlocked() {
         val defaults = LauncherPreferences()
 
+        assertEquals(5, defaults.homeColumns)
+        assertEquals(6, defaults.homeRows)
         assertFalse(defaults.layoutLocked)
         assertEquals(LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY, defaults.universalSearchHomeMode)
     }
@@ -43,6 +45,8 @@ class LauncherPreferencesTest {
         assertFalse(defaults.showHomeQuickActions)
         assertEquals(true, defaults.showHomePageIndicator)
         assertFalse(defaults.starterLayoutApplied)
+        assertEquals(true, defaults.useLocalUsageForSuggestions)
+        assertFalse(defaults.addNewAppsToHome)
         assertEquals(LauncherDockStyle.GLASS, defaults.dockStyle)
         assertEquals(LauncherWallpaperShade.SOFT, defaults.wallpaperShade)
         assertEquals(LauncherDrawerSearchPlacement.BOTTOM, defaults.drawerSearchPlacement)

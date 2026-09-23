@@ -213,6 +213,9 @@ fun LauncherBetaRoot(
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
     onSetShowHomePageIndicator: (Boolean) -> Unit,
+    onSetUseLocalUsageForSuggestions: (Boolean) -> Unit,
+    onSetAddNewAppsToHome: (Boolean) -> Unit,
+    onClearLocalUsage: () -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
     onSetDrawerNavigation: (LauncherDrawerNavigation) -> Unit,
@@ -550,6 +553,9 @@ fun LauncherBetaRoot(
                         onSetHomeCardStyle = onSetHomeCardStyle,
                         onSetShowHomeQuickActions = onSetShowHomeQuickActions,
                         onSetShowHomePageIndicator = onSetShowHomePageIndicator,
+                        onSetUseLocalUsageForSuggestions = onSetUseLocalUsageForSuggestions,
+                        onSetAddNewAppsToHome = onSetAddNewAppsToHome,
+                        onClearLocalUsage = onClearLocalUsage,
                         onSetDrawerBackdrop = onSetDrawerBackdrop,
                         onSetDrawerSearchPlacement = onSetDrawerSearchPlacement,
                         onSetDrawerNavigation = onSetDrawerNavigation,
@@ -3059,6 +3065,9 @@ private fun LauncherSettingsRootSurface(
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
     onSetShowHomePageIndicator: (Boolean) -> Unit,
+    onSetUseLocalUsageForSuggestions: (Boolean) -> Unit,
+    onSetAddNewAppsToHome: (Boolean) -> Unit,
+    onClearLocalUsage: () -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
     onSetDrawerNavigation: (LauncherDrawerNavigation) -> Unit,
@@ -3205,6 +3214,22 @@ private fun LauncherSettingsRootSurface(
                     "Page indicator",
                     experiencePreferences.showHomePageIndicator,
                     onSetShowHomePageIndicator,
+                )
+                SettingSwitch(
+                    "Use local app activity for suggestions",
+                    experiencePreferences.useLocalUsageForSuggestions,
+                    onSetUseLocalUsageForSuggestions,
+                )
+                GlazeSettingsAction(
+                    title = "Local app activity",
+                    summary = "Only aggregate Launcher launch counts are stored on this device.",
+                    value = "Clear",
+                    onClick = onClearLocalUsage,
+                )
+                SettingSwitch(
+                    "Add new apps to Home",
+                    experiencePreferences.addNewAppsToHome,
+                    onSetAddNewAppsToHome,
                 )
                 SettingSwitch("Lock layout", preferences.layoutLocked, onSetLayoutLocked)
             }
