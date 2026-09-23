@@ -10,7 +10,10 @@ import org.junit.Test
 class WorkspaceRelationalReadMapperTest {
     @Test
     fun spatialFoldersDoNotPolluteFavoriteProjection() {
-        val pages = canonicalPages()
+        val pages = WorkspaceLegacyImportMapper.map(
+            favoriteKeys = emptyList(),
+            dockKeys = emptyList(),
+        ).pages
         val items = listOf(
             WorkspaceItemEntity(
                 itemId = "legacy:home:app-a",
