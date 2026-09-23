@@ -3328,10 +3328,13 @@ private fun orderedDrawerVisualEntries(
 ): List<LauncherDrawerVisualEntry> = buildList {
     apps.forEach { add(LauncherDrawerVisualEntry.Application(it)) }
     folders.forEach { add(LauncherDrawerVisualEntry.Folder(it)) }
-}.sortedWith(compareBy<LauncherDrawerVisualEntry>(
-    { it.label.lowercase(Locale.ROOT) },
-    { it.stableKey },
-))
+}.let { entries ->
+    LauncherDrawerSortingPolicy.order(
+        entries = entries,
+        label = { it.label },
+        key = { it.stableKey },
+    )
+}
 
 @Composable
 private fun LauncherDrawerVisualTile(
