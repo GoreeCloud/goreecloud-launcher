@@ -1,6 +1,7 @@
 package com.goreecloud.launcher
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.app.WallpaperManager
 import android.appwidget.AppWidgetManager
 import android.app.role.RoleManager
@@ -751,8 +752,7 @@ class MainActivity : ComponentActivity() {
                                 launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
                             },
                             onRequestUninstall = ::requestUninstall,
-                            onApplyBuiltInWallpaper = ::applyBuiltInWallpaper,
-                            onOpenSystemWallpaperPicker = ::openWallpaperPicker,
+                            onOpenWallpaperPicker = ::openWallpaperPicker,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
                                 LauncherTransitionDiagnostics.recordSurfaceMode(mode)
@@ -1067,8 +1067,33 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openWallpaperPicker() {
+        val wallpapers = LauncherBuiltInWallpapers.all
+        val labels = wallpapers
+            .map { wallpaper -> wallpaper.name + "\n" + wallpaper.description }
+            .plus("More wallpapers from Android")
+            .toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("GoreeCloud Wallpapers")
+            .setItems(labels) { _, index ->
+                if (index < wallpapers.size) {
+                    applyBuiltInWallpaper(wallpapers[index].id)
+                } else {
+                    openSystemWallpaperPicker()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun openSystemWallpaperPicker() {
         runCatching {
-            startActivity(Intent.createChooser(Intent(Intent.ACTION_SET_WALLPAPER), "Choose wallpaper"))
+            startActivity(
+                Intent.createChooser(
+                    Intent(Intent.ACTION_SET_WALLPAPER),
+                    "Choose wallpaper",
+                ),
+            )
         }.onFailure {
             Toast.makeText(
                 this,
