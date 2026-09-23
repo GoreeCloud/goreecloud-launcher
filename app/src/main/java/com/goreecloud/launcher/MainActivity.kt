@@ -204,6 +204,7 @@ class MainActivity : ComponentActivity() {
                 launcherPreferences.homeColumns,
                 launcherPreferences.homeRows,
                 workspace.authority,
+                workspace.favoriteKeys,
             ) {
                 if (
                     !experiencePreferences.addNewAppsToHome ||
@@ -219,8 +220,10 @@ class MainActivity : ComponentActivity() {
                         packageName = event.packageName,
                         user = event.user,
                     ) ?: return@collect
+                    val appKey = app.workspaceKey()
+                    if (appKey in workspace.favoriteKeys) return@collect
                     workspaceRuntimeCoordinator.toggleFavorite(
-                        key = app.workspaceKey(),
+                        key = appKey,
                         homeColumns = launcherPreferences.homeColumns,
                         homeRows = launcherPreferences.homeRows,
                     )
