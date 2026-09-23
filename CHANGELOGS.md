@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. PR #203 reconciled the post-migration authority records, and legacy Launcher Drive roadmap/changelog retirement was subsequently verified.**  
-**Repository authority baseline:** `main` at `384568dda7abcf0a7e2c0942773efa540b70af2c` (PR #221). Latest source-bearing Launcher runtime is the same commit.  
+**Repository authority baseline:** `main` at `c09e2d581f300271f762422eef206631769f73b1` (PR #223). Latest source-bearing Launcher runtime is the same commit.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
@@ -30,6 +30,30 @@ The migrated historical record is stored in these repository-local segments:
 7. [September 16–22, 2026 — Glaze/Platform stabilization through Universal Search presentation structure](docs/changelog-history/2026-09-16-to-2026-09-22.md)
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
+
+## September 22, 2026 — PR #223 removed persistent app-drawer header actions
+
+**Change type:** App drawer interaction; navigation cleanup; Development implementation.
+
+PR #223, **Use gesture-only app drawer dismissal**, was guarded-squash merged to `main` as `c09e2d581f300271f762422eef206631769f73b1`.
+
+Implemented:
+
+- removed the persistent Settings action from the app drawer header;
+- removed the explicit app drawer close action;
+- retained profile/layout context in the drawer header without a right-side action cluster;
+- preserved downward swipe as the drawer's explicit in-surface dismissal gesture;
+- preserved Android HOME-button return as normal system navigation rather than a rendered drawer control;
+- retained Launcher Settings in the Home long-press editor sheet through its dedicated **Settings** action; and
+- added a stable `launcher-app-drawer` test tag plus Android runtime coverage for the revised drawer interaction.
+
+Validation:
+
+- initial candidate head `5a908d8b5f0801cbe706cb297e1f50ab7eb13107` passed source/build and transition-performance validation but failed the Room/runtime lane because the newly added test injected dismissal through a parent semantics node; that failed head remains audit provenance and no source acceptance was taken from it;
+- final exact PR head `2fe8ed2046daca56202ef07873a806a9b09a7c30` passed Android CI run #693 / `35813157287` across validate/build/unit/schema/APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes; and
+- guarded squash merge commit: `c09e2d581f300271f762422eef206631769f73b1`.
+
+**Lifecycle boundary:** Development only. Representative physical-device/default-HOME gesture ergonomics, accessibility, one-handed behavior, sustained performance, profile behavior, Quickstep/Recents, release qualification, production, and Stable acceptance remain open under issue #80.
 
 ## September 22, 2026 — PR #221 established the 5×6 starter Home and five-app Dock defaults
 
