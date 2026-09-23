@@ -1158,6 +1158,7 @@ private fun HomeSurface(
             ) {
                 HomeFavoritesGrid(
                     apps = favoriteApps,
+                    allApps = apps,
                     folders = folders,
                     columns = preferences.homeColumns,
                     rows = preferences.homeRows,
@@ -1983,6 +1984,8 @@ private fun HomeAtAGlance(
 @Composable
 private fun HomeFavoritesGrid(
     apps: List<LauncherActivityInfo>,
+    allApps: List<LauncherActivityInfo>,
+    folders: List<LauncherFolder>,
     columns: Int,
     rows: Int,
     primaryHomePage: WorkspaceRenderedHomePage?,
@@ -2003,6 +2006,7 @@ private fun HomeFavoritesGrid(
     onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
     onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
+    onOpenFolder: (LauncherFolder) -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ) {
@@ -2029,7 +2033,18 @@ private fun HomeFavoritesGrid(
                 widget.cellY + widget.spanY <= rows
         }
     }
-    val widgetOccupiedCells = remember(widgets) {
+    val foldersById = remember(folders) { folders.associateBy { it.id } }
+    val homeFolders = remember(primaryHomePage, foldersById, columns, rows) {
+        primaryHomePage?.folderPlacements.orEmpty().mapNotNull { placement ->
+            val folder = foldersById[placement.folderId] ?: return@mapNotNull null
+            if (
+                placement.cellX !in 0 until columns ||
+                placement.cellY !in 0 until rows
+            ) return@mapNotNull null
+            placement to folder
+        }
+    }
+    val blockedCells = remember(widgets, homeFolders) {
         buildSet {
             widgets.forEach { widget ->
                 for (cellY in widget.cellY until widget.cellY + widget.spanY) {
@@ -2037,6 +2052,9 @@ private fun HomeFavoritesGrid(
                         add(cellX to cellY)
                     }
                 }
+            }
+            homeFolders.forEach { (placement, _) ->
+                add(placement.cellX to placement.cellY)
             }
         }
     }
@@ -2066,8 +2084,8 @@ private fun HomeFavoritesGrid(
         }
     }
 
-    LaunchedEffect(widgetOccupiedCells) {
-        widgetOccupiedCells.forEach { coordinate -> cellBounds.remove(coordinate) }
+    LaunchedEffect(blockedCells) {
+        blockedCells.forEach { coordinate -> cellBounds.remove(coordinate) }
     }
 
     BoxWithConstraints(
@@ -2082,8 +2100,8 @@ private fun HomeFavoritesGrid(
         repeat(rows) { cellY ->
             repeat(columns) { cellX ->
                 val coordinate = cellX to cellY
-                val blockedByWidget = coordinate in widgetOccupiedCells
-                val cellHovered = !blockedByWidget &&
+                val blockedByPlacedItem = coordinate in blockedCells
+                val cellHovered = !blockedByPlacedItem &&
                     activeDrag != null &&
                     dragPoint?.let { point -> cellBounds[coordinate]?.contains(point) } == true
                 Box(
@@ -2092,7 +2110,7 @@ private fun HomeFavoritesGrid(
                         .size(width = cellWidth, height = tileHeight)
                         .testTag("launcher-home-cell-$cellX-$cellY")
                         .onGloballyPositioned {
-                            if (blockedByWidget) {
+                            if (blockedByPlacedItem) {
                                 cellBounds.remove(coordinate)
                             } else {
                                 cellBounds[coordinate] = it.boundsInRoot()
@@ -2151,6 +2169,24 @@ private fun HomeFavoritesGrid(
             )
         }
 
+        homeFolders.forEach { (placement, folder) ->
+            key(placement.itemId) {
+                HomeFolderTile(
+                    folder = folder,
+                    allApps = allApps,
+                    showLabel = showLabels,
+                    editMode = editMode,
+                    onOpen = { onOpenFolder(folder) },
+                    modifier = Modifier
+                        .offset(
+                            x = stepX * placement.cellX,
+                            y = stepY * placement.cellY,
+                        )
+                        .size(width = cellWidth, height = tileHeight),
+                )
+            }
+        }
+
         widgets.forEach { widget ->
             key(widget.itemId) {
                 HomeWidgetTile(
@@ -2169,6 +2205,109 @@ private fun HomeFavoritesGrid(
                         ),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeFolderTile(
+    folder: LauncherFolder,
+    allApps: List<LauncherActivityInfo>,
+    showLabel: Boolean,
+    editMode: Boolean,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val appsByKey = remember(allApps) { allApps.associateBy { it.workspaceKey() } }
+    val previewApps = remember(folder, appsByKey) {
+        folder.appKeys.mapNotNull(appsByKey::get).take(4)
+    }
+    Column(
+        modifier = modifier
+            .padding(horizontal = 2.dp, vertical = 2.dp)
+            .clickable(onClick = onOpen),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Surface(
+            modifier = Modifier.size(52.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = GlazeAtmosphere.canvasBlack.copy(alpha = 0.38f),
+            border = BorderStroke(
+                1.dp,
+                Color.White.copy(alpha = if (editMode) 0.30f else 0.12f),
+            ),
+        ) {
+            if (previewApps.isEmpty()) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        "＋",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White.copy(alpha = 0.70f),
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.padding(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    previewApps.chunked(2).forEach { row ->
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        ) {
+                            row.forEach { app ->
+                                val icon = rememberLauncherAppIcon(app)
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    if (icon != null) {
+                                        Image(
+                                            bitmap = icon,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Fit,
+                                            modifier = Modifier
+                                                .size(17.dp)
+                                                .launcherIconMask(),
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(17.dp)
+                                                .background(
+                                                    Color.White.copy(alpha = 0.18f),
+                                                    RoundedCornerShape(5.dp),
+                                                ),
+                                        )
+                                    }
+                                }
+                            }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+        if (showLabel) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                folder.name,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.60f),
+                        offset = Offset(0f, 1.5f),
+                        blurRadius = 5f,
+                    ),
+                ),
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
