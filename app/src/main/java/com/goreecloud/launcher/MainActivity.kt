@@ -1137,6 +1137,20 @@ class MainActivity : ComponentActivity() {
             providerId = providerId,
             enabled = enabled,
         )
+
+        if (enabled && providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
+            lifecycleScope.launch {
+                val roots = fileSearchPreferencesRepository.roots.first()
+                if (roots.isEmpty()) {
+                    pendingFileSearchProviderSnapshot = snapshot
+                    fileSearchRootRequest.launch(null)
+                } else {
+                    searchProviderPreferencesRepository.set(snapshot)
+                }
+            }
+            return
+        }
+
         val permission = LauncherLocalSearchPermissions.permissionFor(providerId)
         if (
             enabled &&
@@ -1154,12 +1168,56 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun chooseFileSearchRoot() {
+        fileSearchRootRequest.launch(null)
+    }
+
     private fun openSearchUri(action: LauncherOpenUriSearchAction) {
         val intent = Intent(action.intentAction, Uri.parse(action.uri))
         runCatching { startActivity(intent) }.onFailure {
             Toast.makeText(
                 this,
                 "No compatible app is available for this result.",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+
+    private fun openDocument(action: LauncherOpenDocumentSearchAction) {
+        val uri = Uri.parse(action.uri)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, action.mimeType ?: "*/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(
+                this,
+                "No compatible app is available for this file.",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    private fun searchWithConnectedProvider(providerId: String, rawQuery: String) {
+        val intent = LauncherConnectedSearchProviderRegistry.buildExplicitHandoffIntent(
+            context = this,
+            providerId = providerId,
+            rawQuery = rawQuery,
+        )
+        if (intent == null) {
+            Toast.makeText(
+                this,
+                "That connected Search provider is unavailable.",
+                Toast.LENGTH_SHORT,
+            ).show()
+            return
+        }
+
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(
+                this,
+                "That connected Search provider could not be opened.",
                 Toast.LENGTH_SHORT,
             ).show()
         }
