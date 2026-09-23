@@ -331,6 +331,22 @@ class WorkspaceProductionRuntimeCoordinator(
         return result
     }
 
+    suspend fun moveWidget(
+        itemId: String,
+        columns: Int,
+        rows: Int,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspaceWidgetMutationResult {
+        val spatial = ensurePrimaryHomeSpatialGrid(columns, rows)
+        if (spatial !is WorkspacePrimaryHomeSpatialResult.Ready) {
+            return spatial.toWidgetMutationResult()
+        }
+        val result = widgetRepository.moveWidget(itemId, columns, rows, cellX, cellY)
+        if (result is WorkspaceWidgetMutationResult.Moved) refresh()
+        return result
+    }
+
     suspend fun resizeWidget(
         itemId: String,
         columns: Int,
