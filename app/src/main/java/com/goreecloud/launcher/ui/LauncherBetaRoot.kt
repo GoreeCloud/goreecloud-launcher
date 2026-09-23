@@ -2333,6 +2333,7 @@ private fun HomeFolderTile(
     showLabel: Boolean,
     editMode: Boolean,
     onOpen: () -> Unit,
+    labelOnWallpaper: Boolean = true,
     layoutLocked: Boolean = true,
     onDrop: ((LauncherFolder, Offset) -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -2465,14 +2466,16 @@ private fun HomeFolderTile(
             Text(
                 folder.name,
                 modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    shadow = Shadow(
-                        color = Color.Black.copy(alpha = 0.60f),
-                        offset = Offset(0f, 1.5f),
-                        blurRadius = 5f,
-                    ),
-                ),
-                color = Color.White,
+                style = if (labelOnWallpaper) {
+                    MaterialTheme.typography.labelSmall.copy(
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.60f),
+                            offset = Offset(0f, 1.5f),
+                            blurRadius = 5f,
+                        ),
+                    )
+                } else MaterialTheme.typography.labelSmall,
+                color = if (labelOnWallpaper) Color.White else Color.Unspecified,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -3368,6 +3371,7 @@ private fun LauncherDrawerVisualTile(
             allApps = allApps,
             showLabel = showLabel,
             editMode = false,
+            labelOnWallpaper = false,
             onOpen = { onOpenFolder(entry.folder) },
             modifier = modifier.testTag("launcher-drawer-inline-folder-" + entry.folder.id),
         )
