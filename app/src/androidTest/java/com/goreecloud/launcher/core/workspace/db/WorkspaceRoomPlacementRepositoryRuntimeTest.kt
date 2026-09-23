@@ -140,17 +140,6 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             spanX = 2,
             spanY = 2,
         )
-        val folder = WorkspaceItemEntity(
-            itemId = "folder:home:runtime",
-            pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
-            itemType = WorkspaceItemType.FOLDER,
-            appKey = "folder-id-runtime",
-            rank = migratedPrimary.size + 1,
-            cellX = 0,
-            cellY = 1,
-            spanX = 1,
-            spanY = 1,
-        )
         val primaryPage = database.workspaceDao()
             .readPages(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
             .single()
@@ -158,9 +147,30 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             database.workspaceDao().replacePrimaryHomeItemsIncludingIdentityChangesIfSnapshotMatches(
                 expectedPage = primaryPage,
                 expectedItems = migratedPrimary,
-                updatedItems = migratedPrimary + widget + folder,
+                updatedItems = migratedPrimary + widget,
             ),
         )
+        val folderRepository = WorkspaceFolderRepository(
+            authorityRepository = authorityRepository,
+            workspaceDaoProvider = { database.workspaceDao() },
+        )
+        assertEquals(
+            WorkspaceFolderMutationResult.Added(
+                itemId = "folder:home:runtime",
+                folderId = "folder-id-runtime",
+                cellX = 0,
+                cellY = 1,
+            ),
+            folderRepository.addFolderToHome(
+                itemId = "folder:home:runtime",
+                folderId = "folder-id-runtime",
+                columns = 4,
+                rows = 5,
+            ),
+        )
+        val folder = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .single { it.itemType == WorkspaceItemType.FOLDER }
         assertEquals(
             WorkspaceRoomReadResult.Loaded(
                 WorkspaceRelationalSnapshot(INITIAL_FAVORITES, INITIAL_DOCK)
@@ -210,6 +220,15 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
         assertEquals(folder.cellY, retainedFolder.cellY)
         assertEquals(folder.spanX, retainedFolder.spanX)
         assertEquals(folder.spanY, retainedFolder.spanY)
+        assertEquals(
+            WorkspaceFolderMutationResult.Removed(folder.itemId, folder.appKey!!),
+            folderRepository.removeFolderFromHome(folder.appKey!!),
+        )
+        assertTrue(
+            database.workspaceDao()
+                .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                .none { it.itemType == WorkspaceItemType.FOLDER }
+        )
         assertTrue(
             spatialReplacement.all {
                 it.cellX != null &&
