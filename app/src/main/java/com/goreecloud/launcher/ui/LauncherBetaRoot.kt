@@ -5455,6 +5455,404 @@ private fun LauncherAppListRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LauncherFolderManagerSheet(
+    folders: List<LauncherFolder>,
+    appsByKey: Map<String, LauncherActivityInfo>,
+    homeFolderIds: Set<String>,
+    defaultAddToHome: Boolean,
+    onCreate: (String, Boolean) -> Unit,
+    onOpen: (LauncherFolder) -> Unit,
+    onAddToHome: (LauncherFolder) -> Unit,
+    onRemoveFromHome: (LauncherFolder) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var nameDraft by rememberSaveable { mutableStateOf("") }
+    var addToHome by rememberSaveable(defaultAddToHome) { mutableStateOf(defaultAddToHome) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "Folders",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Create folders once, then use them from Home and the app drawer.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            OutlinedTextField(
+                value = nameDraft,
+                onValueChange = { nameDraft = it.take(40) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Folder name") },
+                placeholder = { Text("e.g. Work, Media, Utilities") },
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Add new folder to Home")
+                    Text(
+                        "The folder always remains available in the app drawer.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = addToHome,
+                    onCheckedChange = { addToHome = it },
+                )
+            }
+            Button(
+                onClick = {
+                    val name = nameDraft.trim()
+                    if (name.isNotBlank()) {
+                        onCreate(name, addToHome)
+                        nameDraft = ""
+                    }
+                },
+                enabled = nameDraft.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Create folder")
+            }
+
+            if (folders.isNotEmpty()) {
+                HorizontalDivider()
+                Text(
+                    "Existing folders",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    lazyItems(
+                        items = folders,
+                        key = { it.id },
+                    ) { folder ->
+                        val availableCount = folder.appKeys.count(appsByKey::containsKey)
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { onOpen(folder) },
+                            shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f),
+                            ),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(GlazeMetrics.space3),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                            ) {
+                                Surface(
+                                    modifier = Modifier.size(42.dp),
+                                    shape = RoundedCornerShape(13.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            "▦",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.titleMedium,
+                                        )
+                                    }
+                                }
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        folder.name,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        "$availableCount apps",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                TextButton(
+                                    onClick = {
+                                        if (folder.id in homeFolderIds) {
+                                            onRemoveFromHome(folder)
+                                        } else {
+                                            onAddToHome(folder)
+                                        }
+                                    },
+                                ) {
+                                    Text(if (folder.id in homeFolderIds) "Remove Home" else "Add Home")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(GlazeMetrics.space2))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LauncherFolderContentsSheet(
+    folder: LauncherFolder,
+    appsByKey: Map<String, LauncherActivityInfo>,
+    isOnHome: Boolean,
+    onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onRemoveApp: (LauncherActivityInfo) -> Unit,
+    onRename: (String) -> Unit,
+    onAddToHome: () -> Unit,
+    onRemoveFromHome: () -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var nameDraft by remember(folder.id, folder.name) { mutableStateOf(folder.name) }
+    val memberApps = remember(folder, appsByKey) {
+        folder.appKeys.mapNotNull(appsByKey::get)
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text(
+                        folder.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "${memberApps.size} apps",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                FilledTonalButton(
+                    onClick = if (isOnHome) onRemoveFromHome else onAddToHome,
+                ) {
+                    Text(if (isOnHome) "Remove from Home" else "Add to Home")
+                }
+            }
+
+            OutlinedTextField(
+                value = nameDraft,
+                onValueChange = { nameDraft = it.take(40) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Folder name") },
+                trailingIcon = {
+                    TextButton(
+                        onClick = {
+                            val name = nameDraft.trim()
+                            if (name.isNotBlank()) onRename(name)
+                        },
+                        enabled = nameDraft.isNotBlank() && nameDraft.trim() != folder.name,
+                    ) {
+                        Text("Save")
+                    }
+                },
+            )
+
+            if (memberApps.isEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+                ) {
+                    Text(
+                        "This folder is empty. Long-press an app and choose Add to folder.",
+                        modifier = Modifier.padding(GlazeMetrics.space3),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                ) {
+                    lazyItems(
+                        items = memberApps,
+                        key = { it.workspaceKey() },
+                    ) { app ->
+                        val icon = rememberLauncherAppIcon(app)
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                if (icon != null) {
+                                    Image(
+                                        bitmap = icon,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .launcherIconMask(),
+                                    )
+                                }
+                                TextButton(
+                                    onClick = { onLaunchApp(app) },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text(
+                                        app.label.toString(),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Start,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                TextButton(onClick = { onRemoveApp(app) }) {
+                                    Text("Remove")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider()
+            TextButton(
+                onClick = onDelete,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    "Delete folder",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Text(
+                "Deleting a folder does not uninstall or delete its apps.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(GlazeMetrics.space2))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LauncherFolderAssignmentSheet(
+    app: LauncherActivityInfo,
+    folders: List<LauncherFolder>,
+    onAssign: (LauncherFolder) -> Unit,
+    onCreateFolder: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Text(
+                "Add ${app.label} to folder",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 360.dp),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            ) {
+                lazyItems(
+                    items = folders,
+                    key = { it.id },
+                ) { folder ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onAssign(folder) },
+                        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(GlazeMetrics.space3),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column {
+                                Text(folder.name, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "${folder.appKeys.size} apps",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Text("Add", color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
+            OutlinedButton(
+                onClick = onCreateFolder,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Create new folder")
+            }
+            Spacer(Modifier.height(GlazeMetrics.space2))
+        }
+    }
+}
+
 private class AboveAppIconPopupPositionProvider(
     private val anchor: Rect,
     private val gapPx: Int,
