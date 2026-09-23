@@ -353,9 +353,11 @@ class ActivatedHomeLifecycleRuntimeTest {
                 composeRule
                     .onNodeWithText("Universal Search", useUnmergedTree = true)
                     .assertIsDisplayed()
+                // Universal Search uses a shorter, single-line search placeholder.
+                // Assert the stable input semantics rather than old presentation copy.
                 composeRule
-                    .onNodeWithText(
-                        "Search apps, shortcuts, people, calls, messages and files",
+                    .onNodeWithTag(
+                        "launcher-universal-search-field",
                         useUnmergedTree = true,
                     )
                     .assertIsDisplayed()
