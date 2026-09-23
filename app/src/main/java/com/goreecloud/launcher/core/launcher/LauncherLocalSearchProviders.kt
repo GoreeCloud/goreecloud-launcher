@@ -177,49 +177,117 @@ class LauncherContactsSearchProvider(context: Context) : LauncherSearchProvider,
     override suspend fun searchAsync(request: LauncherSearchRequest): List<LauncherSearchResult> =
         guardedLocalSearch(appContext, id) {
             withContext(Dispatchers.IO) {
-            val rawQuery = request.rawQuery.trim()
-            if (rawQuery.isBlank() || !LauncherLocalSearchPermissions.isGranted(appContext, id)) return@withContext emptyList()
-            val projection = arrayOf(
-                ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
-                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
-                ContactsContract.CommonDataKinds.Phone.NUMBER,
-            )
-            val filteredUri = Uri.withAppendedPath(
-                ContactsContract.CommonDataKinds.Phone.CONTENT_FILTER_URI,
-                Uri.encode(rawQuery),
-            )
-            val results = mutableListOf<LauncherSearchResult>()
-            val cursor = appContext.contentResolver.query(
-                filteredUri,
-                projection,
-                null,
-                null,
-                "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY} COLLATE NOCASE ASC",
-            ) ?: throw IllegalStateException("Phone contacts provider is unavailable")
-            cursor.use { cursor ->
-                val contactIdIndex = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
-                val nameIndex = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY)
-                val numberIndex = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
-                while (cursor.moveToNext() && results.size < MAX_RESULTS) {
-                    val contactId = cursor.getLong(contactIdIndex)
-                    val name = cursor.getString(nameIndex).orEmpty()
-                    val number = cursor.getString(numberIndex).orEmpty()
-                    val score = LauncherLocalPhoneSearchPolicy.score(name, number, rawQuery) ?: continue
-                    val contactUri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, contactId.toString())
-                    results += LauncherSearchResult(
-                        providerId = id,
-                        resultId = "$contactId:$number",
-                        title = name.ifBlank { number },
-                        subtitle = number.takeIf(String::isNotBlank),
-                        category = LauncherSearchCategory.CONTACT,
-                        score = score,
-                        action = LauncherOpenUriSearchAction(Intent.ACTION_VIEW, contactUri.toString()),
-                    )
-                }
-            }
-            results
-        }
+                val term = request.rawQuery.trim()
+                if (term.isBlank()) return@withContext emptyList()
 
+                val results = mutableListOf<LauncherSearchResult>()
+                val seenContactIds = mutableSetOf<Long>()
+
+                // Phone-filter URI handles matching both contact names and formatted numbers.
+                val phoneUri = Uri.withAppendedPath(
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_FILTER_URI,
+                    Uri.encode(term),
+                )
+                val phoneColumns = arrayOf(
+                    ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
+                    ContactsContract.CommonDataKinds.Phone.NUMBER,
+                )
+                val phoneCursor = appContext.contentResolver.query(
+                    phoneUri,
+                    phoneColumns,
+                    null,
+                    null,
+                    "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY} COLLATE NOCASE ASC",
+                ) ?: throw IllegalStateException("Phone contacts provider is unavailable")
+                phoneCursor.use { cursor ->
+                    val idColumn = cursor.getColumnIndexOrThrow(
+                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
+                    )
+                    val nameColumn = cursor.getColumnIndexOrThrow(
+                        ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
+                    )
+                    val numberColumn = cursor.getColumnIndexOrThrow(
+                        ContactsContract.CommonDataKinds.Phone.NUMBER,
+                    )
+                    while (cursor.moveToNext() && results.size < MAX_RESULTS) {
+                        val contactId = cursor.getLong(idColumn)
+                        if (contactId in seenContactIds) continue
+                        val name = cursor.getString(nameColumn).orEmpty()
+                        val number = cursor.getString(numberColumn).orEmpty()
+                        val score = LauncherLocalPhoneSearchPolicy.score(name, number, term)
+                            ?: continue
+                        seenContactIds += contactId
+                        val contactUri = Uri.withAppendedPath(
+                            ContactsContract.Contacts.CONTENT_URI,
+                            contactId.toString(),
+                        )
+                        results += LauncherSearchResult(
+                            providerId = id,
+                            resultId = contactId.toString(),
+                            title = name.ifBlank { number },
+                            subtitle = number.takeIf(String::isNotBlank),
+                            category = LauncherSearchCategory.CONTACT,
+                            score = score,
+                            action = LauncherOpenUriSearchAction(
+                                Intent.ACTION_VIEW,
+                                contactUri.toString(),
+                            ),
+                        )
+                    }
+                }
+
+                // The phone directory excludes contacts without a number. Query the general
+                // name-filtered contacts directory as well; results remain local, bounded,
+                // deduplicated, and require the same explicit READ_CONTACTS opt-in.
+                if (results.size < MAX_RESULTS) {
+                    val contactUri = Uri.withAppendedPath(
+                        ContactsContract.Contacts.CONTENT_FILTER_URI,
+                        Uri.encode(term),
+                    )
+                    val contactColumns = arrayOf(
+                        ContactsContract.Contacts._ID,
+                        ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
+                    )
+                    val contactCursor = appContext.contentResolver.query(
+                        contactUri,
+                        contactColumns,
+                        null,
+                        null,
+                        "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} COLLATE NOCASE ASC",
+                    ) ?: throw IllegalStateException("Contacts provider is unavailable")
+                    contactCursor.use { cursor ->
+                        val idColumn = cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID)
+                        val nameColumn = cursor.getColumnIndexOrThrow(
+                            ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
+                        )
+                        while (cursor.moveToNext() && results.size < MAX_RESULTS) {
+                            val contactId = cursor.getLong(idColumn)
+                            if (contactId in seenContactIds) continue
+                            val name = cursor.getString(nameColumn).orEmpty()
+                            val score = LauncherSearchTextRanking.score(name, null, term)
+                                ?: continue
+                            seenContactIds += contactId
+                            results += LauncherSearchResult(
+                                providerId = id,
+                                resultId = contactId.toString(),
+                                title = name,
+                                subtitle = null,
+                                category = LauncherSearchCategory.CONTACT,
+                                score = score,
+                                action = LauncherOpenUriSearchAction(
+                                    Intent.ACTION_VIEW,
+                                    Uri.withAppendedPath(
+                                        ContactsContract.Contacts.CONTENT_URI,
+                                        contactId.toString(),
+                                    ).toString(),
+                                ),
+                            )
+                        }
+                    }
+                }
+                results
+            }
         }
 
     companion object {
