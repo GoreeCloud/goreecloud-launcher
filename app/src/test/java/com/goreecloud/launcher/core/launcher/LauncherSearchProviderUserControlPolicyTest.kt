@@ -29,6 +29,46 @@ class LauncherSearchProviderUserControlPolicyTest {
     }
 
     @Test
+    fun consentRequiredLocalProviderIsDisabledByDefaultAndRunsOnlyAfterEnablement() {
+        val registration = registration(
+            providerId = "local.contacts",
+            authorizationRequirement = LauncherSearchAuthorizationRequirement.USER_CONSENT,
+        )
+        val catalog = LauncherSearchProviderContract.evaluate(listOf(registration))
+
+        val initial = LauncherSearchProviderUserControlPolicy.normalize(
+            catalog = catalog,
+            requestedEnabledProviderIds = null,
+            requestedProviderOrder = emptyList(),
+        )
+
+        assertFalse(initial.isEnabled("local.contacts"))
+        assertEquals(
+            LauncherSearchProviderInvocationMode.OPT_IN_LOCAL,
+            initial.orderedOptions.single().invocationMode,
+        )
+        assertTrue(
+            LauncherSearchProviderUserControlPolicy
+                .automaticProviders(catalog, initial)
+                .isEmpty(),
+        )
+
+        val enabledSnapshot = LauncherSearchProviderUserControlPolicy.withProviderEnabled(
+            state = initial,
+            providerId = "local.contacts",
+            enabled = true,
+        )
+        val enabled = LauncherSearchProviderUserControlPolicy.normalize(
+            catalog = catalog,
+            requestedEnabledProviderIds = enabledSnapshot.enabledProviderIds,
+            requestedProviderOrder = enabledSnapshot.providerOrder,
+        )
+
+        assertTrue(enabled.isEnabled("local.contacts"))
+        assertEquals(listOf("local.contacts"), automaticProviderIds(catalog, enabled))
+    }
+
+    @Test
     fun thirdPartyProviderNeverReceivesAutomaticQueriesEvenWhenLocallyDescribed() {
         val registration = registration(
             providerId = "third.party",
