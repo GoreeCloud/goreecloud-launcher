@@ -928,7 +928,6 @@ private fun HomeSurface(
                 HomeQuickActions(
                     onOpenApps = onOpenDrawer,
                     onOpenSearch = openSearch,
-                    onOpenSettings = onOpenSettings,
                 )
             }
 
@@ -2081,7 +2080,6 @@ private fun HomeFavoriteTile(
 private fun HomeQuickActions(
     onOpenApps: () -> Unit,
     onOpenSearch: () -> Unit,
-    onOpenSettings: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -2089,7 +2087,6 @@ private fun HomeQuickActions(
     ) {
         GlazeActionChip("Apps", onOpenApps, Modifier.weight(1f))
         GlazeActionChip("Search", onOpenSearch, Modifier.weight(1f))
-        GlazeActionChip("Customize", onOpenSettings, Modifier.weight(1f))
     }
 }
 
