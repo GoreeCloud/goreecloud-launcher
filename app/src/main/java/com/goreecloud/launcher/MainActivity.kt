@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.app.WallpaperManager
 import android.appwidget.AppWidgetManager
 import android.app.role.RoleManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.PackageManager
@@ -25,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,6 +61,7 @@ import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSna
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderUserControlPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
+import com.goreecloud.launcher.core.launcher.LauncherWidgetProviderDescriptor
 import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
 import com.goreecloud.launcher.core.launcher.StarterWorkspacePolicy
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
@@ -182,32 +185,7 @@ class MainActivity : ComponentActivity() {
                 discardPendingAppWidget(appWidgetId)
                 return@registerForActivityResult
             }
-
-            val info = appWidgetHostController.providerInfo(appWidgetId)
-            if (info == null) {
-                discardPendingAppWidget(appWidgetId)
-                Toast.makeText(this, "That widget is no longer available.", Toast.LENGTH_SHORT).show()
-                return@registerForActivityResult
-            }
-
-            val configure = info.configure
-            if (configure != null) {
-                pendingAppWidgetId = appWidgetId
-                val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
-                    component = configure
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                }
-                runCatching { widgetConfigureRequest.launch(intent) }.onFailure {
-                    discardPendingAppWidget(appWidgetId)
-                    Toast.makeText(
-                        this,
-                        "That widget could not be configured.",
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-            } else {
-                persistAndroidWidget(appWidgetId)
-            }
+            continueAndroidWidgetSetup(appWidgetId)
         }
 
     private val homeRoleRequest =
@@ -280,6 +258,9 @@ class MainActivity : ComponentActivity() {
             }
 
             val apps by appsRepository.apps.collectAsStateWithLifecycle(initialValue = emptyList())
+            val availableAndroidWidgets = remember(apps) {
+                appWidgetHostController.installedProviders()
+            }
             val launcherPreferences by launcherPreferencesRepository.preferences.collectAsStateWithLifecycle(
                 initialValue = launcherPreferencesRepository.defaults,
             )
@@ -610,6 +591,10 @@ class MainActivity : ComponentActivity() {
                             onLaunchApp = launchApp,
                             onOpenAppInfo = appsRepository::openDetails,
                             onAddBuiltInWidget = ::addBuiltInWidget,
+                            availableAndroidWidgets = availableAndroidWidgets,
+                            onPickInstalledAndroidWidget = { descriptor: LauncherWidgetProviderDescriptor ->
+                                beginAndroidWidgetBind(descriptor.provider)
+                            },
                             onPickAndroidWidget = ::beginAndroidWidgetPick,
                             onCreateAndroidWidgetView = appWidgetHostController::createHostView,
                             onRemoveWidget = ::removeWidget,
@@ -1006,18 +991,67 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun beginAndroidWidgetPick() {
-        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_APP_WIDGETS)) {
-            Toast.makeText(this, "Android widgets are not supported on this device.", Toast.LENGTH_SHORT).show()
+    private fun continueAndroidWidgetSetup(appWidgetId: Int) {
+        val info = appWidgetHostController.providerInfo(appWidgetId)
+        if (info == null) {
+            discardPendingAppWidget(appWidgetId)
+            Toast.makeText(this, "That widget is no longer available.", Toast.LENGTH_SHORT).show()
             return
         }
 
+        val configure = info.configure
+        if (configure != null) {
+            pendingAppWidgetId = appWidgetId
+            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
+                component = configure
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            }
+            runCatching { widgetConfigureRequest.launch(intent) }.onFailure {
+                discardPendingAppWidget(appWidgetId)
+                Toast.makeText(
+                    this,
+                    "That widget could not be configured.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        } else {
+            persistAndroidWidget(appWidgetId)
+        }
+    }
+
+    private fun allocatePendingWidgetId(): Int? {
+        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_APP_WIDGETS)) {
+            Toast.makeText(this, "Android widgets are not supported on this device.", Toast.LENGTH_SHORT).show()
+            return null
+        }
         val appWidgetId = runCatching { appWidgetHostController.allocateAppWidgetId() }
             .getOrElse {
                 Toast.makeText(this, "A widget ID could not be allocated.", Toast.LENGTH_SHORT).show()
-                return
+                return null
             }
         pendingAppWidgetId = appWidgetId
+        return appWidgetId
+    }
+
+    private fun beginAndroidWidgetBind(provider: ComponentName) {
+        val appWidgetId = allocatePendingWidgetId() ?: return
+        if (appWidgetHostController.bindAppWidgetIdIfAllowed(appWidgetId, provider)) {
+            continueAndroidWidgetSetup(appWidgetId)
+            return
+        }
+
+        val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_BIND).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, provider)
+        }
+        runCatching { widgetPickerRequest.launch(intent) }.onFailure {
+            discardPendingAppWidget(appWidgetId)
+            Toast.makeText(this, "Android could not authorize that widget.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun beginAndroidWidgetPick() {
+        val appWidgetId = allocatePendingWidgetId() ?: return
         val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK).apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
         }
