@@ -378,7 +378,7 @@ class MainActivity : ComponentActivity() {
                             iconScale = launcherPreferences.iconScale,
                             layoutLocked = launcherPreferences.layoutLocked,
                             homeLabelOverrides = homeLabelOverrides,
-                            onLaunchApp = appsRepository::launch,
+                            onLaunchApp = launchApp,
                             onSetHomeLabelOverride = { app, label ->
                                 launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
                             },
@@ -451,7 +451,7 @@ class MainActivity : ComponentActivity() {
                             },
                             isDefaultHome = isDefaultHome,
                             onRequestHomeRole = ::requestHomeRole,
-                            onLaunchApp = appsRepository::launch,
+                            onLaunchApp = launchApp,
                             onOpenAppInfo = appsRepository::openDetails,
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
@@ -643,6 +643,14 @@ class MainActivity : ComponentActivity() {
                             onSetHomeCardStyle = launcherPreferencesRepository::setHomeCardStyle,
                             onSetShowHomeQuickActions = launcherPreferencesRepository::setShowHomeQuickActions,
                             onSetShowHomePageIndicator = launcherPreferencesRepository::setShowHomePageIndicator,
+                            onSetUseLocalUsageForSuggestions =
+                                launcherPreferencesRepository::setUseLocalUsageForSuggestions,
+                            onSetAddNewAppsToHome =
+                                launcherPreferencesRepository::setAddNewAppsToHome,
+                            onClearLocalUsage = {
+                                localUsageRepository.clear()
+                                Unit
+                            },
                             onSetDrawerBackdrop = launcherPreferencesRepository::setDrawerBackdrop,
                             onSetDrawerSearchPlacement = launcherPreferencesRepository::setDrawerSearchPlacement,
                             onSetDrawerNavigation = launcherPreferencesRepository::setDrawerNavigation,
