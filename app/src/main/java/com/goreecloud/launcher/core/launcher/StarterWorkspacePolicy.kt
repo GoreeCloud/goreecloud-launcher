@@ -4,6 +4,7 @@ data class StarterWorkspaceCandidate(
     val key: String,
     val label: String,
     val packageName: String,
+    val localLaunchCount: Long = 0L,
 )
 
 data class StarterWorkspaceSelection(
@@ -20,6 +21,7 @@ object StarterWorkspacePolicy {
     private val dockPriorityGroups = listOf(
         listOf("phone", "dialer"),
         listOf("messages", "messaging", "messenger"),
+        listOf("email", "mail"),
         listOf("browser", "chrome", "firefox", "internet"),
         listOf("camera"),
     )
@@ -38,8 +40,8 @@ object StarterWorkspacePolicy {
 
     fun select(
         candidates: List<StarterWorkspaceCandidate>,
-        maxFavorites: Int = 8,
-        maxDock: Int = 4,
+        maxFavorites: Int = 10,
+        maxDock: Int = 5,
     ): StarterWorkspaceSelection {
         val usable = candidates
             .filterNot { candidate ->
@@ -82,7 +84,27 @@ object StarterWorkspacePolicy {
                 }
         }
 
-        val favorites = pick(favoritePriorityGroups, maxFavorites).toMutableList()
+        val favorites = mutableListOf<String>()
+        val rankedByLocalUse = usable
+            .filter { it.key !in used && it.localLaunchCount > 0L }
+            .sortedWith(
+                compareByDescending<StarterWorkspaceCandidate> { it.localLaunchCount }
+                    .thenByDescending { it.label.contains("goreecloud", ignoreCase = true) }
+                    .thenBy { it.label.lowercase() },
+            )
+        rankedByLocalUse
+            .take(maxFavorites)
+            .forEach {
+                favorites += it.key
+                used += it.key
+            }
+
+        if (favorites.size < maxFavorites) {
+            favorites += pick(
+                groups = favoritePriorityGroups,
+                limit = maxFavorites - favorites.size,
+            )
+        }
         if (favorites.size < maxFavorites) {
             usable.asSequence()
                 .filter { it.key !in used }
@@ -97,5 +119,19 @@ object StarterWorkspacePolicy {
             favoriteKeys = favorites,
             dockKeys = dock,
         )
+    }
+
+    fun homeCells(
+        itemCount: Int,
+        columns: Int = 5,
+        rows: Int = 6,
+    ): List<Pair<Int, Int>> {
+        if (itemCount <= 0 || columns <= 0 || rows <= 0) return emptyList()
+        val count = itemCount.coerceAtMost(columns * rows)
+        val occupiedRows = (count + columns - 1) / columns
+        val firstRow = rows - occupiedRows
+        return List(count) { index ->
+            (index % columns) to (firstRow + index / columns)
+        }
     }
 }
