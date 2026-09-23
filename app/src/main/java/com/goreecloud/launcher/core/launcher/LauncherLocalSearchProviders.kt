@@ -86,6 +86,7 @@ class LauncherShortcutsSearchProvider(context: Context) : LauncherSearchProvider
         }
 
     private fun ShortcutInfo.toSearchResult(rawQuery: String): LauncherSearchResult? {
+        val packageName = getPackage()
         val title = shortLabel?.toString()?.takeIf(String::isNotBlank) ?: return null
         val subtitle = longLabel?.toString()?.takeIf(String::isNotBlank) ?: packageName
         val score = LauncherSearchTextRanking.score(title, subtitle, rawQuery) ?: return null
