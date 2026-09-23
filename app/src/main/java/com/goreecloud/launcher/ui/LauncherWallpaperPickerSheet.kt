@@ -216,6 +216,9 @@ private fun WallpaperChoiceCard(
 
 @Composable
 private fun WallpaperHomePreview(wallpaper: LauncherBuiltInWallpaper) {
+    val previewForeground = if (wallpaper.id == LauncherBuiltInWallpaperId.SOLSTICE) {
+        Color(0xFF143C4A)
+    } else Color.White
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
@@ -236,13 +239,13 @@ private fun WallpaperHomePreview(wallpaper: LauncherBuiltInWallpaper) {
                 Text(
                     "2:37",
                     style = MaterialTheme.typography.displayMedium,
-                    color = Color.White.copy(alpha = 0.94f),
+                    color = previewForeground.copy(alpha = 0.94f),
                     fontWeight = FontWeight.Light,
                 )
                 Text(
                     "Wed, Sep 23",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.78f),
+                    color = previewForeground.copy(alpha = 0.80f),
                 )
             }
 
