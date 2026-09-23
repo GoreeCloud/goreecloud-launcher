@@ -4196,6 +4196,201 @@ private fun ChoiceRow(
 }
 
 @Composable
+private fun IconShapeChoiceGrid(
+    selected: LauncherIconShape,
+    onSelect: (LauncherIconShape) -> Unit,
+) {
+    val options = LauncherIconShape.entries
+    options.chunked(3).forEach { row ->
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+        ) {
+            row.forEach { shape ->
+                val isSelected = selected == shape
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    onClick = { onSelect(shape) },
+                    shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.44f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f)
+                    },
+                    border = BorderStroke(
+                        1.dp,
+                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.56f)
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.88f),
+                                    shape.toLauncherComposeShape(),
+                                ),
+                        )
+                        Text(
+                            shape.displayName,
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.Center,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                    }
+                }
+            }
+            repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LauncherIconPackPickerSheet(
+    packs: List<LauncherIconPackDescriptor>,
+    selectedPackage: String?,
+    onSelect: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "Icon pack",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Choose original app artwork or an installed icon pack. Missing mappings fall back to the original icon.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            ) {
+                item {
+                    IconPackPickerRow(
+                        title = "Original icons",
+                        summary = "Use Android-provided app artwork",
+                        selected = selectedPackage == null,
+                        onClick = { onSelect(null) },
+                    )
+                }
+                items(
+                    items = packs,
+                    key = { it.packageName },
+                ) { pack ->
+                    IconPackPickerRow(
+                        title = pack.label,
+                        summary = pack.packageName,
+                        selected = selectedPackage == pack.packageName,
+                        onClick = { onSelect(pack.packageName) },
+                    )
+                }
+            }
+
+            Text(
+                "Compatible packs can expose the GoreeCloud icon-pack action or common Android launcher theme actions and appfilter.xml mappings.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(GlazeMetrics.space2))
+        }
+    }
+}
+
+@Composable
+private fun IconPackPickerRow(
+    title: String,
+    summary: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = if (selected) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.40f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.46f)
+        },
+        border = BorderStroke(
+            1.dp,
+            if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.50f)
+            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(GlazeMetrics.space3),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        RoundedCornerShape(13.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    title.take(1).uppercase(Locale.getDefault()),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Column(Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.SemiBold)
+                Text(
+                    summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (selected) {
+                Text(
+                    "Selected",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SettingSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
