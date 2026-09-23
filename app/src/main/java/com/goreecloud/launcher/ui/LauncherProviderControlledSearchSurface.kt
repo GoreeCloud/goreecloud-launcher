@@ -214,7 +214,7 @@ private fun LauncherSearchSourceManager(
                 Column(Modifier.padding(GlazeMetrics.space3)) {
                     Text("Privacy-first provider controls", fontWeight = FontWeight.SemiBold)
                     Text(
-                        if (ready) "Only enabled automatic-local sources receive typed queries."
+                        if (ready) "Only enabled local sources receive typed queries; sensitive sources also require Android permission."
                         else "Loading saved controls; automatic Search stays off.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
