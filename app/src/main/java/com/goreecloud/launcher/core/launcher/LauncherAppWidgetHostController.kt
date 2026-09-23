@@ -52,7 +52,10 @@ class LauncherAppWidgetHostController(context: Context) {
                     minHeight = info.minHeight.coerceAtLeast(0),
                 )
             }
-            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label }.thenBy { it.packageName })
+            .sortedWith(
+                compareBy<LauncherWidgetProviderDescriptor> { it.label.lowercase(java.util.Locale.ROOT) }
+                    .thenBy { it.packageName },
+            )
 
     fun bindAppWidgetIdIfAllowed(appWidgetId: Int, provider: ComponentName): Boolean =
         appWidgetId > 0 && runCatching {
