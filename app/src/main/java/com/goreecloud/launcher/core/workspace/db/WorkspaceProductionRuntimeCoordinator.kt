@@ -301,6 +301,33 @@ class WorkspaceProductionRuntimeCoordinator(
         return result
     }
 
+    suspend fun moveHomeFolderToPage(
+        folderId: String,
+        targetPageId: String,
+        columns: Int,
+        rows: Int,
+    ): WorkspaceFolderMutationResult {
+        val primaryReady = ensurePrimaryHomeSpatialGrid(columns, rows)
+        if (primaryReady !is WorkspacePrimaryHomeSpatialResult.Ready) {
+            return when (primaryReady) {
+                WorkspacePrimaryHomeSpatialResult.Reserved -> WorkspaceFolderMutationResult.Reserved
+                WorkspacePrimaryHomeSpatialResult.Unavailable -> WorkspaceFolderMutationResult.Unavailable
+                WorkspacePrimaryHomeSpatialResult.InvalidWorkspace ->
+                    WorkspaceFolderMutationResult.InvalidWorkspace
+                WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged ->
+                    WorkspaceFolderMutationResult.StoredWorkspaceChanged
+                is WorkspacePrimaryHomeSpatialResult.Failed ->
+                    WorkspaceFolderMutationResult.Failed(primaryReady.failureType)
+                is WorkspacePrimaryHomeSpatialResult.Moved,
+                is WorkspacePrimaryHomeSpatialResult.Ready ->
+                    WorkspaceFolderMutationResult.InvalidWorkspace
+            }
+        }
+        val result = folderRepository.moveFolderToPage(folderId, targetPageId, columns, rows)
+        if (result is WorkspaceFolderMutationResult.MovedToPage) refresh()
+        return result
+    }
+
     suspend fun removeFolderFromHome(folderId: String): WorkspaceFolderMutationResult {
         val result = folderRepository.removeFolderFromHome(folderId)
         if (result is WorkspaceFolderMutationResult.Removed) refresh()
