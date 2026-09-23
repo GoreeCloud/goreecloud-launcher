@@ -335,18 +335,31 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
             it.itemId == "folder:home:cross-page-roundtrip" &&
                 it.appKey == "folder-id-cross-page" && it.cellX == 1 && it.cellY == 0
         })
+        // Earlier in this test the widget moved from (2, 0) to (1, 2). That vacated
+        // (2, 0), now the first free primary cell: use current authoritative geometry,
+        // not the original first-available cell before the widget was moved.
+        val unchangedPrimaryBeforeReturn = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .sortedBy { it.itemId }
         assertEquals(
             WorkspaceFolderMutationResult.MovedToPage(
                 "folder:home:cross-page-roundtrip",
                 "folder-id-cross-page",
                 secondaryPageId,
                 WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                2,
                 0,
-                1,
             ),
             folderRepository.moveFolderToPage(
                 "folder-id-cross-page", WorkspaceLegacyImportMapper.HOME_PAGE_ID, 4, 5,
             ),
+        )
+        assertEquals(
+            unchangedPrimaryBeforeReturn,
+            database.workspaceDao()
+                .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                .filterNot { it.itemId == "folder:home:cross-page-roundtrip" }
+                .sortedBy { it.itemId },
         )
         assertTrue(
             database.workspaceDao().readItems(
