@@ -298,7 +298,12 @@ fun LauncherBetaRoot(
     var showFolderManager by rememberSaveable { mutableStateOf(false) }
     var folderManagerAddToHome by rememberSaveable { mutableStateOf(false) }
     var folderAssignmentAppKey by rememberSaveable { mutableStateOf<String?>(null) }
-    val rootAppsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
+    val rootAppsByKey = remember(apps) {
+        val personalUser = Process.myUserHandle()
+        apps.asSequence()
+            .filter { it.user == personalUser }
+            .associateBy { it.workspaceKey() }
+    }
     val homeFolderIds = remember(primaryHomePage) {
         primaryHomePage?.folderPlacements?.map { it.folderId }?.toSet().orEmpty()
     }
@@ -881,6 +886,10 @@ private fun HomeSurface(
     onOpenWallpaperPicker: () -> Unit,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
+    val personalApps = remember(apps) {
+        val personalUser = Process.myUserHandle()
+        apps.filter { it.user == personalUser }
+    }
     val favoriteApps = remember(appsByKey, workspace.favoriteKeys, preferences.homeCapacity) {
         workspace.favoriteKeys.mapNotNull(appsByKey::get).take(preferences.homeCapacity)
     }
@@ -1159,7 +1168,7 @@ private fun HomeSurface(
             ) {
                 HomeFavoritesGrid(
                     apps = favoriteApps,
-                    allApps = apps,
+                    allApps = personalApps,
                     folders = folders,
                     columns = preferences.homeColumns,
                     rows = preferences.homeRows,
@@ -3248,7 +3257,7 @@ private fun AppDrawerSurface(
                     Spacer(Modifier.height(GlazeMetrics.space2))
                     LauncherDrawerFolderStrip(
                         folders = folders,
-                        allApps = apps,
+                        allApps = selectedPage.items,
                         onOpenFolder = onOpenFolder,
                         onManageFolders = onManageFolders,
                         secondaryColor = drawerSecondaryColor,
