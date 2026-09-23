@@ -17,6 +17,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -102,6 +103,7 @@ import com.goreecloud.launcher.core.launcher.LauncherSearchResult
 import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
+import com.goreecloud.launcher.core.launcher.LauncherWidgetProviderDescriptor
 import com.goreecloud.launcher.core.launcher.launcherDrawerProfilePages
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
@@ -121,6 +123,8 @@ import com.goreecloud.launcher.ui.theme.ThemeManagerSurface
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -188,6 +192,8 @@ fun LauncherBetaRoot(
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onOpenAppInfo: (LauncherActivityInfo) -> Unit,
     onAddBuiltInWidget: (String) -> Unit,
+    availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
+    onPickInstalledAndroidWidget: (LauncherWidgetProviderDescriptor) -> Unit,
     onPickAndroidWidget: () -> Unit,
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
     onRemoveWidget: (WorkspaceRenderedHomeWidget) -> Unit,
@@ -476,6 +482,8 @@ fun LauncherBetaRoot(
                 onMoveFavoriteToCell = onMoveFavoriteToCell,
                 onLaunchApp = onLaunchApp,
                 onAddBuiltInWidget = onAddBuiltInWidget,
+                availableAndroidWidgets = availableAndroidWidgets,
+                onPickInstalledAndroidWidget = onPickInstalledAndroidWidget,
                 onPickAndroidWidget = onPickAndroidWidget,
                 onCreateAndroidWidgetView = onCreateAndroidWidgetView,
                 onManageWidget = {
@@ -675,6 +683,8 @@ private fun HomeSurface(
     onMoveFavoriteToCell: (LauncherActivityInfo, Int, Int) -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onAddBuiltInWidget: (String) -> Unit,
+    availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
+    onPickInstalledAndroidWidget: (LauncherWidgetProviderDescriptor) -> Unit,
     onPickAndroidWidget: () -> Unit,
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
     onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
@@ -1073,9 +1083,14 @@ private fun HomeSurface(
                 tonalElevation = 0.dp,
             ) {
                 LauncherWidgetPickerSheet(
+                    availableAndroidWidgets = availableAndroidWidgets,
                     onAddBuiltInWidget = { typeId ->
                         showWidgetPicker = false
                         onAddBuiltInWidget(typeId)
+                    },
+                    onPickInstalledAndroidWidget = { descriptor ->
+                        showWidgetPicker = false
+                        onPickInstalledAndroidWidget(descriptor)
                     },
                     onPickAndroidWidget = {
                         showWidgetPicker = false
@@ -1089,45 +1104,250 @@ private fun HomeSurface(
 
 @Composable
 private fun LauncherWidgetPickerSheet(
+    availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
     onAddBuiltInWidget: (String) -> Unit,
+    onPickInstalledAndroidWidget: (LauncherWidgetProviderDescriptor) -> Unit,
     onPickAndroidWidget: () -> Unit,
 ) {
+    var query by remember { mutableStateOf("") }
+    val builtIns = remember {
+        listOf(
+            WorkspaceWidgetCatalog.CLOCK,
+            WorkspaceWidgetCatalog.COMPACT_CLOCK,
+            WorkspaceWidgetCatalog.ANALOG_CLOCK,
+            WorkspaceWidgetCatalog.DATE,
+            WorkspaceWidgetCatalog.LAUNCHER_STATUS,
+        )
+    }
+    val filteredAndroidWidgets = remember(availableAndroidWidgets, query) {
+        val needle = query.trim()
+        if (needle.isBlank()) {
+            availableAndroidWidgets
+        } else {
+            availableAndroidWidgets.filter { descriptor ->
+                descriptor.label.contains(needle, ignoreCase = true) ||
+                    descriptor.packageName.contains(needle, ignoreCase = true)
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
         verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
     ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "Choose widget",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                "GoreeCloud widgets and installed Android widgets in one Launcher gallery.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         Text(
-            "Add widget",
-            style = MaterialTheme.typography.headlineSmall,
+            "GoreeCloud",
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
-        Text(
-            "Choose a GoreeCloud widget or open Android's widget picker for installed third-party widgets.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        OutlinedButton(
-            onClick = { onAddBuiltInWidget(WorkspaceWidgetCatalog.CLOCK) },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("GoreeCloud Clock · 2 × 2")
+        builtIns.chunked(2).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            ) {
+                row.forEach { typeId ->
+                    WidgetPickerBuiltInCard(
+                        typeId = typeId,
+                        onClick = { onAddBuiltInWidget(typeId) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
         }
-        OutlinedButton(
-            onClick = { onAddBuiltInWidget(WorkspaceWidgetCatalog.LAUNCHER_STATUS) },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Launcher Status · 2 × 1")
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "Installed apps",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Search widgets") },
+                placeholder = { Text("App or widget name") },
+            )
         }
-        Button(
+
+        if (filteredAndroidWidgets.isEmpty()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+            ) {
+                Text(
+                    if (query.isBlank()) {
+                        "No installed third-party widgets were discovered for this profile."
+                    } else {
+                        "No widgets match “$query”."
+                    },
+                    modifier = Modifier.padding(GlazeMetrics.space3),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            filteredAndroidWidgets.forEach { descriptor ->
+                InstalledWidgetPickerRow(
+                    descriptor = descriptor,
+                    onClick = { onPickInstalledAndroidWidget(descriptor) },
+                )
+            }
+        }
+
+        OutlinedButton(
             onClick = onPickAndroidWidget,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Android widgets")
+            Text("Open Android widget picker")
         }
+        Text(
+            "Android may still show a system authorization or configuration screen after you choose a third-party widget.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Spacer(Modifier.height(GlazeMetrics.space2))
+    }
+}
+
+@Composable
+private fun WidgetPickerBuiltInCard(
+    typeId: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val span = WorkspaceWidgetCatalog.defaultSpan(typeId) ?: (1 to 1)
+    val glyph = when (typeId) {
+        WorkspaceWidgetCatalog.CLOCK -> "12:34"
+        WorkspaceWidgetCatalog.COMPACT_CLOCK -> "12:34"
+        WorkspaceWidgetCatalog.ANALOG_CLOCK -> "◷"
+        WorkspaceWidgetCatalog.DATE -> "23"
+        WorkspaceWidgetCatalog.LAUNCHER_STATUS -> "GC"
+        else -> "•"
+    }
+    Surface(
+        modifier = modifier,
+        onClick = onClick,
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(GlazeMetrics.space3),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(72.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        glyph,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Light,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            Text(
+                WorkspaceWidgetCatalog.displayName(typeId),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                WorkspaceWidgetCatalog.description(typeId),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "${span.first} × ${span.second}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun InstalledWidgetPickerRow(
+    descriptor: LauncherWidgetProviderDescriptor,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(GlazeMetrics.space3),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        descriptor.label.take(1).uppercase(Locale.getDefault()),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    descriptor.label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    descriptor.packageName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (descriptor.minWidth > 0 && descriptor.minHeight > 0) {
+                Text(
+                    "${descriptor.minWidth} × ${descriptor.minHeight}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
@@ -1149,11 +1369,7 @@ private fun LauncherWidgetManagementDialog(
                 Text(
                     when (val descriptor = widget.descriptor) {
                         is WorkspaceWidgetDescriptor.BuiltIn ->
-                            when (descriptor.typeId) {
-                                WorkspaceWidgetCatalog.CLOCK -> "GoreeCloud Clock"
-                                WorkspaceWidgetCatalog.LAUNCHER_STATUS -> "Launcher Status"
-                                else -> "GoreeCloud widget"
-                            }
+                            WorkspaceWidgetCatalog.displayName(descriptor.typeId)
                         is WorkspaceWidgetDescriptor.Android -> "Android widget"
                     },
                     style = MaterialTheme.typography.titleSmall,
@@ -1876,6 +2092,100 @@ private fun LauncherBuiltInWidget(
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.78f),
                     )
+                }
+            }
+            WorkspaceWidgetCatalog.COMPACT_CLOCK -> {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = GlazeMetrics.space3),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        now.format(DateTimeFormatter.ofPattern("h:mm", Locale.getDefault())),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Light,
+                    )
+                    Text(
+                        now.format(DateTimeFormatter.ofPattern("EEE", Locale.getDefault())),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White.copy(alpha = 0.72f),
+                    )
+                }
+            }
+            WorkspaceWidgetCatalog.ANALOG_CLOCK -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(GlazeMetrics.space3),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val radius = size.minDimension * 0.38f
+                        val minuteRadians = Math.toRadians(now.minute * 6.0 - 90.0)
+                        val hourRadians = Math.toRadians(
+                            (now.hour % 12) * 30.0 + now.minute * 0.5 - 90.0,
+                        )
+                        drawCircle(
+                            color = Color.White.copy(alpha = 0.12f),
+                            radius = radius,
+                            center = center,
+                        )
+                        drawCircle(
+                            color = Color.White.copy(alpha = 0.82f),
+                            radius = 3.dp.toPx(),
+                            center = center,
+                        )
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.92f),
+                            start = center,
+                            end = Offset(
+                                x = center.x + cos(hourRadians).toFloat() * radius * 0.52f,
+                                y = center.y + sin(hourRadians).toFloat() * radius * 0.52f,
+                            ),
+                            strokeWidth = 4.dp.toPx(),
+                        )
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.84f),
+                            start = center,
+                            end = Offset(
+                                x = center.x + cos(minuteRadians).toFloat() * radius * 0.76f,
+                                y = center.y + sin(minuteRadians).toFloat() * radius * 0.76f,
+                            ),
+                            strokeWidth = 2.dp.toPx(),
+                        )
+                    }
+                }
+            }
+            WorkspaceWidgetCatalog.DATE -> {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = GlazeMetrics.space3),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+                ) {
+                    Text(
+                        now.dayOfMonth.toString(),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.Light,
+                    )
+                    Column {
+                        Text(
+                            now.format(DateTimeFormatter.ofPattern("EEEE", Locale.getDefault())),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            now.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.72f),
+                        )
+                    }
                 }
             }
             WorkspaceWidgetCatalog.LAUNCHER_STATUS -> {
