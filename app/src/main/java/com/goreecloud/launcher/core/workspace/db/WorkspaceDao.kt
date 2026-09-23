@@ -278,6 +278,55 @@ abstract class WorkspaceDao {
     }
 
     /**
+     * Replaces the complete primary HOME item set while allowing a deliberate item add/remove.
+     *
+     * The caller must supply the complete observed snapshot. Room rechecks that snapshot inside
+     * this transaction before changing identities, preserving the same fail-closed concurrency
+     * boundary used by existing placement writers.
+     */
+    @Transaction
+    open suspend fun replacePrimaryHomeItemsIncludingIdentityChangesIfSnapshotMatches(
+        expectedPage: WorkspacePageEntity,
+        expectedItems: List<WorkspaceItemEntity>,
+        updatedItems: List<WorkspaceItemEntity>,
+    ): Boolean {
+        if (
+            expectedPage.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
+            expectedPage.containerType != WorkspaceContainerType.HOME ||
+            expectedPage.rank != 0
+        ) return false
+
+        val currentPage = readPages(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID)).singleOrNull()
+            ?: return false
+        if (currentPage != expectedPage) return false
+
+        val currentItems = readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+        val currentById = currentItems.associateBy { it.itemId }
+        val expectedById = expectedItems.associateBy { it.itemId }
+        if (
+            currentById.size != currentItems.size ||
+            expectedById.size != expectedItems.size ||
+            currentById != expectedById
+        ) return false
+
+        if (
+            updatedItems.any { it.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID } ||
+            updatedItems.map { it.itemId }.distinct().size != updatedItems.size ||
+            updatedItems.map { it.rank }.sorted() != updatedItems.indices.toList()
+        ) return false
+
+        deleteItemsByPages(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+        if (updatedItems.isNotEmpty()) upsertItems(updatedItems)
+
+        val applied = readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .sortedBy { it.rank }
+        check(applied == updatedItems.sortedBy { it.rank }) {
+            "primary HOME identity-changing replacement readback verification failed"
+        }
+        return true
+    }
+
+    /**
      * Applies one item placement write only if the complete HOME page/item snapshot observed by
      * the caller is still current when this transaction executes. This prevents a validated
      * cross-page placement from overwriting a concurrent workspace mutation.
