@@ -2348,9 +2348,42 @@ internal fun HomeFolderTile(
     modifier: Modifier = Modifier,
 ) {
     val inheritedShape = LocalLauncherIconAppearance.current.shape
-    val folderShape = if (inheritedShape == LauncherIconShape.ORIGINAL) {
-        RoundedCornerShape(16.dp)
-    } else inheritedShape.toLauncherComposeShape()
+    val previewLayout by com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.layout
+        .collectAsState()
+    val previewShape by com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.shape
+        .collectAsState()
+    val previewSize by com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.size
+        .collectAsState()
+    val previewSurface by com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.surface
+        .collectAsState()
+    val previewOutline by com.goreecloud.launcher.core.launcher.LauncherFolderAppearance.outline
+        .collectAsState()
+    val folderShape = when (previewShape) {
+        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.FOLLOW_ICONS ->
+            if (inheritedShape == LauncherIconShape.ORIGINAL) RoundedCornerShape(16.dp)
+            else inheritedShape.toLauncherComposeShape()
+        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.ROUND ->
+            CircleShape
+        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.SQUIRCLE ->
+            RoundedCornerShape(21.dp)
+        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewShape.ROUNDED_SQUARE ->
+            RoundedCornerShape(13.dp)
+    }
+    val folderIconSize = when (previewSize) {
+        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewSize.SMALL -> 44.dp
+        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewSize.MEDIUM -> 52.dp
+        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewSize.LARGE -> 59.dp
+    }
+    val folderBackground = when (previewSurface) {
+        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewSurface.GLASS ->
+            if (labelOnWallpaper) GlazeAtmosphere.canvasBlack.copy(alpha = 0.38f)
+            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewSurface.SOLID ->
+            MaterialTheme.colorScheme.surfaceVariant
+        com.goreecloud.launcher.core.launcher.LauncherFolderPreviewSurface.ACCENT ->
+            MaterialTheme.colorScheme.primaryContainer
+    }
+
     val appsByKey = remember(allApps) { allApps.associateBy { it.workspaceKey() } }
     val folderApps = remember(folder, appsByKey) {
         folder.appKeys.mapNotNull(appsByKey::get)
@@ -2406,69 +2439,92 @@ internal fun HomeFolderTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(modifier = Modifier.size(52.dp)) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            shape = folderShape,
-            color = GlazeAtmosphere.canvasBlack.copy(alpha = 0.38f),
-            border = BorderStroke(
-                1.dp,
-                Color.White.copy(alpha = if (editMode) 0.30f else 0.12f),
-            ),
-        ) {
-            if (previewApps.isEmpty()) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        "＋",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White.copy(alpha = 0.70f),
-                    )
-                }
-            } else {
-                Column(
-                    modifier = Modifier.padding(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                    previewApps.chunked(2).forEach { row ->
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        ) {
-                            row.forEach { app ->
+        Box(modifier = Modifier.size(folderIconSize)) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                shape = folderShape,
+                color = folderBackground,
+                border = if (previewOutline) BorderStroke(
+                    1.dp,
+                    if (labelOnWallpaper) Color.White.copy(alpha = if (editMode) 0.38f else 0.24f)
+                    else MaterialTheme.colorScheme.outlineVariant,
+                ) else null,
+            ) {
+                if (previewApps.isEmpty()) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            "＋",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = if (labelOnWallpaper) Color.White.copy(alpha = 0.78f)
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        val spots = when (previewLayout) {
+                            com.goreecloud.launcher.core.launcher.LauncherFolderPreviewLayout.GRID ->
+                                listOf(
+                                    (-11).dp to (-11).dp, 11.dp to (-11).dp,
+                                    (-11).dp to 11.dp, 11.dp to 11.dp,
+                                )
+                            com.goreecloud.launcher.core.launcher.LauncherFolderPreviewLayout.RADIAL ->
+                                listOf(
+                                    0.dp to (-13).dp, 13.dp to 0.dp,
+                                    0.dp to 13.dp, (-13).dp to 0.dp,
+                                )
+                            com.goreecloud.launcher.core.launcher.LauncherFolderPreviewLayout.STACK ->
+                                listOf(
+                                    (-9).dp to (-9).dp, (-3).dp to (-3).dp,
+                                    3.dp to 3.dp, 9.dp to 9.dp,
+                                )
+                            com.goreecloud.launcher.core.launcher.LauncherFolderPreviewLayout.FAN ->
+                                listOf(
+                                    (-15).dp to 7.dp, (-5).dp to (-6).dp,
+                                    5.dp to (-6).dp, 15.dp to 7.dp,
+                                )
+                            com.goreecloud.launcher.core.launcher.LauncherFolderPreviewLayout.LINE ->
+                                listOf(
+                                    (-17).dp to 0.dp, (-6).dp to 0.dp,
+                                    6.dp to 0.dp, 17.dp to 0.dp,
+                                )
+                        }
+                        val previewIconSize = when (previewLayout) {
+                            com.goreecloud.launcher.core.launcher.LauncherFolderPreviewLayout.STACK ->
+                                20.dp
+                            com.goreecloud.launcher.core.launcher.LauncherFolderPreviewLayout.LINE ->
+                                13.dp
+                            else -> 17.dp
+                        }
+                        previewApps.forEachIndexed { index, app ->
+                            key(app.workspaceKey()) {
                                 val icon = rememberLauncherAppIcon(app)
+                                val position = spots[index]
                                 Box(
                                     modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
+                                        .align(Alignment.Center)
+                                        .offset(x = position.first, y = position.second)
+                                        .size(previewIconSize),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    if (icon != null) {
-                                        Image(
-                                            bitmap = icon,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier
-                                                .size(17.dp)
-                                                .launcherIconMask(),
-                                        )
-                                    } else {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(17.dp)
-                                                .background(
-                                                    Color.White.copy(alpha = 0.18f),
-                                                    RoundedCornerShape(5.dp),
-                                                ),
-                                        )
-                                    }
+                                    if (icon != null) Image(
+                                        bitmap = icon,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.fillMaxSize().launcherIconMask(),
+                                    ) else Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                                RoundedCornerShape(5.dp),
+                                            ),
+                                    )
                                 }
                             }
-                            if (row.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
                 }
             }
-        }
             LauncherFolderBadgeMark(
                 folderApps,
                 modifier = launcherBadgePositionModifier(),
