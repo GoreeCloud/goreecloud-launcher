@@ -2338,6 +2338,10 @@ private fun HomeFolderTile(
     onDrop: ((LauncherFolder, Offset) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    val inheritedShape = LocalLauncherIconAppearance.current.shape
+    val folderShape = if (inheritedShape == LauncherIconShape.ORIGINAL) {
+        RoundedCornerShape(16.dp)
+    } else inheritedShape.toLauncherComposeShape()
     val appsByKey = remember(allApps) { allApps.associateBy { it.workspaceKey() } }
     val folderApps = remember(folder, appsByKey) {
         folder.appKeys.mapNotNull(appsByKey::get)
@@ -2396,7 +2400,7 @@ private fun HomeFolderTile(
         Box(modifier = Modifier.size(52.dp)) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(16.dp),
+            shape = folderShape,
             color = GlazeAtmosphere.canvasBlack.copy(alpha = 0.38f),
             border = BorderStroke(
                 1.dp,
