@@ -74,12 +74,12 @@ object LauncherBuiltInWallpapers {
         LauncherBuiltInWallpaper(
             id = LauncherBuiltInWallpaperId.SOLSTICE,
             name = "Glaze Solstice",
-            description = "Soft daylight, sea-glass blue and pale lilac with a calm luminous finish.",
-            startColor = 0xFFB7DBEC.toInt(),
-            middleColor = 0xFF87BFCB.toInt(),
-            endColor = 0xFFB9A7D9.toInt(),
-            accentColor = 0xFF4DB8BF.toInt(),
-            secondaryAccentColor = 0xFFB69CDB.toInt(),
+            description = "Dawn blue, sea-glass and lilac with a calm, luminous finish.",
+            startColor = 0xFF24445E.toInt(),
+            middleColor = 0xFF598B9F.toInt(),
+            endColor = 0xFF5F5685.toInt(),
+            accentColor = 0xFF8FCFCA.toInt(),
+            secondaryAccentColor = 0xFFD1B5EA.toInt(),
         ),
         LauncherBuiltInWallpaper(
             id = LauncherBuiltInWallpaperId.TIDAL,
