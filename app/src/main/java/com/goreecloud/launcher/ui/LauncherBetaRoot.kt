@@ -792,6 +792,7 @@ private fun HomeSurface(
         Box(
             modifier = Modifier
                 .matchParentSize()
+                .testTag("launcher-home-empty-space-actions")
                 .pointerInput(swipeThreshold) {
                     detectTapGestures(
                         onDoubleTap = {
@@ -800,9 +801,7 @@ private fun HomeSurface(
                             )
                         },
                         onLongPress = {
-                            currentExecuteGestureAction(
-                                currentGesturePreferences.tapAndHoldAction,
-                            )
+                            showHomeEditor = true
                         },
                     )
                 }
@@ -3497,7 +3496,9 @@ private fun LauncherSettingsRootSurface(
                 "Gestures",
                 "Assign Home gestures to Launcher actions or installed apps",
             ) {
-                LauncherHomeGesture.entries.forEach { gesture ->
+                LauncherHomeGesture.entries
+                    .filterNot { it == LauncherHomeGesture.TAP_AND_HOLD }
+                    .forEach { gesture ->
                     val action = when (gesture) {
                         LauncherHomeGesture.SWIPE_UP -> experiencePreferences.swipeUpAction
                         LauncherHomeGesture.SWIPE_DOWN -> experiencePreferences.swipeDownAction
@@ -3512,8 +3513,9 @@ private fun LauncherSettingsRootSurface(
                         onClick = { gestureToConfigure = gesture },
                     )
                 }
+                SettingsReadOnlyRow("Tap and hold", "Edit Home")
                 Text(
-                    "Swipe left/right, Double-tap, and Tap and hold apply to empty Home space so app drag/reorder and app long-press controls remain authoritative.",
+                    "Tap and hold on empty Home space is reserved for Edit Home so Wallpaper, Widgets, Pages, Apps, and Settings remain consistently reachable. Swipe left/right and Double-tap remain configurable empty-space gestures.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
