@@ -10,6 +10,7 @@ package com.goreecloud.launcher.core.launcher
  */
 enum class LauncherSearchProviderInvocationMode {
     AUTOMATIC_LOCAL,
+    OPT_IN_LOCAL,
     EXPLICIT_USER_HANDOFF,
 }
 
@@ -193,7 +194,7 @@ object LauncherSearchProviderUserControlPolicy {
         return state.orderedOptions.mapNotNull { option ->
             if (
                 !state.isEnabled(option.providerId) ||
-                option.invocationMode != LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL
+                option.invocationMode == LauncherSearchProviderInvocationMode.EXPLICIT_USER_HANDOFF
             ) {
                 return@mapNotNull null
             }
@@ -204,23 +205,32 @@ object LauncherSearchProviderUserControlPolicy {
     fun invocationModeFor(
         metadata: LauncherSearchProviderMetadata,
     ): LauncherSearchProviderInvocationMode {
-        val safeForAutomaticLocalExecution =
+        val trustedLocal =
             metadata.provenance != LauncherSearchProviderProvenance.THIRD_PARTY &&
                 metadata.offlineBehavior == LauncherSearchOfflineBehavior.LOCAL_ONLY &&
-                metadata.authorizationRequirement == LauncherSearchAuthorizationRequirement.NONE &&
                 metadata.remoteProcessing == LauncherSearchRemoteProcessing.NONE &&
                 metadata.queryRetention == LauncherSearchQueryRetention.NONE
 
-        return if (safeForAutomaticLocalExecution) {
-            LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL
-        } else {
-            LauncherSearchProviderInvocationMode.EXPLICIT_USER_HANDOFF
+        return when {
+            trustedLocal &&
+                metadata.authorizationRequirement == LauncherSearchAuthorizationRequirement.NONE ->
+                LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL
+
+            trustedLocal &&
+                metadata.authorizationRequirement == LauncherSearchAuthorizationRequirement.USER_CONSENT ->
+                LauncherSearchProviderInvocationMode.OPT_IN_LOCAL
+
+            else -> LauncherSearchProviderInvocationMode.EXPLICIT_USER_HANDOFF
         }
     }
 
     fun displayNameFor(providerId: String): String = when (providerId) {
         LauncherInstalledAppsSearchProvider.PROVIDER_ID -> "Apps"
         LauncherCoreActionsSearchProvider.PROVIDER_ID -> "Launcher actions"
+        LauncherShortcutsSearchProvider.PROVIDER_ID -> "App shortcuts"
+        LauncherContactsSearchProvider.PROVIDER_ID -> "Contacts"
+        LauncherCallHistorySearchProvider.PROVIDER_ID -> "Call history"
+        LauncherMessagesSearchProvider.PROVIDER_ID -> "Messages"
         else -> providerId
     }
 
