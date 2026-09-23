@@ -24,6 +24,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -65,6 +67,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -129,6 +132,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 enum class LauncherSurfaceMode { HOME, SEARCH, DRAWER, SETTINGS, THEME_MANAGER }
 
@@ -1993,6 +1997,31 @@ private fun HomeFavoritesGrid(
     }
 }
 
+private fun Modifier.observeLongPressWithoutConsuming(
+    onLongPress: () -> Unit,
+): Modifier = pointerInput(onLongPress) {
+    awaitEachGesture {
+        val down = awaitFirstDown(
+            requireUnconsumed = false,
+            pass = PointerEventPass.Initial,
+        )
+        val endedBeforeTimeout = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val change = event.changes.firstOrNull { it.id == down.id }
+                    ?: return@withTimeoutOrNull true
+                if (!change.pressed) return@withTimeoutOrNull true
+                if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
+                    return@withTimeoutOrNull true
+                }
+            }
+        }
+        if (endedBeforeTimeout == null) {
+            onLongPress()
+        }
+    }
+}
+
 @Composable
 private fun HomeWidgetTile(
     widget: WorkspaceRenderedHomeWidget,
@@ -2004,6 +2033,7 @@ private fun HomeWidgetTile(
     Box(
         modifier = modifier
             .padding(2.dp)
+            .observeLongPressWithoutConsuming { onManageWidget(widget) }
             .then(
                 if (editMode) {
                     Modifier.border(
@@ -2092,20 +2122,58 @@ private fun LauncherBuiltInWidget(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(GlazeMetrics.space3),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween,
                 ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "CLOCK",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.58f),
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(9.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.90f),
+                                    CircleShape,
+                                ),
+                        )
+                    }
                     Text(
                         now.format(DateTimeFormatter.ofPattern("h:mm", Locale.getDefault())),
-                        style = MaterialTheme.typography.displaySmall,
+                        style = MaterialTheme.typography.displayMedium,
                         color = Color.White,
                         fontWeight = FontWeight.Light,
+                        maxLines = 1,
                     )
-                    Text(
-                        now.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.78f),
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                        color = Color.White.copy(alpha = 0.10f),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                now.format(DateTimeFormatter.ofPattern("EEE", Locale.getDefault())),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                now.format(DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.80f),
+                            )
+                        }
+                    }
                 }
             }
             WorkspaceWidgetCatalog.COMPACT_CLOCK -> {
