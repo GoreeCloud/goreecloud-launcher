@@ -49,6 +49,8 @@ class LauncherPreferencesTest {
         assertFalse(defaults.addNewAppsToHome)
         assertEquals(LauncherDockStyle.GLASS, defaults.dockStyle)
         assertEquals(LauncherWallpaperShade.SOFT, defaults.wallpaperShade)
+        assertEquals(LauncherIconShape.ROUNDED_SQUARE, defaults.iconShape)
+        assertEquals(null, defaults.iconPackPackage)
         assertEquals(LauncherDrawerSearchPlacement.BOTTOM, defaults.drawerSearchPlacement)
         assertEquals(LauncherDrawerNavigation.SCROLL, defaults.drawerNavigation)
         assertEquals(LauncherDrawerEntryMode.BROWSE, defaults.drawerEntryMode)
