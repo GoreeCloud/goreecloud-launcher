@@ -57,6 +57,7 @@ import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchDiagnostics
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchIssue
 import com.goreecloud.launcher.core.launcher.LauncherMessagesSearchProvider
+import com.goreecloud.launcher.core.launcher.LauncherNotificationBadges
 import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
 import com.goreecloud.launcher.core.launcher.LauncherOpenDocumentSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
@@ -232,6 +233,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LauncherNotificationBadges.initialize(this)
         enableEdgeToEdge()
         appsRepository = LauncherAppsRepository(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
@@ -1032,6 +1034,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        LauncherNotificationBadges.refreshAccess(this)
         refreshHomeRoleState()
         if (
             ::workspaceRuntimeCoordinator.isInitialized &&
