@@ -38,6 +38,16 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.GoreeCloudLauncher"
         android:usesCleartextTraffic="false">
+        <!-- Optional notification access requires explicit user approval in Android Settings. -->
+        <service
+            android:name=".core.launcher.LauncherNotificationBadgeListener"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService"/>
+            </intent-filter>
+        </service>
         <activity
             android:name=".MainActivity"
             android:exported="true"
