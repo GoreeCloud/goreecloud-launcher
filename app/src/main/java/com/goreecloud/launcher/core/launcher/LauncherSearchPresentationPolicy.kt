@@ -50,6 +50,12 @@ object LauncherSearchPresentationPolicy {
         rankedResults.forEach { result ->
             when (result.category) {
                 LauncherSearchCategory.APPLICATION -> applications += result
+                LauncherSearchCategory.SHORTCUT,
+                LauncherSearchCategory.CONTACT,
+                LauncherSearchCategory.CALL_HISTORY,
+                LauncherSearchCategory.MESSAGE,
+                LauncherSearchCategory.FILE,
+                LauncherSearchCategory.CONNECTED_SOURCE,
                 LauncherSearchCategory.SETTING,
                 LauncherSearchCategory.ACTION,
                 -> actionsAndSettings += result
