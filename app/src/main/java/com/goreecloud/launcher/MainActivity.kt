@@ -54,6 +54,9 @@ import com.goreecloud.launcher.core.launcher.LauncherIconPackDescriptor
 import com.goreecloud.launcher.core.launcher.LauncherIconPackRepository
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
+import com.goreecloud.launcher.core.launcher.LauncherLocalSearchDiagnostics
+import com.goreecloud.launcher.core.launcher.LauncherLocalSearchIssue
+import com.goreecloud.launcher.core.launcher.LauncherMessagesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
 import com.goreecloud.launcher.core.launcher.LauncherOpenDocumentSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
@@ -131,6 +134,7 @@ class MainActivity : ComponentActivity() {
     private var pendingAppWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
     private var showWallpaperPicker by mutableStateOf(false)
     private var pendingSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
+    private var pendingSearchProviderId: String? = null
     private var pendingFileSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
 
     private val fileSearchRootRequest =
@@ -165,16 +169,29 @@ class MainActivity : ComponentActivity() {
     private val searchSourcePermissionRequest =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             val pending = pendingSearchProviderSnapshot
+            val source = pendingSearchProviderId
             pendingSearchProviderSnapshot = null
+            pendingSearchProviderId = null
             if (granted && pending != null) {
+                if (source != null) LauncherLocalSearchDiagnostics.record(source, null)
                 lifecycleScope.launch {
                     searchProviderPreferencesRepository.set(pending)
                 }
             } else if (!granted) {
+                if (source != null) {
+                    LauncherLocalSearchDiagnostics.record(
+                        source,
+                        if (source == LauncherMessagesSearchProvider.PROVIDER_ID)
+                            LauncherLocalSearchIssue.ANDROID_RESTRICTED
+                        else LauncherLocalSearchIssue.PERMISSION_REQUIRED,
+                    )
+                }
                 Toast.makeText(
                     this,
-                    "That Search source remains disabled until Android permission is granted.",
-                    Toast.LENGTH_SHORT,
+                    if (source == LauncherMessagesSearchProvider.PROVIDER_ID)
+                        "Android denied SMS access. Messages search stays off; Launcher cannot override it."
+                    else "Android permission denied. This Search source remains disabled.",
+                    Toast.LENGTH_LONG,
                 ).show()
             }
         }
@@ -1426,6 +1443,7 @@ class MainActivity : ComponentActivity() {
                 PackageManager.PERMISSION_GRANTED
         ) {
             pendingSearchProviderSnapshot = snapshot
+            pendingSearchProviderId = providerId
             searchSourcePermissionRequest.launch(permission)
             return
         }
