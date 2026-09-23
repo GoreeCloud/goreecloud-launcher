@@ -306,7 +306,7 @@ internal fun LauncherProviderControlledSearchSurface(
                                     providers.isEmpty() -> "Enable local search sources"
                                     !complete -> "Searching…"
                                     query.isBlank() -> "Find anything on your device"
-                                    else -> "No matching results",
+                                    else -> "No matching results"
                                 },
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
@@ -317,7 +317,7 @@ internal fun LauncherProviderControlledSearchSurface(
                                     query.isBlank() -> "Enter a name, number, app, setting or filename. " +
                                         "Contacts, calls and messages are included only when enabled and permitted."
                                     enabledIssues.isNotEmpty() -> "Review the source status before trying again."
-                                    else -> "Try another term or review your enabled sources.",
+                                    else -> "Try another term or review your enabled sources."
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
