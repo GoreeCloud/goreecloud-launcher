@@ -78,6 +78,10 @@ class WorkspaceProductionRuntimeCoordinator(
         authorityRepository = authorityRepository,
         workspaceDaoProvider = workspaceDaoProvider,
     )
+    private val folderRepository = WorkspaceFolderRepository(
+        authorityRepository = authorityRepository,
+        workspaceDaoProvider = workspaceDaoProvider,
+    )
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observePlacement(): Flow<WorkspaceAuthoritativePlacementState> = combine(
@@ -236,6 +240,44 @@ class WorkspaceProductionRuntimeCoordinator(
         targetDockKey: String?,
     ): WorkspaceAuthoritativeWriteResult =
         placementRepository.reorderDockByDrop(key, targetDockKey)
+
+    suspend fun addFolderToHome(
+        itemId: String,
+        folderId: String,
+        columns: Int,
+        rows: Int,
+    ): WorkspaceFolderMutationResult {
+        val spatial = ensurePrimaryHomeSpatialGrid(columns, rows)
+        if (spatial !is WorkspacePrimaryHomeSpatialResult.Ready) {
+            return when (spatial) {
+                WorkspacePrimaryHomeSpatialResult.Reserved -> WorkspaceFolderMutationResult.Reserved
+                WorkspacePrimaryHomeSpatialResult.Unavailable -> WorkspaceFolderMutationResult.Unavailable
+                WorkspacePrimaryHomeSpatialResult.InvalidWorkspace ->
+                    WorkspaceFolderMutationResult.InvalidWorkspace
+                WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged ->
+                    WorkspaceFolderMutationResult.StoredWorkspaceChanged
+                is WorkspacePrimaryHomeSpatialResult.Failed ->
+                    WorkspaceFolderMutationResult.Failed(spatial.failureType)
+                is WorkspacePrimaryHomeSpatialResult.Moved,
+                is WorkspacePrimaryHomeSpatialResult.Ready,
+                -> WorkspaceFolderMutationResult.InvalidWorkspace
+            }
+        }
+        val result = folderRepository.addFolderToHome(
+            itemId = itemId,
+            folderId = folderId,
+            columns = columns,
+            rows = rows,
+        )
+        if (result is WorkspaceFolderMutationResult.Added) refresh()
+        return result
+    }
+
+    suspend fun removeFolderFromHome(folderId: String): WorkspaceFolderMutationResult {
+        val result = folderRepository.removeFolderFromHome(folderId)
+        if (result is WorkspaceFolderMutationResult.Removed) refresh()
+        return result
+    }
 
     suspend fun addBuiltInWidget(
         itemId: String,
