@@ -619,6 +619,7 @@ class MainActivity : ComponentActivity() {
                             onRemoveAppFromFolder = ::removeAppFromFolder,
                             onAddFolderToHome = ::addFolderToHome,
                             onRemoveFolderFromHome = ::removeFolderFromHome,
+                            onMoveHomeFolderToCell = ::moveHomeFolderToCell,
                             onManageHomePages = {
                                 val secondaryPage = renderedPages.firstOrNull {
                                     it.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID
@@ -1272,6 +1273,39 @@ class MainActivity : ComponentActivity() {
                 "Folder could not be added to Home.",
                 Toast.LENGTH_SHORT,
             ).show()
+        }
+    }
+
+    private fun moveHomeFolderToCell(folder: LauncherFolder, cellX: Int, cellY: Int) {
+        lifecycleScope.launch {
+            val preferences = launcherPreferencesRepository.preferences.first()
+            if (preferences.layoutLocked) {
+                Toast.makeText(
+                    this@MainActivity,
+                    "Unlock the Home layout to move folders.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                return@launch
+            }
+            when (workspaceRuntimeCoordinator.movePrimaryHomeFolderToCell(
+                folderId = folder.id,
+                columns = preferences.homeColumns,
+                rows = preferences.homeRows,
+                cellX = cellX,
+                cellY = cellY,
+            )) {
+                is WorkspaceFolderMutationResult.Moved -> Unit
+                WorkspaceFolderMutationResult.NoSpace -> Toast.makeText(
+                    this@MainActivity,
+                    "This Home cell is occupied. Choose an empty cell.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                else -> Toast.makeText(
+                    this@MainActivity,
+                    "Folder could not be moved; its original placement is preserved.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
         }
     }
 
