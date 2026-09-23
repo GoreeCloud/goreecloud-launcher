@@ -18,6 +18,22 @@ if unexpected_permissions:
     print("Unexpected permissions:", sorted(unexpected_permissions))
     sys.exit(1)
 
+telephony_feature = next(
+    (
+        feature
+        for feature in root.findall("uses-feature")
+        if feature.attrib.get(ns + "name") == "android.hardware.telephony"
+    ),
+    None,
+)
+if {
+    "android.permission.READ_CALL_LOG",
+    "android.permission.READ_SMS",
+} & permissions:
+    if telephony_feature is None or telephony_feature.attrib.get(ns + "required") != "false":
+        print("Telephony-backed Search permissions require optional telephony hardware declaration.")
+        sys.exit(1)
+
 text = m.read_text(encoding="utf-8")
 for required in (
     "android.intent.category.HOME",
