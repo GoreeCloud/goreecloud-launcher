@@ -64,6 +64,12 @@ data class LauncherSearchExecutionPolicy(
 
 enum class LauncherSearchCategory {
     APPLICATION,
+    SHORTCUT,
+    CONTACT,
+    CALL_HISTORY,
+    MESSAGE,
+    FILE,
+    CONNECTED_SOURCE,
     SETTING,
     ACTION,
 }
@@ -323,14 +329,6 @@ class LauncherCoreActionsSearchProvider : LauncherSearchProvider {
         private const val CORE_ACTION_SCORE_BIAS = 25
 
         private val entries = listOf(
-            Entry(
-                id = "launcher-settings",
-                title = "Launcher settings",
-                subtitle = "Home, apps, dock, search and Glaze",
-                searchTerms = "settings preferences customize configuration",
-                category = LauncherSearchCategory.SETTING,
-                destination = LauncherSearchDestination.SETTINGS,
-            ),
             Entry(
                 id = "apps",
                 title = "Apps",

@@ -28,13 +28,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
-import com.goreecloud.launcher.core.launcher.LauncherBuiltInSearchProviderRegistry
+import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
+import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherRuntimeSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
 import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
@@ -52,14 +56,20 @@ internal fun LauncherProviderControlledSearchSurface(
     apps: List<LauncherActivityInfo>,
     searchProviderPreferences: LauncherSearchProviderPreferenceDecodeResult?,
     onSetSearchProviderPreferences: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
+    onSetSearchProviderEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
     onResetSearchProviderPreferences: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
+    onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
     onNavigate: (LauncherSearchDestination) -> Unit,
     onBack: () -> Unit,
 ) {
+    val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
     var showSources by rememberSaveable { mutableStateOf(false) }
-    val catalog = remember(apps) { LauncherBuiltInSearchProviderRegistry.catalog(apps) }
+    val catalog = remember(apps, context) {
+        LauncherRuntimeSearchProviderRegistry.catalog(context, apps)
+    }
     val controls = remember(catalog, searchProviderPreferences) {
         searchProviderPreferences?.let {
             LauncherSearchProviderUserControlPolicy.normalize(catalog, it)
@@ -116,7 +126,7 @@ internal fun LauncherProviderControlledSearchSurface(
                 )
                 Text(
                     if (showSources) "Local source controls and privacy boundaries"
-                    else "Launcher-owned local search and actions",
+                    else "Apps, shortcuts and user-enabled local sources",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -134,6 +144,7 @@ internal fun LauncherProviderControlledSearchSurface(
                 persisted = searchProviderPreferences,
                 controls = controls,
                 onSet = onSetSearchProviderPreferences,
+                onSetEnabled = onSetSearchProviderEnabled,
                 onReset = onResetSearchProviderPreferences,
                 modifier = Modifier.weight(1f),
             )
@@ -143,7 +154,7 @@ internal fun LauncherProviderControlledSearchSurface(
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
                 requestFocus = true,
-                placeholder = "Search apps, settings and actions",
+                placeholder = "Search apps, shortcuts, people, calls and messages",
                 inputTestTag = "launcher-universal-search-field",
             )
             if (results.isEmpty()) {
@@ -171,6 +182,8 @@ internal fun LauncherProviderControlledSearchSurface(
                         LauncherProviderSearchRow(result) {
                             when (val action = result.action) {
                                 is LaunchApplicationSearchAction -> onLaunchApp(action.app)
+                                is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
+                                is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
                                 is LauncherNavigateSearchAction -> onNavigate(action.destination)
                                 else -> Unit
                             }
@@ -187,9 +200,11 @@ private fun LauncherSearchSourceManager(
     persisted: LauncherSearchProviderPreferenceDecodeResult?,
     controls: LauncherSearchProviderControlState,
     onSet: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
+    onSetEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val ready = persisted != null
     LazyColumn(
         modifier = modifier.fillMaxWidth().testTag("launcher-search-source-manager"),
@@ -228,7 +243,17 @@ private fun LauncherSearchSourceManager(
                         Column(Modifier.weight(1f)) {
                             Text(option.displayName, fontWeight = FontWeight.SemiBold)
                             Text(
-                                option.privacySummary,
+                                buildString {
+                                    append(option.privacySummary)
+                                    if (
+                                        !LauncherLocalSearchPermissions.isGranted(
+                                            context,
+                                            option.providerId,
+                                        )
+                                    ) {
+                                        append(" · Android permission required")
+                                    }
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -236,13 +261,7 @@ private fun LauncherSearchSourceManager(
                         Switch(
                             checked = controls.isEnabled(option.providerId),
                             onCheckedChange = { enabled ->
-                                onSet(
-                                    LauncherSearchProviderUserControlPolicy.withProviderEnabled(
-                                        controls,
-                                        option.providerId,
-                                        enabled,
-                                    ),
-                                )
+                                onSetEnabled(controls, option.providerId, enabled)
                             },
                             enabled = ready,
                             modifier = Modifier.testTag(
@@ -308,6 +327,12 @@ private fun LauncherProviderSearchRow(
             Text(
                 when (result.category) {
                     LauncherSearchCategory.APPLICATION -> "App"
+                    LauncherSearchCategory.SHORTCUT -> "Shortcut"
+                    LauncherSearchCategory.CONTACT -> "Contact"
+                    LauncherSearchCategory.CALL_HISTORY -> "Call"
+                    LauncherSearchCategory.MESSAGE -> "Message"
+                    LauncherSearchCategory.FILE -> "File"
+                    LauncherSearchCategory.CONNECTED_SOURCE -> "Connected"
                     LauncherSearchCategory.SETTING -> "Setting"
                     LauncherSearchCategory.ACTION -> "Action"
                 },

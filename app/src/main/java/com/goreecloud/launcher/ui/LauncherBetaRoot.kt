@@ -213,6 +213,12 @@ fun LauncherBetaRoot(
     onSetUniversalSearchHomeMode: (LauncherUniversalSearchHomeMode) -> Unit,
     onSetSearchProviderPreferences:
         (com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot) -> Unit,
+    onSetSearchProviderEnabled:
+        (com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState, String, Boolean) -> Unit,
+    onLaunchSearchShortcut:
+        (com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction) -> Unit,
+    onOpenSearchUri:
+        (com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction) -> Unit,
     onResetSearchProviderPreferences: () -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onSetShowHomeQuickActions: (Boolean) -> Unit,
@@ -492,8 +498,11 @@ fun LauncherBetaRoot(
                 apps = apps,
                 searchProviderPreferences = searchProviderPreferences,
                 onSetSearchProviderPreferences = onSetSearchProviderPreferences,
+                onSetSearchProviderEnabled = onSetSearchProviderEnabled,
                 onResetSearchProviderPreferences = onResetSearchProviderPreferences,
                 onLaunchApp = onLaunchApp,
+                onLaunchShortcut = onLaunchSearchShortcut,
+                onOpenSearchUri = onOpenSearchUri,
                 onNavigate = { destination ->
                     when (destination) {
                         LauncherSearchDestination.HOME -> {
@@ -2278,6 +2287,12 @@ private fun LauncherUniversalSearchResultRow(
 ) {
     val categoryLabel = when (result.category) {
         LauncherSearchCategory.APPLICATION -> "App"
+        LauncherSearchCategory.SHORTCUT -> "Shortcut"
+        LauncherSearchCategory.CONTACT -> "Contact"
+        LauncherSearchCategory.CALL_HISTORY -> "Call"
+        LauncherSearchCategory.MESSAGE -> "Message"
+        LauncherSearchCategory.FILE -> "File"
+        LauncherSearchCategory.CONNECTED_SOURCE -> "Connected"
         LauncherSearchCategory.SETTING -> "Setting"
         LauncherSearchCategory.ACTION -> "Action"
     }
@@ -2308,6 +2323,12 @@ private fun LauncherUniversalSearchResultRow(
                     Text(
                         when (result.category) {
                             LauncherSearchCategory.APPLICATION -> "◫"
+                            LauncherSearchCategory.SHORTCUT -> "↗"
+                            LauncherSearchCategory.CONTACT -> "●"
+                            LauncherSearchCategory.CALL_HISTORY -> "☎"
+                            LauncherSearchCategory.MESSAGE -> "✉"
+                            LauncherSearchCategory.FILE -> "▤"
+                            LauncherSearchCategory.CONNECTED_SOURCE -> "⌕"
                             LauncherSearchCategory.SETTING -> "⚙"
                             LauncherSearchCategory.ACTION -> "→"
                         },
