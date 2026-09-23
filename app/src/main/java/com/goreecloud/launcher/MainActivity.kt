@@ -39,11 +39,15 @@ import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpaperId
 import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpapers
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
+import com.goreecloud.launcher.core.launcher.LauncherConnectedSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
+import com.goreecloud.launcher.core.launcher.LauncherFileSearchPreferencesRepository
+import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLocalSearchPermissions
 import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
+import com.goreecloud.launcher.core.launcher.LauncherOpenDocumentSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
@@ -96,6 +100,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var appsRepository: LauncherAppsRepository
     private lateinit var launcherPreferencesRepository: LauncherPreferencesRepository
     private lateinit var searchProviderPreferencesRepository: LauncherSearchProviderPreferencesRepository
+    private lateinit var fileSearchPreferencesRepository: LauncherFileSearchPreferencesRepository
     private lateinit var installedAppBaselineRepository: LauncherInstalledAppBaselineRepository
     private lateinit var localUsageRepository: LauncherLocalUsageRepository
     private lateinit var appWidgetHostController: LauncherAppWidgetHostController
@@ -110,6 +115,36 @@ class MainActivity : ComponentActivity() {
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
     private var pendingAppWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
     private var pendingSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
+    private var pendingFileSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
+
+    private val fileSearchRootRequest =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            val pending = pendingFileSearchProviderSnapshot
+            pendingFileSearchProviderSnapshot = null
+            if (uri == null) return@registerForActivityResult
+
+            val persisted = runCatching {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }.isSuccess
+            if (!persisted) {
+                Toast.makeText(
+                    this,
+                    "Android did not grant persistent access to that folder.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                return@registerForActivityResult
+            }
+
+            lifecycleScope.launch {
+                fileSearchPreferencesRepository.addRoot(uri)
+                if (pending != null) {
+                    searchProviderPreferencesRepository.set(pending)
+                }
+            }
+        }
 
     private val searchSourcePermissionRequest =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -193,6 +228,7 @@ class MainActivity : ComponentActivity() {
         appsRepository = LauncherAppsRepository(this)
         launcherPreferencesRepository = LauncherPreferencesRepository(this)
         searchProviderPreferencesRepository = LauncherSearchProviderPreferencesRepository(this)
+        fileSearchPreferencesRepository = LauncherFileSearchPreferencesRepository(this)
         installedAppBaselineRepository = LauncherInstalledAppBaselineRepository(this)
         localUsageRepository = LauncherLocalUsageRepository(this)
         appWidgetHostController = LauncherAppWidgetHostController(this)
@@ -255,6 +291,9 @@ class MainActivity : ComponentActivity() {
                 initialValue = emptyMap(),
             )
             val searchProviderPreferences by searchProviderPreferencesState.collectAsStateWithLifecycle()
+            val fileSearchRoots by fileSearchPreferencesRepository.roots.collectAsStateWithLifecycle(
+                initialValue = emptyList(),
+            )
             val homeLabelOverrides by launcherPreferencesRepository.homeLabelOverrides.collectAsStateWithLifecycle(
                 initialValue = emptyMap(),
             )
@@ -541,6 +580,7 @@ class MainActivity : ComponentActivity() {
                             drawerLayoutMode = drawerLayoutMode,
                             experiencePreferences = experiencePreferences,
                             searchProviderPreferences = searchProviderPreferences,
+                            fileSearchRoots = fileSearchRoots,
                             homePageCount = renderedPages.size.coerceAtLeast(1),
                             homeResetSequence = homeResetSequenceValue,
                             homeLabelOverrides = homeLabelOverrides,
@@ -765,6 +805,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onSetSearchProviderEnabled = ::setSearchProviderEnabled,
+                            onChooseFileSearchRoot = ::chooseFileSearchRoot,
                             onLaunchSearchShortcut = { action ->
                                 runCatching {
                                     appsRepository.launchShortcut(
@@ -781,6 +822,8 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onOpenSearchUri = ::openSearchUri,
+                            onOpenSearchDocument = ::openSearchDocument,
+                            onSearchWithConnectedProvider = ::searchWithConnectedProvider,
                             onResetSearchProviderPreferences = {
                                 lifecycleScope.launch {
                                     searchProviderPreferencesRepository.clear()
@@ -1094,6 +1137,20 @@ class MainActivity : ComponentActivity() {
             providerId = providerId,
             enabled = enabled,
         )
+
+        if (enabled && providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
+            lifecycleScope.launch {
+                val roots = fileSearchPreferencesRepository.roots.first()
+                if (roots.isEmpty()) {
+                    pendingFileSearchProviderSnapshot = snapshot
+                    fileSearchRootRequest.launch(null)
+                } else {
+                    searchProviderPreferencesRepository.set(snapshot)
+                }
+            }
+            return
+        }
+
         val permission = LauncherLocalSearchPermissions.permissionFor(providerId)
         if (
             enabled &&
@@ -1111,12 +1168,55 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun chooseFileSearchRoot() {
+        fileSearchRootRequest.launch(null)
+    }
+
     private fun openSearchUri(action: LauncherOpenUriSearchAction) {
         val intent = Intent(action.intentAction, Uri.parse(action.uri))
         runCatching { startActivity(intent) }.onFailure {
             Toast.makeText(
                 this,
                 "No compatible app is available for this result.",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+
+    private fun openSearchDocument(action: LauncherOpenDocumentSearchAction) {
+        val uri = Uri.parse(action.uri)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, action.mimeType ?: "*/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(
+                this,
+                "No compatible app is available for this file.",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    private fun searchWithConnectedProvider(providerId: String, rawQuery: String) {
+        val intent = LauncherConnectedSearchProviderRegistry.buildExplicitHandoffIntent(
+            context = this,
+            providerId = providerId,
+            rawQuery = rawQuery,
+        )
+        if (intent == null) {
+            Toast.makeText(
+                this,
+                "That connected Search provider is unavailable.",
+                Toast.LENGTH_SHORT,
+            ).show()
+            return
+        }
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(
+                this,
+                "That connected Search provider could not be opened.",
                 Toast.LENGTH_SHORT,
             ).show()
         }
