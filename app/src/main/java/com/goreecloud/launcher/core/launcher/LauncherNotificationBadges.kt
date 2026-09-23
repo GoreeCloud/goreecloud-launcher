@@ -97,6 +97,14 @@ class LauncherNotificationBadgeListener : NotificationListenerService() {
     }
 
     private fun refresh() {
+        // The OS may keep the listener bound after the owner turns Launcher badges off.
+        // Do not retrieve the active notification array without BOTH current opt-in and OS grant.
+        if (!LauncherNotificationBadges.enabled.value ||
+            !LauncherNotificationBadges.accessGranted.value
+        ) {
+            LauncherNotificationBadges.clear()
+            return
+        }
         val active = try { activeNotifications } catch (_: SecurityException) { null }
         LauncherNotificationBadges.acceptActiveNotifications(active)
     }
