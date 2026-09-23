@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. PR #203 reconciled the post-migration authority records, and legacy Launcher Drive roadmap/changelog retirement was subsequently verified.**  
-**Repository authority baseline:** `main` at `03d4c3d2d7e355916412565b531e411d1bba71de` (PR #240). Latest source-bearing Launcher runtime is the same commit.  
+**Runtime source baseline:** `03d4c3d2d7e355916412565b531e411d1bba71de` (PR #240). Repository-native change records were reconciled after that runtime merge through PR #241.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
