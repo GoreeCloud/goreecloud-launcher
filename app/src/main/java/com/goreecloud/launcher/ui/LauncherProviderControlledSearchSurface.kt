@@ -398,7 +398,7 @@ internal fun LauncherProviderControlledSearchSurface(
     }
 }
 
-private data class LauncherGlazeSearchSection(
+internal data class LauncherGlazeSearchSection(
     val category: LauncherSearchCategory,
     val title: String,
     val items: List<LauncherSearchResult>,
