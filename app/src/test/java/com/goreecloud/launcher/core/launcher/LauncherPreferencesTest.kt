@@ -180,12 +180,12 @@ class LauncherPreferencesTest {
     }
 
     @Test
-    fun gestureActionStorageRoundTripsBuiltInsAndAppTargets() {
-        val settings =
+    fun gestureActionStorageMigratesLegacySettingsAndRoundTripsAppTargets() {
+        val legacySettings =
             LauncherGestureAction.builtIn(LauncherGestureActionType.LAUNCHER_SETTINGS)
-        assertEquals("launcher_settings", settings.storageValue)
+        assertEquals("launcher_settings", legacySettings.storageValue)
         assertEquals(
-            settings,
+            LauncherGestureAction.builtIn(LauncherGestureActionType.HOME_EDITOR),
             LauncherGestureAction.fromStorage(
                 "launcher_settings",
                 LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
