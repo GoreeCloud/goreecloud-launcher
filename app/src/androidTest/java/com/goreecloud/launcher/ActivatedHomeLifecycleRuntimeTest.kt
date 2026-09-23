@@ -253,18 +253,18 @@ class ActivatedHomeLifecycleRuntimeTest {
                 )
 
                 composeRule
-                    .onNodeWithTag("launcher-app-drawer", useUnmergedTree = true)
+                    .onNodeWithText("User Apps", useUnmergedTree = true)
                     .performTouchInput {
                         swipeDown(
                             startY = top + 1f,
-                            endY = bottom - 1f,
+                            endY = bottom + 320f,
                             durationMillis = 400,
                         )
                     }
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule
-                        .onAllNodesWithTag("launcher-app-drawer", useUnmergedTree = true)
+                        .onAllNodesWithText("User Apps", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .isEmpty()
                 }
