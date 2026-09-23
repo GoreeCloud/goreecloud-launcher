@@ -145,7 +145,7 @@ class ActivatedHomeLifecycleRuntimeTest {
     }
 
     @Test
-    fun swipeUpStartingOnWorkspaceAppContentOpensDrawer() = runBlocking {
+    fun swipeUpOpensDrawerAndSwipeDownDismissesWithoutHeaderActions() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         val roleManager = context.getSystemService(RoleManager::class.java)
@@ -241,6 +241,34 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .fetchSemanticsNodes()
                         .isEmpty(),
                 )
+                check(
+                    composeRule.onAllNodesWithText("⚙", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isEmpty(),
+                )
+                check(
+                    composeRule.onAllNodesWithText("⌄", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isEmpty(),
+                )
+
+                composeRule
+                    .onNodeWithText("User Apps", useUnmergedTree = true)
+                    .performTouchInput {
+                        swipeDown(
+                            startY = top + 1f,
+                            endY = bottom + 320f,
+                            durationMillis = 400,
+                        )
+                    }
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithText("User Apps", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isEmpty()
+                }
+                waitForDisplayedLabel(candidate.label.toString())
                 Unit
             } finally {
                 scenario.close()

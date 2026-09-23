@@ -529,7 +529,6 @@ fun LauncherBetaRoot(
                     drawerSearchRequested = false
                     surfaceModeName = LauncherSurfaceMode.HOME.name
                 },
-                onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
             )
             LauncherSurfaceMode.SETTINGS -> LauncherSettingsSurface(
                 selectedThemeMode = themeMode,
@@ -2351,7 +2350,6 @@ private fun AppDrawerSurface(
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo) -> Unit,
     onHome: () -> Unit,
-    onOpenSettings: () -> Unit,
 ) {
     val primaryUser = remember { Process.myUserHandle() }
     val profilePages = remember(apps, primaryUser) {
@@ -2410,7 +2408,8 @@ private fun AppDrawerSurface(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = GlazeMetrics.space2),
+                .padding(top = GlazeMetrics.space2)
+                .testTag("launcher-app-drawer"),
             shape = RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp),
             color = drawerSurfaceColor,
             contentColor = if (glass) Color.White else MaterialTheme.colorScheme.onBackground,
@@ -2464,31 +2463,23 @@ private fun AppDrawerSurface(
                 }
                 Spacer(Modifier.height(GlazeMetrics.space3))
 
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column {
-                        Text(
-                            selectedPage.kind.displayName,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            if (experiencePreferences.showDrawerAppCount) {
-                                selectedPage.items.size.toString() + " installed · " + layoutDescription
-                            } else {
-                                layoutDescription
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = drawerSecondaryColor,
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
-                        GlazeRoundAction("⚙", onOpenSettings)
-                        GlazeRoundAction("⌄", onHome)
-                    }
+                    Text(
+                        selectedPage.kind.displayName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        if (experiencePreferences.showDrawerAppCount) {
+                            selectedPage.items.size.toString() + " installed · " + layoutDescription
+                        } else {
+                            layoutDescription
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = drawerSecondaryColor,
+                    )
                 }
 
                 if (profilePages.size > 1) {
