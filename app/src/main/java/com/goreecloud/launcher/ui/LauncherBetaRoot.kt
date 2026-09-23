@@ -5488,6 +5488,7 @@ private fun AppContextPopup(
     onToggleDock: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onRequestUninstall: () -> Unit,
+    onAddToFolder: () -> Unit,
     onMoreOptions: () -> Unit,
     onClose: () -> Unit,
 ) {
@@ -5566,6 +5567,12 @@ private fun AppContextPopup(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(if (isDocked) "Remove from Dock" else "Add to Dock")
+                }
+                TextButton(
+                    onClick = onAddToFolder,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Add to folder")
                 }
                 TextButton(
                     onClick = onOpenAppInfo,
