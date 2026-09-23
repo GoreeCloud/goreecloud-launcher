@@ -90,6 +90,8 @@ import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
+import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
@@ -184,6 +186,8 @@ fun LauncherBetaRoot(
     isDefaultHome: Boolean,
     onRequestHomeRole: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
+    onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
     onOpenAppInfo: (LauncherActivityInfo) -> Unit,
     onAddBuiltInWidget: (String) -> Unit,
     onPickAndroidWidget: () -> Unit,
@@ -494,6 +498,8 @@ fun LauncherBetaRoot(
                 onSetSearchProviderPreferences = onSetSearchProviderPreferences,
                 onResetSearchProviderPreferences = onResetSearchProviderPreferences,
                 onLaunchApp = onLaunchApp,
+                onLaunchShortcut = onLaunchShortcut,
+                onOpenSearchUri = onOpenSearchUri,
                 onNavigate = { destination ->
                     when (destination) {
                         LauncherSearchDestination.HOME -> {
