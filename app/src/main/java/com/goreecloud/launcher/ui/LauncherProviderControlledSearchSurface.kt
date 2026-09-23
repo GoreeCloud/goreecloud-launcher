@@ -173,6 +173,33 @@ internal fun LauncherProviderControlledSearchSurface(
                 placeholder = "Search apps, shortcuts, people, calls, messages and files",
                 inputTestTag = "launcher-universal-search-field",
             )
+            if (explicitHandoffs.isNotEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                ) {
+                    Text(
+                        "Search with",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        explicitHandoffs.forEach { provider ->
+                            TextButton(
+                                onClick = {
+                                    onSearchWithConnectedProvider(provider.providerId, query)
+                                },
+                            ) {
+                                Text(provider.displayName)
+                            }
+                        }
+                    }
+                }
+            }
+
             if (results.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxWidth().weight(1f),
@@ -200,6 +227,7 @@ internal fun LauncherProviderControlledSearchSurface(
                                 is LaunchApplicationSearchAction -> onLaunchApp(action.app)
                                 is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
                                 is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
+                                is LauncherOpenDocumentSearchAction -> onOpenDocument(action)
                                 is LauncherNavigateSearchAction -> onNavigate(action.destination)
                                 else -> Unit
                             }
