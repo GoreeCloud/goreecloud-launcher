@@ -355,7 +355,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                     .assertIsDisplayed()
                 composeRule
                     .onNodeWithText(
-                        "Search apps, shortcuts, people, calls and messages",
+                        "Search apps, shortcuts, people, calls, messages and files",
                         useUnmergedTree = true,
                     )
                     .assertIsDisplayed()
