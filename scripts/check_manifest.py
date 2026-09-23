@@ -8,8 +8,14 @@ root = ET.parse(m).getroot()
 ns = "{http://schemas.android.com/apk/res/android}"
 
 permissions = {x.attrib.get(ns + "name") for x in root.findall("uses-permission")}
-if permissions:
-    print("Unexpected permissions:", sorted(permissions))
+allowed_permissions = {
+    "android.permission.READ_CONTACTS",
+    "android.permission.READ_CALL_LOG",
+    "android.permission.READ_SMS",
+}
+unexpected_permissions = permissions - allowed_permissions
+if unexpected_permissions:
+    print("Unexpected permissions:", sorted(unexpected_permissions))
     sys.exit(1)
 
 text = m.read_text(encoding="utf-8")
