@@ -603,7 +603,9 @@ class MainActivity : ComponentActivity() {
                             onAddAppToFolder = ::addAppToFolder,
                             onRemoveAppFromFolder = ::removeAppFromFolder,
                             onRemoveFolderFromHome = ::removeFolderFromHome,
-                            onMoveFolderToPage = ::moveFolderToPage,
+                            onMoveFolderToPage = { folder, target ->
+                                moveFolderToPage(folder, target) { selectedHomePageId = it }
+                            },
                         )
                     } else {
                         LauncherBetaRoot(
@@ -622,7 +624,9 @@ class MainActivity : ComponentActivity() {
                                 it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
                             },
                             homePages = renderedPages,
-                            onMoveFolderToPage = ::moveFolderToPage,
+                            onMoveFolderToPage = { folder, target ->
+                                moveFolderToPage(folder, target) { selectedHomePageId = it }
+                            },
                             onCreateFolder = ::createFolder,
                             onRenameFolder = ::renameFolder,
                             onDeleteFolder = ::deleteFolder,
@@ -1321,7 +1325,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun moveFolderToPage(folder: LauncherFolder, targetPageId: String) {
+    private fun moveFolderToPage(
+        folder: LauncherFolder,
+        targetPageId: String,
+        onMoved: (String) -> Unit = {},
+    ) {
         lifecycleScope.launch {
             val prefs = launcherPreferencesRepository.preferences.first()
             if (prefs.layoutLocked) return@launch
@@ -1331,7 +1339,7 @@ class MainActivity : ComponentActivity() {
                 columns = prefs.homeColumns,
                 rows = prefs.homeRows,
             )) {
-                is WorkspaceFolderMutationResult.MovedToPage -> selectedHomePageId = result.targetPageId
+                is WorkspaceFolderMutationResult.MovedToPage -> onMoved(result.targetPageId)
                 WorkspaceFolderMutationResult.NoSpace -> Toast.makeText(
                     this@MainActivity,
                     "There is not enough room on that Home page.",
