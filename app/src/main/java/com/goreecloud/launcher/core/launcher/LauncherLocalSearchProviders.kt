@@ -4,6 +4,7 @@ import android.Manifest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
@@ -57,8 +58,10 @@ object LauncherLocalSearchDiagnostics {
     val issues = mutableIssues.asStateFlow()
 
     fun record(providerId: String, issue: LauncherLocalSearchIssue?) {
-        mutableIssues.value = mutableIssues.value.toMutableMap().also { next ->
-            if (issue == null) next.remove(providerId) else next[providerId] = issue
+        mutableIssues.update { current ->
+            current.toMutableMap().also { next ->
+                if (issue == null) next.remove(providerId) else next[providerId] = issue
+            }
         }
     }
 }
