@@ -4,7 +4,7 @@
 **Repository:** `GoreeCloud/launcher`  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record.**  
-**Repository authority baseline:** `main` at `384568dda7abcf0a7e2c0942773efa540b70af2c` (PR #221 merged September 22, 2026).  
+**Repository authority baseline:** `main` at `c09e2d581f300271f762422eef206631769f73b1` (PR #223 merged September 22, 2026).  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation
@@ -15,7 +15,7 @@ Partially implemented capabilities remain open obligations in `PLANNED-FEATURES.
 
 ## Current verified source baseline
 
-The current repository `main` head and latest source-bearing Launcher runtime are `384568dda7abcf0a7e2c0942773efa540b70af2c`, the guarded squash merge of PR #221, **Restack 5x6 starter Home and five-app Dock defaults**. PR #221 exact head `d464224bbd8d975dcad8e6320a0adf117bafa318` passed Android CI run #688 / `35811191027` across repository/privacy/identity/GLAZE/Room-cutover guards, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. This baseline also includes PR #219's AppWidgetHost-based Home widgets at merge commit `42513fb80ec2caea8431437664a96abb1a605f1f`, PR #215's unified Home/Dock/App Drawer drag-and-edit interactions at `12634e7388f6c997debb255874136f80cc720830`, and PR #212's source-manifest reconciliation at `53e79befaf7f76b1abf27acecf8a3c838515f34b`.
+The current repository `main` head and latest source-bearing Launcher runtime are `c09e2d581f300271f762422eef206631769f73b1`, the guarded squash merge of PR #223, **Use gesture-only app drawer dismissal**. PR #223 final exact head `2fe8ed2046daca56202ef07873a806a9b09a7c30` passed Android CI run #693 / `35813157287` across repository/privacy/identity/GLAZE/Room-cutover guards, lint/build/unit/schema checks, Development APK staging, Android 16 Room/runtime emulator, and Android 16 transition-performance emulator lanes before merge. The final runtime suite verifies that the app drawer opens from Home, exposes neither the former Settings action nor explicit close action in its header, and dismisses through a downward gesture back to Home. This baseline also includes PR #221's 5 × 6 starter Home/five-app Dock defaults, PR #219's AppWidgetHost-based Home widgets, PR #215's unified Home/Dock/App Drawer drag-and-edit interactions, and PR #212's source-manifest reconciliation.
 
 This is Development evidence. It does not establish physical-device performance, complete accessibility, personal/work/Shelter/private-space acceptance, Quickstep/Recents compatibility, complete Integral Platform System acceptance, protected production signing/distribution, Release Candidate, production, or Stable qualification.
 
@@ -69,6 +69,9 @@ This is Development evidence. It does not establish physical-device performance,
 - Separate Apps surface with local application filtering and launching.
 - Persisted Grid, Compact, List, and Category presentation modes and related density/label/spacing controls.
 - User Apps / Work Apps projection from Android `LauncherApps` inventory when non-primary profile inventory exists.
+- App drawer header retains profile/layout context without persistent Settings or explicit close action buttons.
+- Downward swipe is the drawer's explicit in-surface dismissal path; Android HOME-button return remains normal system navigation.
+- Launcher Settings remains available from the Home long-press editor sheet through its dedicated **Settings** action rather than through the app drawer header.
 - Search result identity labels that distinguish User and Work application matches where applicable.
 - Removal of the duplicate rendered drawer-search control so the Launcher-owned Universal Search surface remains the primary general Search experience.
 
