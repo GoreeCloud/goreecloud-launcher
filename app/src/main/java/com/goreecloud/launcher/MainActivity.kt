@@ -1,6 +1,7 @@
 package com.goreecloud.launcher
 
 import android.app.Activity
+import android.app.WallpaperManager
 import android.appwidget.AppWidgetManager
 import android.app.role.RoleManager
 import android.content.Intent
@@ -32,6 +33,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.goreecloud.launcher.core.launcher.LauncherAppWidgetHostController
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
+import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpaperId
+import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpapers
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
@@ -71,9 +74,11 @@ import com.goreecloud.launcher.ui.ReadOnlyPagedHomeSurface
 import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
 import com.goreecloud.launcher.ui.theme.rememberAndroidGlazeV16PresentationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
@@ -746,7 +751,8 @@ class MainActivity : ComponentActivity() {
                                 launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
                             },
                             onRequestUninstall = ::requestUninstall,
-                            onOpenWallpaperPicker = ::openWallpaperPicker,
+                            onApplyBuiltInWallpaper = ::applyBuiltInWallpaper,
+                            onOpenSystemWallpaperPicker = ::openWallpaperPicker,
                             onSurfaceModeChanged = { mode ->
                                 primarySurfaceModeName = mode.name
                                 LauncherTransitionDiagnostics.recordSurfaceMode(mode)
@@ -1032,6 +1038,31 @@ class MainActivity : ComponentActivity() {
                 "Android uninstall is unavailable for this app.",
                 Toast.LENGTH_SHORT,
             ).show()
+        }
+    }
+
+    private fun applyBuiltInWallpaper(id: LauncherBuiltInWallpaperId) {
+        lifecycleScope.launch(Dispatchers.Default) {
+            val metrics = resources.displayMetrics
+            val width = metrics.widthPixels.coerceAtLeast(1080)
+            val height = metrics.heightPixels.coerceAtLeast(1920)
+            val bitmap = LauncherBuiltInWallpapers.render(id, width, height)
+            val result = runCatching {
+                WallpaperManager.getInstance(this@MainActivity).setBitmap(
+                    bitmap,
+                    null,
+                    true,
+                    WallpaperManager.FLAG_SYSTEM,
+                )
+            }
+            bitmap.recycle()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    this@MainActivity,
+                    if (result.isSuccess) "Wallpaper applied" else "Wallpaper could not be applied",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
         }
     }
 
