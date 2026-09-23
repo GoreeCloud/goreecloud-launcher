@@ -253,6 +253,9 @@ data class LauncherExperiencePreferences(
     val homeCardStyle: LauncherHomeCardStyle = LauncherHomeCardStyle.CLOCK,
     val showHomeQuickActions: Boolean = false,
     val showHomePageIndicator: Boolean = true,
+    val showHomeLabels: Boolean = true,
+    val showDrawerLabels: Boolean = true,
+    val showDrawerPageIndicator: Boolean = true,
     val drawerBackdrop: LauncherDrawerBackdrop = LauncherDrawerBackdrop.GLASS,
     val drawerSearchPlacement: LauncherDrawerSearchPlacement = LauncherDrawerSearchPlacement.BOTTOM,
     val drawerNavigation: LauncherDrawerNavigation = LauncherDrawerNavigation.SCROLL,
@@ -322,6 +325,9 @@ class LauncherPreferencesRepository(
         val homeCardStyle = stringPreferencesKey("home_card_style")
         val showHomeQuickActions = booleanPreferencesKey("show_home_quick_actions")
         val showHomePageIndicator = booleanPreferencesKey("show_home_page_indicator")
+        val showHomeLabels = booleanPreferencesKey("show_home_labels")
+        val showDrawerLabels = booleanPreferencesKey("show_drawer_labels")
+        val showDrawerPageIndicator = booleanPreferencesKey("show_drawer_page_indicator")
         val drawerBackdrop = stringPreferencesKey("drawer_backdrop")
         val drawerSearchPlacement = stringPreferencesKey("drawer_search_placement")
         val drawerNavigation = stringPreferencesKey("drawer_navigation")
@@ -385,6 +391,9 @@ class LauncherPreferencesRepository(
                 homeCardStyle = LauncherHomeCardStyle.fromStorage(values[Keys.homeCardStyle]),
                 showHomeQuickActions = values[Keys.showHomeQuickActions] ?: false,
                 showHomePageIndicator = values[Keys.showHomePageIndicator] ?: true,
+                showHomeLabels = values[Keys.showHomeLabels] ?: (values[Keys.showLabels] ?: true),
+                showDrawerLabels = values[Keys.showDrawerLabels] ?: (values[Keys.showLabels] ?: true),
+                showDrawerPageIndicator = values[Keys.showDrawerPageIndicator] ?: true,
                 drawerBackdrop = LauncherDrawerBackdrop.fromStorage(values[Keys.drawerBackdrop]),
                 drawerSearchPlacement = LauncherDrawerSearchPlacement.fromStorage(values[Keys.drawerSearchPlacement]),
                 drawerNavigation = LauncherDrawerNavigation.fromStorage(values[Keys.drawerNavigation]),
@@ -534,6 +543,30 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.showHomePageIndicator] = show
+            }
+        }
+    }
+
+    fun setShowHomeLabels(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showHomeLabels] = show
+            }
+        }
+    }
+
+    fun setShowDrawerLabels(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showDrawerLabels] = show
+            }
+        }
+    }
+
+    fun setShowDrawerPageIndicator(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showDrawerPageIndicator] = show
             }
         }
     }
