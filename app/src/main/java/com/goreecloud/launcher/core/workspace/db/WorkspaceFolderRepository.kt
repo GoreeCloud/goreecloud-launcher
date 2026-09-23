@@ -96,7 +96,7 @@ class WorkspaceFolderRepository(
                 spanX = 1,
                 spanY = 1,
             )
-            if (!dao.replaceHomeItemsIfSnapshotMatches(
+            if (!dao.replaceHomeItemsIncludingFolderIdentityChangesIfSnapshotMatches(
                     expectedPages = pages,
                     expectedItems = allItems,
                     updatedItems = allItems + folder,
@@ -309,7 +309,7 @@ class WorkspaceFolderRepository(
                     else -> item
                 }
             }
-            if (!dao.replaceHomeItemsIfSnapshotMatches(
+            if (!dao.replaceHomeItemsIncludingFolderIdentityChangesIfSnapshotMatches(
                     expectedPages = pages,
                     expectedItems = items,
                     updatedItems = updated,
