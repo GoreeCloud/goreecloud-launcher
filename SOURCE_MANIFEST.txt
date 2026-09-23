@@ -41,6 +41,9 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppIconCache.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppWidgetHostController.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherAppsRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherBuiltInWallpapers.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherConnectedSearchProviders.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFileSearchPreferencesRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFilesSearchProvider.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeDragPolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeLabelOverrides.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherInstalledAppBaselineRepository.kt
