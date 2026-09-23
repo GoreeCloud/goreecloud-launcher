@@ -70,74 +70,80 @@ class LauncherFilesSearchProvider(
         }
 
     private fun buildIndex(): List<FileEntry> {
-        val entries = mutableListOf<FileEntry>()
         val normalizedRoots = roots
             .filter(DocumentsContract::isTreeUri)
             .distinctBy(Uri::toString)
 
-        for (treeUri in normalizedRoots) {
-            if (entries.size >= MAX_INDEXED_FILES) break
-            val rootDocumentId = runCatching {
-                DocumentsContract.getTreeDocumentId(treeUri)
-            }.getOrNull() ?: continue
+        return LauncherFileSearchRootIsolation.collect(
+            roots = normalizedRoots,
+            maxEntries = MAX_INDEXED_FILES,
+        ) { treeUri, remaining ->
+            buildRootIndex(treeUri, remaining)
+        }
+    }
 
-            val pending = ArrayDeque<PendingDirectory>()
-            pending.add(PendingDirectory(rootDocumentId, depth = 0))
+    private fun buildRootIndex(
+        treeUri: Uri,
+        maxEntries: Int,
+    ): List<FileEntry> {
+        if (maxEntries <= 0) return emptyList()
 
-            while (pending.isNotEmpty() && entries.size < MAX_INDEXED_FILES) {
-                val directory = pending.removeFirst()
-                val childUri = DocumentsContract.buildChildDocumentsUriUsingTree(
-                    treeUri,
-                    directory.documentId,
+        val entries = mutableListOf<FileEntry>()
+        val rootDocumentId = DocumentsContract.getTreeDocumentId(treeUri)
+        val pending = ArrayDeque<PendingDirectory>()
+        pending.add(PendingDirectory(rootDocumentId, depth = 0))
+
+        while (pending.isNotEmpty() && entries.size < maxEntries) {
+            val directory = pending.removeFirst()
+            val childUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+                treeUri,
+                directory.documentId,
+            )
+            appContext.contentResolver.query(
+                childUri,
+                PROJECTION,
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                val idIndex = cursor.getColumnIndexOrThrow(
+                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                 )
-                runCatching {
-                    appContext.contentResolver.query(
-                        childUri,
-                        PROJECTION,
-                        null,
-                        null,
-                        null,
-                    )
-                }.getOrNull()?.use { cursor ->
-                    val idIndex = cursor.getColumnIndexOrThrow(
-                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                    )
-                    val nameIndex = cursor.getColumnIndexOrThrow(
-                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                    )
-                    val mimeIndex = cursor.getColumnIndexOrThrow(
-                        DocumentsContract.Document.COLUMN_MIME_TYPE,
-                    )
+                val nameIndex = cursor.getColumnIndexOrThrow(
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                )
+                val mimeIndex = cursor.getColumnIndexOrThrow(
+                    DocumentsContract.Document.COLUMN_MIME_TYPE,
+                )
 
-                    while (cursor.moveToNext() && entries.size < MAX_INDEXED_FILES) {
-                        val documentId = cursor.getString(idIndex) ?: continue
-                        val displayName = cursor.getString(nameIndex)?.trim().orEmpty()
-                        val mimeType = cursor.getString(mimeIndex).orEmpty()
-                            .ifBlank { GENERIC_MIME_TYPE }
+                while (cursor.moveToNext() && entries.size < maxEntries) {
+                    val documentId = cursor.getString(idIndex) ?: continue
+                    val displayName = cursor.getString(nameIndex)?.trim().orEmpty()
+                    val mimeType = cursor.getString(mimeIndex).orEmpty()
+                        .ifBlank { GENERIC_MIME_TYPE }
 
-                        if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR) {
-                            if (directory.depth < MAX_DEPTH) {
-                                pending.add(
-                                    PendingDirectory(
-                                        documentId = documentId,
-                                        depth = directory.depth + 1,
-                                    ),
-                                )
-                            }
-                            continue
+                    if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR) {
+                        if (directory.depth < MAX_DEPTH) {
+                            pending.add(
+                                PendingDirectory(
+                                    documentId = documentId,
+                                    depth = directory.depth + 1,
+                                ),
+                            )
                         }
-                        if (displayName.isBlank()) continue
-
-                        val documentUri = DocumentsContract.buildDocumentUriUsingTree(
-                            treeUri,
-                            documentId,
-                        )
-                        entries += FileEntry(
-                            uri = documentUri.toString(),
-                            displayName = displayName,
-                            mimeType = mimeType,
-                        )
+                        continue
                     }
+                    if (displayName.isBlank()) continue
+
+                    val documentUri = DocumentsContract.buildDocumentUriUsingTree(
+                        treeUri,
+                        documentId,
+                    )
+                    entries += FileEntry(
+                        uri = documentUri.toString(),
+                        displayName = displayName,
+                        mimeType = mimeType,
+                    )
                 }
             }
         }
@@ -167,6 +173,34 @@ class LauncherFilesSearchProvider(
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_MIME_TYPE,
         )
+    }
+}
+
+/**
+ * Keeps selected Storage Access Framework roots failure-isolated.
+ *
+ * A revoked, malformed, or broken document-provider root contributes no entries instead of
+ * suppressing results from every other selected root. The aggregate remains globally bounded.
+ */
+internal object LauncherFileSearchRootIsolation {
+    fun <Root, Entry> collect(
+        roots: List<Root>,
+        maxEntries: Int,
+        scanRoot: (Root, Int) -> List<Entry>,
+    ): List<Entry> {
+        require(maxEntries >= 0) { "maxEntries must not be negative" }
+        if (maxEntries == 0) return emptyList()
+
+        val entries = mutableListOf<Entry>()
+        roots.forEach { root ->
+            if (entries.size >= maxEntries) return@forEach
+            val remaining = maxEntries - entries.size
+            val contribution = runCatching {
+                scanRoot(root, remaining)
+            }.getOrDefault(emptyList())
+            entries += contribution.take(remaining)
+        }
+        return entries
     }
 }
 

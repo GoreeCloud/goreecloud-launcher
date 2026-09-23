@@ -806,6 +806,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onSetSearchProviderEnabled = ::setSearchProviderEnabled,
                             onChooseFileSearchRoot = ::chooseFileSearchRoot,
+                            onRemoveFileSearchRoot = ::confirmRemoveFileSearchRoot,
                             onLaunchSearchShortcut = { action ->
                                 runCatching {
                                     appsRepository.launchShortcut(
@@ -1170,6 +1171,33 @@ class MainActivity : ComponentActivity() {
 
     private fun chooseFileSearchRoot() {
         fileSearchRootRequest.launch(null)
+    }
+
+    private fun confirmRemoveFileSearchRoot(uri: Uri) {
+        AlertDialog.Builder(this)
+            .setTitle("Remove Search folder?")
+            .setMessage(
+                "Launcher will stop searching this folder and release its saved read access. " +
+                    "You can choose the folder again later.",
+            )
+            .setPositiveButton("Remove") { _, _ ->
+                lifecycleScope.launch {
+                    fileSearchPreferencesRepository.removeRoot(uri)
+                    runCatching {
+                        contentResolver.releasePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                        )
+                    }
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Search folder removed.",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun openSearchUri(action: LauncherOpenUriSearchAction) {

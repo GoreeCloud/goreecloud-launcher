@@ -19,7 +19,7 @@ The primary Home experience is a launcher-style surface. Android renders the dev
 - Tap an app icon to launch it.
 - Long-press and drag a primary Home icon to any visible configured Home grid cell. Dropping onto an empty cell places it there; dropping onto an occupied cell swaps the two primary Home positions. Long-press without moving opens placement management.
 - Open **Apps** from the Home affordance to browse installed launchable applications.
-- Open **Launcher settings** to change supported Home, Apps, icon, label, appearance, layout-lock, and Launcher Universal Search entry preferences.
+- Long-press empty Home space to enter **Edit Home**, then use its **Settings** action to change supported Home, Apps, icon, label, appearance, layout-lock, and Launcher Universal Search preferences.
 - Swipe one finger downward through the unobstructed Home gesture zone to open Launcher Universal Search by default. This assignment can be changed under **Launcher settings → Gestures**.
 - Favorites and Dock are seeded from installed launchable apps on first run when needed.
 - The Dock is currently bounded to five items.
@@ -42,9 +42,13 @@ Home keeps the **Search GoreeCloud** affordance visible. Swipe down opens Launch
 
 The persistent Search GoreeCloud affordance is hidden. Swipe down still opens Launcher Universal Search by default, but any supported Home gesture can be assigned to search under **Launcher settings → Gestures**.
 
-The current Development search foundation provides installed-application results through a native Launcher provider backed by Android `LauncherApps`. It performs local deterministic matching/ranking and does not require GoreeCloud Index, GoreeCloud Search, Internet access, or telemetry.
+The current Development search foundation provides installed applications, Android application shortcuts, and user-enabled local Contacts, Call history, Messages, and file-name results. Local file Search is limited to Android Storage Access Framework folders that you explicitly choose; Launcher indexes bounded file-name and MIME metadata only and does not read file contents or request broad storage access.
 
-The broader approved Universal Search scope—files/documents, people, settings, commands, shortcuts, cloud/connected resources, richer direct actions, contextual workspace resources, and AI-assisted capabilities—remains separately implementation- and acceptance-gated. GoreeCloud Search and GoreeCloud Index may later participate as optional providers/backends once stable.
+Open **Sources** from Universal Search to review enabled sources and their privacy behavior. For **Files**, choose one or more folders to make them searchable. Selected folders are shown in the Sources view. Removing a folder requires confirmation, removes it from Launcher Search, and releases the saved Android read grant when possible. You can choose the folder again later. If one selected document-provider root becomes revoked, malformed, or unavailable, Launcher fails that root softly so other selected roots can continue contributing results.
+
+Google Drive, Dropbox, and Brave Search are exposed only as explicit **Search with…** handoffs. Launcher does not automatically send typed queries to those providers. Core Search remains Launcher-owned, local-first, and does not require GoreeCloud Index, GoreeCloud Search, Launcher Internet permission, or telemetry.
+
+Broader provider discovery/registration, portable recovery of provider controls and file-root grants, recents/history/context, optional GoreeCloud Search/Index backends, and complete representative-device/accessibility/profile/performance acceptance remain separately gated.
 
 ## Home layout lock
 
@@ -173,7 +177,7 @@ Naming a platform system does not mean every integration is currently implemente
 
 ## Current limitations
 
-Still incomplete or separately gated include mature cross-page drag/drop editing; primary↔secondary spatial movement; folders; shortcuts; widgets/AppWidgetHost; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
+Still incomplete or separately gated include mature cross-page drag/drop editing; primary↔secondary spatial movement; folders and smart folders; pinned/dynamic shortcut placement beyond current Search support; advanced widget resizing/stacking and portable widget rebinding/recovery; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
 
 # Approved future product direction — not currently available
 

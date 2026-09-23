@@ -63,6 +63,7 @@ internal fun LauncherProviderControlledSearchSurface(
     onSetSearchProviderPreferences: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
     onSetSearchProviderEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
     onChooseFileSearchRoot: () -> Unit,
+    onRemoveFileSearchRoot: (Uri) -> Unit,
     onResetSearchProviderPreferences: () -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
@@ -158,9 +159,10 @@ internal fun LauncherProviderControlledSearchSurface(
                 persisted = searchProviderPreferences,
                 controls = controls,
                 onSet = onSetSearchProviderPreferences,
-                fileSearchRootCount = fileSearchRoots.size,
+                fileSearchRoots = fileSearchRoots,
                 onSetEnabled = onSetSearchProviderEnabled,
                 onChooseFileSearchRoot = onChooseFileSearchRoot,
+                onRemoveFileSearchRoot = onRemoveFileSearchRoot,
                 onReset = onResetSearchProviderPreferences,
                 modifier = Modifier.weight(1f),
             )
@@ -243,10 +245,11 @@ internal fun LauncherProviderControlledSearchSurface(
 private fun LauncherSearchSourceManager(
     persisted: LauncherSearchProviderPreferenceDecodeResult?,
     controls: LauncherSearchProviderControlState,
-    fileSearchRootCount: Int,
+    fileSearchRoots: List<Uri>,
     onSet: (LauncherSearchProviderPreferenceSnapshot) -> Unit,
     onSetEnabled: (LauncherSearchProviderControlState, String, Boolean) -> Unit,
     onChooseFileSearchRoot: () -> Unit,
+    onRemoveFileSearchRoot: (Uri) -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -294,10 +297,10 @@ private fun LauncherSearchSourceManager(
                                     if (option.providerId == LauncherFilesSearchProvider.PROVIDER_ID) {
                                         append(" · ")
                                         append(
-                                            when (fileSearchRootCount) {
+                                            when (fileSearchRoots.size) {
                                                 0 -> "No folders selected"
                                                 1 -> "1 folder selected"
-                                                else -> fileSearchRootCount.toString() + " folders selected"
+                                                else -> fileSearchRoots.size.toString() + " folders selected"
                                             },
                                         )
                                     }
@@ -331,9 +334,39 @@ private fun LauncherSearchSourceManager(
                                     enabled = ready,
                                 ) {
                                     Text(
-                                        if (fileSearchRootCount == 0) "Choose folder"
+                                        if (fileSearchRoots.isEmpty()) "Choose folder"
                                         else "Add folder",
                                     )
+                                }
+                            }
+                        }
+                    }
+                    if (
+                        option.providerId == LauncherFilesSearchProvider.PROVIDER_ID &&
+                        fileSearchRoots.isNotEmpty()
+                    ) {
+                        fileSearchRoots.forEach { root ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                            ) {
+                                Text(
+                                    root.lastPathSegment
+                                        ?.substringAfterLast(':')
+                                        ?.takeIf { it.isNotBlank() }
+                                        ?: "Selected folder",
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                TextButton(
+                                    onClick = { onRemoveFileSearchRoot(root) },
+                                    enabled = ready,
+                                ) {
+                                    Text("Remove")
                                 }
                             }
                         }
