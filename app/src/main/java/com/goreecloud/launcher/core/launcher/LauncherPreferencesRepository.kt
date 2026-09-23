@@ -170,6 +170,21 @@ enum class LauncherWallpaperShade(val storageValue: String) {
     }
 }
 
+enum class LauncherIconShape(
+    val storageValue: String,
+    val displayName: String,
+) {
+    ROUNDED_SQUARE("rounded_square", "Rounded square"),
+    ORIGINAL("original", "Original"),
+    SQUIRCLE("squircle", "Squircle"),
+    CIRCLE("circle", "Circle"),
+    TEARDROP("teardrop", "Teardrop");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherIconShape =
+            entries.firstOrNull { it.storageValue == value } ?: ROUNDED_SQUARE
+    }
+}
 
 enum class LauncherHomeGesture(val displayName: String) {
     SWIPE_UP("Swipe up"),
@@ -251,6 +266,8 @@ data class LauncherExperiencePreferences(
     val homeSpacing: LauncherHomeSpacing = LauncherHomeSpacing.BALANCED,
     val dockStyle: LauncherDockStyle = LauncherDockStyle.GLASS,
     val wallpaperShade: LauncherWallpaperShade = LauncherWallpaperShade.SOFT,
+    val iconShape: LauncherIconShape = LauncherIconShape.ROUNDED_SQUARE,
+    val iconPackPackage: String? = null,
     val swipeUpAction: LauncherGestureAction =
         LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
     val swipeDownAction: LauncherGestureAction =
@@ -318,6 +335,8 @@ class LauncherPreferencesRepository(
         val homeSpacing = stringPreferencesKey("home_spacing")
         val dockStyle = stringPreferencesKey("dock_style")
         val wallpaperShade = stringPreferencesKey("wallpaper_shade")
+        val iconShape = stringPreferencesKey("icon_shape")
+        val iconPackPackage = stringPreferencesKey("icon_pack_package")
         val gestureSwipeUpAction = stringPreferencesKey("gesture_swipe_up_action")
         val gestureSwipeDownAction = stringPreferencesKey("gesture_swipe_down_action")
         val gestureSwipeLeftAction = stringPreferencesKey("gesture_swipe_left_action")
@@ -379,6 +398,8 @@ class LauncherPreferencesRepository(
                 homeSpacing = LauncherHomeSpacing.fromStorage(values[Keys.homeSpacing]),
                 dockStyle = LauncherDockStyle.fromStorage(values[Keys.dockStyle]),
                 wallpaperShade = LauncherWallpaperShade.fromStorage(values[Keys.wallpaperShade]),
+                iconShape = LauncherIconShape.fromStorage(values[Keys.iconShape]),
+                iconPackPackage = values[Keys.iconPackPackage]?.takeIf { it.isNotBlank() },
                 swipeUpAction = LauncherGestureAction.fromStorage(
                     values[Keys.gestureSwipeUpAction],
                     LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
@@ -617,6 +638,27 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.wallpaperShade] = shade.storageValue
+            }
+        }
+    }
+
+    fun setIconShape(shape: LauncherIconShape) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.iconShape] = shape.storageValue
+            }
+        }
+    }
+
+    fun setIconPackPackage(packageName: String?) {
+        scope.launch {
+            dataStore.edit { values ->
+                val normalized = packageName?.trim()?.takeIf { it.isNotEmpty() }
+                if (normalized == null) {
+                    values.remove(Keys.iconPackPackage)
+                } else {
+                    values[Keys.iconPackPackage] = normalized
+                }
             }
         }
     }
