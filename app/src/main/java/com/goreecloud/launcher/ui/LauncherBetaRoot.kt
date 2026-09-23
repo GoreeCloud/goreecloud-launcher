@@ -3257,16 +3257,15 @@ private fun AppDrawerSurface(
     var selectedProfileName by rememberSaveable {
         mutableStateOf(LauncherDrawerProfileKind.USER.name)
     }
-    val selectedProfileKind = runCatching {
-        LauncherDrawerProfileKind.valueOf(selectedProfileName)
-    }.getOrDefault(LauncherDrawerProfileKind.USER)
-    val selectedPage = profilePages.firstOrNull { page -> page.kind == selectedProfileKind }
-        ?: profilePages.first()
-
-    LaunchedEffect(profilePages.map { page -> page.kind }, selectedProfileKind) {
-        if (profilePages.none { page -> page.kind == selectedProfileKind }) {
-            selectedProfileName = LauncherDrawerProfileKind.USER.name
-        }
+    val profilePager = rememberPagerState(
+        initialPage = profilePages.indexOfFirst { it.kind.name == selectedProfileName }
+            .coerceAtLeast(0),
+        pageCount = { profilePages.size },
+    )
+    val profilePagerScope = rememberCoroutineScope()
+    val selectedPage = profilePages[profilePager.currentPage.coerceIn(profilePages.indices)]
+    LaunchedEffect(profilePager.currentPage, profilePages.map { it.kind }) {
+        selectedProfileName = selectedPage.kind.name
     }
 
     val dismissThreshold = with(LocalDensity.current) { 56.dp.toPx() }
@@ -3358,169 +3357,79 @@ private fun AppDrawerSurface(
                 }
                 Spacer(Modifier.height(GlazeMetrics.space3))
 
-                Column(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
-                    Text(
-                        selectedPage.kind.displayName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        if (experiencePreferences.showDrawerAppCount) {
-                            selectedPage.items.size.toString() + " installed · " + layoutDescription
-                        } else {
-                            layoutDescription
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = drawerSecondaryColor,
-                    )
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            selectedPage.kind.displayName,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            if (experiencePreferences.showDrawerAppCount) {
+                                selectedPage.items.size.toString() + " installed · " + layoutDescription
+                            } else layoutDescription,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = drawerSecondaryColor,
+                        )
+                    }
+                    if (selectedPage.kind == LauncherDrawerProfileKind.USER) {
+                        TextButton(
+                            onClick = onManageFolders,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("+ Folder") }
+                    }
                 }
-
                 if (profilePages.size > 1) {
                     Spacer(Modifier.height(GlazeMetrics.space3))
                     DrawerProfileTabs(
                         pages = profilePages.map { page -> page.kind to page.items.size },
                         selected = selectedPage.kind,
-                        onSelect = { kind -> selectedProfileName = kind.name },
-                        secondaryColor = drawerSecondaryColor,
-                    )
-                }
-
-                if (selectedPage.kind == LauncherDrawerProfileKind.USER) {
-                    Spacer(Modifier.height(GlazeMetrics.space2))
-                    LauncherDrawerFolderStrip(
-                        folders = folders,
-                        allApps = selectedPage.items,
-                        onOpenFolder = onOpenFolder,
-                        onManageFolders = onManageFolders,
-                        secondaryColor = drawerSecondaryColor,
-                    )
-                }
-
-                Spacer(Modifier.height(GlazeMetrics.space2))
-                if (selectedPage.items.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            "No apps are available in " + selectedPage.kind.displayName + ".",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = drawerSecondaryColor,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                } else {
-                    DrawerAppsContent(
-                        apps = selectedPage.items,
-                        query = "",
-                        preferences = preferences,
-                        drawerLayoutMode = drawerLayoutMode,
-                        experiencePreferences = experiencePreferences,
-                        onLaunchApp = onLaunchApp,
-                        onManageApp = onManageApp,
-                        onDismiss = onHome,
-                        secondaryColor = drawerSecondaryColor,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LauncherDrawerFolderStrip(
-    folders: List<LauncherFolder>,
-    allApps: List<LauncherActivityInfo>,
-    onOpenFolder: (LauncherFolder) -> Unit,
-    onManageFolders: () -> Unit,
-    secondaryColor: Color,
-) {
-    val appsByKey = remember(allApps) { allApps.associateBy { it.workspaceKey() } }
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Folders",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            TextButton(onClick = onManageFolders) {
-                Text(if (folders.isEmpty()) "Create" else "Manage")
-            }
-        }
-        // Empty folders remain discoverable through Create without pushing the app grid off screen.
-        if (folders.isNotEmpty()) {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                contentPadding = PaddingValues(end = GlazeMetrics.space2),
-            ) {
-                lazyItems(
-                    items = folders,
-                    key = { it.id },
-                ) { folder ->
-                    val previewApps = folder.appKeys.mapNotNull(appsByKey::get).take(4)
-                    Surface(
-                        modifier = Modifier
-                            .width(112.dp)
-                            .height(92.dp),
-                        onClick = { onOpenFolder(folder) },
-                        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-                        color = Color.White.copy(alpha = 0.06f),
-                        border = BorderStroke(1.dp, secondaryColor.copy(alpha = 0.16f)),
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(7.dp),
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                previewApps.take(3).forEach { app ->
-                                    val icon = rememberLauncherAppIcon(app)
-                                    if (icon != null) {
-                                        Image(
-                                            bitmap = icon,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier
-                                                .size(22.dp)
-                                                .launcherIconMask(),
-                                        )
-                                    }
-                                }
-                                if (previewApps.isEmpty()) {
-                                    Text(
-                                        "▦",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = secondaryColor,
-                                    )
-                                }
+                        onSelect = { kind ->
+                            val index = profilePages.indexOfFirst { it.kind == kind }
+                            if (index >= 0) profilePagerScope.launch {
+                                profilePager.animateScrollToPage(index)
                             }
+                        },
+                        secondaryColor = drawerSecondaryColor,
+                    )
+                }
+                Spacer(Modifier.height(GlazeMetrics.space2))
+                HorizontalPager(
+                    state = profilePager,
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                        .testTag("launcher-drawer-profile-pager"),
+                    userScrollEnabled = profilePages.size > 1,
+                ) { index ->
+                    val page = profilePages[index]
+                    val pageFolders =
+                        if (page.kind == LauncherDrawerProfileKind.USER) folders else emptyList()
+                    if (page.items.isEmpty() && pageFolders.isEmpty()) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                folder.name,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                "${folder.appKeys.size} apps",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = secondaryColor,
+                                "No apps are available in " + page.kind.displayName + ".",
+                                color = drawerSecondaryColor,
                             )
                         }
+                    } else {
+                        DrawerAppsContent(
+                            apps = page.items,
+                            folders = pageFolders,
+                            query = "",
+                            preferences = preferences,
+                            drawerLayoutMode = drawerLayoutMode,
+                            experiencePreferences = experiencePreferences,
+                            onLaunchApp = onLaunchApp,
+                            onManageApp = onManageApp,
+                            onOpenFolder = onOpenFolder,
+                            onDismiss = onHome,
+                            secondaryColor = drawerSecondaryColor,
+                            allowHorizontalPaging = profilePages.size == 1,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
                 }
             }
@@ -3596,17 +3505,21 @@ private fun DrawerProfileTabs(
 @Composable
 private fun DrawerAppsContent(
     apps: List<LauncherActivityInfo>,
+    folders: List<LauncherFolder>,
     query: String,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
+    onOpenFolder: (LauncherFolder) -> Unit,
     onDismiss: () -> Unit,
     secondaryColor: Color,
+    allowHorizontalPaging: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    if (apps.isEmpty() && query.isNotBlank()) {
+    val entries = remember(apps, folders) { orderedDrawerVisualEntries(apps, folders) }
+    if (entries.isEmpty() && query.isNotBlank()) {
         Box(
             modifier = modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center,
@@ -3621,7 +3534,8 @@ private fun DrawerAppsContent(
         return
     }
 
-    val pagedGrid = experiencePreferences.drawerNavigation == LauncherDrawerNavigation.PAGES &&
+    val pagedGrid = allowHorizontalPaging &&
+        experiencePreferences.drawerNavigation == LauncherDrawerNavigation.PAGES &&
         drawerLayoutMode != LauncherDrawerLayoutMode.LIST &&
         drawerLayoutMode != LauncherDrawerLayoutMode.CATEGORY
     val standardSpacing = when (experiencePreferences.drawerSpacing) {
