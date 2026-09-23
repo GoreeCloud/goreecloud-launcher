@@ -47,6 +47,7 @@ import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherFileSearchPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
+import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherIconPackDescriptor
 import com.goreecloud.launcher.core.launcher.LauncherIconPackRepository
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
@@ -63,6 +64,7 @@ import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDec
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSnapshot
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderUserControlPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferencesRepository
+import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.launcher.LauncherWidgetProviderDescriptor
 import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
@@ -523,7 +525,7 @@ class MainActivity : ComponentActivity() {
                             page = selectedPage,
                             pages = renderedPages,
                             homeColumns = launcherPreferences.homeColumns,
-                            showLabels = launcherPreferences.showLabels,
+                            showLabels = experiencePreferences.showHomeLabels,
                             iconScale = launcherPreferences.iconScale,
                             layoutLocked = launcherPreferences.layoutLocked,
                             homeLabelOverrides = homeLabelOverrides,
@@ -837,6 +839,9 @@ class MainActivity : ComponentActivity() {
                             onSetHomeCardStyle = launcherPreferencesRepository::setHomeCardStyle,
                             onSetShowHomeQuickActions = launcherPreferencesRepository::setShowHomeQuickActions,
                             onSetShowHomePageIndicator = launcherPreferencesRepository::setShowHomePageIndicator,
+                            onSetShowHomeLabels = launcherPreferencesRepository::setShowHomeLabels,
+                            onSetShowDrawerLabels = launcherPreferencesRepository::setShowDrawerLabels,
+                            onSetShowDrawerPageIndicator = launcherPreferencesRepository::setShowDrawerPageIndicator,
                             onSetUseLocalUsageForSuggestions =
                                 launcherPreferencesRepository::setUseLocalUsageForSuggestions,
                             onSetAddNewAppsToHome =
@@ -879,6 +884,13 @@ class MainActivity : ComponentActivity() {
                         renderedPages.size > 1 &&
                         showingHome
                     ) {
+                        val indicatorBottomPadding = when {
+                            !onPrimaryPage -> 24.dp
+                            launcherPreferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT &&
+                                experiencePreferences.homeSearchPlacement == LauncherHomeSearchPlacement.BOTTOM ->
+                                176.dp
+                            else -> 112.dp
+                        }
                         HomePageDots(
                             pages = renderedPages,
                             selectedPageId = selectedHomePageId,
@@ -886,7 +898,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .navigationBarsPadding()
-                                .padding(bottom = if (onPrimaryPage) 104.dp else 24.dp),
+                                .padding(bottom = indicatorBottomPadding),
                         )
                     }
 
