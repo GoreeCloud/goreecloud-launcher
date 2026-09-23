@@ -3,6 +3,8 @@ package com.goreecloud.launcher.ui
 import android.content.pm.LauncherActivityInfo
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -135,22 +137,44 @@ internal fun LauncherProviderControlledSearchSurface(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    if (showSources) "Search Sources" else "Universal Search",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                    if (showSources) "Search sources" else "Universal Search",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    if (showSources) "Local source controls, explicit handoffs and privacy boundaries"
-                    else "Apps, shortcuts, local files and user-enabled sources",
+                    if (showSources) "Control local sources and explicit provider handoffs"
+                    else "Private, local-first discovery",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
-                GlazeTextAction(if (showSources) "Results" else "Sources") {
-                    showSources = !showSources
-                }
-                GlazeTextAction("Done", onBack)
+            GlazeTextAction("Done", onBack)
+        }
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { showSources = !showSources },
+            shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(
+                    horizontal = GlazeMetrics.space3,
+                    vertical = GlazeMetrics.space2,
+                ),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (showSources) "Back to results" else "Search sources",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    if (showSources) "‹" else "Manage ›",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
 
@@ -186,11 +210,13 @@ internal fun LauncherProviderControlledSearchSurface(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                     ) {
                         explicitHandoffs.forEach { provider ->
-                            TextButton(
+                            androidx.compose.material3.OutlinedButton(
                                 onClick = {
                                     onSearchWithConnectedProvider(provider.providerId, query)
                                 },
@@ -212,6 +238,7 @@ internal fun LauncherProviderControlledSearchSurface(
                             searchProviderPreferences == null -> "Loading local Search sources…"
                             providers.isEmpty() -> "Automatic local Search sources are disabled."
                             !complete -> "Searching…"
+                            query.isBlank() -> "Type to search your enabled local sources."
                             else -> "No Launcher results match “" + query.trim() + "”"
                         },
                         textAlign = TextAlign.Center,
@@ -219,6 +246,11 @@ internal fun LauncherProviderControlledSearchSurface(
                     )
                 }
             } else {
+                Text(
+                    "${results.size} results",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
