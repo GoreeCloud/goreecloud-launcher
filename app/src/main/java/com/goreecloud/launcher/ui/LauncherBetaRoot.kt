@@ -514,7 +514,8 @@ fun LauncherBetaRoot(
                             surfaceModeName = LauncherSurfaceMode.DRAWER.name
                         }
                         LauncherSearchDestination.SETTINGS -> {
-                            surfaceModeName = LauncherSurfaceMode.SETTINGS.name
+                            homeEditorRequestSequence += 1L
+                            surfaceModeName = LauncherSurfaceMode.HOME.name
                         }
                         LauncherSearchDestination.HOME_EDITOR -> {
                             homeEditorRequestSequence += 1L
@@ -711,7 +712,7 @@ private fun HomeSurface(
             LauncherGestureActionType.NONE -> Unit
             LauncherGestureActionType.APPS -> onOpenDrawer()
             LauncherGestureActionType.UNIVERSAL_SEARCH -> onOpenLauncherSearch()
-            LauncherGestureActionType.LAUNCHER_SETTINGS -> onOpenSettings()
+            LauncherGestureActionType.LAUNCHER_SETTINGS -> showHomeEditor = true
             LauncherGestureActionType.HOME_EDITOR -> showHomeEditor = true
             LauncherGestureActionType.WALLPAPER -> onOpenWallpaperPicker()
             LauncherGestureActionType.THEME_MANAGER -> onOpenThemeManager()
@@ -791,6 +792,7 @@ private fun HomeSurface(
         Box(
             modifier = Modifier
                 .matchParentSize()
+                .testTag("launcher-home-empty-space-actions")
                 .pointerInput(swipeThreshold) {
                     detectTapGestures(
                         onDoubleTap = {
@@ -799,9 +801,7 @@ private fun HomeSurface(
                             )
                         },
                         onLongPress = {
-                            currentExecuteGestureAction(
-                                currentGesturePreferences.tapAndHoldAction,
-                            )
+                            showHomeEditor = true
                         },
                     )
                 }
@@ -928,7 +928,6 @@ private fun HomeSurface(
                 HomeQuickActions(
                     onOpenApps = onOpenDrawer,
                     onOpenSearch = openSearch,
-                    onOpenSettings = onOpenSettings,
                 )
             }
 
@@ -2081,7 +2080,6 @@ private fun HomeFavoriteTile(
 private fun HomeQuickActions(
     onOpenApps: () -> Unit,
     onOpenSearch: () -> Unit,
-    onOpenSettings: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -2089,7 +2087,6 @@ private fun HomeQuickActions(
     ) {
         GlazeActionChip("Apps", onOpenApps, Modifier.weight(1f))
         GlazeActionChip("Search", onOpenSearch, Modifier.weight(1f))
-        GlazeActionChip("Customize", onOpenSettings, Modifier.weight(1f))
     }
 }
 
@@ -3499,7 +3496,9 @@ private fun LauncherSettingsRootSurface(
                 "Gestures",
                 "Assign Home gestures to Launcher actions or installed apps",
             ) {
-                LauncherHomeGesture.entries.forEach { gesture ->
+                LauncherHomeGesture.entries
+                    .filterNot { it == LauncherHomeGesture.TAP_AND_HOLD }
+                    .forEach { gesture ->
                     val action = when (gesture) {
                         LauncherHomeGesture.SWIPE_UP -> experiencePreferences.swipeUpAction
                         LauncherHomeGesture.SWIPE_DOWN -> experiencePreferences.swipeDownAction
@@ -3514,8 +3513,9 @@ private fun LauncherSettingsRootSurface(
                         onClick = { gestureToConfigure = gesture },
                     )
                 }
+                SettingsReadOnlyRow("Tap and hold", "Edit Home")
                 Text(
-                    "Swipe left/right, Double-tap, and Tap and hold apply to empty Home space so app drag/reorder and app long-press controls remain authoritative.",
+                    "Tap and hold on empty Home space is reserved for Edit Home so Wallpaper, Widgets, Pages, Apps, and Settings remain consistently reachable. Swipe left/right and Double-tap remain configurable empty-space gestures.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -3563,6 +3563,7 @@ private fun gestureActionLabel(
     action: LauncherGestureAction,
     appsByKey: Map<String, LauncherActivityInfo>,
 ): String = when (action.type) {
+    LauncherGestureActionType.LAUNCHER_SETTINGS -> "Home editor"
     LauncherGestureActionType.OPEN_APP ->
         action.appKey
             ?.let(appsByKey::get)
@@ -3620,7 +3621,6 @@ private fun GestureActionPickerDialog(
             LauncherGestureActionType.NONE,
             LauncherGestureActionType.APPS,
             LauncherGestureActionType.UNIVERSAL_SEARCH,
-            LauncherGestureActionType.LAUNCHER_SETTINGS,
             LauncherGestureActionType.HOME_EDITOR,
             LauncherGestureActionType.WALLPAPER,
             LauncherGestureActionType.THEME_MANAGER,
