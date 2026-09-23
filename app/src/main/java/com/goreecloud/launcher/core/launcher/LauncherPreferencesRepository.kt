@@ -264,11 +264,13 @@ data class LauncherExperiencePreferences(
     val tapAndHoldAction: LauncherGestureAction =
         LauncherGestureAction.builtIn(LauncherGestureActionType.HOME_EDITOR),
     val starterLayoutApplied: Boolean = false,
+    val useLocalUsageForSuggestions: Boolean = true,
+    val addNewAppsToHome: Boolean = false,
 )
 
 data class LauncherPreferences(
-    val homeColumns: Int = 4,
-    val homeRows: Int = 5,
+    val homeColumns: Int = 5,
+    val homeRows: Int = 6,
     val drawerColumns: Int = 5,
     val showLabels: Boolean = true,
     val iconScale: Float = 1.0f,
@@ -323,6 +325,9 @@ class LauncherPreferencesRepository(
         val gestureDoubleTapAction = stringPreferencesKey("gesture_double_tap_action")
         val gestureTapAndHoldAction = stringPreferencesKey("gesture_tap_and_hold_action")
         val starterLayoutApplied = booleanPreferencesKey("starter_layout_applied")
+        val useLocalUsageForSuggestions =
+            booleanPreferencesKey("use_local_usage_for_suggestions")
+        val addNewAppsToHome = booleanPreferencesKey("add_new_apps_to_home")
         val homeLabelOverrides = stringPreferencesKey("home_label_overrides_v1")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
@@ -399,6 +404,9 @@ class LauncherPreferencesRepository(
                     LauncherGestureAction.builtIn(LauncherGestureActionType.HOME_EDITOR),
                 ),
                 starterLayoutApplied = values[Keys.starterLayoutApplied] ?: false,
+                useLocalUsageForSuggestions =
+                    values[Keys.useLocalUsageForSuggestions] ?: true,
+                addNewAppsToHome = values[Keys.addNewAppsToHome] ?: false,
             )
         }
         .distinctUntilChanged()
@@ -627,6 +635,22 @@ class LauncherPreferencesRepository(
                 LauncherHomeGesture.TAP_AND_HOLD -> Keys.gestureTapAndHoldAction
             }
             values[key] = action.storageValue
+        }
+    }
+
+    fun setUseLocalUsageForSuggestions(enabled: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.useLocalUsageForSuggestions] = enabled
+            }
+        }
+    }
+
+    fun setAddNewAppsToHome(enabled: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.addNewAppsToHome] = enabled
+            }
         }
     }
 
