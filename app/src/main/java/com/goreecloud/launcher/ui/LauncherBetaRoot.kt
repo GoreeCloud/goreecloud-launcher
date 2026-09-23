@@ -1685,11 +1685,11 @@ private fun HomeEditorPreviewIcon(app: LauncherActivityInfo) {
             bitmap = icon,
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(34.dp).launcherIconMask(),
         )
     } else {
         Surface(
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(34.dp).launcherIconMask(),
             shape = RoundedCornerShape(10.dp),
             color = Color.White.copy(alpha = 0.14f),
         ) {}
@@ -2371,11 +2371,11 @@ private fun HomeFavoriteTile(
                 bitmap = icon,
                 contentDescription = displayLabel,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(iconSize),
+                modifier = Modifier.size(iconSize).launcherIconMask(),
             )
         } else {
             Surface(
-                modifier = Modifier.size(iconSize),
+                modifier = Modifier.size(iconSize).launcherIconMask(),
                 shape = RoundedCornerShape(15.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
             ) {
@@ -4813,11 +4813,11 @@ private fun LauncherAppTile(
                 bitmap = icon,
                 contentDescription = app.label.toString(),
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(iconSize),
+                modifier = Modifier.size(iconSize).launcherIconMask(),
             )
         } else {
             Surface(
-                modifier = Modifier.size(iconSize),
+                modifier = Modifier.size(iconSize).launcherIconMask(),
                 shape = RoundedCornerShape(15.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
             ) {
@@ -4884,11 +4884,11 @@ private fun LauncherAppListRow(
                 bitmap = icon,
                 contentDescription = app.label.toString(),
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(iconSize),
+                modifier = Modifier.size(iconSize).launcherIconMask(),
             )
         } else {
             Surface(
-                modifier = Modifier.size(iconSize),
+                modifier = Modifier.size(iconSize).launcherIconMask(),
                 shape = RoundedCornerShape(13.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
             ) {
