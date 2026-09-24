@@ -1651,11 +1651,21 @@ class MainActivity : ComponentActivity() {
             Uri.fromParts(request.uriScheme, request.packageName, null),
         ).putExtra(Intent.EXTRA_RETURN_RESULT, false)
         runCatching { startActivity(intent) }.onFailure {
-            Toast.makeText(
-                this,
-                "Android uninstall is unavailable for this app.",
-                Toast.LENGTH_SHORT,
-            ).show()
+            runCatching { appsRepository.openDetails(app) }
+                .onSuccess {
+                    Toast.makeText(
+                        this,
+                        "Android uninstall confirmation could not open. Opened App info—choose Uninstall there.",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+                .onFailure {
+                    Toast.makeText(
+                        this,
+                        "Android uninstall is unavailable for this app.",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
         }
     }
 
