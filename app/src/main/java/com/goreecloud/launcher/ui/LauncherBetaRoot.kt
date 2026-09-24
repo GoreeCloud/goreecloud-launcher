@@ -79,7 +79,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -1398,6 +1400,7 @@ private fun LauncherWidgetPickerSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag("launcher-widget-picker-sheet")
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
@@ -1406,6 +1409,7 @@ private fun LauncherWidgetPickerSheet(
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 "Choose widget",
+                modifier = Modifier.semantics { heading() },
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -1419,7 +1423,9 @@ private fun LauncherWidgetPickerSheet(
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("launcher-widget-search-field"),
             singleLine = true,
             label = { Text("Search widgets") },
             placeholder = { Text("GoreeCloud widget, app, or package") },
@@ -1427,6 +1433,7 @@ private fun LauncherWidgetPickerSheet(
 
         Text(
             "GoreeCloud",
+            modifier = Modifier.semantics { heading() },
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
@@ -1463,6 +1470,7 @@ private fun LauncherWidgetPickerSheet(
 
         Text(
             "Installed apps",
+            modifier = Modifier.semantics { heading() },
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
@@ -1527,7 +1535,7 @@ private fun WidgetPickerBuiltInCard(
         else -> "•"
     }
     Surface(
-        modifier = modifier,
+        modifier = modifier.testTag("launcher-widget-built-in-$typeId"),
         onClick = onClick,
         shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
@@ -1549,6 +1557,7 @@ private fun WidgetPickerBuiltInCard(
                 ) {
                     Text(
                         glyph,
+                        modifier = Modifier.clearAndSetSemantics { },
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Light,
                         color = MaterialTheme.colorScheme.primary,
@@ -1601,6 +1610,7 @@ private fun InstalledWidgetPickerRow(
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         descriptor.label.take(1).uppercase(Locale.getDefault()),
+                        modifier = Modifier.clearAndSetSemantics { },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
