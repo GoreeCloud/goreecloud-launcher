@@ -25,6 +25,10 @@ PR #201 merged the replacement feature records and retired `FEATURE-ROADMAP.md` 
 
 The former roadmap synchronization obligation (`GOV-01`) is superseded by the September 22, 2026 repository-native standard. Google Drive is no longer a permitted active, mirrored, backup, convenience, or historical-shadow roadmap authority.
 
+## Current unmerged integration candidate
+
+Draft PR #248 now targets authoritative `main` directly after ancestry verification confirmed the complete #243 → #244 → #245 → #246 → #247 → #248 Development stack is synchronized: every child base SHA matched its parent head and each exact stacked head had a successful Android CI run before retargeting. The candidate remains **unmerged Development source**. Retargeting does not transfer earlier CI into current-main integration acceptance, so fresh exact-head validation is required on the retargeted candidate. Issue #80 retains representative-device, accessibility, profile/permission, performance, recovery, signing, release, and Stable gates.
+
 ## Open feature and acceptance obligations
 
 | ID | Feature / obligation | Priority | Current disposition |
