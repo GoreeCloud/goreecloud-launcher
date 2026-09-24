@@ -838,6 +838,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                         useUnmergedTree = true,
                     )
                     .assertIsNotSelected()
+                    .performScrollTo()
                     .performClick()
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     runCatching {
