@@ -50,13 +50,19 @@ object WorkspaceWidgetCatalog {
     const val COMPACT_CLOCK = "goreecloud.clock-compact"
     const val ANALOG_CLOCK = "goreecloud.clock-analog"
     const val DATE = "goreecloud.date"
+    const val SEARCH = "goreecloud.search"
+    const val QUICK_ACTIONS = "goreecloud.quick-actions"
+    const val BATTERY = "goreecloud.battery"
     const val LAUNCHER_STATUS = "goreecloud.launcher-status"
 
     val builtInTypeIds: Set<String> = linkedSetOf(
+        SEARCH,
+        QUICK_ACTIONS,
+        BATTERY,
+        DATE,
         CLOCK,
         COMPACT_CLOCK,
         ANALOG_CLOCK,
-        DATE,
         LAUNCHER_STATUS,
     )
 
@@ -65,6 +71,9 @@ object WorkspaceWidgetCatalog {
         COMPACT_CLOCK -> 2 to 1
         ANALOG_CLOCK -> 2 to 2
         DATE -> 2 to 1
+        SEARCH -> 4 to 1
+        QUICK_ACTIONS -> 4 to 2
+        BATTERY -> 2 to 1
         LAUNCHER_STATUS -> 2 to 1
         else -> null
     }
@@ -74,6 +83,9 @@ object WorkspaceWidgetCatalog {
         COMPACT_CLOCK -> "Compact clock"
         ANALOG_CLOCK -> "Analog clock"
         DATE -> "Date"
+        SEARCH -> "Universal Search"
+        QUICK_ACTIONS -> "Quick actions"
+        BATTERY -> "Battery"
         LAUNCHER_STATUS -> "Launcher Status"
         else -> "GoreeCloud widget"
     }
@@ -83,6 +95,9 @@ object WorkspaceWidgetCatalog {
         COMPACT_CLOCK -> "A compact time-first widget for tighter Home layouts."
         ANALOG_CLOCK -> "A quiet analog clock with Glaze styling."
         DATE -> "Day, date, and month at a glance."
+        SEARCH -> "Open Launcher Universal Search from Home."
+        QUICK_ACTIONS -> "Fast access to Apps, Search, Edit Home, and Settings."
+        BATTERY -> "Local battery level and charging state with no extra permission."
         LAUNCHER_STATUS -> "Local Launcher readiness and operating state."
         else -> "GoreeCloud widget"
     }

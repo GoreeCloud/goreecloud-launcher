@@ -67,10 +67,13 @@ class WorkspaceWidgetPlacementPolicyTest {
     @Test
     fun builtInCatalogExposesNamedPlaceableWidgets() {
         val expected = setOf(
+            WorkspaceWidgetCatalog.SEARCH,
+            WorkspaceWidgetCatalog.QUICK_ACTIONS,
+            WorkspaceWidgetCatalog.BATTERY,
+            WorkspaceWidgetCatalog.DATE,
             WorkspaceWidgetCatalog.CLOCK,
             WorkspaceWidgetCatalog.COMPACT_CLOCK,
             WorkspaceWidgetCatalog.ANALOG_CLOCK,
-            WorkspaceWidgetCatalog.DATE,
             WorkspaceWidgetCatalog.LAUNCHER_STATUS,
         )
 
@@ -80,6 +83,23 @@ class WorkspaceWidgetPlacementPolicyTest {
             assertTrue(WorkspaceWidgetCatalog.description(typeId).isNotBlank())
             val span = WorkspaceWidgetCatalog.defaultSpan(typeId)
             assertTrue(span != null && span.first > 0 && span.second > 0)
+        }
+    }
+
+    @Test
+    fun builtInCatalogIncludesUsefulNonClockUtilities() {
+        val utilityIds = setOf(
+            WorkspaceWidgetCatalog.SEARCH,
+            WorkspaceWidgetCatalog.QUICK_ACTIONS,
+            WorkspaceWidgetCatalog.BATTERY,
+            WorkspaceWidgetCatalog.LAUNCHER_STATUS,
+        )
+
+        assertTrue(utilityIds.all(WorkspaceWidgetCatalog.builtInTypeIds::contains))
+        utilityIds.forEach { typeId ->
+            assertTrue(WorkspaceWidgetCatalog.displayName(typeId).isNotBlank())
+            assertTrue(WorkspaceWidgetCatalog.description(typeId).isNotBlank())
+            assertTrue(WorkspaceWidgetCatalog.defaultSpan(typeId) != null)
         }
     }
 

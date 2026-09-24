@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetHostView
 import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherActivityInfo
 import android.net.Uri
+import android.os.BatteryManager
 import android.os.Process
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -71,6 +72,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -1246,6 +1248,10 @@ private fun HomeSurface(
                     onMoveWidget = onMoveWidget,
                     onMoveHomeFolderToCell = onMoveHomeFolderToCell,
                     onOpenFolder = onOpenFolder,
+                    onOpenWidgetSearch = openSearch,
+                    onOpenWidgetApps = onOpenDrawer,
+                    onOpenWidgetEditor = { showHomeEditor = true },
+                    onOpenWidgetSettings = onOpenSettings,
                     onSwipeUp = {
                         executeGestureAction(experiencePreferences.swipeUpAction)
                     },
@@ -1368,15 +1374,7 @@ private fun LauncherWidgetPickerSheet(
     onPickAndroidWidget: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
-    val builtIns = remember {
-        listOf(
-            WorkspaceWidgetCatalog.CLOCK,
-            WorkspaceWidgetCatalog.COMPACT_CLOCK,
-            WorkspaceWidgetCatalog.ANALOG_CLOCK,
-            WorkspaceWidgetCatalog.DATE,
-            WorkspaceWidgetCatalog.LAUNCHER_STATUS,
-        )
-    }
+    val builtIns = remember { WorkspaceWidgetCatalog.builtInTypeIds.toList() }
     val filteredAndroidWidgets = remember(availableAndroidWidgets, query) {
         val needle = query.trim()
         if (needle.isBlank()) {
@@ -1500,6 +1498,9 @@ private fun WidgetPickerBuiltInCard(
         WorkspaceWidgetCatalog.COMPACT_CLOCK -> "12:34"
         WorkspaceWidgetCatalog.ANALOG_CLOCK -> "◷"
         WorkspaceWidgetCatalog.DATE -> "23"
+        WorkspaceWidgetCatalog.SEARCH -> "⌕"
+        WorkspaceWidgetCatalog.QUICK_ACTIONS -> "•••"
+        WorkspaceWidgetCatalog.BATTERY -> "78%"
         WorkspaceWidgetCatalog.LAUNCHER_STATUS -> "GC"
         else -> "•"
     }
@@ -2109,6 +2110,10 @@ private fun HomeFavoritesGrid(
     onMoveWidget: (WorkspaceRenderedHomeWidget, Int, Int) -> Unit,
     onMoveHomeFolderToCell: (LauncherFolder, Int, Int) -> Unit,
     onOpenFolder: (LauncherFolder) -> Unit,
+    onOpenWidgetSearch: () -> Unit,
+    onOpenWidgetApps: () -> Unit,
+    onOpenWidgetEditor: () -> Unit,
+    onOpenWidgetSettings: () -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ) {
@@ -2313,6 +2318,10 @@ private fun HomeFavoritesGrid(
                     onCreateAndroidWidgetView = onCreateAndroidWidgetView,
                     onManageWidget = onManageWidget,
                     layoutLocked = layoutLocked,
+                    onOpenSearch = onOpenWidgetSearch,
+                    onOpenApps = onOpenWidgetApps,
+                    onOpenHomeEditor = onOpenWidgetEditor,
+                    onOpenSettings = onOpenWidgetSettings,
                     onDropWidget = { candidate, point ->
                         widgetTargetBounds.entries.firstOrNull { (_, bounds) ->
                             bounds.contains(point)
@@ -2585,6 +2594,10 @@ private fun HomeWidgetTile(
     layoutLocked: Boolean,
     onCreateAndroidWidgetView: (Int) -> AppWidgetHostView?,
     onManageWidget: (WorkspaceRenderedHomeWidget) -> Unit,
+    onOpenSearch: () -> Unit,
+    onOpenApps: () -> Unit,
+    onOpenHomeEditor: () -> Unit,
+    onOpenSettings: () -> Unit,
     onDropWidget: (WorkspaceRenderedHomeWidget, Offset) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -2620,6 +2633,10 @@ private fun HomeWidgetTile(
             is WorkspaceWidgetDescriptor.BuiltIn -> {
                 LauncherBuiltInWidget(
                     typeId = descriptor.typeId,
+                    onOpenSearch = onOpenSearch,
+                    onOpenApps = onOpenApps,
+                    onOpenHomeEditor = onOpenHomeEditor,
+                    onOpenSettings = onOpenSettings,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -2697,12 +2714,46 @@ private fun HomeWidgetTile(
     }
 }
 
+private data class LauncherBatterySnapshot(
+    val percent: Int?,
+    val charging: Boolean,
+)
+
+@Composable
+private fun rememberLauncherBatterySnapshot(): LauncherBatterySnapshot {
+    val context = LocalContext.current.applicationContext
+    fun readSnapshot(): LauncherBatterySnapshot {
+        val manager = context.getSystemService(BatteryManager::class.java)
+        val percent = manager
+            ?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            ?.takeIf { it in 0..100 }
+        return LauncherBatterySnapshot(
+            percent = percent,
+            charging = manager?.isCharging == true,
+        )
+    }
+
+    var snapshot by remember(context) { mutableStateOf(readSnapshot()) }
+    LaunchedEffect(context) {
+        while (true) {
+            delay(60_000)
+            snapshot = readSnapshot()
+        }
+    }
+    return snapshot
+}
+
 @Composable
 private fun LauncherBuiltInWidget(
     typeId: String,
+    onOpenSearch: () -> Unit,
+    onOpenApps: () -> Unit,
+    onOpenHomeEditor: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var now by remember { mutableStateOf(LocalDateTime.now()) }
+    val battery = rememberLauncherBatterySnapshot()
     LaunchedEffect(typeId) {
         while (true) {
             delay(30_000)
@@ -2868,6 +2919,95 @@ private fun LauncherBuiltInWidget(
                             color = Color.White.copy(alpha = 0.72f),
                         )
                     }
+                }
+            }
+            WorkspaceWidgetCatalog.SEARCH -> {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(onClick = onOpenSearch),
+                    color = Color.Transparent,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = GlazeMetrics.space3),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        Text(
+                            "⌕",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                "Search GoreeCloud",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                            )
+                            Text(
+                                "Apps, contacts, files & actions",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.70f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+            WorkspaceWidgetCatalog.QUICK_ACTIONS -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(GlazeMetrics.space2),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        GlazeActionChip("Apps", onOpenApps, Modifier.weight(1f))
+                        GlazeActionChip("Search", onOpenSearch, Modifier.weight(1f))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        GlazeActionChip("Edit Home", onOpenHomeEditor, Modifier.weight(1f))
+                        GlazeActionChip("Settings", onOpenSettings, Modifier.weight(1f))
+                    }
+                }
+            }
+            WorkspaceWidgetCatalog.BATTERY -> {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = GlazeMetrics.space3),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                            battery.percent?.let { "$it%" } ?: "—",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.Light,
+                        )
+                        Text(
+                            if (battery.charging) "Charging" else "Battery",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.70f),
+                        )
+                    }
+                    Text(
+                        if (battery.charging) "⚡" else "▰",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
             WorkspaceWidgetCatalog.LAUNCHER_STATUS -> {
