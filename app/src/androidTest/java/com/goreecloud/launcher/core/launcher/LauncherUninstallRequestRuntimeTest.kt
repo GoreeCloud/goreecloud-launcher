@@ -32,7 +32,7 @@ class LauncherUninstallRequestRuntimeTest {
         )
 
         val request = requireNotNull(
-            LauncherUninstallRequestPolicy.create("com.example.goreecloud.uninstallcheck"),
+            LauncherUninstallRequestPolicy.create(context.packageName),
         )
         val intent = Intent(
             request.action,
