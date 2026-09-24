@@ -17,6 +17,15 @@ data class LauncherIconPackDescriptor(
     val label: String,
 )
 
+internal object LauncherIconPackSafety {
+    fun <T> failSoft(block: () -> T?): T? =
+        try {
+            block()
+        } catch (_: Exception) {
+            null
+        }
+}
+
 class LauncherIconPackRepository(context: Context) {
     private val appContext = context.applicationContext
     private val packageManager = appContext.packageManager
@@ -58,8 +67,11 @@ class LauncherIconPackRepository(context: Context) {
             ?: resources.getIdentifier(drawableName, "mipmap", iconPackPackage)
                 .takeIf { it != 0 }
             ?: return null
-        val drawable = ResourcesCompat.getDrawable(resources, drawableId, null) ?: return null
-        return runCatching { drawable.toBitmap(sizePx, sizePx) }.getOrNull()
+        return LauncherIconPackSafety.failSoft {
+            val drawable = ResourcesCompat.getDrawable(resources, drawableId, null)
+                ?: return@failSoft null
+            drawable.toBitmap(sizePx, sizePx)
+        }
     }
 
     private fun mappingFor(
