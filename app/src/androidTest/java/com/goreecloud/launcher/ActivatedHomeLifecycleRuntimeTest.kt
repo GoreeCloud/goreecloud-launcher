@@ -837,7 +837,8 @@ class ActivatedHomeLifecycleRuntimeTest {
                         useUnmergedTree = true,
                     )
                     .assertIsNotSelected()
-                    .performClick()
+                    .assertIsDisplayed()
+                    .performTouchInput { click(center) }
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     runCatching {
                         composeRule
