@@ -46,8 +46,9 @@ import com.goreecloud.launcher.ui.theme.GlazeMetrics
 /**
  * Launcher-owned wallpaper chooser.
  *
- * Selecting a card only changes this transient preview. The system wallpaper is mutated only after
- * the user explicitly presses Apply.
+ * Selecting a card only changes this transient preview. Wallpaper cards expose explicit
+ * single-selection semantics for assistive technology, and the system wallpaper is mutated only
+ * after the user explicitly presses Apply.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
