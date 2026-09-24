@@ -1,6 +1,10 @@
 package com.goreecloud.launcher.ui
 
+import android.content.BroadcastReceiver
 import android.content.ClipData
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.appwidget.AppWidgetHostView
 import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherActivityInfo
@@ -93,6 +97,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import androidx.core.content.ContextCompat
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
@@ -2719,25 +2724,46 @@ private data class LauncherBatterySnapshot(
     val charging: Boolean,
 )
 
+private fun launcherBatterySnapshot(intent: Intent?): LauncherBatterySnapshot {
+    val level = intent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+    val scale = intent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+    val percent = if (level >= 0 && scale > 0) {
+        ((level.toFloat() / scale.toFloat()) * 100f).roundToInt().coerceIn(0, 100)
+    } else {
+        null
+    }
+    val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+    return LauncherBatterySnapshot(
+        percent = percent,
+        charging =
+            status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                status == BatteryManager.BATTERY_STATUS_FULL,
+    )
+}
+
 @Composable
 private fun rememberLauncherBatterySnapshot(): LauncherBatterySnapshot {
     val context = LocalContext.current.applicationContext
-    fun readSnapshot(): LauncherBatterySnapshot {
-        val manager = context.getSystemService(BatteryManager::class.java)
-        val percent = manager
-            ?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-            ?.takeIf { it in 0..100 }
-        return LauncherBatterySnapshot(
-            percent = percent,
-            charging = manager?.isCharging == true,
-        )
+    var snapshot by remember(context) {
+        mutableStateOf(LauncherBatterySnapshot(percent = null, charging = false))
     }
-
-    var snapshot by remember(context) { mutableStateOf(readSnapshot()) }
-    LaunchedEffect(context) {
-        while (true) {
-            delay(60_000)
-            snapshot = readSnapshot()
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(receiverContext: Context?, intent: Intent?) {
+                snapshot = launcherBatterySnapshot(intent)
+            }
+        }
+        // ACTION_BATTERY_CHANGED is a protected system broadcast. Register only for that
+        // explicit action and unregister with the widget lifecycle; no polling or permission.
+        val sticky = ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+            ContextCompat.RECEIVER_EXPORTED,
+        )
+        snapshot = launcherBatterySnapshot(sticky)
+        onDispose {
+            runCatching { context.unregisterReceiver(receiver) }
         }
     }
     return snapshot
