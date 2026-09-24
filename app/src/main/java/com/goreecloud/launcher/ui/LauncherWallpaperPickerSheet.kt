@@ -3,6 +3,7 @@ package com.goreecloud.launcher.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -97,21 +98,26 @@ internal fun LauncherWallpaperPickerSheet(
                 fontWeight = FontWeight.SemiBold,
             )
 
-            wallpapers.chunked(2).forEach { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                ) {
-                    row.forEach { wallpaper ->
-                        WallpaperChoiceCard(
-                            wallpaper = wallpaper,
-                            selected = wallpaper.id == selectedId,
-                            onSelect = { selectedId = wallpaper.id },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    if (row.size == 1) {
-                        Spacer(Modifier.weight(1f))
+            Column(
+                modifier = Modifier.selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+            ) {
+                wallpapers.chunked(2).forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    ) {
+                        row.forEach { wallpaper ->
+                            WallpaperChoiceCard(
+                                wallpaper = wallpaper,
+                                selected = wallpaper.id == selectedId,
+                                onSelect = { selectedId = wallpaper.id },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (row.size == 1) {
+                            Spacer(Modifier.weight(1f))
+                        }
                     }
                 }
             }
