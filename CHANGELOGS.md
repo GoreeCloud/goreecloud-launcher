@@ -31,6 +31,27 @@ The migrated historical record is stored in these repository-local segments:
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
 
+## September 23, 2026 — PR #248 broadened Launcher-owned Home widgets
+
+**Change type:** Home widgets; local-first utilities; user navigation; battery-state presentation; Development candidate.
+
+PR #248 expands the first-party widget catalog beyond clock-centric choices:
+
+- adds a **Universal Search** 4 × 1 widget that opens Launcher-owned Universal Search;
+- adds a **Quick actions** 4 × 2 widget for Apps, Search, Edit Home, and Launcher Settings;
+- adds a **Battery** 2 × 1 widget for local percentage and charging state;
+- retains Date, Digital clock, Compact clock, Analog clock, and Launcher Status;
+- derives the picker from the canonical built-in catalog instead of maintaining a second hardcoded list; and
+- adds JVM regression coverage for utility widget identity, naming, descriptions, and default spans.
+
+Privacy/performance boundary:
+
+- no new Android runtime permission, location access, network request, telemetry, query persistence, or third-party data authority is added;
+- Battery listens only to Android's protected battery-state broadcast and unregisters with the widget lifecycle instead of polling; and
+- Search/Quick actions invoke existing Launcher-owned surfaces only.
+
+**Lifecycle boundary:** PR #248 remains Development until its exact final head passes the configured CI lanes and the still-open issue #80 representative-device widget visual/touch/accessibility/resizing, profile/platform, performance, recovery, signing, and release gates are satisfied. This entry does not claim Release Candidate, production, Stable, or physical-device acceptance.
+
 ## September 23, 2026 — PR #240 stabilized selected file Search roots
 
 **Change type:** Universal Search; Storage Access Framework lifecycle; failure isolation; Development stabilization.

@@ -89,7 +89,8 @@ Validation:
 
 ### Widgets
 
-- Launcher-owned GoreeCloud Clock and Launcher Status built-in Home widgets.
+- Launcher-owned first-party Home widget catalog includes **Universal Search**, **Quick actions** (Apps, Search, Edit Home, Settings), **Battery**, **Date**, Digital clock, Compact clock, Analog clock, and **Launcher Status**.
+- Universal Search and Quick actions route only to existing Launcher-owned surfaces. Battery observes Android's protected battery-state broadcast without polling, network access, location, telemetry, retained history, or a new runtime permission.
 - Android third-party widget selection through the platform AppWidget picker with provider configuration before persistence when required.
 - AppWidgetHost/AppWidgetHostView lifecycle integration without requesting privileged `BIND_APPWIDGET` authority.
 - Host widget-ID cleanup for canceled/failed selection and successful widget removal.
