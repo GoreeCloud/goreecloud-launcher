@@ -154,6 +154,7 @@ private fun WallpaperChoiceCard(
     val shape = RoundedCornerShape(GlazeMetrics.radiusLarge)
     Surface(
         modifier = modifier
+            .testTag("launcher-wallpaper-choice-${wallpaper.id.name}")
             .selectable(
                 selected = selected,
                 onClick = onSelect,
