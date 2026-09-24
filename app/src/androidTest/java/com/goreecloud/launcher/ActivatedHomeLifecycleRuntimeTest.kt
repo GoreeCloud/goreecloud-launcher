@@ -825,19 +825,32 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .isNotEmpty()
                 }
 
-                val aurora = composeRule.onNodeWithTag(
-                    "launcher-wallpaper-choice-AURORA",
-                    useUnmergedTree = true,
-                )
-                val horizon = composeRule.onNodeWithTag(
-                    "launcher-wallpaper-choice-HORIZON",
-                    useUnmergedTree = true,
-                )
-                aurora.assertIsSelected()
-                horizon.assertIsNotSelected()
-                horizon.performClick()
-                horizon.assertIsSelected()
-                aurora.assertIsNotSelected()
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-wallpaper-choice-AURORA",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsSelected()
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-wallpaper-choice-HORIZON",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsNotSelected()
+                    .performClick()
+                composeRule.waitForIdle()
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-wallpaper-choice-HORIZON",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsSelected()
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-wallpaper-choice-AURORA",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsNotSelected()
 
                 composeRule.onNodeWithText("Apply").assertIsDisplayed()
                 Unit
