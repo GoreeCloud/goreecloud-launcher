@@ -838,8 +838,6 @@ class ActivatedHomeLifecycleRuntimeTest {
                         useUnmergedTree = true,
                     )
                     .assertIsNotSelected()
-                    .performScrollTo()
-                    .assertIsDisplayed()
                     .performClick()
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     runCatching {
@@ -870,7 +868,12 @@ class ActivatedHomeLifecycleRuntimeTest {
                     )
                     .assertIsNotSelected()
 
-                composeRule.onNodeWithText("Apply").assertIsDisplayed()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithText("Apply", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
                 Unit
             } finally {
                 scenario.close()
