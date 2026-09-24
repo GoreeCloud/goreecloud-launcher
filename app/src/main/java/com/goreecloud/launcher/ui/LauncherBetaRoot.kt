@@ -2779,7 +2779,6 @@ private fun LauncherBuiltInWidget(
     modifier: Modifier = Modifier,
 ) {
     var now by remember { mutableStateOf(LocalDateTime.now()) }
-    val battery = rememberLauncherBatterySnapshot()
     LaunchedEffect(typeId) {
         while (true) {
             delay(30_000)
@@ -3009,6 +3008,7 @@ private fun LauncherBuiltInWidget(
                 }
             }
             WorkspaceWidgetCatalog.BATTERY -> {
+                val battery = rememberLauncherBatterySnapshot()
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
