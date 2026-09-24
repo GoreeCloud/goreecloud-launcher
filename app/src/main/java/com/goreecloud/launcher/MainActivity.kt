@@ -1618,11 +1618,21 @@ class MainActivity : ComponentActivity() {
 
     private fun requestUninstall(app: LauncherActivityInfo) {
         if (app.user != Process.myUserHandle()) {
-            Toast.makeText(
-                this,
-                "Uninstall this app from its Android profile.",
-                Toast.LENGTH_SHORT,
-            ).show()
+            runCatching { appsRepository.openDetails(app) }
+                .onSuccess {
+                    Toast.makeText(
+                        this,
+                        "Opened app info for this Android profile. Choose Uninstall there.",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+                .onFailure {
+                    Toast.makeText(
+                        this,
+                        "Android app info is unavailable for this profile.",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
             return
         }
 
