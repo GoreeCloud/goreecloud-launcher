@@ -838,7 +838,10 @@ class ActivatedHomeLifecycleRuntimeTest {
                     )
                     .assertIsNotSelected()
                     .assertIsDisplayed()
-                    .performTouchInput { click(center) }
+                    .performTouchInput {
+                        down(center)
+                        up()
+                    }
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     runCatching {
                         composeRule
