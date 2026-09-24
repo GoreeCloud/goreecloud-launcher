@@ -838,7 +838,22 @@ class ActivatedHomeLifecycleRuntimeTest {
                     )
                     .assertIsNotSelected()
                     .performClick()
-                composeRule.waitForIdle()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    runCatching {
+                        composeRule
+                            .onNodeWithTag(
+                                "launcher-wallpaper-choice-HORIZON",
+                                useUnmergedTree = true,
+                            )
+                            .assertIsSelected()
+                        composeRule
+                            .onNodeWithTag(
+                                "launcher-wallpaper-choice-AURORA",
+                                useUnmergedTree = true,
+                            )
+                            .assertIsNotSelected()
+                    }.isSuccess
+                }
                 composeRule
                     .onNodeWithTag(
                         "launcher-wallpaper-choice-HORIZON",
