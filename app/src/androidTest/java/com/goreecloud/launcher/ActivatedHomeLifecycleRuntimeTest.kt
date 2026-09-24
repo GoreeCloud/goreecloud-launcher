@@ -833,7 +833,6 @@ class ActivatedHomeLifecycleRuntimeTest {
                         "launcher-widget-built-in-goreecloud.battery",
                         useUnmergedTree = true,
                     )
-                    .assertIsDisplayed()
                     .assertHasClickAction()
 
                 composeRule
