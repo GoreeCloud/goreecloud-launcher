@@ -42,7 +42,9 @@ PR #248 expands the first-party widget catalog beyond clock-centric choices:
 - adds a **Battery** 2 × 1 widget for local percentage and charging state;
 - retains Date, Digital clock, Compact clock, Analog clock, and Launcher Status;
 - derives the picker from the canonical built-in catalog instead of maintaining a second hardcoded list; and
-- adds JVM regression coverage for utility widget identity, naming, descriptions, and default spans.
+- adds JVM regression coverage for utility widget identity, naming, descriptions, and default spans;
+- marks the widget-gallery title and catalog sections as accessibility headings, hides decorative preview glyphs from assistive semantics, and adds stable UI semantics for the unified picker search; and
+- adds Android runtime coverage that opens the widget picker from Edit Home, exercises unified filtering, and verifies that a built-in widget remains an actionable accessibility node without mutating Home.
 
 Privacy/performance boundary:
 
