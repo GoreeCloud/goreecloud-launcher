@@ -31,6 +31,16 @@ The migrated historical record is stored in these repository-local segments:
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
 
+## September 24, 2026 — PR #248 restores the long-press Uninstall handoff
+
+**Change type:** App actions; Android package management handoff; owner-reported Development defect.
+
+PR #248 restores the long-press **Uninstall** action by declaring Android's normal `REQUEST_DELETE_PACKAGES` capability and routing the action to the package-specific `UNINSTALL_PACKAGE` system flow instead of the generic data-deletion intent. The request still targets only the current Android profile; cross-profile uninstall remains delegated to that profile.
+
+The Launcher does not silently delete packages. Android remains authoritative for the uninstall confirmation and final package-removal decision. The change adds a testable uninstall-request contract, JVM regression coverage for the action/package URI contract and blank-package rejection, and a manifest validation requirement so the uninstall capability cannot silently disappear.
+
+**Lifecycle boundary:** This remains Development source. Exact-head CI and representative-device confirmation that Android's uninstall confirmation opens, cancel preserves the app, confirm removes an ordinary uninstallable app, and restricted/system/profile cases fail safely remain required under issue #80.
+
 ## September 24, 2026 — PR #248 wallpaper-picker accessibility semantics
 
 **Change type:** Accessibility; wallpaper selection; Glaze UI interaction semantics; Development stabilization.

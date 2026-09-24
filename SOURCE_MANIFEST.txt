@@ -68,6 +68,7 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderPr
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderUserControlPolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherTransactionalPortableRestoreWriter.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearch.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherUninstallRequest.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/StarterWorkspacePolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthority.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceDragPlacement.kt
@@ -160,6 +161,7 @@ app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderPr
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderPreferencesRepositoryTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderUserControlPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearchTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherUninstallRequestPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/StarterWorkspacePolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/GlazeMotionExperimentalConsumerTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthorityTest.kt

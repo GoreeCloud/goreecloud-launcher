@@ -72,6 +72,7 @@ import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceSna
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderUserControlPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
+import com.goreecloud.launcher.core.launcher.LauncherUninstallRequestPolicy
 import com.goreecloud.launcher.core.launcher.LauncherWallpaperShade
 import com.goreecloud.launcher.core.launcher.LauncherWidgetProviderDescriptor
 import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
@@ -1625,10 +1626,20 @@ class MainActivity : ComponentActivity() {
             return
         }
 
+        val request = LauncherUninstallRequestPolicy.create(app.componentName.packageName)
+        if (request == null) {
+            Toast.makeText(
+                this,
+                "Android uninstall is unavailable for this app.",
+                Toast.LENGTH_SHORT,
+            ).show()
+            return
+        }
+
         val intent = Intent(
-            Intent.ACTION_DELETE,
-            Uri.fromParts("package", app.componentName.packageName, null),
-        )
+            request.action,
+            Uri.fromParts(request.uriScheme, request.packageName, null),
+        ).putExtra(Intent.EXTRA_RETURN_RESULT, false)
         runCatching { startActivity(intent) }.onFailure {
             Toast.makeText(
                 this,
