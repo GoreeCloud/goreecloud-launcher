@@ -31,6 +31,16 @@ The migrated historical record is stored in these repository-local segments:
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
 
+## September 24, 2026 — PR #248 wallpaper-picker accessibility semantics
+
+**Change type:** Accessibility; wallpaper selection; Glaze UI interaction semantics; Development stabilization.
+
+PR #248 now exposes each built-in wallpaper choice as an explicit single-selection radio option instead of a generic clickable surface. The picker and collection titles are also exposed as accessibility headings, while the visual cards remain the same Launcher-owned preview and apply flow.
+
+This is a presentation/accessibility correction only. It adds no Android permission, network behavior, telemetry, wallpaper mutation before the existing explicit **Apply** action, or new product authority.
+
+**Lifecycle boundary:** This source remains Development. Exact-head CI, representative-device TalkBack/Switch Access, large-text/landscape input, visual contrast, wallpaper application/recovery, signing, Release Candidate, production, and Stable acceptance remain open under issue #80.
+
 ## September 23, 2026 — PR #248 broadened Launcher-owned Home widgets
 
 **Change type:** Home widgets; local-first utilities; user navigation; battery-state presentation; Development candidate.
