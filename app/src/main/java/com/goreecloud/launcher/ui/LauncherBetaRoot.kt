@@ -1380,6 +1380,9 @@ private fun LauncherWidgetPickerSheet(
 ) {
     var query by remember { mutableStateOf("") }
     val builtIns = remember { WorkspaceWidgetCatalog.builtInTypeIds.toList() }
+    val filteredBuiltIns = remember(builtIns, query) {
+        builtIns.filter { typeId -> WorkspaceWidgetCatalog.matchesQuery(typeId, query) }
+    }
     val filteredAndroidWidgets = remember(availableAndroidWidgets, query) {
         val needle = query.trim()
         if (needle.isBlank()) {
@@ -1413,42 +1416,56 @@ private fun LauncherWidgetPickerSheet(
             )
         }
 
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("Search widgets") },
+            placeholder = { Text("GoreeCloud widget, app, or package") },
+        )
+
         Text(
             "GoreeCloud",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
-        builtIns.chunked(2).forEach { row ->
-            Row(
+        if (filteredBuiltIns.isEmpty()) {
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
             ) {
-                row.forEach { typeId ->
-                    WidgetPickerBuiltInCard(
-                        typeId = typeId,
-                        onClick = { onAddBuiltInWidget(typeId) },
-                        modifier = Modifier.weight(1f),
-                    )
+                Text(
+                    "No GoreeCloud widgets match “$query”.",
+                    modifier = Modifier.padding(GlazeMetrics.space3),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            filteredBuiltIns.chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    row.forEach { typeId ->
+                        WidgetPickerBuiltInCard(
+                            typeId = typeId,
+                            onClick = { onAddBuiltInWidget(typeId) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                "Installed apps",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text("Search widgets") },
-                placeholder = { Text("App or widget name") },
-            )
-        }
+        Text(
+            "Installed apps",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
 
         if (filteredAndroidWidgets.isEmpty()) {
             Surface(
@@ -1460,7 +1477,7 @@ private fun LauncherWidgetPickerSheet(
                     if (query.isBlank()) {
                         "No installed third-party widgets were discovered for this profile."
                     } else {
-                        "No widgets match “$query”."
+                        "No installed Android widgets match “$query”."
                     },
                     modifier = Modifier.padding(GlazeMetrics.space3),
                     style = MaterialTheme.typography.bodyMedium,

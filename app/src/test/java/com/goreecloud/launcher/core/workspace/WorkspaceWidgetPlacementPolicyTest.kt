@@ -104,6 +104,16 @@ class WorkspaceWidgetPlacementPolicyTest {
     }
 
     @Test
+    fun builtInCatalogSearchMatchesNamesDescriptionsAndIds() {
+        assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.BATTERY, "battery"))
+        assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.SEARCH, "universal"))
+        assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.QUICK_ACTIONS, "Settings"))
+        assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.CLOCK, "goreecloud.clock"))
+        assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.DATE, "  "))
+        assertTrue(!WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.BATTERY, "weather"))
+    }
+
+    @Test
     fun movePreservesWidgetSpanAndRejectsOccupiedOrOutOfBoundsCells() {
         val grid = WorkspaceGridPlacement.Grid(columns = 5, rows = 6)
         val items = listOf(

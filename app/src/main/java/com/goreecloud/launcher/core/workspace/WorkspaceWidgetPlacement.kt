@@ -101,6 +101,14 @@ object WorkspaceWidgetCatalog {
         LAUNCHER_STATUS -> "Local Launcher readiness and operating state."
         else -> "GoreeCloud widget"
     }
+
+    fun matchesQuery(typeId: String, query: String): Boolean {
+        val needle = query.trim()
+        if (needle.isEmpty()) return true
+        return displayName(typeId).contains(needle, ignoreCase = true) ||
+            description(typeId).contains(needle, ignoreCase = true) ||
+            typeId.contains(needle, ignoreCase = true)
+    }
 }
 
 object WorkspaceWidgetPlacementPolicy {
