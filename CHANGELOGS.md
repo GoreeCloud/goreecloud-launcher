@@ -35,7 +35,7 @@ The source parser identified 71 meaningful dated or titled historical sections/e
 
 **Change type:** App actions; Android package management handoff; owner-reported Development defect.
 
-PR #248 restores the long-press **Uninstall** action by declaring Android's normal `REQUEST_DELETE_PACKAGES` capability and routing the action to the package-specific `UNINSTALL_PACKAGE` system flow instead of the generic data-deletion intent. The request still targets only the current Android profile. For Work or other secondary-profile apps, the same action now opens Android's profile-specific App Info surface with a clear instruction to use that profile's Uninstall control instead of appearing to do nothing.
+PR #248 restores the long-press **Uninstall** action by declaring Android's normal `REQUEST_DELETE_PACKAGES` capability and routing the action to the package-specific `UNINSTALL_PACKAGE` system flow instead of the generic data-deletion intent. The request still targets only the current Android profile. For Work or other secondary-profile apps, the same action opens Android's profile-specific App Info surface with a clear instruction to use that profile's Uninstall control. If an OEM cannot open the direct uninstall confirmation for a same-profile app, Launcher now also fails soft to Android App Info instead of leaving the action as a dead end.
 
 The Launcher does not silently delete packages. Android remains authoritative for the uninstall confirmation and final package-removal decision. The change adds a testable uninstall-request contract, JVM regression coverage for the action/package URI contract and blank-package rejection, and a manifest validation requirement so the uninstall capability cannot silently disappear.
 
