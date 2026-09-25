@@ -172,7 +172,7 @@ conformance:
   validated_at: null
   evidence:
     - README.md
-    - SPECIFICATIONS.md
+    - PROJECT-SPECIFICATIONS.md
     - docs/glaze-ui-adoption.md
     - scripts/check_glaze_ui.py
     - docs/development/workspace-portable-snapshot.md
