@@ -2,7 +2,7 @@
 
 **Repository:** `GoreeCloud/launcher`  
 **Project type:** Native Android launcher application  
-**Lifecycle:** Development  
+**Repository lifecycle declaration (legacy Contract 0.4):** `development`; canonical Contract 2.0 lifecycle reclassification remains pending and must be evidence-backed  
 **Repository visibility:** Public  
 **Default branch:** `main`  
 **Migration baseline:** `c853fa115a964c3cff531af555039f2e3cdd944e`  
