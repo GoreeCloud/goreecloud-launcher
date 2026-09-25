@@ -24,6 +24,8 @@ The Drive project specification reached v0.44 and recorded a Development require
 
 ## 2026-09-24 — Project specification/project record migration candidate
 
+Migration pull request: [PR #249](https://github.com/GoreeCloud/launcher/pull/249).
+
 This migration:
 - creates root `PROJECT-SPECIFICATIONS.md`;
 - creates root `PROJECT-RECORD.md`;
