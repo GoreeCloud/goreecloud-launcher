@@ -165,7 +165,8 @@ Repository-native feature and change-history records:
 Additional product and technical documentation:
 
 - [USER-MANUAL.md](USER-MANUAL.md) — current Development behavior and user guidance.
-- [SPECIFICATIONS.md](SPECIFICATIONS.md) — architecture, scope, and authority boundaries.
+- [PROJECT-SPECIFICATIONS.md](PROJECT-SPECIFICATIONS.md) — authoritative project scope, requirements, architecture, security/privacy boundaries, and acceptance requirements.
+- [PROJECT-RECORD.md](PROJECT-RECORD.md) — significant project history, governance transitions, migration evidence, and major acceptance records.
 - [FEATURES.md](FEATURES.md) — implemented Development behavior plus approved target scope.
 - [BENEFITS.md](BENEFITS.md) — current and intended benefits.
 - [COMPETITIVE-OBJECTIVES.md](COMPETITIVE-OBJECTIVES.md) — product completeness objectives.
@@ -173,7 +174,7 @@ Additional product and technical documentation:
 - [Glaze UI adoption](docs/glaze-ui-adoption.md) — exact current-Stable source mapping and application acceptance boundary.
 - `docs/` — architecture, persistence, design-system, validation, implementation, and historical changelog records.
 
-Canonical project specifications and other governed project records may remain in the authorized GoreeCloud documentation hierarchy where applicable. Feature-state authority and Launcher changelog authority are repository-native and must not be synchronized to Google Drive.
+Canonical project specifications and the significant project record are repository-native in `PROJECT-SPECIFICATIONS.md` and `PROJECT-RECORD.md`. Google Drive is not a parallel authority for those records. Feature-state authority and Launcher changelog authority are also repository-native and must not be synchronized to Google Drive.
 
 ## Build baseline
 
