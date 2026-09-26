@@ -31,6 +31,33 @@ The migrated historical record is stored in these repository-local segments:
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
 
+## September 26, 2026 — PR #248 incorporates representative-device Launcher feedback
+
+**Change type:** Home suggestions; app-icon reliability; Launcher identity derivative; Universal Search follow-up; Development candidate.
+
+Representative-device testing after Android CI #892 confirmed that the simplified Universal Search entry is materially cleaner while exposing additional Launcher defects and follow-up requirements.
+
+Implemented in the current PR #248 candidate:
+
+- extends the existing local-only usage store with a bounded most-recently-launched app ordering in addition to aggregate launch counts;
+- represents recency only by ordering, without timestamps, dwell time, Android Usage Access, cross-application history, query history, or network telemetry;
+- makes the default one-time ten-app Home starter ranking prefer that recency ordering while retaining aggregate-count and deterministic role fallbacks and preserving user-edited Home authority after the starter is applied;
+- keeps a bounded process-local stale-while-revalidate icon fallback during package/profile cache invalidation so a previously decoded official icon can remain visible while its replacement is decoded;
+- retries Android's authoritative activity icon when the badged-icon decode path fails, reducing transient/random placeholder presentation without persisting third-party artwork; and
+- recenters/refines the Android adaptive Launcher foreground while preserving the canonical four-tile plus center-accent identity contract and required GoreeCloud color/opacity tokens.
+
+Validation correction:
+
+- intermediate icon revisions were intentionally rejected by `scripts/check_identity.py` when they removed the center accent or canonical identity tokens; those failures remain audit evidence and the guard was not weakened;
+- exact candidate head `9c18d1af4996b9ebac9bdbf15aabbff62708d8b6` subsequently passed Android CI #902 / `36255771493` across validate/build/lint/JVM/APK, Android 16 Room/runtime instrumentation, and Android 16 transition-performance.
+
+Still open:
+
+- issue #252 tracks true inline connected-source results and predictions for Brave Search, Google Drive, Dropbox, Gmail, and other approved providers. The current explicit-handoff model is retained until real provider authorization/API adapters exist; Launcher must not silently transmit typed queries or scrape authenticated provider sessions to imitate inline integration.
+- representative-device verification is still required for the recent-app starter outcome, disappearance of random icon placeholders, adaptive-icon visual centering across masks/themed icons, and the broader issue #80 acceptance matrix.
+
+**Lifecycle boundary:** PR #248 remains unmerged Development source. This work does not establish Release Candidate, production, Stable, or representative-device acceptance.
+
 ## September 26, 2026 — PR #248 simplifies the Universal Search entry state
 
 **Change type:** Universal Search presentation; Glaze UI progressive disclosure; owner-reported UX refinement; Development candidate.
