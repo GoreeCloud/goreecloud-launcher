@@ -349,32 +349,63 @@ class ActivatedHomeLifecycleRuntimeTest {
                         )
                     }
 
-                // The Glaze Search redesign has an accessible floating panel rather than
-                // the old full-screen heading. Verify its stable UI semantics instead of
-                // presentation copy, preserving the real Home-gesture navigation check.
+                // Idle Universal Search is intentionally reduced to one search field with
+                // an in-field settings action. Results and their containing panel appear
+                // only after the user begins typing.
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule
-                        .onAllNodesWithTag("launcher-glaze-search-panel", useUnmergedTree = true)
+                        .onAllNodesWithTag("launcher-universal-search-field", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
-                composeRule
-                    .onNodeWithTag("launcher-glaze-search-panel", useUnmergedTree = true)
-                    .assertIsDisplayed()
-                // Verify the editable Search field before executing a real Theme navigation.
                 composeRule
                     .onNodeWithTag(
                         "launcher-universal-search-field",
                         useUnmergedTree = true,
                     )
                     .assertIsDisplayed()
-
+                assertEquals(
+                    0,
+                    composeRule
+                        .onAllNodesWithTag("launcher-glaze-search-panel", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .size,
+                )
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-universal-search-settings",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+                    .assertHasClickAction()
+                    .performClick()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag("launcher-search-source-manager", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText("Back", useUnmergedTree = true)
+                    .performClick()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag("launcher-universal-search-field", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
                 composeRule
                     .onNodeWithTag(
                         "launcher-universal-search-field",
                         useUnmergedTree = true,
                     )
                     .performTextInput("theme")
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag("launcher-glaze-search-panel", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule.onAllNodesWithText("Theme Manager", useUnmergedTree = true)
