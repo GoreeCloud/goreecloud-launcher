@@ -53,6 +53,35 @@ class ActivatedHomeLifecycleRuntimeTest {
     @get:Rule
     val composeRule = createEmptyComposeRule()
 
+    private lateinit var lifecyclePreferencesRepository: LauncherPreferencesRepository
+    private var previousRecentHomeSuggestions = true
+
+    @Before
+    fun isolatePersistedWorkspaceTestsFromRecentHomeSuggestions() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        lifecyclePreferencesRepository = LauncherPreferencesRepository(context)
+        previousRecentHomeSuggestions =
+            lifecyclePreferencesRepository.experiencePreferences.first()
+                .useLocalUsageForSuggestions
+        lifecyclePreferencesRepository.setUseLocalUsageForSuggestions(false)
+        withTimeout(5_000) {
+            lifecyclePreferencesRepository.experiencePreferences.first {
+                !it.useLocalUsageForSuggestions
+            }
+        }
+        LauncherLocalUsageRepository(context).clear().join()
+    }
+
+    @After
+    fun restoreRecentHomeSuggestionPreference() = runBlocking {
+        lifecyclePreferencesRepository.setUseLocalUsageForSuggestions(previousRecentHomeSuggestions)
+        withTimeout(5_000) {
+            lifecyclePreferencesRepository.experiencePreferences.first {
+                it.useLocalUsageForSuggestions == previousRecentHomeSuggestions
+            }
+        }
+    }
+
     @Before
     fun completeStartupForEstablishedRuntimeTests() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -171,10 +200,6 @@ class ActivatedHomeLifecycleRuntimeTest {
         val preferencesRepository = LauncherPreferencesRepository(context)
         val previousSwipeUp = preferencesRepository.experiencePreferences.first().swipeUpAction
         val appsAction = LauncherGestureAction.builtIn(LauncherGestureActionType.APPS)
-        // This test validates persisted Home gesture behavior, not the live recent-app suggestion
-        // surface. Clear process-local launch suggestions so the directly seeded favorite remains
-        // the deterministic gesture target throughout this test.
-        LauncherLocalUsageRepository(context).clear().join()
 
         if (!alreadyDefaultHome) {
             runShellCommand(
@@ -318,8 +343,6 @@ class ActivatedHomeLifecycleRuntimeTest {
         val previousSwipeDown = preferencesRepository.experiencePreferences.first().swipeDownAction
         val searchAction =
             LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH)
-        // Keep this persisted-favorite gesture test isolated from recent-app suggestions.
-        LauncherLocalUsageRepository(context).clear().join()
 
         if (!alreadyDefaultHome) {
             runShellCommand(
@@ -680,8 +703,6 @@ class ActivatedHomeLifecycleRuntimeTest {
         val roleManager = context.getSystemService(RoleManager::class.java)
         val alreadyDefaultHome =
             roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
-        // This lifecycle test seeds a specific persisted favorite as its Home gesture target.
-        LauncherLocalUsageRepository(context).clear().join()
 
         if (!alreadyDefaultHome) {
             runShellCommand(
