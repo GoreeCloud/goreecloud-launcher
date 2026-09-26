@@ -463,14 +463,16 @@ private fun LauncherUniversalSearchSettingsAction(
                     style = Stroke(width = strokeWidth),
                 )
                 repeat(8) { index ->
-                    val angle = (index * (PI / 4.0)).toFloat()
+                    val angle = index * (PI / 4.0)
+                    val cosAngle = cos(angle).toFloat()
+                    val sinAngle = sin(angle).toFloat()
                     val start = androidx.compose.ui.geometry.Offset(
-                        x = center.x + cos(angle) * toothInner,
-                        y = center.y + sin(angle) * toothInner,
+                        x = center.x + cosAngle * toothInner,
+                        y = center.y + sinAngle * toothInner,
                     )
                     val end = androidx.compose.ui.geometry.Offset(
-                        x = center.x + cos(angle) * toothOuter,
-                        y = center.y + sin(angle) * toothOuter,
+                        x = center.x + cosAngle * toothOuter,
+                        y = center.y + sinAngle * toothOuter,
                     )
                     drawLine(
                         color = iconColor,
