@@ -114,6 +114,7 @@ import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeLabelPolicy
 import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
+import com.goreecloud.launcher.core.launcher.LauncherHomeSuggestionsPolicy
 import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
@@ -975,24 +976,14 @@ private fun HomeSurface(
         workspace.dockKeys,
         experiencePreferences.homeAppMode,
     ) {
-        val excluded = workspace.favoriteKeys.toSet() + workspace.dockKeys.toSet()
-        val keys = when (experiencePreferences.homeAppMode) {
-            LauncherHomeAppMode.NONE -> emptyList()
-            LauncherHomeAppMode.RECENT -> recentAppKeys
-            LauncherHomeAppMode.MOST_USED -> localLaunchCounts.entries
-                .sortedWith(
-                    compareByDescending<Map.Entry<String, Long>> { it.value }
-                        .thenBy { it.key },
-                )
-                .map { it.key }
-        }
-        keys.asSequence()
-            .filterNot(excluded::contains)
-            .mapNotNull(appsByKey::get)
-            .filterNot { it.componentName.packageName.contains("launcher", ignoreCase = true) }
-            .distinctBy { it.workspaceKey() }
-            .take(10)
-            .toList()
+        LauncherHomeSuggestionsPolicy.selectKeys(
+            mode = experiencePreferences.homeAppMode,
+            recentAppKeys = recentAppKeys,
+            launchCounts = localLaunchCounts,
+            availableAppKeys = appsByKey.keys,
+            favoriteKeys = workspace.favoriteKeys.toSet(),
+            dockKeys = workspace.dockKeys.toSet(),
+        ).mapNotNull(appsByKey::get)
     }
 
     LaunchedEffect(preferences.homeColumns, preferences.homeRows) {
