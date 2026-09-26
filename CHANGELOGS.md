@@ -31,6 +31,18 @@ The migrated historical record is stored in these repository-local segments:
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
 
+## September 26, 2026 — PR #248 simplifies the Universal Search entry state
+
+**Change type:** Universal Search presentation; Glaze UI progressive disclosure; owner-reported UX refinement; Development candidate.
+
+PR #248 now opens Universal Search in a deliberately minimal idle state. Before typing, the user sees only one refined Glaze search field with the existing leading search glyph, the prompt **“Find anything on your device…”**, and a trailing settings control for Universal Search sources and related controls. The previous idle-state explanatory/status content and separate **Manage sources** row are not rendered.
+
+After the user begins typing, the existing result panel, grouped categories, source-status feedback, and explicit connected-provider handoffs may appear as relevant. Source management remains available through the in-field settings control. Android/system Back returns from source management to Search and closes Search from the primary search state.
+
+The change does not alter provider execution, source enablement, Android permission authority, local-first processing, profile isolation, query retention, or explicit third-party handoff policy. Android runtime coverage now verifies the minimal idle state, the source-settings entry path, and transition to the result panel after typing.
+
+**Lifecycle boundary:** This remains unmerged Development source on draft PR #248. Fresh exact-head CI and representative-device visual, keyboard/IME, TalkBack/Switch Access, large-text, landscape, touch-target, gesture, latency, and privacy acceptance remain required under issue #80.
+
 ## September 24, 2026 — PR #248 restores the long-press Uninstall handoff
 
 **Change type:** App actions; Android package management handoff; owner-reported Development defect.
