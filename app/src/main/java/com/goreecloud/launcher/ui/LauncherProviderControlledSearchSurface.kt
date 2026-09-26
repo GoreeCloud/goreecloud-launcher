@@ -3,7 +3,9 @@ package com.goreecloud.launcher.ui
 import android.content.pm.LauncherActivityInfo
 import android.net.Uri
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -45,6 +47,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -93,6 +97,11 @@ internal fun LauncherProviderControlledSearchSurface(
     val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
     var showSources by rememberSaveable { mutableStateOf(false) }
+
+    BackHandler {
+        if (showSources) showSources = false else onBack()
+    }
+
     val catalog = remember(apps, context, fileSearchRoots) {
         LauncherRuntimeSearchProviderRegistry.catalog(context, apps, fileSearchRoots)
     }
@@ -194,6 +203,20 @@ internal fun LauncherProviderControlledSearchSurface(
                 onReset = onResetSearchProviderPreferences,
                 modifier = Modifier.weight(1f),
             )
+        } else if (query.isBlank()) {
+            GlazeAppSearchField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                requestFocus = true,
+                placeholder = "Find anything on your device…",
+                inputTestTag = "launcher-universal-search-field",
+                trailingContent = {
+                    LauncherUniversalSearchSettingsAction(
+                        onClick = { showSources = true },
+                    )
+                },
+            )
         } else {
             Surface(
                 modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
@@ -207,28 +230,19 @@ internal fun LauncherProviderControlledSearchSurface(
                     modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space2),
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
-                    Row(
+                    GlazeAppSearchField(
+                        value = query,
+                        onValueChange = { query = it },
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                    ) {
-                        GlazeAppSearchField(
-                            value = query,
-                            onValueChange = { query = it },
-                            modifier = Modifier.weight(1f),
-                            requestFocus = true,
-                            placeholder = "Search apps, people and files",
-                            inputTestTag = "launcher-universal-search-field",
-                        )
-                        TextButton(
-                            onClick = {
-                                if (query.isNotBlank()) query = "" else onBack()
-                            },
-                            modifier = Modifier.heightIn(min = 48.dp),
-                        ) {
-                            Text(if (query.isNotBlank()) "Clear" else "Close")
-                        }
-                    }
+                        requestFocus = true,
+                        placeholder = "Find anything on your device…",
+                        inputTestTag = "launcher-universal-search-field",
+                        trailingContent = {
+                            LauncherUniversalSearchSettingsAction(
+                                onClick = { showSources = true },
+                            )
+                        },
+                    )
                     val providerIssues by LauncherLocalSearchDiagnostics.issues.collectAsState()
                     val enabledIssues = providerIssues.filterKeys { controls.isEnabled(it) }
                     if (query.isNotBlank() && enabledIssues.isNotEmpty()) {
@@ -418,15 +432,50 @@ internal fun LauncherProviderControlledSearchSurface(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                    ) {
-                        TextButton(
-                            onClick = { showSources = true },
-                            modifier = Modifier.heightIn(min = 48.dp),
-                        ) { Text("Manage sources") }
-                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherUniversalSearchSettingsAction(
+    onClick: () -> Unit,
+) {
+    val iconColor = MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .size(48.dp)
+            .testTag("launcher-universal-search-settings")
+            .semantics { contentDescription = "Universal Search settings" },
+        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+        color = Color.Transparent,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Canvas(Modifier.size(22.dp)) {
+                val strokeWidth = 1.8.dp.toPx()
+                val knobRadius = 2.8.dp.toPx()
+                val left = size.width * 0.10f
+                val right = size.width * 0.90f
+                val rows = listOf(
+                    size.height * 0.25f to size.width * 0.36f,
+                    size.height * 0.50f to size.width * 0.66f,
+                    size.height * 0.75f to size.width * 0.45f,
+                )
+                rows.forEach { (y, knobX) ->
+                    drawLine(
+                        color = iconColor,
+                        start = androidx.compose.ui.geometry.Offset(left, y),
+                        end = androidx.compose.ui.geometry.Offset(right, y),
+                        strokeWidth = strokeWidth,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                    )
+                    drawCircle(
+                        color = iconColor,
+                        radius = knobRadius,
+                        center = androidx.compose.ui.geometry.Offset(knobX, y),
+                    )
                 }
             }
         }
