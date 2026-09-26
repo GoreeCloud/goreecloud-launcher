@@ -24,6 +24,7 @@ import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
+import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
@@ -158,6 +159,10 @@ class ActivatedHomeLifecycleRuntimeTest {
         val preferencesRepository = LauncherPreferencesRepository(context)
         val previousSwipeUp = preferencesRepository.experiencePreferences.first().swipeUpAction
         val appsAction = LauncherGestureAction.builtIn(LauncherGestureActionType.APPS)
+        // This test validates persisted Home gesture behavior, not the live recent-app suggestion
+        // surface. Clear process-local launch suggestions so the directly seeded favorite remains
+        // the deterministic gesture target throughout this test.
+        LauncherLocalUsageRepository(context).clear().join()
 
         if (!alreadyDefaultHome) {
             runShellCommand(
@@ -301,6 +306,8 @@ class ActivatedHomeLifecycleRuntimeTest {
         val previousSwipeDown = preferencesRepository.experiencePreferences.first().swipeDownAction
         val searchAction =
             LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH)
+        // Keep this persisted-favorite gesture test isolated from recent-app suggestions.
+        LauncherLocalUsageRepository(context).clear().join()
 
         if (!alreadyDefaultHome) {
             runShellCommand(
@@ -661,6 +668,8 @@ class ActivatedHomeLifecycleRuntimeTest {
         val roleManager = context.getSystemService(RoleManager::class.java)
         val alreadyDefaultHome =
             roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+        // This lifecycle test seeds a specific persisted favorite as its Home gesture target.
+        LauncherLocalUsageRepository(context).clear().join()
 
         if (!alreadyDefaultHome) {
             runShellCommand(
