@@ -369,6 +369,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            val takeManualHomeAuthority: () -> Unit = {
+                if (experiencePreferences.useLocalUsageForSuggestions) {
+                    launcherPreferencesRepository.setUseLocalUsageForSuggestions(false)
+                }
+            }
+
             LaunchedEffect(
                 apps,
                 experiencePreferences.addNewAppsToHome,
@@ -576,6 +582,7 @@ class MainActivity : ComponentActivity() {
                             homeLabelOverrides = homeLabelOverrides,
                             onLaunchApp = launchApp,
                             onSetHomeLabelOverride = { app, label ->
+                                takeManualHomeAuthority()
                                 launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
                             },
                             onRequestUninstall = ::requestUninstall,
@@ -631,6 +638,7 @@ class MainActivity : ComponentActivity() {
                             preferences = launcherPreferences,
                             drawerLayoutMode = drawerLayoutMode,
                             experiencePreferences = experiencePreferences,
+                            recentAppKeys = localRecentAppKeys,
                             searchProviderPreferences = searchProviderPreferences,
                             fileSearchRoots = fileSearchRoots,
                             homePageCount = renderedPages.size.coerceAtLeast(1),
@@ -685,6 +693,7 @@ class MainActivity : ComponentActivity() {
                             onMoveWidget = ::moveWidget,
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
+                                    takeManualHomeAuthority()
                                     lifecycleScope.launch {
                                         workspaceRuntimeCoordinator.toggleFavorite(
                                             key = app.workspaceKey(),
@@ -703,6 +712,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onMoveFavorite = { app, direction ->
                                 if (!launcherPreferences.layoutLocked) {
+                                    takeManualHomeAuthority()
                                     lifecycleScope.launch {
                                         workspaceRuntimeCoordinator.moveFavorite(app.workspaceKey(), direction)
                                     }
@@ -710,6 +720,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onMoveFavoriteToCell = { app, cellX, cellY ->
                                 if (!launcherPreferences.layoutLocked) {
+                                    takeManualHomeAuthority()
                                     lifecycleScope.launch {
                                         workspaceRuntimeCoordinator.movePrimaryHomeAppToCell(
                                             appKey = app.workspaceKey(),
@@ -723,6 +734,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onMoveFavoriteToDock = { app, targetDockKey ->
                                 if (!launcherPreferences.layoutLocked) {
+                                    takeManualHomeAuthority()
                                     val key = app.workspaceKey()
                                     if (
                                         key !in workspace.dockKeys &&
@@ -745,6 +757,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onMoveDockToHomeCell = { app, cellX, cellY ->
                                 if (!launcherPreferences.layoutLocked) {
+                                    takeManualHomeAuthority()
                                     val key = app.workspaceKey()
                                     if (
                                         key !in workspace.favoriteKeys &&
@@ -770,6 +783,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onCopyDrawerToHomeCell = { app, cellX, cellY ->
                                 if (!launcherPreferences.layoutLocked) {
+                                    takeManualHomeAuthority()
                                     val key = app.workspaceKey()
                                     if (
                                         key !in workspace.favoriteKeys &&
