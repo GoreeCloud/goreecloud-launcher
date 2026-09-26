@@ -291,6 +291,7 @@ fun LauncherBetaRoot(
     onSetHomeAppMode: (LauncherHomeAppMode) -> Unit,
     onSetAddNewAppsToHome: (Boolean) -> Unit,
     onClearLocalUsage: () -> Unit,
+    onShowHintsAgain: () -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
     onSetDrawerNavigation: (LauncherDrawerNavigation) -> Unit,
@@ -706,6 +707,7 @@ fun LauncherBetaRoot(
                         onSetHomeAppMode = onSetHomeAppMode,
                         onSetAddNewAppsToHome = onSetAddNewAppsToHome,
                         onClearLocalUsage = onClearLocalUsage,
+                        onShowHintsAgain = onShowHintsAgain,
                         onSetDrawerBackdrop = onSetDrawerBackdrop,
                         onSetDrawerSearchPlacement = onSetDrawerSearchPlacement,
                         onSetDrawerNavigation = onSetDrawerNavigation,
@@ -4509,6 +4511,7 @@ private fun LauncherSettingsRootSurface(
     onSetHomeAppMode: (LauncherHomeAppMode) -> Unit,
     onSetAddNewAppsToHome: (Boolean) -> Unit,
     onClearLocalUsage: () -> Unit,
+    onShowHintsAgain: () -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
     onSetDrawerSearchPlacement: (LauncherDrawerSearchPlacement) -> Unit,
     onSetDrawerNavigation: (LauncherDrawerNavigation) -> Unit,
@@ -4711,6 +4714,12 @@ private fun LauncherSettingsRootSurface(
                     summary = "Recent and most-used modes store only Launcher launch counts and a bounded recent order on this device; no timestamps, dwell time, or Android Usage Access.",
                     value = "Clear",
                     onClick = onClearLocalUsage,
+                )
+                GlazeSettingsAction(
+                    title = "Launcher hints",
+                    summary = "Show the dismissible Home guide for gestures, Search, editing, and drag-and-drop again.",
+                    value = "Show again",
+                    onClick = onShowHintsAgain,
                 )
                 SettingSwitch(
                     "Add new apps to Home",
