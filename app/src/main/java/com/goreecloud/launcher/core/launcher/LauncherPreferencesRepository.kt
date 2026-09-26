@@ -759,19 +759,15 @@ class LauncherPreferencesRepository(
         )
     }
 
-    fun markStartupWizardCompleted() {
-        scope.launch {
-            dataStore.edit { values ->
-                values[Keys.startupWizardCompleted] = true
-            }
+    fun markStartupWizardCompleted(): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.startupWizardCompleted] = true
         }
     }
 
-    fun setHomeHintsDismissed(dismissed: Boolean) {
-        scope.launch {
-            dataStore.edit { values ->
-                values[Keys.homeHintsDismissed] = dismissed
-            }
+    fun setHomeHintsDismissed(dismissed: Boolean): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.homeHintsDismissed] = dismissed
         }
     }
 
