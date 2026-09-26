@@ -219,14 +219,14 @@ internal fun LauncherProviderControlledSearchSurface(
             )
             if (query.isNotBlank()) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
-                        .testTag("launcher-glaze-search-panel"),
-                    shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    shadowElevation = 12.dp,
-                ) {
-                    Column(
+                modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                    .testTag("launcher-glaze-search-panel"),
+                shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                shadowElevation = 12.dp,
+            ) {
+                Column(
                     modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space2),
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
@@ -417,6 +417,7 @@ internal fun LauncherProviderControlledSearchSurface(
                         )
                     }
                 }
+            }
             }
         }
     }
