@@ -14,28 +14,47 @@ data class StarterWorkspaceSelection(
 )
 
 /**
- * Builds the live default Home suggestion order without mutating persisted workspace placement.
+ * Selects transient automatic Home apps without mutating persisted workspace placement.
  *
- * Recent Launcher launches lead, Dock apps are excluded to avoid duplicate presentation, and saved
- * Home favorites fill any remaining slots. The caller decides when suggestion mode is appropriate;
- * manual Home editing can disable it so user placement remains authoritative.
+ * Both ranking modes are intentionally Launcher-local: RECENT consumes only the bounded launch
+ * ordering and MOST_USED consumes only aggregate Launcher launch counts. Persisted Favorites and
+ * Dock items are excluded so automatic presentation never duplicates or competes with manual
+ * placement.
  */
 object LauncherHomeSuggestionsPolicy {
     fun selectKeys(
+        mode: LauncherHomeAppMode,
         recentAppKeys: List<String>,
-        savedFavoriteKeys: List<String>,
-        dockKeys: List<String>,
+        launchCounts: Map<String, Long>,
+        availableAppKeys: Set<String>,
+        favoriteKeys: Set<String>,
+        dockKeys: Set<String>,
         limit: Int = 10,
     ): List<String> {
-        if (limit <= 0) return emptyList()
-        val dock = dockKeys.toSet()
-        return buildList {
-            (recentAppKeys + savedFavoriteKeys).forEach { key ->
-                if (size >= limit) return@buildList
-                if (key.isBlank() || key in dock || key in this) return@forEach
-                add(key)
-            }
+        if (limit <= 0 || mode == LauncherHomeAppMode.NONE) return emptyList()
+
+        val excluded = favoriteKeys + dockKeys
+        val ranked = when (mode) {
+            LauncherHomeAppMode.NONE -> emptyList()
+            LauncherHomeAppMode.RECENT -> recentAppKeys
+            LauncherHomeAppMode.MOST_USED -> launchCounts.entries
+                .asSequence()
+                .filter { it.value > 0L }
+                .sortedWith(
+                    compareByDescending<Map.Entry<String, Long>> { it.value }
+                        .thenBy { it.key },
+                )
+                .map { it.key }
+                .toList()
         }
+
+        return ranked.asSequence()
+            .filter { it.isNotBlank() }
+            .filter(availableAppKeys::contains)
+            .filterNot(excluded::contains)
+            .distinct()
+            .take(limit)
+            .toList()
     }
 }
 
