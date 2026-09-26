@@ -5877,6 +5877,7 @@ internal fun GlazeAppSearchField(
     requestFocus: Boolean = false,
     placeholder: String = "Search apps",
     inputTestTag: String? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -5934,6 +5935,7 @@ internal fun GlazeAppSearchField(
                         }
                         innerTextField()
                     }
+                    trailingContent?.invoke()
                 }
             },
         )
