@@ -569,11 +569,12 @@ class MainActivity : ComponentActivity() {
                         selectedPage.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
                     val showingHome = !onPrimaryPage || primarySurfaceMode == LauncherSurfaceMode.HOME
 
-                    if (!onPrimaryPage && selectedPage != null) {
+                    if (!onPrimaryPage) {
+                        val secondaryPage = checkNotNull(selectedPage)
                         ReadOnlyPagedHomeSurface(
                             apps = apps,
                             folders = folders,
-                            page = selectedPage,
+                            page = secondaryPage,
                             pages = renderedPages,
                             homeColumns = launcherPreferences.homeColumns,
                             showLabels = experiencePreferences.showHomeLabels,
@@ -590,7 +591,7 @@ class MainActivity : ComponentActivity() {
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
                                         val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
-                                            sourcePageId = selectedPage.pageId,
+                                            sourcePageId = secondaryPage.pageId,
                                             appKey = app.workspaceKey(),
                                             targetPageId = targetPageId,
                                         )
@@ -604,7 +605,7 @@ class MainActivity : ComponentActivity() {
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
                                         workspaceRuntimeCoordinator.moveHomeAppWithinPage(
-                                            pageId = selectedPage.pageId,
+                                            pageId = secondaryPage.pageId,
                                             appKey = app.workspaceKey(),
                                             direction = direction,
                                         )
@@ -615,7 +616,7 @@ class MainActivity : ComponentActivity() {
                                 if (!launcherPreferences.layoutLocked) {
                                     lifecycleScope.launch {
                                         workspaceRuntimeCoordinator.moveHomeAppOneCellWithinPage(
-                                            pageId = selectedPage.pageId,
+                                            pageId = secondaryPage.pageId,
                                             appKey = app.workspaceKey(),
                                             direction = direction,
                                         )
