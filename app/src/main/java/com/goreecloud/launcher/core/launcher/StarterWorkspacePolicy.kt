@@ -5,6 +5,7 @@ data class StarterWorkspaceCandidate(
     val label: String,
     val packageName: String,
     val localLaunchCount: Long = 0L,
+    val localRecencyRank: Int? = null,
 )
 
 data class StarterWorkspaceSelection(
@@ -86,9 +87,14 @@ object StarterWorkspacePolicy {
 
         val favorites = mutableListOf<String>()
         val rankedByLocalUse = usable
-            .filter { it.key !in used && it.localLaunchCount > 0L }
+            .filter {
+                it.key !in used &&
+                    (it.localRecencyRank != null || it.localLaunchCount > 0L)
+            }
             .sortedWith(
-                compareByDescending<StarterWorkspaceCandidate> { it.localLaunchCount }
+                compareBy<StarterWorkspaceCandidate> {
+                    it.localRecencyRank ?: Int.MAX_VALUE
+                }.thenByDescending { it.localLaunchCount }
                     .thenByDescending { it.label.contains("goreecloud", ignoreCase = true) }
                     .thenBy { it.label.lowercase() },
             )
