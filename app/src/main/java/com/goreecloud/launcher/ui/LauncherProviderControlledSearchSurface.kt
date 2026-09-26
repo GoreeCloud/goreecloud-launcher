@@ -44,6 +44,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -439,27 +443,41 @@ private fun LauncherUniversalSearchSettingsAction(
     ) {
         Box(contentAlignment = Alignment.Center) {
             Canvas(Modifier.size(22.dp)) {
+                val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
                 val strokeWidth = 1.8.dp.toPx()
-                val knobRadius = 2.8.dp.toPx()
-                val left = size.width * 0.10f
-                val right = size.width * 0.90f
-                val rows = listOf(
-                    size.height * 0.25f to size.width * 0.36f,
-                    size.height * 0.50f to size.width * 0.66f,
-                    size.height * 0.75f to size.width * 0.45f,
+                val hubRadius = 3.2.dp.toPx()
+                val bodyRadius = 6.6.dp.toPx()
+                val toothInner = 8.0.dp.toPx()
+                val toothOuter = 10.0.dp.toPx()
+
+                drawCircle(
+                    color = iconColor,
+                    radius = bodyRadius,
+                    center = center,
+                    style = Stroke(width = strokeWidth),
                 )
-                rows.forEach { (y, knobX) ->
+                drawCircle(
+                    color = iconColor,
+                    radius = hubRadius,
+                    center = center,
+                    style = Stroke(width = strokeWidth),
+                )
+                repeat(8) { index ->
+                    val angle = (index * (PI / 4.0)).toFloat()
+                    val start = androidx.compose.ui.geometry.Offset(
+                        x = center.x + cos(angle) * toothInner,
+                        y = center.y + sin(angle) * toothInner,
+                    )
+                    val end = androidx.compose.ui.geometry.Offset(
+                        x = center.x + cos(angle) * toothOuter,
+                        y = center.y + sin(angle) * toothOuter,
+                    )
                     drawLine(
                         color = iconColor,
-                        start = androidx.compose.ui.geometry.Offset(left, y),
-                        end = androidx.compose.ui.geometry.Offset(right, y),
+                        start = start,
+                        end = end,
                         strokeWidth = strokeWidth,
                         cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                    )
-                    drawCircle(
-                        color = iconColor,
-                        radius = knobRadius,
-                        center = androidx.compose.ui.geometry.Offset(knobX, y),
                     )
                 }
             }
