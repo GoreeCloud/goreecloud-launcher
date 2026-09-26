@@ -890,6 +890,9 @@ class MainActivity : ComponentActivity() {
                                 localUsageRepository.clear()
                                 Unit
                             },
+                            onShowHintsAgain = {
+                                launcherPreferencesRepository.setHomeHintsDismissed(false)
+                            },
                             onSetDrawerBackdrop = launcherPreferencesRepository::setDrawerBackdrop,
                             onSetDrawerSearchPlacement = launcherPreferencesRepository::setDrawerSearchPlacement,
                             onSetDrawerNavigation = launcherPreferencesRepository::setDrawerNavigation,
