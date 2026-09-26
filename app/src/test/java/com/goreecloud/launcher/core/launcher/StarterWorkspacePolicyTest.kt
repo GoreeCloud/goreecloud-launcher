@@ -92,26 +92,54 @@ class StarterWorkspacePolicyTest {
     }
 
     @Test
-    fun homeSuggestionsPreferLaunchOrderWithoutDockDuplicates() {
+    fun recentHomeSuggestionsPreserveRecencyAndExcludeManualPlacements() {
         assertEquals(
-            listOf("new", "older", "savedA", "savedB"),
+            listOf("new", "older"),
             LauncherHomeSuggestionsPolicy.selectKeys(
-                recentAppKeys = listOf("dock", "new", "older", "new"),
-                savedFavoriteKeys = listOf("savedA", "dock", "savedB"),
-                dockKeys = listOf("dock"),
+                mode = LauncherHomeAppMode.RECENT,
+                recentAppKeys = listOf("dock", "new", "older", "new", "missing"),
+                launchCounts = mapOf("older" to 50L),
+                availableAppKeys = setOf("dock", "new", "older", "favorite"),
+                favoriteKeys = setOf("favorite"),
+                dockKeys = setOf("dock"),
                 limit = 4,
             ),
         )
     }
 
     @Test
-    fun homeSuggestionsUseDefaultTenItemBound() {
+    fun mostUsedHomeSuggestionsSortCountsAndExcludeUnavailableOrPlacedApps() {
         assertEquals(
-            (0 until 10).map { "item-$it" },
+            listOf("beta", "alpha"),
             LauncherHomeSuggestionsPolicy.selectKeys(
-                recentAppKeys = (0 until 14).map { "item-$it" },
-                savedFavoriteKeys = emptyList(),
-                dockKeys = emptyList(),
+                mode = LauncherHomeAppMode.MOST_USED,
+                recentAppKeys = listOf("alpha"),
+                launchCounts = mapOf(
+                    "favorite" to 100L,
+                    "dock" to 90L,
+                    "missing" to 80L,
+                    "beta" to 7L,
+                    "alpha" to 4L,
+                    "zero" to 0L,
+                ),
+                availableAppKeys = setOf("favorite", "dock", "beta", "alpha", "zero"),
+                favoriteKeys = setOf("favorite"),
+                dockKeys = setOf("dock"),
+            ),
+        )
+    }
+
+    @Test
+    fun noAutomaticAppsModeReturnsNoSuggestions() {
+        assertEquals(
+            emptyList<String>(),
+            LauncherHomeSuggestionsPolicy.selectKeys(
+                mode = LauncherHomeAppMode.NONE,
+                recentAppKeys = listOf("recent"),
+                launchCounts = mapOf("recent" to 10L),
+                availableAppKeys = setOf("recent"),
+                favoriteKeys = emptySet(),
+                dockKeys = emptySet(),
             ),
         )
     }
