@@ -81,6 +81,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 it.homeAppMode == previousHomeAppMode
             }
         }
+        Unit
     }
 
     @Before
