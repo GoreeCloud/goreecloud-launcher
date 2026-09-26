@@ -49,7 +49,8 @@ Implemented in the current PR #248 candidate:
 Validation correction:
 
 - intermediate icon revisions were intentionally rejected by `scripts/check_identity.py` when they removed the center accent or canonical identity tokens; those failures remain audit evidence and the guard was not weakened;
-- exact candidate head `9c18d1af4996b9ebac9bdbf15aabbff62708d8b6` subsequently passed Android CI #902 / `36255771493` across validate/build/lint/JVM/APK, Android 16 Room/runtime instrumentation, and Android 16 transition-performance.
+- the identity-valid Search/icon checkpoint `9c18d1af4996b9ebac9bdbf15aabbff62708d8b6` passed Android CI #902 / `36255771493` across all configured lanes before the later live recent-Home integration;
+- a later superseded runtime run exposed that persisted-Home gesture tests were sharing recent-app suggestion state; those tests now clear that local suggestion state before exercising their directly seeded favorite, preserving the product behavior while making the lifecycle tests deterministic. Fresh exact-head validation remains required for the resulting candidate.
 
 Still open:
 
