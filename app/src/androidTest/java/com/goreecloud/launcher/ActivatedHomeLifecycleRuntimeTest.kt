@@ -380,6 +380,23 @@ class ActivatedHomeLifecycleRuntimeTest {
                 assertEquals(
                     0,
                     composeRule
+                        .onAllNodesWithText("Universal Search", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .size,
+                )
+                assertEquals(
+                    0,
+                    composeRule
+                        .onAllNodesWithText(
+                            "Search privately across enabled sources",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .size,
+                )
+                assertEquals(
+                    0,
+                    composeRule
                         .onAllNodesWithTag("launcher-glaze-search-panel", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .size,
