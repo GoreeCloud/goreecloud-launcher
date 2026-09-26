@@ -4686,17 +4686,21 @@ private fun LauncherSettingsRootSurface(
                     style = MaterialTheme.typography.bodySmall,
                 )
                 ChoiceRow(
-                    choices = listOf("No apps", "10 recent", "10 most used"),
+                    choices = listOf(
+                        "No automatic apps",
+                        "10 most recent apps",
+                        "10 most used apps",
+                    ),
                     selected = when (experiencePreferences.homeAppMode) {
-                        LauncherHomeAppMode.NONE -> "No apps"
-                        LauncherHomeAppMode.RECENT -> "10 recent"
-                        LauncherHomeAppMode.MOST_USED -> "10 most used"
+                        LauncherHomeAppMode.NONE -> "No automatic apps"
+                        LauncherHomeAppMode.RECENT -> "10 most recent apps"
+                        LauncherHomeAppMode.MOST_USED -> "10 most used apps"
                     },
                     onChoice = {
                         onSetHomeAppMode(
                             when (it) {
-                                "10 recent" -> LauncherHomeAppMode.RECENT
-                                "10 most used" -> LauncherHomeAppMode.MOST_USED
+                                "10 most recent apps" -> LauncherHomeAppMode.RECENT
+                                "10 most used apps" -> LauncherHomeAppMode.MOST_USED
                                 else -> LauncherHomeAppMode.NONE
                             },
                         )
