@@ -69,6 +69,29 @@ class StarterWorkspacePolicyTest {
     }
 
     @Test
+    fun recencyOrderingWinsOverFrequencyForDefaultHomeFavorites() {
+        val selection = StarterWorkspacePolicy.select(
+            listOf(
+                candidate("phone", "Phone"),
+                candidate("messages", "Messages"),
+                candidate("mail", "Mail"),
+                candidate("browser", "Browser"),
+                candidate("camera", "Camera"),
+                candidate("newest", "Newest").copy(localLaunchCount = 1, localRecencyRank = 0),
+                candidate("middle", "Middle").copy(localLaunchCount = 2, localRecencyRank = 1),
+                candidate("older", "Older").copy(localLaunchCount = 100, localRecencyRank = 2),
+                candidate("calendar", "Calendar"),
+            ),
+            maxFavorites = 3,
+        )
+
+        assertEquals(
+            listOf("newest", "middle", "older"),
+            selection.favoriteKeys,
+        )
+    }
+
+    @Test
     fun tenStarterAppsOccupyBottomTwoRowsOfFiveBySixHome() {
         assertEquals(
             listOf(
