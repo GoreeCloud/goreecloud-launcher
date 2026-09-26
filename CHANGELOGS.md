@@ -41,7 +41,7 @@ Implemented in the current PR #248 candidate:
 
 - extends the existing local-only usage store with a bounded most-recently-launched app ordering in addition to aggregate launch counts;
 - represents recency only by ordering, without timestamps, dwell time, Android Usage Access, cross-application history, query history, or network telemetry;
-- makes the default one-time ten-app Home starter ranking prefer that recency ordering while retaining aggregate-count and deterministic role fallbacks and preserving user-edited Home authority after the starter is applied;
+- makes the default Home suggestion view keep up to ten Launcher-recent apps above the Dock, excluding Dock duplicates and filling gaps from saved favorites without mutating persisted workspace placement; suggested-but-unpinned apps are launchable but are not treated as draggable saved favorites; manual Home app edits disable the suggestion mode so user placement takes authority;
 - keeps a bounded process-local stale-while-revalidate icon fallback during package/profile cache invalidation so a previously decoded official icon can remain visible while its replacement is decoded;
 - retries Android's authoritative activity icon when the badged-icon decode path fails, reducing transient/random placeholder presentation without persisting third-party artwork; and
 - recenters/refines the Android adaptive Launcher foreground while preserving the canonical four-tile plus center-accent identity contract and required GoreeCloud color/opacity tokens.
@@ -54,7 +54,7 @@ Validation correction:
 Still open:
 
 - issue #252 tracks true inline connected-source results and predictions for Brave Search, Google Drive, Dropbox, Gmail, and other approved providers. The current explicit-handoff model is retained until real provider authorization/API adapters exist; Launcher must not silently transmit typed queries or scrape authenticated provider sessions to imitate inline integration.
-- representative-device verification is still required for the recent-app starter outcome, disappearance of random icon placeholders, adaptive-icon visual centering across masks/themed icons, and the broader issue #80 acceptance matrix.
+- representative-device verification is still required for live recent-app ordering/hand-off-to-manual-layout behavior, disappearance of random icon placeholders, adaptive-icon visual centering across masks/themed icons, and the broader issue #80 acceptance matrix.
 
 **Lifecycle boundary:** PR #248 remains unmerged Development source. This work does not establish Release Candidate, production, Stable, or representative-device acceptance.
 
