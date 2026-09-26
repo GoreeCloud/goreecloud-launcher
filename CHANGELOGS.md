@@ -63,7 +63,7 @@ Implemented in the current PR #248 candidate:
 
 - extends the existing local-only usage store with a bounded most-recently-launched app ordering in addition to aggregate launch counts;
 - represents recency only by ordering, without timestamps, dwell time, Android Usage Access, cross-application history, query history, or network telemetry;
-- makes the default Home suggestion view keep up to ten Launcher-recent apps above the Dock, excluding Dock duplicates and filling gaps from saved favorites without mutating persisted workspace placement; suggested-but-unpinned apps are launchable but are not treated as draggable saved favorites; manual Home app edits disable the suggestion mode so user placement takes authority;
+- evolves the earlier recent-app prototype into the current explicit automatic Home model: No apps, 10 most recent, or 10 most used. Automatic suggestions are transient, exclude persisted Home/Dock entries, occupy only otherwise-empty Home cells, and never rewrite Room-authoritative manual placement; manual drag/drop remains available in every mode;
 - keeps a bounded process-local stale-while-revalidate icon fallback during package/profile cache invalidation so a previously decoded official icon can remain visible while its replacement is decoded;
 - retries Android's authoritative activity icon when the badged-icon decode path fails, reducing transient/random placeholder presentation without persisting third-party artwork; and
 - recenters/refines the Android adaptive Launcher foreground while preserving the canonical four-tile plus center-accent identity contract and required GoreeCloud color/opacity tokens.
@@ -72,12 +72,12 @@ Validation correction:
 
 - intermediate icon revisions were intentionally rejected by `scripts/check_identity.py` when they removed the center accent or canonical identity tokens; those failures remain audit evidence and the guard was not weakened;
 - the identity-valid Search/icon checkpoint `9c18d1af4996b9ebac9bdbf15aabbff62708d8b6` passed Android CI #902 / `36255771493` across all configured lanes before the later live recent-Home integration;
-- later superseded runtime runs exposed two related boundaries: persisted-workspace lifecycle tests were sharing the live suggestion mode, and suggested-but-unpinned Home apps had lost global vertical Home gestures because drag eligibility and swipe eligibility were coupled. The lifecycle suite now temporarily disables/restores recent suggestions around persisted-layout tests, while Home tiles keep swipe-up/swipe-down gesture handling regardless of whether they are draggable. Suggested apps remain non-draggable until pinned. Fresh exact-head validation remains required for the resulting candidate.
+- later superseded runtime runs exposed two related boundaries: persisted-workspace lifecycle tests were sharing automatic Home state, and suggested Home apps had lost global vertical Home gestures because drag eligibility and swipe eligibility were coupled. The lifecycle suite now preserves/restores the exact Home app mode around persisted-layout tests, while Home tiles keep swipe-up/swipe-down gesture handling regardless of whether they are draggable. Suggested apps remain non-draggable until pinned. Fresh exact-head validation remains required for the resulting candidate.
 
 Still open:
 
 - issue #252 tracks true inline connected-source results and predictions for Brave Search, Google Drive, Dropbox, Gmail, and other approved providers. The current explicit-handoff model is retained until real provider authorization/API adapters exist; Launcher must not silently transmit typed queries or scrape authenticated provider sessions to imitate inline integration.
-- representative-device verification is still required for live recent-app ordering/hand-off-to-manual-layout behavior, disappearance of random icon placeholders, adaptive-icon visual centering across masks/themed icons, and the broader issue #80 acceptance matrix.
+- representative-device verification is still required for all three automatic Home modes, coexistence with manual drag/drop placement, disappearance of random icon placeholders, adaptive-icon visual centering across masks/themed icons, startup wizard/hint behavior, and the broader issue #80 acceptance matrix.
 
 **Lifecycle boundary:** PR #248 remains unmerged Development source. This work does not establish Release Candidate, production, Stable, or representative-device acceptance.
 
