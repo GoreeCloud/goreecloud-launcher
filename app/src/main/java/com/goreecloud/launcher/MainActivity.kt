@@ -506,24 +506,17 @@ class MainActivity : ComponentActivity() {
                         initialShowHints = true,
                         onRequestHomeRole = ::requestHomeRole,
                         onFinish = { configuration ->
-                            launcherPreferencesRepository.setHomeAppMode(configuration.homeAppMode)
-                            launcherPreferencesRepository.setHomeGrid(
-                                configuration.homeColumns,
-                                configuration.homeRows,
-                            )
-                            launcherPreferencesRepository.setShowHomeLabels(
-                                configuration.showHomeLabels,
-                            )
-                            launcherPreferencesRepository.setUniversalSearchHomeMode(
-                                configuration.universalSearchHomeMode,
-                            )
-                            launcherPreferencesRepository.setAddNewAppsToHome(
-                                configuration.addNewAppsToHome,
-                            )
-                            launcherPreferencesRepository.setHomeHintsDismissed(
-                                !configuration.showHints,
-                            )
-                            launcherPreferencesRepository.markStartupWizardCompleted()
+                            lifecycleScope.launch {
+                                launcherPreferencesRepository.applyStartupConfiguration(
+                                    homeAppMode = configuration.homeAppMode,
+                                    homeColumns = configuration.homeColumns,
+                                    homeRows = configuration.homeRows,
+                                    showHomeLabels = configuration.showHomeLabels,
+                                    universalSearchHomeMode = configuration.universalSearchHomeMode,
+                                    addNewAppsToHome = configuration.addNewAppsToHome,
+                                    showHints = configuration.showHints,
+                                )
+                            }
                         },
                     )
                 } else {
