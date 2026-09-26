@@ -49,6 +49,7 @@ import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherFolder
 import com.goreecloud.launcher.core.launcher.LauncherFolderRepository
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
+import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherIconPackDescriptor
 import com.goreecloud.launcher.core.launcher.LauncherIconPackRepository
@@ -313,9 +314,6 @@ class MainActivity : ComponentActivity() {
             val localRecentAppKeys by localUsageRepository.recentAppKeys.collectAsStateWithLifecycle(
                 initialValue = emptyList(),
             )
-            val localRecentRanks = remember(localRecentAppKeys) {
-                localRecentAppKeys.withIndex().associate { (rank, key) -> key to rank }
-            }
             val searchProviderPreferences by searchProviderPreferencesState.collectAsStateWithLifecycle()
             val fileSearchRoots by fileSearchPreferencesRepository.roots.collectAsStateWithLifecycle(
                 initialValue = emptyList(),
@@ -364,14 +362,8 @@ class MainActivity : ComponentActivity() {
 
             val launchApp: (LauncherActivityInfo) -> Unit = { app ->
                 appsRepository.launch(app)
-                if (experiencePreferences.useLocalUsageForSuggestions) {
+                if (experiencePreferences.homeAppMode != LauncherHomeAppMode.NONE) {
                     localUsageRepository.recordLaunch(app.workspaceKey())
-                }
-            }
-
-            val takeManualHomeAuthority: () -> Unit = {
-                if (experiencePreferences.useLocalUsageForSuggestions) {
-                    launcherPreferencesRepository.setUseLocalUsageForSuggestions(false)
                 }
             }
 
@@ -435,14 +427,14 @@ class MainActivity : ComponentActivity() {
                 workspace.authority,
                 workspace.favoriteKeys,
                 workspace.dockKeys,
-                launcherPreferences.homeColumns,
-                launcherPreferences.homeRows,
                 experiencePreferences.starterLayoutApplied,
-                experiencePreferences.useLocalUsageForSuggestions,
-                localLaunchCounts,
-                localRecentAppKeys,
+                experiencePreferences.startupWizardCompleted,
             ) {
-                if (apps.isEmpty() || experiencePreferences.starterLayoutApplied) {
+                if (
+                    apps.isEmpty() ||
+                    experiencePreferences.starterLayoutApplied ||
+                    !experiencePreferences.startupWizardCompleted
+                ) {
                     return@LaunchedEffect
                 }
 
@@ -454,95 +446,32 @@ class MainActivity : ComponentActivity() {
                                 key = app.workspaceKey(),
                                 label = app.label.toString(),
                                 packageName = app.componentName.packageName,
-                                localLaunchCount = if (
-                                    experiencePreferences.useLocalUsageForSuggestions
-                                ) {
-                                    localLaunchCounts[app.workspaceKey()] ?: 0L
-                                } else {
-                                    0L
-                                },
-                                localRecencyRank = if (
-                                    experiencePreferences.useLocalUsageForSuggestions
-                                ) {
-                                    localRecentRanks[app.workspaceKey()]
-                                } else {
-                                    null
-                                },
                             )
                         },
+                    maxFavorites = 0,
                 )
 
                 if (!workspace.initialized) {
                     workspaceRepository.ensureDefaults(
-                        favoriteKeys = starterSelection.favoriteKeys,
+                        favoriteKeys = emptyList(),
                         dockKeys = starterSelection.dockKeys,
                     )
                 } else if (workspace.favoriteKeys.isEmpty() && workspace.dockKeys.isEmpty()) {
-                    var seeded = true
-                    for (key in starterSelection.favoriteKeys) {
+                    for (key in starterSelection.dockKeys) {
                         if (
-                            workspaceRuntimeCoordinator.toggleFavorite(
-                                key = key,
-                                homeColumns = launcherPreferences.homeColumns,
-                                homeRows = launcherPreferences.homeRows,
-                            ) !is WorkspaceAuthoritativeWriteResult.Written
+                            workspaceRuntimeCoordinator.toggleDock(key) !is
+                                WorkspaceAuthoritativeWriteResult.Written
                         ) {
-                            seeded = false
-                            break
+                            return@LaunchedEffect
                         }
                     }
-                    if (seeded) {
-                        for (key in starterSelection.dockKeys) {
-                            if (
-                                workspaceRuntimeCoordinator.toggleDock(key) !is
-                                    WorkspaceAuthoritativeWriteResult.Written
-                            ) {
-                                seeded = false
-                                break
-                            }
-                        }
-                    }
-                    if (!seeded) return@LaunchedEffect
-                } else if (
-                    workspace.favoriteKeys != starterSelection.favoriteKeys ||
-                    workspace.dockKeys != starterSelection.dockKeys
-                ) {
+                } else {
                     launcherPreferencesRepository.markStarterLayoutApplied()
                     return@LaunchedEffect
                 }
 
                 workspaceRuntimeCoordinator.reconcileAndActivate()
-                val ready = workspaceRuntimeCoordinator.ensurePrimaryHomeSpatialGrid(
-                    columns = launcherPreferences.homeColumns,
-                    rows = launcherPreferences.homeRows,
-                )
-                if (ready !is WorkspacePrimaryHomeSpatialResult.Ready) {
-                    return@LaunchedEffect
-                }
-
-                val cells = StarterWorkspacePolicy.homeCells(
-                    itemCount = starterSelection.favoriteKeys.size,
-                    columns = launcherPreferences.homeColumns,
-                    rows = launcherPreferences.homeRows,
-                )
-                var positioned = true
-                for ((key, cell) in starterSelection.favoriteKeys.zip(cells)) {
-                    if (
-                        workspaceRuntimeCoordinator.movePrimaryHomeAppToCell(
-                            appKey = key,
-                            columns = launcherPreferences.homeColumns,
-                            rows = launcherPreferences.homeRows,
-                            cellX = cell.first,
-                            cellY = cell.second,
-                        ) !is WorkspacePrimaryHomeSpatialResult.Moved
-                    ) {
-                        positioned = false
-                        break
-                    }
-                }
-                if (positioned) {
-                    launcherPreferencesRepository.markStarterLayoutApplied()
-                }
+                launcherPreferencesRepository.markStarterLayoutApplied()
             }
 
             LaunchedEffect(
@@ -583,7 +512,6 @@ class MainActivity : ComponentActivity() {
                             homeLabelOverrides = homeLabelOverrides,
                             onLaunchApp = launchApp,
                             onSetHomeLabelOverride = { app, label ->
-                                takeManualHomeAuthority()
                                 launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
                             },
                             onRequestUninstall = ::requestUninstall,
@@ -640,6 +568,7 @@ class MainActivity : ComponentActivity() {
                             drawerLayoutMode = drawerLayoutMode,
                             experiencePreferences = experiencePreferences,
                             recentAppKeys = localRecentAppKeys,
+                            localLaunchCounts = localLaunchCounts,
                             searchProviderPreferences = searchProviderPreferences,
                             fileSearchRoots = fileSearchRoots,
                             homePageCount = renderedPages.size.coerceAtLeast(1),
@@ -694,7 +623,6 @@ class MainActivity : ComponentActivity() {
                             onMoveWidget = ::moveWidget,
                             onToggleFavorite = { app ->
                                 if (!launcherPreferences.layoutLocked) {
-                                    takeManualHomeAuthority()
                                     lifecycleScope.launch {
                                         workspaceRuntimeCoordinator.toggleFavorite(
                                             key = app.workspaceKey(),
@@ -713,7 +641,6 @@ class MainActivity : ComponentActivity() {
                             },
                             onMoveFavorite = { app, direction ->
                                 if (!launcherPreferences.layoutLocked) {
-                                    takeManualHomeAuthority()
                                     lifecycleScope.launch {
                                         workspaceRuntimeCoordinator.moveFavorite(app.workspaceKey(), direction)
                                     }
@@ -721,7 +648,6 @@ class MainActivity : ComponentActivity() {
                             },
                             onMoveFavoriteToCell = { app, cellX, cellY ->
                                 if (!launcherPreferences.layoutLocked) {
-                                    takeManualHomeAuthority()
                                     lifecycleScope.launch {
                                         workspaceRuntimeCoordinator.movePrimaryHomeAppToCell(
                                             appKey = app.workspaceKey(),
@@ -735,7 +661,6 @@ class MainActivity : ComponentActivity() {
                             },
                             onMoveFavoriteToDock = { app, targetDockKey ->
                                 if (!launcherPreferences.layoutLocked) {
-                                    takeManualHomeAuthority()
                                     val key = app.workspaceKey()
                                     if (
                                         key !in workspace.dockKeys &&
@@ -758,7 +683,6 @@ class MainActivity : ComponentActivity() {
                             },
                             onMoveDockToHomeCell = { app, cellX, cellY ->
                                 if (!launcherPreferences.layoutLocked) {
-                                    takeManualHomeAuthority()
                                     val key = app.workspaceKey()
                                     if (
                                         key !in workspace.favoriteKeys &&
@@ -784,7 +708,6 @@ class MainActivity : ComponentActivity() {
                             },
                             onCopyDrawerToHomeCell = { app, cellX, cellY ->
                                 if (!launcherPreferences.layoutLocked) {
-                                    takeManualHomeAuthority()
                                     val key = app.workspaceKey()
                                     if (
                                         key !in workspace.favoriteKeys &&
@@ -924,8 +847,8 @@ class MainActivity : ComponentActivity() {
                             onSetShowHomeLabels = launcherPreferencesRepository::setShowHomeLabels,
                             onSetShowDrawerLabels = launcherPreferencesRepository::setShowDrawerLabels,
                             onSetShowDrawerPageIndicator = launcherPreferencesRepository::setShowDrawerPageIndicator,
-                            onSetUseLocalUsageForSuggestions =
-                                launcherPreferencesRepository::setUseLocalUsageForSuggestions,
+                            onSetHomeAppMode =
+                                launcherPreferencesRepository::setHomeAppMode,
                             onSetAddNewAppsToHome =
                                 launcherPreferencesRepository::setAddNewAppsToHome,
                             onClearLocalUsage = {
