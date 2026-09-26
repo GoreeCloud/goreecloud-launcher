@@ -4632,13 +4632,13 @@ private fun LauncherSettingsRootSurface(
                     onSetShowHomePageIndicator,
                 )
                 SettingSwitch(
-                    "Use local app activity for suggestions",
+                    "Show recent apps on Home",
                     experiencePreferences.useLocalUsageForSuggestions,
                     onSetUseLocalUsageForSuggestions,
                 )
                 GlazeSettingsAction(
                     title = "Local app activity",
-                    summary = "Only aggregate Launcher launch counts are stored on this device.",
+                    summary = "Stores only Launcher launch counts and a bounded recent order on this device; no timestamps. Manual Home app edits take control and turn recent suggestions off.",
                     value = "Clear",
                     onClick = onClearLocalUsage,
                 )
