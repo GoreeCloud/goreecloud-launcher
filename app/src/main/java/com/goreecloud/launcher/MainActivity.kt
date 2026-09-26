@@ -101,6 +101,8 @@ import com.goreecloud.launcher.ui.HomePageSwitcher
 import com.goreecloud.launcher.ui.LayoutLockHoldControl
 import com.goreecloud.launcher.ui.LauncherBetaRoot
 import com.goreecloud.launcher.ui.LauncherIconAppearance
+import com.goreecloud.launcher.ui.LauncherHomeHintCard
+import com.goreecloud.launcher.ui.LauncherStartupWizard
 import com.goreecloud.launcher.ui.LocalLauncherIconAppearance
 import com.goreecloud.launcher.ui.LauncherSurfaceMode
 import com.goreecloud.launcher.ui.LauncherTransitionDiagnostics
@@ -492,6 +494,39 @@ class MainActivity : ComponentActivity() {
                         iconPackPackage = experiencePreferences.iconPackPackage,
                     ),
                 ) {
+                if (!experiencePreferences.startupWizardCompleted) {
+                    LauncherStartupWizard(
+                        isDefaultHome = isDefaultHome,
+                        initialHomeAppMode = experiencePreferences.homeAppMode,
+                        initialHomeColumns = launcherPreferences.homeColumns,
+                        initialHomeRows = launcherPreferences.homeRows,
+                        initialShowHomeLabels = experiencePreferences.showHomeLabels,
+                        initialUniversalSearchHomeMode = launcherPreferences.universalSearchHomeMode,
+                        initialAddNewAppsToHome = experiencePreferences.addNewAppsToHome,
+                        initialShowHints = true,
+                        onRequestHomeRole = ::requestHomeRole,
+                        onFinish = { configuration ->
+                            launcherPreferencesRepository.setHomeAppMode(configuration.homeAppMode)
+                            launcherPreferencesRepository.setHomeGrid(
+                                configuration.homeColumns,
+                                configuration.homeRows,
+                            )
+                            launcherPreferencesRepository.setShowHomeLabels(
+                                configuration.showHomeLabels,
+                            )
+                            launcherPreferencesRepository.setUniversalSearchHomeMode(
+                                configuration.universalSearchHomeMode,
+                            )
+                            launcherPreferencesRepository.setAddNewAppsToHome(
+                                configuration.addNewAppsToHome,
+                            )
+                            launcherPreferencesRepository.setHomeHintsDismissed(
+                                !configuration.showHints,
+                            )
+                            launcherPreferencesRepository.markStartupWizardCompleted()
+                        },
+                    )
+                } else {
                 Box {
                     val selectedPage = renderedPages.firstOrNull { it.pageId == selectedHomePageId }
                     val onPrimaryPage = selectedPage == null ||
@@ -967,6 +1002,22 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
+                    if (
+                        showingHome &&
+                        onPrimaryPage &&
+                        !experiencePreferences.homeHintsDismissed
+                    ) {
+                        LauncherHomeHintCard(
+                            onDismiss = {
+                                launcherPreferencesRepository.setHomeHintsDismissed(true)
+                            },
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .statusBarsPadding()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                        )
+                    }
+
                     if (showWallpaperPicker) {
                         LauncherWallpaperPickerSheet(
                             onDismiss = { showWallpaperPicker = false },
@@ -980,6 +1031,7 @@ class MainActivity : ComponentActivity() {
                             },
                         )
                     }
+                }
                 }
                 }
             }
