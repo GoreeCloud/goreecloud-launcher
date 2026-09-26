@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -51,6 +52,17 @@ import org.junit.runner.RunWith
 class ActivatedHomeLifecycleRuntimeTest {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    @Before
+    fun completeStartupForEstablishedRuntimeTests() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val preferences = LauncherPreferencesRepository(context)
+        preferences.setHomeAppMode(
+            com.goreecloud.launcher.core.launcher.LauncherHomeAppMode.NONE,
+        ).join()
+        preferences.setHomeHintsDismissed(true).join()
+        preferences.markStartupWizardCompleted().join()
+    }
 
     @Test
     fun recreatedMainActivityRecollectsRoomPlacementAndRemainsReactive() = runBlocking {
