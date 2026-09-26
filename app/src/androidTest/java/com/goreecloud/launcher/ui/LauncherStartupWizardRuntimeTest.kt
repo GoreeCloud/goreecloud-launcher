@@ -42,16 +42,29 @@ class LauncherStartupWizardRuntimeTest {
             }
         }
 
-        composeRule.onNodeWithText("Welcome to GoreeCloud Launcher").assertIsDisplayed()
-        composeRule.onNodeWithText("Continue").performClick()
-
-        composeRule.onNodeWithText("No automatic apps").assertIsDisplayed()
-        composeRule.onNodeWithText("10 most recent apps").assertIsDisplayed()
-        composeRule.onNodeWithText("10 most used apps").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("10 most used apps").performClick()
+        composeRule.onNodeWithText("Welcome to GoreeCloud Launcher")
+            .performScrollTo()
+            .assertIsDisplayed()
         composeRule.onNodeWithText("Continue").performScrollTo().performClick()
 
-        composeRule.onNodeWithText("Search, gestures, and hints").assertIsDisplayed()
+        composeRule.onNodeWithText("Set up your Home")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("No automatic apps")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("10 most recent apps")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("10 most used apps")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.onNodeWithText("Continue").performScrollTo().performClick()
+
+        composeRule.onNodeWithText("Search, gestures, and hints")
+            .performScrollTo()
+            .assertIsDisplayed()
         composeRule.onNodeWithText("Finish setup").performScrollTo().performClick()
 
         composeRule.waitUntil(timeoutMillis = 5_000) { completed != null }
