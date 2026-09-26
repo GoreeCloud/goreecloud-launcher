@@ -288,7 +288,7 @@ fun LauncherBetaRoot(
     onSetShowHomeLabels: (Boolean) -> Unit,
     onSetShowDrawerLabels: (Boolean) -> Unit,
     onSetShowDrawerPageIndicator: (Boolean) -> Unit,
-    onSetUseLocalUsageForSuggestions: (Boolean) -> Unit,
+    onSetHomeAppMode: (LauncherHomeAppMode) -> Unit,
     onSetAddNewAppsToHome: (Boolean) -> Unit,
     onClearLocalUsage: () -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
@@ -703,7 +703,7 @@ fun LauncherBetaRoot(
                         onSetShowHomeLabels = onSetShowHomeLabels,
                         onSetShowDrawerLabels = onSetShowDrawerLabels,
                         onSetShowDrawerPageIndicator = onSetShowDrawerPageIndicator,
-                        onSetUseLocalUsageForSuggestions = onSetUseLocalUsageForSuggestions,
+                        onSetHomeAppMode = onSetHomeAppMode,
                         onSetAddNewAppsToHome = onSetAddNewAppsToHome,
                         onClearLocalUsage = onClearLocalUsage,
                         onSetDrawerBackdrop = onSetDrawerBackdrop,
@@ -4506,7 +4506,7 @@ private fun LauncherSettingsRootSurface(
     onSetShowHomeLabels: (Boolean) -> Unit,
     onSetShowDrawerLabels: (Boolean) -> Unit,
     onSetShowDrawerPageIndicator: (Boolean) -> Unit,
-    onSetUseLocalUsageForSuggestions: (Boolean) -> Unit,
+    onSetHomeAppMode: (LauncherHomeAppMode) -> Unit,
     onSetAddNewAppsToHome: (Boolean) -> Unit,
     onClearLocalUsage: () -> Unit,
     onSetDrawerBackdrop: (LauncherDrawerBackdrop) -> Unit,
@@ -4684,14 +4684,31 @@ private fun LauncherSettingsRootSurface(
                     experiencePreferences.showHomePageIndicator,
                     onSetShowHomePageIndicator,
                 )
-                SettingSwitch(
-                    "Show recent apps on Home",
-                    experiencePreferences.useLocalUsageForSuggestions,
-                    onSetUseLocalUsageForSuggestions,
+                Text(
+                    "Automatic Home apps",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = listOf("No apps", "10 recent", "10 most used"),
+                    selected = when (experiencePreferences.homeAppMode) {
+                        LauncherHomeAppMode.NONE -> "No apps"
+                        LauncherHomeAppMode.RECENT -> "10 recent"
+                        LauncherHomeAppMode.MOST_USED -> "10 most used"
+                    },
+                    onChoice = {
+                        onSetHomeAppMode(
+                            when (it) {
+                                "10 recent" -> LauncherHomeAppMode.RECENT
+                                "10 most used" -> LauncherHomeAppMode.MOST_USED
+                                else -> LauncherHomeAppMode.NONE
+                            },
+                        )
+                    },
                 )
                 GlazeSettingsAction(
                     title = "Local app activity",
-                    summary = "Stores only Launcher launch counts and a bounded recent order on this device; no timestamps. Manual Home app edits take control and turn recent suggestions off.",
+                    summary = "Recent and most-used modes store only Launcher launch counts and a bounded recent order on this device; no timestamps, dwell time, or Android Usage Access.",
                     value = "Clear",
                     onClick = onClearLocalUsage,
                 )
