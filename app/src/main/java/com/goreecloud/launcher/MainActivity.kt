@@ -310,6 +310,12 @@ class MainActivity : ComponentActivity() {
             val localLaunchCounts by localUsageRepository.launchCounts.collectAsStateWithLifecycle(
                 initialValue = emptyMap(),
             )
+            val localRecentAppKeys by localUsageRepository.recentAppKeys.collectAsStateWithLifecycle(
+                initialValue = emptyList(),
+            )
+            val localRecentRanks = remember(localRecentAppKeys) {
+                localRecentAppKeys.withIndex().associate { (rank, key) -> key to rank }
+            }
             val searchProviderPreferences by searchProviderPreferencesState.collectAsStateWithLifecycle()
             val fileSearchRoots by fileSearchPreferencesRepository.roots.collectAsStateWithLifecycle(
                 initialValue = emptyList(),
@@ -428,6 +434,7 @@ class MainActivity : ComponentActivity() {
                 experiencePreferences.starterLayoutApplied,
                 experiencePreferences.useLocalUsageForSuggestions,
                 localLaunchCounts,
+                localRecentAppKeys,
             ) {
                 if (apps.isEmpty() || experiencePreferences.starterLayoutApplied) {
                     return@LaunchedEffect
@@ -447,6 +454,13 @@ class MainActivity : ComponentActivity() {
                                     localLaunchCounts[app.workspaceKey()] ?: 0L
                                 } else {
                                     0L
+                                },
+                                localRecencyRank = if (
+                                    experiencePreferences.useLocalUsageForSuggestions
+                                ) {
+                                    localRecentRanks[app.workspaceKey()]
+                                } else {
+                                    null
                                 },
                             )
                         },
