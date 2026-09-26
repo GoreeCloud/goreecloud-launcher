@@ -365,6 +365,19 @@ class ActivatedHomeLifecycleRuntimeTest {
                     )
                     .assertIsDisplayed()
                 assertEquals(
+                    1,
+                    composeRule
+                        .onAllNodesWithTag("launcher-universal-search-field", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .size,
+                )
+                composeRule
+                    .onNodeWithText(
+                        "Find anything on your device…",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+                assertEquals(
                     0,
                     composeRule
                         .onAllNodesWithTag("launcher-glaze-search-panel", useUnmergedTree = true)
