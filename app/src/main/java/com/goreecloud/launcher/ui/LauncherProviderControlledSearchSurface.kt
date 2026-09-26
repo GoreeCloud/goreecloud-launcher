@@ -232,7 +232,7 @@ internal fun LauncherProviderControlledSearchSurface(
                 ) {
                     val providerIssues by LauncherLocalSearchDiagnostics.issues.collectAsState()
                     val enabledIssues = providerIssues.filterKeys { controls.isEnabled(it) }
-                    if (query.isNotBlank() && enabledIssues.isNotEmpty()) {
+                    if (enabledIssues.isNotEmpty()) {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
@@ -259,7 +259,6 @@ internal fun LauncherProviderControlledSearchSurface(
                                 when {
                                     searchProviderPreferences == null -> "Loading search sources"
                                     providers.isEmpty() -> "Turn on sources to search this device"
-                                    query.isBlank() -> "Start typing to search this device"
                                     !complete -> "Searching…"
                                     else -> "No results found"
                                 },
@@ -268,9 +267,7 @@ internal fun LauncherProviderControlledSearchSurface(
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                if (query.isBlank()) "Apps, contacts, calls and files stay local. " +
-                                    "Only enabled and permitted sources are searched."
-                                else if (enabledIssues.isNotEmpty()) "Check source status for missing results."
+                                if (enabledIssues.isNotEmpty()) "Check source status for missing results."
                                 else "Try a different name, number, app or filename.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
