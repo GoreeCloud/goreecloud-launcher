@@ -749,6 +749,36 @@ class LauncherPreferencesRepository(
     }
 
     /**
+     * Atomically commits first-run Launcher choices and completion so Home never observes a
+     * completed wizard with only a subset of the selected configuration persisted.
+     */
+    suspend fun applyStartupConfiguration(
+        homeAppMode: LauncherHomeAppMode,
+        homeColumns: Int,
+        homeRows: Int,
+        showHomeLabels: Boolean,
+        universalSearchHomeMode: LauncherUniversalSearchHomeMode,
+        addNewAppsToHome: Boolean,
+        showHints: Boolean,
+    ) {
+        val normalizedGrid = LauncherPreferences(
+            homeColumns = homeColumns,
+            homeRows = homeRows,
+        ).sanitized()
+        dataStore.edit { values ->
+            values[Keys.homeAppMode] = homeAppMode.storageValue
+            values[Keys.useLocalUsageForSuggestions] = homeAppMode != LauncherHomeAppMode.NONE
+            values[Keys.homeColumns] = normalizedGrid.homeColumns
+            values[Keys.homeRows] = normalizedGrid.homeRows
+            values[Keys.showHomeLabels] = showHomeLabels
+            values[Keys.universalSearchHomeMode] = universalSearchHomeMode.storageValue
+            values[Keys.addNewAppsToHome] = addNewAppsToHome
+            values[Keys.homeHintsDismissed] = !showHints
+            values[Keys.startupWizardCompleted] = true
+        }
+    }
+
+    /**
      * Compatibility setter for older call sites. New UI should use [setHomeAppMode].
      */
     fun setUseLocalUsageForSuggestions(enabled: Boolean): Job =
