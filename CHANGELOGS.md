@@ -31,6 +31,28 @@ The migrated historical record is stored in these repository-local segments:
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
 
+## September 26, 2026 — PR #248 adds first-run setup, automatic Home modes, and Launcher hints
+
+**Change type:** First-run experience; Home personalization; local usage ranking; discoverability; Development candidate.
+
+PR #248 now includes a first-run GoreeCloud Launcher startup wizard. Ordinary Launcher surfaces remain behind the setup flow until the user completes the initial choices. The wizard includes Android default-launcher role setup plus Home automatic-app mode, Home grid, Home app-label visibility, optional newly-installed-app placement, Universal Search Home-entry mode, and whether built-in Launcher hints remain enabled.
+
+Automatic Home apps are now modeled explicitly rather than through the earlier boolean suggestion switch:
+
+- **No apps** adds no automatic app suggestions to Home;
+- **10 most recent** presents up to ten apps most recently launched through GoreeCloud Launcher;
+- **10 most used** presents up to ten apps with the highest Launcher-local aggregate launch counts;
+- automatic suggestions exclude persisted Home Favorites and Dock duplicates and are placed only into currently empty Home cells;
+- persisted/manual Home apps keep their Room-authoritative spatial coordinates and ordinary drag/drop behavior; automatic suggestions do not rewrite the saved workspace;
+- manual apps can still be added from Apps at any time, regardless of the selected automatic mode; and
+- ranking remains privacy-bounded to Launcher-initiated launches, retaining no timestamps, dwell time, Android Usage Access, query history, or network telemetry.
+
+A dismissible Home hint now explains the default swipe-up Apps gesture, swipe-down Universal Search gesture, empty-space long-press editing, and drag/drop. The wizard can disable hints, Home can dismiss them, and Launcher Settings can show them again.
+
+Test architecture separates onboarding from established-runtime acceptance: existing Home/Drawer lifecycle and transition-performance tests explicitly complete startup first, while a dedicated startup-wizard instrumentation test verifies the three automatic Home choices and final configuration handoff.
+
+**Lifecycle boundary:** This remains unmerged Development source. Fresh exact-head CI plus representative-device first-run, Home-role, automatic-mode, manual-placement coexistence, hint accessibility, large-text/landscape, recovery, signing, Release Candidate, production, and Stable acceptance remain open under issue #80.
+
 ## September 26, 2026 — PR #248 incorporates representative-device Launcher feedback
 
 **Change type:** Home suggestions; app-icon reliability; Launcher identity derivative; Universal Search follow-up; Development candidate.
