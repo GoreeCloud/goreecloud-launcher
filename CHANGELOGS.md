@@ -72,7 +72,7 @@ Validation correction:
 
 - intermediate icon revisions were intentionally rejected by `scripts/check_identity.py` when they removed the center accent or canonical identity tokens; those failures remain audit evidence and the guard was not weakened;
 - the identity-valid Search/icon checkpoint `9c18d1af4996b9ebac9bdbf15aabbff62708d8b6` passed Android CI #902 / `36255771493` across all configured lanes before the later live recent-Home integration;
-- a later superseded runtime run exposed that persisted-Home gesture tests were sharing recent-app suggestion state; those tests now clear that local suggestion state before exercising their directly seeded favorite, preserving the product behavior while making the lifecycle tests deterministic. Fresh exact-head validation remains required for the resulting candidate.
+- later superseded runtime runs exposed two related boundaries: persisted-workspace lifecycle tests were sharing the live suggestion mode, and suggested-but-unpinned Home apps had lost global vertical Home gestures because drag eligibility and swipe eligibility were coupled. The lifecycle suite now temporarily disables/restores recent suggestions around persisted-layout tests, while Home tiles keep swipe-up/swipe-down gesture handling regardless of whether they are draggable. Suggested apps remain non-draggable until pinned. Fresh exact-head validation remains required for the resulting candidate.
 
 Still open:
 
