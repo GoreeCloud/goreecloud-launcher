@@ -23,6 +23,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
+import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
 import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
@@ -42,6 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -54,30 +56,29 @@ class ActivatedHomeLifecycleRuntimeTest {
     val composeRule = createEmptyComposeRule()
 
     private lateinit var lifecyclePreferencesRepository: LauncherPreferencesRepository
-    private var previousRecentHomeSuggestions = true
+    private var previousHomeAppMode = LauncherHomeAppMode.NONE
 
     @Before
-    fun isolatePersistedWorkspaceTestsFromRecentHomeSuggestions() = runBlocking {
+    fun isolatePersistedWorkspaceTestsFromAutomaticHomeApps() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         lifecyclePreferencesRepository = LauncherPreferencesRepository(context)
-        previousRecentHomeSuggestions =
-            lifecyclePreferencesRepository.experiencePreferences.first()
-                .useLocalUsageForSuggestions
-        lifecyclePreferencesRepository.setUseLocalUsageForSuggestions(false)
+        previousHomeAppMode =
+            lifecyclePreferencesRepository.experiencePreferences.first().homeAppMode
+        lifecyclePreferencesRepository.setHomeAppMode(LauncherHomeAppMode.NONE).join()
         withTimeout(5_000) {
             lifecyclePreferencesRepository.experiencePreferences.first {
-                !it.useLocalUsageForSuggestions
+                it.homeAppMode == LauncherHomeAppMode.NONE
             }
         }
         LauncherLocalUsageRepository(context).clear().join()
     }
 
     @After
-    fun restoreRecentHomeSuggestionPreference() = runBlocking {
-        lifecyclePreferencesRepository.setUseLocalUsageForSuggestions(previousRecentHomeSuggestions)
+    fun restoreAutomaticHomeAppMode() = runBlocking {
+        lifecyclePreferencesRepository.setHomeAppMode(previousHomeAppMode).join()
         withTimeout(5_000) {
             lifecyclePreferencesRepository.experiencePreferences.first {
-                it.useLocalUsageForSuggestions == previousRecentHomeSuggestions
+                it.homeAppMode == previousHomeAppMode
             }
         }
     }
@@ -86,9 +87,6 @@ class ActivatedHomeLifecycleRuntimeTest {
     fun completeStartupForEstablishedRuntimeTests() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val preferences = LauncherPreferencesRepository(context)
-        preferences.setHomeAppMode(
-            com.goreecloud.launcher.core.launcher.LauncherHomeAppMode.NONE,
-        ).join()
         preferences.setHomeHintsDismissed(true).join()
         preferences.markStartupWizardCompleted().join()
     }
