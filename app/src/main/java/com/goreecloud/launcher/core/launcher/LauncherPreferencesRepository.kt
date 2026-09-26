@@ -741,23 +741,20 @@ class LauncherPreferencesRepository(
         }
     }
 
-    fun setHomeAppMode(mode: LauncherHomeAppMode) {
-        scope.launch {
-            dataStore.edit { values ->
-                values[Keys.homeAppMode] = mode.storageValue
-                values[Keys.useLocalUsageForSuggestions] = mode != LauncherHomeAppMode.NONE
-            }
+    fun setHomeAppMode(mode: LauncherHomeAppMode): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.homeAppMode] = mode.storageValue
+            values[Keys.useLocalUsageForSuggestions] = mode != LauncherHomeAppMode.NONE
         }
     }
 
     /**
      * Compatibility setter for older call sites. New UI should use [setHomeAppMode].
      */
-    fun setUseLocalUsageForSuggestions(enabled: Boolean) {
+    fun setUseLocalUsageForSuggestions(enabled: Boolean): Job =
         setHomeAppMode(
             if (enabled) LauncherHomeAppMode.RECENT else LauncherHomeAppMode.NONE,
         )
-    }
 
     fun markStartupWizardCompleted(): Job = scope.launch {
         dataStore.edit { values ->
