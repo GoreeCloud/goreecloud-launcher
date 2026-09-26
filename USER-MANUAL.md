@@ -8,9 +8,23 @@ Features described under **Approved future product direction** are planned/targe
 
 ## Make GoreeCloud Launcher your Home app
 
-After installing a Development build, open GoreeCloud Launcher and use the default-Home control when shown. Android remains the authority for which launcher is the default and presents the system chooser.
+On a genuinely new Launcher setup, GoreeCloud Launcher opens into a three-step startup wizard before the ordinary Home, Apps, and Universal Search surfaces. The wizard can request Android's Home role and lets you choose the initial Home/app behavior, grid, labels, Universal Search Home entry, optional new-app placement, and whether built-in hints remain enabled.
 
-You can change the default launcher later through Android system settings. Exact labels vary by device and Android version.
+Existing upgraded workspaces whose historical starter setup was already applied are not intentionally forced back through onboarding.
+
+Android remains the authority for which launcher is the default and presents the system chooser. You can change the default launcher later through Android system settings. Exact labels vary by device and Android version.
+
+### Automatic Home apps
+
+The startup wizard and Launcher Settings expose three automatic Home modes:
+
+- **No automatic apps** — Launcher adds no transient automatic app suggestions to the Home grid.
+- **10 most recent apps** — Launcher shows up to ten apps most recently launched through GoreeCloud Launcher.
+- **10 most used apps** — Launcher shows up to ten apps with the highest local Launcher launch counts.
+
+Recent/most-used suggestions are presentation-only. They fill otherwise-empty Home cells, exclude persisted Home Favorites and Dock duplicates, and do not rewrite saved Room-authoritative placement. Manual Home apps remain available in every mode: drag an app from Apps onto Home or the Dock, or use the app-management placement actions as usual.
+
+The ranking store is local and privacy-bounded. It retains only application workspace keys, aggregate Launcher launch counts, and a bounded recency ordering. It does not request Android Usage Access or retain launch timestamps, dwell time, Search queries, or network telemetry for this feature.
 
 ## Home screen
 
@@ -21,12 +35,18 @@ The primary Home experience is a launcher-style surface. Android renders the dev
 - Open **Apps** from the Home affordance to browse installed launchable applications.
 - Long-press empty Home space to enter **Edit Home**, then use its **Settings** action to change supported Home, Apps, icon, label, appearance, layout-lock, and Launcher Universal Search preferences.
 - Swipe one finger downward through the unobstructed Home gesture zone to open Launcher Universal Search by default. This assignment can be changed under **Launcher settings → Gestures**.
-- Favorites and Dock are seeded from installed launchable apps on first run when needed.
+- The first-run setup can seed the five-item Dock from common app roles when available. Automatic Home apps are controlled separately by the selected No automatic apps / 10 most recent apps / 10 most used apps mode.
 - The Dock is currently bounded to five items.
 
 The launcher discovers launchable activities through Android `LauncherApps` across available profiles. The manifest uses a scoped `MAIN` + `LAUNCHER` package-visibility query without requesting broad `QUERY_ALL_PACKAGES` access; core search no longer requires the legacy GoreeCloud Index search-action query.
 
 The primary Home page remains the protected HOME rank-zero page. Under terminal Room authority, Launcher can migrate its legacy null-coordinate Favorites rows into authoritative grid coordinates on demand; subsequent primary Home drags persist those coordinates without creating a second workspace authority.
+
+### Built-in Launcher hints
+
+After startup, Launcher can show a short dismissible Home hint covering the main interactions: **swipe up for Apps**, **swipe down for Universal Search**, **long-press empty Home space to customize**, and **drag apps from Apps onto Home or the Dock**.
+
+You can disable hints during startup, dismiss the Home hint with **Got it**, and later restore it from **Launcher settings → Launcher hints → Show again**. Hint state stays local and is not telemetry.
 
 ## Launcher Universal Search from Home
 
@@ -44,7 +64,9 @@ The persistent Search GoreeCloud affordance is hidden. Swipe down still opens La
 
 The current Development search foundation provides installed applications, Android application shortcuts, and user-enabled local Contacts, Call history, Messages, and file-name results. Local file Search is limited to Android Storage Access Framework folders that you explicitly choose; Launcher indexes bounded file-name and MIME metadata only and does not read file contents or request broad storage access.
 
-Open **Sources** from Universal Search to review enabled sources and their privacy behavior. For **Files**, choose one or more folders to make them searchable. Selected folders are shown in the Sources view. Removing a folder requires confirmation, removes it from Launcher Search, and releases the saved Android read grant when possible. You can choose the folder again later. If one selected document-provider root becomes revoked, malformed, or unavailable, Launcher fails that root softly so other selected roots can continue contributing results.
+When Universal Search opens, the idle view is intentionally minimal: one search field with a search icon, **Find anything on your device…**, and a settings icon at the far right. Result groups, status information, and other search controls appear only after you begin typing or explicitly open settings.
+
+Tap the **settings icon** in the Universal Search field to review enabled sources and their privacy behavior. For **Files**, choose one or more folders to make them searchable. Selected folders are shown in the Sources view. Removing a folder requires confirmation, removes it from Launcher Search, and releases the saved Android read grant when possible. You can choose the folder again later. If one selected document-provider root becomes revoked, malformed, or unavailable, Launcher fails that root softly so other selected roots can continue contributing results.
 
 Google Drive, Dropbox, and Brave Search are exposed only as explicit **Search with…** handoffs. Launcher does not automatically send typed queries to those providers. Core Search remains Launcher-owned, local-first, and does not require GoreeCloud Index, GoreeCloud Search, Launcher Internet permission, or telemetry.
 
@@ -89,11 +111,13 @@ Long-press an app to open its current placement dialog. When the Home layout is 
 
 The current Development settings surface is scrollable and persists supported choices locally.
 
-### Home screen grid
+### Home screen
 
-Current presets cover Home grids from 4 to 6 columns and 4 to 7 rows through the supported preset combinations in the UI. Once primary Home spatial placement is active, a grid-size change is applied only after the current primary placements can be validated or safely reflowed into the requested grid; a change that cannot preserve all current Home apps fails closed.
+Launcher Settings includes the same **Automatic Home apps** choices used by the startup wizard: **No automatic apps**, **10 most recent apps**, or **10 most used apps**. Changing this mode affects only transient automatic suggestions; it does not remove or reposition manually saved Home apps.
 
-The Home screen settings card also contains the **Lock Home screen layout** switch described above.
+Current grid presets cover Home grids from 4 to 6 columns and 4 to 7 rows through the supported preset combinations in the UI. Once primary Home spatial placement is active, a grid-size change is applied only after the current primary placements can be validated or safely reflowed into the requested grid; a change that cannot preserve all current Home apps fails closed.
+
+The Home settings area also includes local app-activity clearing, **Launcher hints → Show again**, optional **Add new apps to Home**, and the **Lock Home screen layout** switch described above.
 
 ### Universal Search
 

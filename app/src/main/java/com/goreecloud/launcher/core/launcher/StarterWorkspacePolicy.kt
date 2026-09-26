@@ -5,12 +5,58 @@ data class StarterWorkspaceCandidate(
     val label: String,
     val packageName: String,
     val localLaunchCount: Long = 0L,
+    val localRecencyRank: Int? = null,
 )
 
 data class StarterWorkspaceSelection(
     val favoriteKeys: List<String>,
     val dockKeys: List<String>,
 )
+
+/**
+ * Selects transient automatic Home apps without mutating persisted workspace placement.
+ *
+ * Both ranking modes are intentionally Launcher-local: RECENT consumes only the bounded launch
+ * ordering and MOST_USED consumes only aggregate Launcher launch counts. Persisted Favorites and
+ * Dock items are excluded so automatic presentation never duplicates or competes with manual
+ * placement.
+ */
+object LauncherHomeSuggestionsPolicy {
+    fun selectKeys(
+        mode: LauncherHomeAppMode,
+        recentAppKeys: List<String>,
+        launchCounts: Map<String, Long>,
+        availableAppKeys: Set<String>,
+        favoriteKeys: Set<String>,
+        dockKeys: Set<String>,
+        limit: Int = 10,
+    ): List<String> {
+        if (limit <= 0 || mode == LauncherHomeAppMode.NONE) return emptyList()
+
+        val excluded = favoriteKeys + dockKeys
+        val ranked = when (mode) {
+            LauncherHomeAppMode.NONE -> emptyList()
+            LauncherHomeAppMode.RECENT -> recentAppKeys
+            LauncherHomeAppMode.MOST_USED -> launchCounts.entries
+                .asSequence()
+                .filter { it.value > 0L }
+                .sortedWith(
+                    compareByDescending<Map.Entry<String, Long>> { it.value }
+                        .thenBy { it.key },
+                )
+                .map { it.key }
+                .toList()
+        }
+
+        return ranked.asSequence()
+            .filter { it.isNotBlank() }
+            .filter(availableAppKeys::contains)
+            .filterNot(excluded::contains)
+            .distinct()
+            .take(limit)
+            .toList()
+    }
+}
 
 /**
  * Picks an intentional first-run launcher layout without pretending to know the user's final
@@ -86,9 +132,14 @@ object StarterWorkspacePolicy {
 
         val favorites = mutableListOf<String>()
         val rankedByLocalUse = usable
-            .filter { it.key !in used && it.localLaunchCount > 0L }
+            .filter {
+                it.key !in used &&
+                    (it.localRecencyRank != null || it.localLaunchCount > 0L)
+            }
             .sortedWith(
-                compareByDescending<StarterWorkspaceCandidate> { it.localLaunchCount }
+                compareBy<StarterWorkspaceCandidate> {
+                    it.localRecencyRank ?: Int.MAX_VALUE
+                }.thenByDescending { it.localLaunchCount }
                     .thenByDescending { it.label.contains("goreecloud", ignoreCase = true) }
                     .thenBy { it.label.lowercase() },
             )

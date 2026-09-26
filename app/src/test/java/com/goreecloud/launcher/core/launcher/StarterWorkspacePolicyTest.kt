@@ -69,6 +69,82 @@ class StarterWorkspacePolicyTest {
     }
 
     @Test
+    fun recencyOrderingWinsOverFrequencyForDefaultHomeFavorites() {
+        val selection = StarterWorkspacePolicy.select(
+            listOf(
+                candidate("phone", "Phone"),
+                candidate("messages", "Messages"),
+                candidate("mail", "Mail"),
+                candidate("browser", "Browser"),
+                candidate("camera", "Camera"),
+                candidate("newest", "Newest").copy(localLaunchCount = 1, localRecencyRank = 0),
+                candidate("middle", "Middle").copy(localLaunchCount = 2, localRecencyRank = 1),
+                candidate("older", "Older").copy(localLaunchCount = 100, localRecencyRank = 2),
+                candidate("calendar", "Calendar"),
+            ),
+            maxFavorites = 3,
+        )
+
+        assertEquals(
+            listOf("newest", "middle", "older"),
+            selection.favoriteKeys,
+        )
+    }
+
+    @Test
+    fun recentHomeSuggestionsPreserveRecencyAndExcludeManualPlacements() {
+        assertEquals(
+            listOf("new", "older"),
+            LauncherHomeSuggestionsPolicy.selectKeys(
+                mode = LauncherHomeAppMode.RECENT,
+                recentAppKeys = listOf("dock", "new", "older", "new", "missing"),
+                launchCounts = mapOf("older" to 50L),
+                availableAppKeys = setOf("dock", "new", "older", "favorite"),
+                favoriteKeys = setOf("favorite"),
+                dockKeys = setOf("dock"),
+                limit = 4,
+            ),
+        )
+    }
+
+    @Test
+    fun mostUsedHomeSuggestionsSortCountsAndExcludeUnavailableOrPlacedApps() {
+        assertEquals(
+            listOf("beta", "alpha"),
+            LauncherHomeSuggestionsPolicy.selectKeys(
+                mode = LauncherHomeAppMode.MOST_USED,
+                recentAppKeys = listOf("alpha"),
+                launchCounts = mapOf(
+                    "favorite" to 100L,
+                    "dock" to 90L,
+                    "missing" to 80L,
+                    "beta" to 7L,
+                    "alpha" to 4L,
+                    "zero" to 0L,
+                ),
+                availableAppKeys = setOf("favorite", "dock", "beta", "alpha", "zero"),
+                favoriteKeys = setOf("favorite"),
+                dockKeys = setOf("dock"),
+            ),
+        )
+    }
+
+    @Test
+    fun noAutomaticAppsModeReturnsNoSuggestions() {
+        assertEquals(
+            emptyList<String>(),
+            LauncherHomeSuggestionsPolicy.selectKeys(
+                mode = LauncherHomeAppMode.NONE,
+                recentAppKeys = listOf("recent"),
+                launchCounts = mapOf("recent" to 10L),
+                availableAppKeys = setOf("recent"),
+                favoriteKeys = emptySet(),
+                dockKeys = emptySet(),
+            ),
+        )
+    }
+
+    @Test
     fun tenStarterAppsOccupyBottomTwoRowsOfFiveBySixHome() {
         assertEquals(
             listOf(

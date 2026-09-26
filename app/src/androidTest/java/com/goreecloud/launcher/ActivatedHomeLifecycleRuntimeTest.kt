@@ -2,7 +2,10 @@ package com.goreecloud.launcher
 
 import android.app.role.RoleManager
 import android.os.ParcelFileDescriptor
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -10,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
@@ -19,7 +23,9 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.goreecloud.launcher.core.launcher.LauncherAppsRepository
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
+import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
+import com.goreecloud.launcher.core.launcher.LauncherLocalUsageRepository
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
@@ -37,7 +43,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,6 +54,43 @@ import org.junit.runner.RunWith
 class ActivatedHomeLifecycleRuntimeTest {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    private lateinit var lifecyclePreferencesRepository: LauncherPreferencesRepository
+    private var previousHomeAppMode = LauncherHomeAppMode.NONE
+
+    @Before
+    fun isolatePersistedWorkspaceTestsFromAutomaticHomeApps() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        lifecyclePreferencesRepository = LauncherPreferencesRepository(context)
+        previousHomeAppMode =
+            lifecyclePreferencesRepository.experiencePreferences.first().homeAppMode
+        lifecyclePreferencesRepository.setHomeAppMode(LauncherHomeAppMode.NONE).join()
+        withTimeout(5_000) {
+            lifecyclePreferencesRepository.experiencePreferences.first {
+                it.homeAppMode == LauncherHomeAppMode.NONE
+            }
+        }
+        LauncherLocalUsageRepository(context).clear().join()
+    }
+
+    @After
+    fun restoreAutomaticHomeAppMode() = runBlocking {
+        lifecyclePreferencesRepository.setHomeAppMode(previousHomeAppMode).join()
+        withTimeout(5_000) {
+            lifecyclePreferencesRepository.experiencePreferences.first {
+                it.homeAppMode == previousHomeAppMode
+            }
+        }
+        Unit
+    }
+
+    @Before
+    fun completeStartupForEstablishedRuntimeTests() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val preferences = LauncherPreferencesRepository(context)
+        preferences.setHomeHintsDismissed(true).join()
+        preferences.markStartupWizardCompleted().join()
+    }
 
     @Test
     fun recreatedMainActivityRecollectsRoomPlacementAndRemainsReactive() = runBlocking {
@@ -345,27 +390,93 @@ class ActivatedHomeLifecycleRuntimeTest {
                         )
                     }
 
+                // Idle Universal Search is intentionally reduced to one search field with
+                // an in-field settings action. Results and their containing panel appear
+                // only after the user begins typing.
                 composeRule.waitUntil(timeoutMillis = 10_000) {
-                    composeRule.onAllNodesWithText("Universal Search", useUnmergedTree = true)
+                    composeRule
+                        .onAllNodesWithTag("launcher-universal-search-field", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
                 composeRule
-                    .onNodeWithText("Universal Search", useUnmergedTree = true)
-                    .assertIsDisplayed()
-                composeRule
-                    .onNodeWithText(
-                        "Search apps, shortcuts, people, calls, messages and files",
+                    .onNodeWithTag(
+                        "launcher-universal-search-field",
                         useUnmergedTree = true,
                     )
                     .assertIsDisplayed()
-
+                assertEquals(
+                    1,
+                    composeRule
+                        .onAllNodesWithTag("launcher-universal-search-field", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .size,
+                )
+                composeRule
+                    .onNodeWithText(
+                        "Find anything on your device…",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+                assertEquals(
+                    0,
+                    composeRule
+                        .onAllNodesWithText("Universal Search", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .size,
+                )
+                assertEquals(
+                    0,
+                    composeRule
+                        .onAllNodesWithText(
+                            "Search privately across enabled sources",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .size,
+                )
+                assertEquals(
+                    0,
+                    composeRule
+                        .onAllNodesWithTag("launcher-glaze-search-panel", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .size,
+                )
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-universal-search-settings",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+                    .assertHasClickAction()
+                    .performClick()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag("launcher-search-source-manager", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithText("Back", useUnmergedTree = true)
+                    .performClick()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag("launcher-universal-search-field", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
                 composeRule
                     .onNodeWithTag(
                         "launcher-universal-search-field",
                         useUnmergedTree = true,
                     )
                     .performTextInput("theme")
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag("launcher-glaze-search-panel", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule.onAllNodesWithText("Theme Manager", useUnmergedTree = true)
@@ -731,6 +842,255 @@ class ActivatedHomeLifecycleRuntimeTest {
                 check(
                     composeRule
                         .onAllNodesWithText("User Apps", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isEmpty(),
+                )
+                Unit
+            } finally {
+                scenario.close()
+            }
+        } finally {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.TAP_AND_HOLD,
+                previousTapAndHold,
+            ).join()
+            if (!alreadyDefaultHome) {
+                runShellCommand(
+                    "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+                )
+            }
+        }
+    }
+
+    @Test
+    fun wallpaperPickerExposesSingleSelectionSemanticsWithoutApplyingWallpaper() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val roleManager = context.getSystemService(RoleManager::class.java)
+        val alreadyDefaultHome =
+            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) &&
+                roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+        val preferencesRepository = LauncherPreferencesRepository(context)
+        val previousTapAndHold =
+            preferencesRepository.experiencePreferences.first().tapAndHoldAction
+
+        if (!alreadyDefaultHome) {
+            runShellCommand(
+                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+            )
+            withTimeout(10_000) {
+                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    delay(100)
+                }
+            }
+        }
+
+        try {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.TAP_AND_HOLD,
+                LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
+            ).join()
+
+            val scenario = ActivityScenario.launch(MainActivity::class.java)
+            try {
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-home-empty-space-actions",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-home-empty-space-actions",
+                        useUnmergedTree = true,
+                    )
+                    .performTouchInput {
+                        down(center)
+                        advanceEventTime(700)
+                        up()
+                    }
+
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithText("Edit Home", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule.onNodeWithText("Wallpaper").performClick()
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithText("Wallpapers", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-wallpaper-choice-AURORA",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsSelected()
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-wallpaper-choice-HORIZON",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsNotSelected()
+                    .performScrollTo()
+                    .performClick()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    runCatching {
+                        composeRule
+                            .onNodeWithTag(
+                                "launcher-wallpaper-choice-HORIZON",
+                                useUnmergedTree = true,
+                            )
+                            .assertIsSelected()
+                        composeRule
+                            .onNodeWithTag(
+                                "launcher-wallpaper-choice-AURORA",
+                                useUnmergedTree = true,
+                            )
+                            .assertIsNotSelected()
+                    }.isSuccess
+                }
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-wallpaper-choice-HORIZON",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsSelected()
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-wallpaper-choice-AURORA",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsNotSelected()
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithText("Apply", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                Unit
+            } finally {
+                scenario.close()
+            }
+        } finally {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.TAP_AND_HOLD,
+                previousTapAndHold,
+            ).join()
+            if (!alreadyDefaultHome) {
+                runShellCommand(
+                    "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+                )
+            }
+        }
+    }
+
+    @Test
+    fun widgetPickerSearchExposesUnifiedAccessibleGalleryWithoutMutatingWorkspace() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val roleManager = context.getSystemService(RoleManager::class.java)
+        val alreadyDefaultHome =
+            roleManager.isRoleAvailable(RoleManager.ROLE_HOME) &&
+                roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+        val preferencesRepository = LauncherPreferencesRepository(context)
+        val previousTapAndHold =
+            preferencesRepository.experiencePreferences.first().tapAndHoldAction
+
+        if (!alreadyDefaultHome) {
+            runShellCommand(
+                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+            )
+            withTimeout(10_000) {
+                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    delay(100)
+                }
+            }
+        }
+
+        try {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.TAP_AND_HOLD,
+                LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
+            ).join()
+
+            val scenario = ActivityScenario.launch(MainActivity::class.java)
+            try {
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-home-empty-space-actions",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-home-empty-space-actions",
+                        useUnmergedTree = true,
+                    )
+                    .performTouchInput {
+                        down(center)
+                        advanceEventTime(700)
+                        up()
+                    }
+
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithText("Edit Home", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule.onNodeWithText("Widgets").performClick()
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-widget-picker-sheet",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithTag("launcher-widget-search-field", useUnmergedTree = true)
+                    .assertIsDisplayed()
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-widget-built-in-goreecloud.battery",
+                        useUnmergedTree = true,
+                    )
+                    .assertHasClickAction()
+
+                composeRule
+                    .onNodeWithTag("launcher-widget-search-field", useUnmergedTree = true)
+                    .performTextInput("weather")
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithText(
+                            "No GoreeCloud widgets match “weather”.",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                check(
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-widget-built-in-goreecloud.battery",
+                            useUnmergedTree = true,
+                        )
                         .fetchSemanticsNodes()
                         .isEmpty(),
                 )

@@ -1,10 +1,62 @@
 package com.goreecloud.launcher.core.launcher
 
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 class LauncherPreferencesTest {
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
+    @Test
+    fun startupConfigurationPersistsSelectedStateAndCompletionTogether() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("startup.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            repository.applyStartupConfiguration(
+                homeAppMode = LauncherHomeAppMode.MOST_USED,
+                homeColumns = 6,
+                homeRows = 7,
+                showHomeLabels = false,
+                universalSearchHomeMode = LauncherUniversalSearchHomeMode.PERMANENT,
+                addNewAppsToHome = true,
+                showHints = false,
+            )
+
+            val preferences = repository.preferences.first()
+            val experience = repository.experiencePreferences.first()
+
+            assertEquals(6, preferences.homeColumns)
+            assertEquals(7, preferences.homeRows)
+            assertEquals(
+                LauncherUniversalSearchHomeMode.PERMANENT,
+                preferences.universalSearchHomeMode,
+            )
+            assertEquals(LauncherHomeAppMode.MOST_USED, experience.homeAppMode)
+            assertEquals(true, experience.useLocalUsageForSuggestions)
+            assertEquals(false, experience.showHomeLabels)
+            assertEquals(true, experience.addNewAppsToHome)
+            assertEquals(true, experience.homeHintsDismissed)
+            assertEquals(true, experience.startupWizardCompleted)
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
     @Test
     fun sanitizedClampsGridDrawerAndIconScale() {
         val result = LauncherPreferences(
@@ -44,11 +96,19 @@ class LauncherPreferencesTest {
 
         assertFalse(defaults.showHomeQuickActions)
         assertEquals(true, defaults.showHomePageIndicator)
+        assertEquals(true, defaults.showHomeLabels)
+        assertEquals(true, defaults.showDrawerLabels)
+        assertEquals(true, defaults.showDrawerPageIndicator)
         assertFalse(defaults.starterLayoutApplied)
-        assertEquals(true, defaults.useLocalUsageForSuggestions)
+        assertEquals(LauncherHomeAppMode.NONE, defaults.homeAppMode)
+        assertFalse(defaults.useLocalUsageForSuggestions)
         assertFalse(defaults.addNewAppsToHome)
+        assertFalse(defaults.startupWizardCompleted)
+        assertFalse(defaults.homeHintsDismissed)
         assertEquals(LauncherDockStyle.GLASS, defaults.dockStyle)
         assertEquals(LauncherWallpaperShade.SOFT, defaults.wallpaperShade)
+        assertEquals(LauncherIconShape.ROUNDED_SQUARE, defaults.iconShape)
+        assertEquals(null, defaults.iconPackPackage)
         assertEquals(LauncherDrawerSearchPlacement.BOTTOM, defaults.drawerSearchPlacement)
         assertEquals(LauncherDrawerNavigation.SCROLL, defaults.drawerNavigation)
         assertEquals(LauncherDrawerEntryMode.BROWSE, defaults.drawerEntryMode)
@@ -142,6 +202,9 @@ class LauncherPreferencesTest {
             LauncherHomeSearchStyle.GLASS,
             LauncherHomeSearchStyle.fromStorage("unknown"),
         )
+        assertEquals(LauncherHomeAppMode.RECENT, LauncherHomeAppMode.fromStorage("recent"))
+        assertEquals(LauncherHomeAppMode.MOST_USED, LauncherHomeAppMode.fromStorage("most_used"))
+        assertEquals(LauncherHomeAppMode.NONE, LauncherHomeAppMode.fromStorage("unknown"))
         assertEquals(LauncherHomeSpacing.COMPACT, LauncherHomeSpacing.fromStorage("compact"))
         assertEquals(LauncherHomeSpacing.AIRY, LauncherHomeSpacing.fromStorage("airy"))
         assertEquals(LauncherHomeSpacing.BALANCED, LauncherHomeSpacing.fromStorage("unknown"))

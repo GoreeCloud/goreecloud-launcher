@@ -13,13 +13,26 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.goreecloud.launcher.MainActivity
+import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
+import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import kotlin.math.roundToInt
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class LauncherTransitionPerformanceRuntimeTest {
+    @Before
+    fun completeStartupForTransitionMeasurement() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val preferences = LauncherPreferencesRepository(context)
+        preferences.setHomeAppMode(LauncherHomeAppMode.NONE).join()
+        preferences.setHomeHintsDismissed(true).join()
+        preferences.markStartupWizardCompleted().join()
+    }
+
     @Test
     fun homeDrawerRoundTripsReportFrameTiming() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
