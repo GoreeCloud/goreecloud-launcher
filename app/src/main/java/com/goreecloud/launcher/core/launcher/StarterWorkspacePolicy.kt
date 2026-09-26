@@ -14,6 +14,32 @@ data class StarterWorkspaceSelection(
 )
 
 /**
+ * Builds the live default Home suggestion order without mutating persisted workspace placement.
+ *
+ * Recent Launcher launches lead, Dock apps are excluded to avoid duplicate presentation, and saved
+ * Home favorites fill any remaining slots. The caller decides when suggestion mode is appropriate;
+ * manual Home editing can disable it so user placement remains authoritative.
+ */
+object LauncherHomeSuggestionsPolicy {
+    fun selectKeys(
+        recentAppKeys: List<String>,
+        savedFavoriteKeys: List<String>,
+        dockKeys: List<String>,
+        limit: Int = 10,
+    ): List<String> {
+        if (limit <= 0) return emptyList()
+        val dock = dockKeys.toSet()
+        return buildList {
+            (recentAppKeys + savedFavoriteKeys).forEach { key ->
+                if (size >= limit) return@buildList
+                if (key.isBlank() || key in dock || key in this) return@forEach
+                add(key)
+            }
+        }
+    }
+}
+
+/**
  * Picks an intentional first-run launcher layout without pretending to know the user's final
  * preferences. The policy favors common phone tasks and GoreeCloud-branded apps, never launcher
  * packages, and is only applied once to a completely empty Development workspace.
