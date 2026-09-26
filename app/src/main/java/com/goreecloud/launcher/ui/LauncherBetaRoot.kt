@@ -3215,8 +3215,45 @@ private fun HomeFavoriteTile(
     var tileBounds by remember(app.componentName, app.user) { mutableStateOf<Rect?>(null) }
     var dragStartCenter by remember(app.componentName, app.user) { mutableStateOf<Offset?>(null) }
 
+    val swipeModifier = Modifier.pointerInput(onSwipeUp, onSwipeDown, swipeThreshold) {
+        var drag = 0f
+        var triggered = false
+        detectVerticalDragGestures(
+            onDragStart = {
+                drag = 0f
+                triggered = false
+            },
+            onDragCancel = {
+                drag = 0f
+                triggered = false
+            },
+            onDragEnd = {
+                drag = 0f
+                triggered = false
+            },
+            onVerticalDrag = { change, amount ->
+                if (!dragging) {
+                    change.consume()
+                    if (!triggered) {
+                        drag += amount
+                        when {
+                            drag <= -swipeThreshold -> {
+                                triggered = true
+                                onSwipeUp()
+                            }
+                            drag >= swipeThreshold -> {
+                                triggered = true
+                                onSwipeDown()
+                            }
+                        }
+                    }
+                }
+            },
+        )
+    }
+
     val gestureModifier = if (layoutLocked || dragData == null) {
-        Modifier.combinedClickable(
+        swipeModifier.combinedClickable(
             onClick = { onLaunchApp(app) },
             onLongClick = { onManageApp(app, tileBounds) },
         )
@@ -3264,42 +3301,7 @@ private fun HomeFavoriteTile(
                     },
                 )
             }
-            .pointerInput(onSwipeUp, onSwipeDown, swipeThreshold) {
-                var drag = 0f
-                var triggered = false
-                detectVerticalDragGestures(
-                    onDragStart = {
-                        drag = 0f
-                        triggered = false
-                    },
-                    onDragCancel = {
-                        drag = 0f
-                        triggered = false
-                    },
-                    onDragEnd = {
-                        drag = 0f
-                        triggered = false
-                    },
-                    onVerticalDrag = { change, amount ->
-                        if (!dragging) {
-                            change.consume()
-                            if (!triggered) {
-                                drag += amount
-                                when {
-                                    drag <= -swipeThreshold -> {
-                                        triggered = true
-                                        onSwipeUp()
-                                    }
-                                    drag >= swipeThreshold -> {
-                                        triggered = true
-                                        onSwipeDown()
-                                    }
-                                }
-                            }
-                        }
-                    },
-                )
-            }
+            .then(swipeModifier)
             .clickable(enabled = !dragging) { onLaunchApp(app) }
     }
 
