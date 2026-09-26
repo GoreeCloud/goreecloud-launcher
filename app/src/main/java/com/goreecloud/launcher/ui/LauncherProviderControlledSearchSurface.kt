@@ -203,7 +203,7 @@ internal fun LauncherProviderControlledSearchSurface(
                 onReset = onResetSearchProviderPreferences,
                 modifier = Modifier.weight(1f),
             )
-        } else if (query.isBlank()) {
+        } else {
             GlazeAppSearchField(
                 value = query,
                 onValueChange = { query = it },
@@ -217,8 +217,8 @@ internal fun LauncherProviderControlledSearchSurface(
                     )
                 },
             )
-        } else {
-            Surface(
+            if (query.isNotBlank()) {
+                Surface(
                 modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
                     .testTag("launcher-glaze-search-panel"),
                 shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
@@ -230,19 +230,6 @@ internal fun LauncherProviderControlledSearchSurface(
                     modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space2),
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
-                    GlazeAppSearchField(
-                        value = query,
-                        onValueChange = { query = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        requestFocus = true,
-                        placeholder = "Find anything on your device…",
-                        inputTestTag = "launcher-universal-search-field",
-                        trailingContent = {
-                            LauncherUniversalSearchSettingsAction(
-                                onClick = { showSources = true },
-                            )
-                        },
-                    )
                     val providerIssues by LauncherLocalSearchDiagnostics.issues.collectAsState()
                     val enabledIssues = providerIssues.filterKeys { controls.isEnabled(it) }
                     if (query.isNotBlank() && enabledIssues.isNotEmpty()) {
@@ -433,6 +420,7 @@ internal fun LauncherProviderControlledSearchSurface(
                         )
                     }
                 }
+            }
             }
         }
     }
