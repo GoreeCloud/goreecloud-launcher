@@ -71,7 +71,9 @@ Validation:
 - Default 5 × 6 Home grid for a new Launcher preference store, while the existing supported grid presets remain configurable.
 - One-time starter layout that prefers Phone, Messages, Email/Mail, Browser, and Camera for the five Dock positions when matching apps are available.
 - One-time starter Home placement of up to 10 apps in the bottom two rows directly above the Dock; Launcher-local most-recent launch order is preferred when available, aggregate launch counts remain a compatibility fallback, and deterministic common/GoreeCloud app-role fallback fills any remaining slots.
-- Starter placement never fabricates usage history or requests Android Usage Access; after the starter is applied, user edits remain authoritative and the Home is not silently reshuffled.
+- With **Show recent apps on Home** enabled (default), the normal primary Home view keeps up to 10 Launcher-recent apps directly above the Dock, excludes Dock duplicates, and fills missing recent slots from saved Home favorites. This suggestion view does not mutate persisted workspace placement.
+- Suggested-but-unpinned recent apps launch normally but are not treated as draggable persisted favorites. A manual Home app placement/edit disables recent suggestions so the user's saved layout becomes authoritative; the setting can be re-enabled explicitly.
+- Recent-app suggestions never request Android Usage Access and do not fabricate system-wide activity history. Launcher records only launches performed through Launcher while the setting is enabled.
 - Long-press Home edit mode with visible grid/edit affordances and icon management actions.
 - Unified drag/drop between Home and Dock, Dock reordering, Home reordering by cell, and App Drawer copy-to-Home/copy-to-Dock placement while preserving Drawer inventory.
 - Home icon rename, Android App info, uninstall request, and placement controls; context actions disappear during active drag.
