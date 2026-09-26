@@ -113,7 +113,7 @@ import com.goreecloud.launcher.core.launcher.LauncherDrawerSpacing
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeLabelPolicy
-import com.goreecloud.launcher.core.launcher.LauncherHomeSuggestionsPolicy
+import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
 import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
@@ -213,6 +213,7 @@ fun LauncherBetaRoot(
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
     recentAppKeys: List<String>,
+    localLaunchCounts: Map<String, Long>,
     searchProviderPreferences: com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult?,
     fileSearchRoots: List<Uri>,
     homePageCount: Int,
@@ -535,6 +536,7 @@ fun LauncherBetaRoot(
                 preferences = preferences,
                 experiencePreferences = experiencePreferences,
                 recentAppKeys = recentAppKeys,
+                localLaunchCounts = localLaunchCounts,
                 homePageCount = homePageCount,
                 homeEditorRequestSequence = homeEditorRequestSequence,
                 homeLabelOverrides = homeLabelOverrides,
@@ -915,6 +917,7 @@ private fun HomeSurface(
     preferences: LauncherPreferences,
     experiencePreferences: LauncherExperiencePreferences,
     recentAppKeys: List<String>,
+    localLaunchCounts: Map<String, Long>,
     homePageCount: Int,
     homeEditorRequestSequence: Long,
     homeLabelOverrides: Map<String, String>,
@@ -956,33 +959,38 @@ private fun HomeSurface(
         val personalUser = Process.myUserHandle()
         apps.filter { it.user == personalUser }
     }
-    val savedFavoriteApps = remember(appsByKey, workspace.favoriteKeys, preferences.homeCapacity) {
+    val favoriteApps = remember(appsByKey, workspace.favoriteKeys, preferences.homeCapacity) {
         workspace.favoriteKeys.mapNotNull(appsByKey::get).take(preferences.homeCapacity)
     }
     val dockApps = remember(appsByKey, workspace.dockKeys) {
         workspace.dockKeys.mapNotNull(appsByKey::get).take(MAX_DOCK_ITEMS)
     }
-    val useLiveRecentHome = experiencePreferences.useLocalUsageForSuggestions &&
-        primaryHomePage?.widgetPlacements.isNullOrEmpty() &&
-        primaryHomePage?.folderPlacements.isNullOrEmpty()
-    val favoriteApps = remember(
+    val suggestedApps = remember(
         appsByKey,
         recentAppKeys,
+        localLaunchCounts,
         workspace.favoriteKeys,
         workspace.dockKeys,
-        preferences.homeCapacity,
-        useLiveRecentHome,
+        experiencePreferences.homeAppMode,
     ) {
-        if (!useLiveRecentHome) {
-            savedFavoriteApps
-        } else {
-            LauncherHomeSuggestionsPolicy.selectKeys(
-                recentAppKeys = recentAppKeys,
-                savedFavoriteKeys = workspace.favoriteKeys,
-                dockKeys = workspace.dockKeys,
-                limit = minOf(10, preferences.homeCapacity),
-            ).mapNotNull(appsByKey::get)
+        val excluded = workspace.favoriteKeys.toSet() + workspace.dockKeys.toSet()
+        val keys = when (experiencePreferences.homeAppMode) {
+            LauncherHomeAppMode.NONE -> emptyList()
+            LauncherHomeAppMode.RECENT -> recentAppKeys
+            LauncherHomeAppMode.MOST_USED -> localLaunchCounts.entries
+                .sortedWith(
+                    compareByDescending<Map.Entry<String, Long>> { it.value }
+                        .thenBy { it.key },
+                )
+                .map { it.key }
         }
+        keys.asSequence()
+            .filterNot(excluded::contains)
+            .mapNotNull(appsByKey::get)
+            .filterNot { it.componentName.packageName.contains("launcher", ignoreCase = true) }
+            .distinctBy { it.workspaceKey() }
+            .take(10)
+            .toList()
     }
 
     LaunchedEffect(preferences.homeColumns, preferences.homeRows) {
@@ -1239,6 +1247,7 @@ private fun HomeSurface(
 
             if (
                 favoriteApps.isEmpty() &&
+                suggestedApps.isEmpty() &&
                 dockApps.isEmpty() &&
                 primaryHomePage?.widgetPlacements.isNullOrEmpty() &&
                 primaryHomePage?.folderPlacements.isNullOrEmpty() &&
@@ -1250,13 +1259,14 @@ private fun HomeSurface(
             }
             if (
                 favoriteApps.isNotEmpty() ||
+                suggestedApps.isNotEmpty() ||
                 !primaryHomePage?.widgetPlacements.isNullOrEmpty() ||
                 !primaryHomePage?.folderPlacements.isNullOrEmpty() ||
                 activeDrag != null
             ) {
                 HomeFavoritesGrid(
                     apps = favoriteApps,
-                    pinnedAppKeys = workspace.favoriteKeys.toSet(),
+                    suggestedApps = suggestedApps,
                     allApps = personalApps,
                     folders = folders,
                     columns = preferences.homeColumns,
@@ -2144,7 +2154,7 @@ private fun HomeAtAGlance(
 @Composable
 private fun HomeFavoritesGrid(
     apps: List<LauncherActivityInfo>,
-    pinnedAppKeys: Set<String>,
+    suggestedApps: List<LauncherActivityInfo>,
     allApps: List<LauncherActivityInfo>,
     folders: List<LauncherFolder>,
     columns: Int,
@@ -2250,14 +2260,31 @@ private fun HomeFavoritesGrid(
                     put(app.workspaceKey(), cellX to cellY)
                 }
             } else {
-                val visibleCount = apps.size.coerceAtMost(columns * rows)
-                val occupiedRows = if (visibleCount == 0) 0 else (visibleCount + columns - 1) / columns
-                val firstRow = (rows - occupiedRows).coerceAtLeast(0)
-                apps.take(visibleCount).forEachIndexed { index, app ->
-                    put(app.workspaceKey(), (index % columns) to (firstRow + index / columns))
+                apps.take(columns * rows).forEachIndexed { index, app ->
+                    put(app.workspaceKey(), (index % columns) to (index / columns))
                 }
             }
         }
+    }
+
+    val suggestedPlacements = remember(
+        suggestedApps,
+        appPlacements,
+        blockedCells,
+        columns,
+        rows,
+    ) {
+        val occupied = blockedCells + appPlacements.values.toSet()
+        val available = buildList {
+            for (cellY in (rows - 1) downTo 0) {
+                for (cellX in 0 until columns) {
+                    val coordinate = cellX to cellY
+                    if (coordinate !in occupied) add(coordinate)
+                }
+            }
+        }
+        suggestedApps.zip(available)
+            .associate { (app, coordinate) -> app.workspaceKey() to coordinate }
     }
 
     LaunchedEffect(blockedCells) {
@@ -2327,7 +2354,7 @@ private fun HomeFavoritesGrid(
                 showLabel = showLabels,
                 layoutLocked = layoutLocked,
                 editMode = editMode,
-                dragData = if (layoutLocked || appKey !in pinnedAppKeys) null else {
+                dragData = if (layoutLocked) null else {
                     LauncherAppDragData(
                         appKey = appKey,
                         origin = LauncherAppDragOrigin.HOME,
@@ -2344,6 +2371,32 @@ private fun HomeFavoritesGrid(
                 modifier = Modifier
                     .offset(x = stepX * coordinate.first, y = stepY * coordinate.second)
                     .size(width = cellWidth, height = tileHeight),
+            )
+        }
+
+        suggestedApps.forEach { app ->
+            val coordinate = suggestedPlacements[app.workspaceKey()] ?: return@forEach
+            val appKey = app.workspaceKey()
+            HomeFavoriteTile(
+                app = app,
+                displayLabel = app.label.toString(),
+                iconScale = iconScale,
+                showLabel = showLabels,
+                layoutLocked = true,
+                editMode = false,
+                dragData = null,
+                onBeginLocalDrag = onBeginLocalDrag,
+                onUpdateLocalDrag = onUpdateLocalDrag,
+                onEndLocalDrag = onEndLocalDrag,
+                onCancelLocalDrag = onCancelLocalDrag,
+                onLaunchApp = onLaunchApp,
+                onManageApp = onManageApp,
+                onSwipeUp = onSwipeUp,
+                onSwipeDown = onSwipeDown,
+                modifier = Modifier
+                    .offset(x = stepX * coordinate.first, y = stepY * coordinate.second)
+                    .size(width = cellWidth, height = tileHeight)
+                    .testTag("launcher-home-suggested-$appKey"),
             )
         }
 
