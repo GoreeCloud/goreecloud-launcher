@@ -37,6 +37,22 @@ Launcher must remain original GoreeCloud-owned software built from the ground up
 
 ## Current daily-launcher shell
 
+### First-run startup wizard
+
+A genuinely new GoreeCloud Launcher setup must open into a dedicated startup wizard before exposing the ordinary Home/Apps/Search surfaces. The wizard is a Launcher-owned Glaze UI flow and must remain usable without a GoreeCloud account, network access, telemetry, or Android Usage Access.
+
+The initial flow must expose at least:
+
+- Android default-Home role setup;
+- automatic Home app mode: **No apps**, **10 most recent**, or **10 most used**;
+- Home grid selection;
+- Home app-label visibility;
+- optional newly installed app placement;
+- Launcher Universal Search Home-entry choice; and
+- whether built-in Launcher hints remain enabled.
+
+The wizard must explain that manual app placement remains available regardless of automatic Home mode. Completion is persisted locally. Existing upgraded workspaces that already completed the historical starter layout must not be unexpectedly forced back through first-run onboarding.
+
 ### Home
 
 The rebuilt primary Home is a launcher-style surface rather than an engineering Favorites screen. Android renders the system wallpaper behind the launcher window through the native window-wallpaper contract, requiring no wallpaper/storage privilege. The primary surface renders the current Home application grid, Dock, Apps affordance, Launcher Settings affordance, and—when the selected entry mode is **Permanent on Home**—a Search GoreeCloud affordance that opens Launcher Universal Search.
@@ -44,6 +60,12 @@ The rebuilt primary Home is a launcher-style surface rather than an engineering 
 A one-finger downward gesture on the unobstructed Home search zone opens Launcher Universal Search in both supported Home-entry modes. **Swipe down only** removes the persistent Search GoreeCloud affordance while retaining the Launcher-owned search gesture.
 
 Current supported settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps layout modes of Grid/Compact/List, Apps columns of 4/5/6 for grid-based modes, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and Launcher Universal Search Home-entry mode.
+
+Home automatic app presentation is independently configurable as **No apps**, **10 most recent**, or **10 most used**. Recent/most-used suggestions are presentation-only and must occupy only otherwise-empty Home cells; they must not mutate or reorder persisted Room-authoritative Favorites, folders, widgets, or Dock placement. Manual drag/drop and Add to Home remain available in every mode. Suggested apps that are not persisted Favorites must not masquerade as writable saved placements.
+
+Recent/most-used ranking is Launcher-local. The current privacy boundary permits application workspace keys, aggregate Launcher launch counts, and a bounded recency ordering only. The Launcher must not request Android Usage Access merely to populate these modes and must not retain launch timestamps, dwell time, cross-application activity history, typed Search queries, or network telemetry for this ranking.
+
+Built-in hints should teach high-value Launcher interactions without permanently occupying the Home. The first Home hint covers swipe-up Apps, swipe-down Universal Search, empty-space long-press editing, and drag/drop; it is dismissible and replayable from Launcher Settings. Hint state is local preference state and must not become telemetry.
 
 When layout lock is enabled, current Favorite, Dock, primary Home cell placement, Home-page create/delete/reorder, secondary-to-secondary movement, and current secondary spatial mutation callbacks are blocked at the Launcher composition boundary. App launching, Home page selection, navigation, and non-placement presentation settings remain usable. Primary placement-dialog mutation controls are disabled while locked.
 
@@ -59,7 +81,7 @@ The Apps filter is a specialized Launcher-owned view backed by the installed-app
 
 ### Launcher Settings
 
-Launcher Settings is a distinct scrollable surface. Current persisted settings include Home grid, Apps layout (Grid/Compact/List), Apps columns, app-label visibility, icon-size presentation, System/Light/Dark appearance, **Lock Home screen layout**, and the Launcher Universal Search **Permanent on Home / Swipe down only** entry choice. Drawer layout remains local presentation state outside the strict seven-field `goreecloud-launcher-preferences/1` backup/recovery format until a separately versioned portability extension is accepted.
+Launcher Settings is a distinct scrollable surface. Current persisted settings include Home grid, automatic Home app mode (**No apps / 10 most recent / 10 most used**), Home and drawer label controls, Apps layout (Grid/Compact/List), Apps columns, icon-size presentation, System/Light/Dark appearance, **Lock Home screen layout**, Launcher hint replay, and the Launcher Universal Search **Permanent on Home / Swipe down only** entry choice. Drawer layout remains local presentation state outside the strict seven-field `goreecloud-launcher-preferences/1` backup/recovery format until a separately versioned portability extension is accepted.
 
 Most settings remain presentation/policy state. Home-grid changes are the bounded exception after primary spatial activation: Launcher validates or safely reflows authoritative primary Home coordinates through the existing Room mutation boundary before persisting a smaller/different grid. The layout-lock preference restricts Launcher mutation dispatch; the Universal Search entry preference controls Launcher-owned invocation presentation only.
 
