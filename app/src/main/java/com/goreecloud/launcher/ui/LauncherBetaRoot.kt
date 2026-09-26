@@ -113,6 +113,7 @@ import com.goreecloud.launcher.core.launcher.LauncherDrawerSpacing
 import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomeLabelPolicy
+import com.goreecloud.launcher.core.launcher.LauncherHomeSuggestionsPolicy
 import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
@@ -211,6 +212,7 @@ fun LauncherBetaRoot(
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
+    recentAppKeys: List<String>,
     searchProviderPreferences: com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult?,
     fileSearchRoots: List<Uri>,
     homePageCount: Int,
@@ -532,6 +534,7 @@ fun LauncherBetaRoot(
                 workspace = workspace,
                 preferences = preferences,
                 experiencePreferences = experiencePreferences,
+                recentAppKeys = recentAppKeys,
                 homePageCount = homePageCount,
                 homeEditorRequestSequence = homeEditorRequestSequence,
                 homeLabelOverrides = homeLabelOverrides,
@@ -911,6 +914,7 @@ private fun HomeSurface(
     workspace: WorkspaceState,
     preferences: LauncherPreferences,
     experiencePreferences: LauncherExperiencePreferences,
+    recentAppKeys: List<String>,
     homePageCount: Int,
     homeEditorRequestSequence: Long,
     homeLabelOverrides: Map<String, String>,
@@ -952,11 +956,33 @@ private fun HomeSurface(
         val personalUser = Process.myUserHandle()
         apps.filter { it.user == personalUser }
     }
-    val favoriteApps = remember(appsByKey, workspace.favoriteKeys, preferences.homeCapacity) {
+    val savedFavoriteApps = remember(appsByKey, workspace.favoriteKeys, preferences.homeCapacity) {
         workspace.favoriteKeys.mapNotNull(appsByKey::get).take(preferences.homeCapacity)
     }
     val dockApps = remember(appsByKey, workspace.dockKeys) {
         workspace.dockKeys.mapNotNull(appsByKey::get).take(MAX_DOCK_ITEMS)
+    }
+    val useLiveRecentHome = experiencePreferences.useLocalUsageForSuggestions &&
+        primaryHomePage?.widgetPlacements.isNullOrEmpty() &&
+        primaryHomePage?.folderPlacements.isNullOrEmpty()
+    val favoriteApps = remember(
+        appsByKey,
+        recentAppKeys,
+        workspace.favoriteKeys,
+        workspace.dockKeys,
+        preferences.homeCapacity,
+        useLiveRecentHome,
+    ) {
+        if (!useLiveRecentHome) {
+            savedFavoriteApps
+        } else {
+            LauncherHomeSuggestionsPolicy.selectKeys(
+                recentAppKeys = recentAppKeys,
+                savedFavoriteKeys = workspace.favoriteKeys,
+                dockKeys = workspace.dockKeys,
+                limit = minOf(10, preferences.homeCapacity),
+            ).mapNotNull(appsByKey::get)
+        }
     }
 
     LaunchedEffect(preferences.homeColumns, preferences.homeRows) {
@@ -1230,6 +1256,7 @@ private fun HomeSurface(
             ) {
                 HomeFavoritesGrid(
                     apps = favoriteApps,
+                    pinnedAppKeys = workspace.favoriteKeys.toSet(),
                     allApps = personalApps,
                     folders = folders,
                     columns = preferences.homeColumns,
@@ -2117,6 +2144,7 @@ private fun HomeAtAGlance(
 @Composable
 private fun HomeFavoritesGrid(
     apps: List<LauncherActivityInfo>,
+    pinnedAppKeys: Set<String>,
     allApps: List<LauncherActivityInfo>,
     folders: List<LauncherFolder>,
     columns: Int,
@@ -2222,8 +2250,11 @@ private fun HomeFavoritesGrid(
                     put(app.workspaceKey(), cellX to cellY)
                 }
             } else {
-                apps.take(columns * rows).forEachIndexed { index, app ->
-                    put(app.workspaceKey(), (index % columns) to (index / columns))
+                val visibleCount = apps.size.coerceAtMost(columns * rows)
+                val occupiedRows = if (visibleCount == 0) 0 else (visibleCount + columns - 1) / columns
+                val firstRow = (rows - occupiedRows).coerceAtLeast(0)
+                apps.take(visibleCount).forEachIndexed { index, app ->
+                    put(app.workspaceKey(), (index % columns) to (firstRow + index / columns))
                 }
             }
         }
@@ -2296,7 +2327,7 @@ private fun HomeFavoritesGrid(
                 showLabel = showLabels,
                 layoutLocked = layoutLocked,
                 editMode = editMode,
-                dragData = if (layoutLocked) null else {
+                dragData = if (layoutLocked || appKey !in pinnedAppKeys) null else {
                     LauncherAppDragData(
                         appKey = appKey,
                         origin = LauncherAppDragOrigin.HOME,
