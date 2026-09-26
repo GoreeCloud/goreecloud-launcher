@@ -148,6 +148,20 @@ enum class LauncherHomeSpacing(val storageValue: String) {
     }
 }
 
+enum class LauncherHomeAppMode(
+    val storageValue: String,
+    val displayName: String,
+) {
+    NONE("none", "No automatic apps"),
+    RECENT("recent", "10 most recent"),
+    MOST_USED("most_used", "10 most used");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeAppMode =
+            entries.firstOrNull { it.storageValue == value } ?: NONE
+    }
+}
+
 enum class LauncherDockStyle(val storageValue: String) {
     GLASS("glass"),
     CLEAR("clear"),
@@ -284,8 +298,11 @@ data class LauncherExperiencePreferences(
     val tapAndHoldAction: LauncherGestureAction =
         LauncherGestureAction.builtIn(LauncherGestureActionType.HOME_EDITOR),
     val starterLayoutApplied: Boolean = false,
-    val useLocalUsageForSuggestions: Boolean = true,
+    val homeAppMode: LauncherHomeAppMode = LauncherHomeAppMode.NONE,
+    val useLocalUsageForSuggestions: Boolean = false,
     val addNewAppsToHome: Boolean = false,
+    val startupWizardCompleted: Boolean = false,
+    val homeHintsDismissed: Boolean = false,
 )
 
 data class LauncherPreferences(
@@ -350,9 +367,12 @@ class LauncherPreferencesRepository(
         val gestureDoubleTapAction = stringPreferencesKey("gesture_double_tap_action")
         val gestureTapAndHoldAction = stringPreferencesKey("gesture_tap_and_hold_action")
         val starterLayoutApplied = booleanPreferencesKey("starter_layout_applied")
+        val homeAppMode = stringPreferencesKey("home_app_mode_v1")
         val useLocalUsageForSuggestions =
             booleanPreferencesKey("use_local_usage_for_suggestions")
         val addNewAppsToHome = booleanPreferencesKey("add_new_apps_to_home")
+        val startupWizardCompleted = booleanPreferencesKey("startup_wizard_completed_v1")
+        val homeHintsDismissed = booleanPreferencesKey("home_hints_dismissed_v1")
         val homeLabelOverrides = stringPreferencesKey("home_label_overrides_v1")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
@@ -434,9 +454,17 @@ class LauncherPreferencesRepository(
                     LauncherGestureAction.builtIn(LauncherGestureActionType.HOME_EDITOR),
                 ),
                 starterLayoutApplied = values[Keys.starterLayoutApplied] ?: false,
+                homeAppMode = LauncherHomeAppMode.fromStorage(values[Keys.homeAppMode]),
                 useLocalUsageForSuggestions =
-                    values[Keys.useLocalUsageForSuggestions] ?: true,
+                    values[Keys.useLocalUsageForSuggestions]
+                        ?: (LauncherHomeAppMode.fromStorage(values[Keys.homeAppMode]) != LauncherHomeAppMode.NONE),
                 addNewAppsToHome = values[Keys.addNewAppsToHome] ?: false,
+                startupWizardCompleted =
+                    values[Keys.startupWizardCompleted]
+                        ?: (values[Keys.starterLayoutApplied] ?: false),
+                homeHintsDismissed =
+                    values[Keys.homeHintsDismissed]
+                        ?: (values[Keys.starterLayoutApplied] ?: false),
             )
         }
         .distinctUntilChanged()
@@ -713,10 +741,36 @@ class LauncherPreferencesRepository(
         }
     }
 
-    fun setUseLocalUsageForSuggestions(enabled: Boolean) {
+    fun setHomeAppMode(mode: LauncherHomeAppMode) {
         scope.launch {
             dataStore.edit { values ->
-                values[Keys.useLocalUsageForSuggestions] = enabled
+                values[Keys.homeAppMode] = mode.storageValue
+                values[Keys.useLocalUsageForSuggestions] = mode != LauncherHomeAppMode.NONE
+            }
+        }
+    }
+
+    /**
+     * Compatibility setter for older call sites. New UI should use [setHomeAppMode].
+     */
+    fun setUseLocalUsageForSuggestions(enabled: Boolean) {
+        setHomeAppMode(
+            if (enabled) LauncherHomeAppMode.RECENT else LauncherHomeAppMode.NONE,
+        )
+    }
+
+    fun markStartupWizardCompleted() {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.startupWizardCompleted] = true
+            }
+        }
+    }
+
+    fun setHomeHintsDismissed(dismissed: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeHintsDismissed] = dismissed
             }
         }
     }
