@@ -129,6 +129,8 @@ Validation:
 GoreeCloud Launcher owns the user-facing Universal Search experience. Current implemented Development capabilities include:
 
 - A distinct Launcher-owned Universal Search surface that remains usable without GoreeCloud Search or GoreeCloud Index.
+- PR #248 Development source reduces the idle Universal Search presentation to one focused Glaze search field with a leading search glyph, **“Find anything on your device…”** prompt, and an in-field settings control; result panels, status messaging, categories, and provider handoffs remain hidden until typing or another explicit action makes them relevant.
+- Universal Search source management remains directly reachable from that settings control without reintroducing a persistent management row or weakening the existing opt-in/privacy boundary.
 - Installed-app search backed by Android `LauncherApps` inventory.
 - Trusted local Launcher actions/settings destinations.
 - Deterministic local ranking, aggregation, deduplication, and fail-soft provider behavior.
