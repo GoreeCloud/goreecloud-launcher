@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
@@ -46,12 +47,12 @@ class LauncherStartupWizardRuntimeTest {
 
         composeRule.onNodeWithText("No automatic apps").assertIsDisplayed()
         composeRule.onNodeWithText("10 most recent apps").assertIsDisplayed()
-        composeRule.onNodeWithText("10 most used apps").assertIsDisplayed()
+        composeRule.onNodeWithText("10 most used apps").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("10 most used apps").performClick()
-        composeRule.onNodeWithText("Continue").performClick()
+        composeRule.onNodeWithText("Continue").performScrollTo().performClick()
 
         composeRule.onNodeWithText("Search, gestures, and hints").assertIsDisplayed()
-        composeRule.onNodeWithText("Finish setup").performClick()
+        composeRule.onNodeWithText("Finish setup").performScrollTo().performClick()
 
         composeRule.waitUntil(timeoutMillis = 5_000) { completed != null }
         val result = completed
