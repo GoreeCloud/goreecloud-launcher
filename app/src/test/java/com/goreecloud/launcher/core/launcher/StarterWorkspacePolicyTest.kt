@@ -92,6 +92,31 @@ class StarterWorkspacePolicyTest {
     }
 
     @Test
+    fun homeSuggestionsPreferLaunchOrderWithoutDockDuplicates() {
+        assertEquals(
+            listOf("new", "older", "savedA", "savedB"),
+            LauncherHomeSuggestionsPolicy.selectKeys(
+                recentAppKeys = listOf("dock", "new", "older", "new"),
+                savedFavoriteKeys = listOf("savedA", "dock", "savedB"),
+                dockKeys = listOf("dock"),
+                limit = 4,
+            ),
+        )
+    }
+
+    @Test
+    fun homeSuggestionsUseDefaultTenItemBound() {
+        assertEquals(
+            (0 until 10).map { "item-$it" },
+            LauncherHomeSuggestionsPolicy.selectKeys(
+                recentAppKeys = (0 until 14).map { "item-$it" },
+                savedFavoriteKeys = emptyList(),
+                dockKeys = emptyList(),
+            ),
+        )
+    }
+
+    @Test
     fun tenStarterAppsOccupyBottomTwoRowsOfFiveBySixHome() {
         assertEquals(
             listOf(
